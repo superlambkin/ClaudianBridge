@@ -1,0 +1,9 @@
+{
+  "id": "claudian-bridge",
+  "name": "Claudian Bridge",
+  "version": "0.1.0",
+  "minAppVersion": "1.7.2",
+  "description": "Unified Claudian integration: Add to Claudian (text+folder), Add to TTS, Office-to-Markdown, extension whitelist.",
+  "author": "MiuMiu",
+  "isDesktopOnly": true
+}

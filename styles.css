@@ -1,0 +1,2 @@
+/* Claudian Bridge スタイル — 各機能のスタイルは features/<feature>/styles.module.css に分割 */
+.cb-empty { color: var(--text-muted); padding: 1em; text-align: center; }
