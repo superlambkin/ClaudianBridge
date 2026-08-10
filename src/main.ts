@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, Notice } from 'obsidian';
 import { ConfigStore } from './core/config-store';
 import { SettingTabGeneral } from './settings/SettingTabGeneral';
 import { SettingTabSelection } from './settings/SettingTabSelection';
@@ -9,6 +9,7 @@ import { setupSelectionWatcher } from './features/selection/watcher';
 import { addTextToTTS } from './features/tts/core';
 import { migrateFromLegacy } from './legacy/migration';
 import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
+import { OfficeMenuRegistrar } from './features/office/menu';
 import * as path from 'path';
 
 export default class ClaudianBridgePlugin extends Plugin {
@@ -67,6 +68,19 @@ export default class ClaudianBridgePlugin extends Plugin {
     this.store.watch(() => {
       /* 外部変更時のフック */
     });
+
+    // 5. Office 変換メニュー登録（registerFileMenu が内部で registerEvent を呼ぶ）
+    const officeSettingsRef = () => this.store.load().office;
+    const openSettings = () => {
+      const setting = (this.app as unknown as {
+        setting?: { openTabById?: (id: string) => void; open?: () => void };
+      }).setting;
+      if (!setting) { new Notice('[claudian-bridge] settings API unavailable'); return; }
+      setting.open?.();
+      try { setting.openTabById?.(this.manifest.id); } catch { /* best-effort */ }
+    };
+    OfficeMenuRegistrar.registerFileMenu(this, this.app, officeSettingsRef, openSettings);
+    OfficeMenuRegistrar.registerMultiSelect(this, this.app, officeSettingsRef, openSettings);
 
     console.log('[claudian-bridge] loaded');
   }
