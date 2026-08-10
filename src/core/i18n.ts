@@ -8,6 +8,29 @@ export interface LocaleStrings {
   tabOffice: string;
   tabWhitelist: string;
   settingsTitle: string;
+  noticeSaved: string;
+  noticeSaveFailed: string;
+  generalEnabled: string;
+  generalEnabledDesc: string;
+  selectionEnabled: string;
+  selectionEnabledDesc: string;
+  selectionDelayMs: string;
+  selectionDelayMsDesc: string;
+  ttsEnabled: string;
+  ttsEnabledDesc: string;
+  ttsEngine: string;
+  ttsEngineDesc: string;
+  ttsEngineEdge: string;
+  ttsEngineClaudetts: string;
+  ttsEngineAuto: string;
+  ttsEngineWebspeech: string;
+  ttsEngineMinimax: string;
+  ttsMinimaxHeading: string;
+  ttsMinimaxEnabled: string;
+  ttsMinimaxApiKey: string;
+  ttsMinimaxVoiceZh: string;
+  ttsMinimaxVoiceJa: string;
+  ttsMinimaxVoiceEn: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -47,6 +70,8 @@ export interface LocaleStrings {
   whitelistApplyButton: string;
   whitelistAlwaysShowFolders: string;
   whitelistAlwaysShowFoldersDesc: string;
+  whitelistAllFilesShown: string;
+  whitelistOptionsHeading: string;
   whitelistReset: string;
   whitelistResetDesc: string;
   whitelistResetButton: string;
@@ -60,6 +85,29 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabOffice: '📄 ファイル変換',
     tabWhitelist: '🗂️ 拡張子フィルタ',
     settingsTitle: 'Claudian Bridge 設定',
+    noticeSaved: '✅ 保存しました',
+    noticeSaveFailed: '⚠️ 保存失敗: {msg}',
+    generalEnabled: '🌐 プラグイン有効化',
+    generalEnabledDesc: 'Claudian Bridge 全体を ON/OFF',
+    selectionEnabled: '🌐 機能 ON/OFF',
+    selectionEnabledDesc: '選択テキストを Claudian 入力に挿入する機能を有効化',
+    selectionDelayMs: '⏱️ ポップアップ遅延 (ms)',
+    selectionDelayMsDesc: '選択後フローティングボタンが表示されるまでの遅延',
+    ttsEnabled: '🌐 機能 ON/OFF',
+    ttsEnabledDesc: 'Add to TTS を有効化',
+    ttsEngine: '🔊 TTS エンジン',
+    ttsEngineDesc: '音声合成エンジンを選択',
+    ttsEngineEdge: 'ClaudeTTS (edge-tts → pyttsx3 → system.speech)',
+    ttsEngineClaudetts: 'ClaudeTTS HTTP bridge',
+    ttsEngineAuto: '自動 (ClaudeTTS → Web Speech フォールバック)',
+    ttsEngineWebspeech: 'Web SpeechSynthesis API',
+    ttsEngineMinimax: 'MiniMax クラウド TTS',
+    ttsMinimaxHeading: '🎤 MiniMax クラウド TTS',
+    ttsMinimaxEnabled: '有効化',
+    ttsMinimaxApiKey: 'API Key',
+    ttsMinimaxVoiceZh: 'Chinese voice ID',
+    ttsMinimaxVoiceJa: 'Japanese voice ID',
+    ttsMinimaxVoiceEn: 'English voice ID',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -99,6 +147,8 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistApplyButton: '適用',
     whitelistAlwaysShowFolders: '📁 フォルダは常に表示',
     whitelistAlwaysShowFoldersDesc: 'フォルダをフィルター対象外とする',
+    whitelistAllFilesShown: '（すべてのファイルが表示されます）',
+    whitelistOptionsHeading: '⚙️ オプション',
     whitelistReset: '🔄 デフォルトにリセット',
     whitelistResetDesc: 'すべての設定を初期状態に戻します',
     whitelistResetButton: 'リセット',
@@ -111,6 +161,29 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabOffice: '📄 File Conversion',
     tabWhitelist: '🗂️ Extension Filter',
     settingsTitle: 'Claudian Bridge Settings',
+    noticeSaved: '✅ Saved',
+    noticeSaveFailed: '⚠️ Save failed: {msg}',
+    generalEnabled: '🌐 Enable Plugin',
+    generalEnabledDesc: 'Toggle Claudian Bridge globally',
+    selectionEnabled: '🌐 Enable Feature',
+    selectionEnabledDesc: 'Insert selected text into Claudian input',
+    selectionDelayMs: '⏱️ Popup delay (ms)',
+    selectionDelayMsDesc: 'Delay before the floating button appears after selection',
+    ttsEnabled: '🌐 Enable Feature',
+    ttsEnabledDesc: 'Enable Add to TTS',
+    ttsEngine: '🔊 TTS Engine',
+    ttsEngineDesc: 'Select the speech synthesis engine',
+    ttsEngineEdge: 'ClaudeTTS (edge-tts → pyttsx3 → system.speech)',
+    ttsEngineClaudetts: 'ClaudeTTS HTTP bridge',
+    ttsEngineAuto: 'Auto (ClaudeTTS → Web Speech fallback)',
+    ttsEngineWebspeech: 'Web SpeechSynthesis API',
+    ttsEngineMinimax: 'MiniMax cloud TTS',
+    ttsMinimaxHeading: '🎤 MiniMax Cloud TTS',
+    ttsMinimaxEnabled: 'Enable',
+    ttsMinimaxApiKey: 'API Key',
+    ttsMinimaxVoiceZh: 'Chinese voice ID',
+    ttsMinimaxVoiceJa: 'Japanese voice ID',
+    ttsMinimaxVoiceEn: 'English voice ID',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -150,6 +223,8 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistApplyButton: 'Apply',
     whitelistAlwaysShowFolders: '📁 Always show folders',
     whitelistAlwaysShowFoldersDesc: 'Folders are not affected by the filter',
+    whitelistAllFilesShown: '（All files are shown）',
+    whitelistOptionsHeading: '⚙️ Options',
     whitelistReset: '🔄 Reset to default',
     whitelistResetDesc: 'Restore all settings to defaults',
     whitelistResetButton: 'Reset',
@@ -162,6 +237,29 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabOffice: '📄 文件转换',
     tabWhitelist: '🗂️ 扩展名过滤',
     settingsTitle: 'Claudian Bridge 设置',
+    noticeSaved: '✅ 已保存',
+    noticeSaveFailed: '⚠️ 保存失败: {msg}',
+    generalEnabled: '🌐 启用插件',
+    generalEnabledDesc: '全局开关 Claudian Bridge',
+    selectionEnabled: '🌐 启用功能',
+    selectionEnabledDesc: '将选中文本插入 Claudian 输入框',
+    selectionDelayMs: '⏱️ 弹窗延迟 (毫秒)',
+    selectionDelayMsDesc: '选中后到悬浮按钮出现的延迟',
+    ttsEnabled: '🌐 启用功能',
+    ttsEnabledDesc: '启用 Add to TTS',
+    ttsEngine: '🔊 TTS 引擎',
+    ttsEngineDesc: '选择语音合成引擎',
+    ttsEngineEdge: 'ClaudeTTS (edge-tts → pyttsx3 → system.speech)',
+    ttsEngineClaudetts: 'ClaudeTTS HTTP bridge',
+    ttsEngineAuto: '自动 (ClaudeTTS → Web Speech 回退)',
+    ttsEngineWebspeech: 'Web SpeechSynthesis API',
+    ttsEngineMinimax: 'MiniMax 云 TTS',
+    ttsMinimaxHeading: '🎤 MiniMax 云 TTS',
+    ttsMinimaxEnabled: '启用',
+    ttsMinimaxApiKey: 'API 密钥',
+    ttsMinimaxVoiceZh: '中文语音 ID',
+    ttsMinimaxVoiceJa: '日语语音 ID',
+    ttsMinimaxVoiceEn: '英语语音 ID',
     resetMigration: '🔄 重新导入旧设置',
     resetMigrationDesc: '从旧插件 data.json 重新导入（需重启 Obsidian）',
     resetMigrationButton: '🔄 重置迁移',
@@ -201,6 +299,8 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistApplyButton: '应用',
     whitelistAlwaysShowFolders: '📁 始终显示文件夹',
     whitelistAlwaysShowFoldersDesc: '文件夹不受过滤影响',
+    whitelistAllFilesShown: '（将显示所有文件）',
+    whitelistOptionsHeading: '⚙️ 选项',
     whitelistReset: '🔄 恢复默认',
     whitelistResetDesc: '将所有设置恢复为默认值',
     whitelistResetButton: '重置',

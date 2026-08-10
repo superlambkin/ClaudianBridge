@@ -32,9 +32,9 @@ export class SettingTabOffice extends PluginSettingTab {
         try {
           const latest = this.store.load();
           this.store.save({ ...latest, office: { ...latest.office, enabled: v } });
-          new Notice('✅ 保存しました');
+          new Notice(s.noticeSaved);
         } catch (e) {
-          new Notice(`⚠️ 保存失敗: ${(e as Error).message}`);
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           this.display();
         }
       }));
@@ -46,7 +46,7 @@ export class SettingTabOffice extends PluginSettingTab {
         try {
           const latest = this.store.load();
           this.store.save({ ...latest, office: { ...latest.office, pythonPath: v } });
-        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
+        } catch (e) { new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message)); this.display(); }
       }));
 
     new Setting(containerEl)
@@ -57,7 +57,7 @@ export class SettingTabOffice extends PluginSettingTab {
           const latest = this.store.load();
           const list = v.split(',').map((x) => x.trim()).filter(Boolean);
           this.store.save({ ...latest, office: { ...latest.office, enabledExtensions: list } });
-        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
+        } catch (e) { new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message)); this.display(); }
       }));
 
     new Setting(containerEl)
@@ -69,7 +69,7 @@ export class SettingTabOffice extends PluginSettingTab {
           try {
             const latest = this.store.load();
             this.store.save({ ...latest, office: { ...latest.office, conflictPolicy: v as typeof cfg.office.conflictPolicy } });
-          } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
+          } catch (e) { new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message)); this.display(); }
         });
       });
 
@@ -80,7 +80,7 @@ export class SettingTabOffice extends PluginSettingTab {
         try {
           const latest = this.store.load();
           this.store.save({ ...latest, office: { ...latest.office, frontmatterTemplate: v } });
-        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
+        } catch (e) { new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message)); this.display(); }
       }));
 
     new Setting(containerEl)
@@ -90,7 +90,7 @@ export class SettingTabOffice extends PluginSettingTab {
         try {
           const latest = this.store.load();
           this.store.save({ ...latest, office: { ...latest.office, outputDirOverride: v } });
-        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
+        } catch (e) { new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message)); this.display(); }
       }));
 
     new Setting(containerEl)
@@ -100,7 +100,7 @@ export class SettingTabOffice extends PluginSettingTab {
         try {
           const latest = this.store.load();
           this.store.save({ ...latest, office: { ...latest.office, showProgressModal: v } });
-        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
+        } catch (e) { new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message)); this.display(); }
       }));
   }
 }

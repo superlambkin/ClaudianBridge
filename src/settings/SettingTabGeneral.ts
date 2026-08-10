@@ -21,14 +21,14 @@ export class SettingTabGeneral extends PluginSettingTab {
     containerEl.createEl('h2', { text: strings.tabGeneral });
 
     new Setting(containerEl)
-      .setName('🌐 プラグイン有効化')
-      .setDesc('Claudian Bridge 全体を ON/OFF')
+      .setName(strings.generalEnabled)
+      .setDesc(strings.generalEnabledDesc)
       .addToggle((t) => t.setValue(cfg.general.enabled).onChange((v) => {
         try {
           this.store.save({ ...cfg, general: { ...cfg.general, enabled: v } });
-          new Notice('✅ 保存しました');
+          new Notice(strings.noticeSaved);
         } catch (e) {
-          new Notice(`⚠️ 保存失敗: ${(e as Error).message}`);
+          new Notice(strings.noticeSaveFailed.replace('{msg}', (e as Error).message));
           this.display();
         }
       }));

@@ -1,32 +1,40 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
+import { getLocaleStrings } from '../core/i18n';
 
 export class SettingTabSelection extends PluginSettingTab {
+  private pluginRef: Plugin;
+
   constructor(app: App, plugin: Plugin, private store: ConfigStore) {
     super(app, plugin);
+    this.pluginRef = plugin;
   }
 
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    const lang = (this.pluginRef as unknown as { env?: { language?: string } }).env?.language ?? 'en';
+    const s = getLocaleStrings(lang);
     const cfg = this.store.load();
 
+    containerEl.createEl('h2', { text: s.tabSelection });
+
     new Setting(containerEl)
-      .setName('🌐 機能 ON/OFF')
-      .setDesc('選択テキストを Claudian 入力に挿入する機能を有効化')
+      .setName(s.selectionEnabled)
+      .setDesc(s.selectionEnabledDesc)
       .addToggle((t) => t.setValue(cfg.selection.enabled).onChange((v) => {
         try {
           this.store.save({ ...cfg, selection: { ...cfg.selection, enabled: v } });
-          new Notice('✅ 保存しました');
+          new Notice(s.noticeSaved);
         } catch (e) {
-          new Notice(`⚠️ 保存失敗: ${(e as Error).message}`);
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           this.display();
         }
       }));
 
     new Setting(containerEl)
-      .setName('⏱️ ポップアップ遅延 (ms)')
-      .setDesc('選択後フローティングボタンが表示されるまでの遅延')
+      .setName(s.selectionDelayMs)
+      .setDesc(s.selectionDelayMsDesc)
       .addText((t) => t.setValue(String(cfg.selection.delayMs)).onChange((v) => {
         if (v === '') return;
         const n = Number(v);
@@ -34,7 +42,7 @@ export class SettingTabSelection extends PluginSettingTab {
         try {
           this.store.save({ ...cfg, selection: { ...cfg.selection, delayMs: n } });
         } catch (e) {
-          new Notice(`⚠️ 保存失敗: ${(e as Error).message}`);
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           this.display();
         }
       }));

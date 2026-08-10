@@ -34,9 +34,9 @@ export class SettingTabWhitelist extends PluginSettingTab {
         try {
           const latest = this.store.load();
           this.store.save({ ...latest, whitelist: { ...latest.whitelist, enabled: v } });
-          new Notice('✅ 保存しました');
+          new Notice(s.noticeSaved);
         } catch (e) {
-          new Notice(`⚠️ 保存失敗: ${(e as Error).message}`);
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           this.display();
         }
       }));
@@ -65,7 +65,7 @@ export class SettingTabWhitelist extends PluginSettingTab {
     // タグ
     if (cfg.whitelist.extensions.length === 0) {
       containerEl.createEl('p', {
-        text: '（すべてのファイルが表示されます）',
+        text: s.whitelistAllFilesShown,
         attr: { style: 'color: var(--text-muted); font-style: italic;' },
       });
     } else {
@@ -86,7 +86,7 @@ export class SettingTabWhitelist extends PluginSettingTab {
             });
             this.display();
           } catch (e) {
-            new Notice(`⚠️ ${(e as Error).message}`);
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
             this.display();
           }
         });
@@ -117,14 +117,14 @@ export class SettingTabWhitelist extends PluginSettingTab {
           this.store.save({ ...latest, whitelist: { ...latest.whitelist, extensions: next } });
           this.display();
         } catch (e) {
-          new Notice(`⚠️ ${(e as Error).message}`);
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           this.display();
         }
       });
     });
 
     // フォルダ常時表示
-    containerEl.createEl('h3', { text: '⚙️ オプション' });
+    containerEl.createEl('h3', { text: s.whitelistOptionsHeading });
     new Setting(containerEl)
       .setName(s.whitelistAlwaysShowFolders)
       .setDesc(s.whitelistAlwaysShowFoldersDesc)
@@ -133,7 +133,7 @@ export class SettingTabWhitelist extends PluginSettingTab {
           const latest = this.store.load();
           this.store.save({ ...latest, whitelist: { ...latest.whitelist, alwaysShowFolders: v } });
         } catch (e) {
-          new Notice(`⚠️ ${(e as Error).message}`);
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           this.display();
         }
       }));
@@ -149,7 +149,7 @@ export class SettingTabWhitelist extends PluginSettingTab {
           this.store.save({ ...latest, whitelist: { ...DEFAULT_WHITELIST_SETTINGS } });
           this.display();
         } catch (e) {
-          new Notice(`⚠️ ${(e as Error).message}`);
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           this.display();
         }
       }));

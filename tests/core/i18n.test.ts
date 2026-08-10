@@ -24,4 +24,19 @@ describe('i18n', () => {
     expect(getLocaleStrings('en').whitelistEnabled).toContain('Enable');
     expect(getLocaleStrings('zh').whitelistEnabled).toContain('启用');
   });
+  it('全タブのラベル・Notice・エンジン名を 3 言語で持つ', () => {
+    const ja = getLocaleStrings('ja');
+    const en = getLocaleStrings('en');
+    const zh = getLocaleStrings('zh');
+    expect(ja.noticeSaved).toContain('保存');
+    expect(en.noticeSaved).toContain('Saved');
+    expect(zh.noticeSaved).toContain('保存');
+    expect(en.generalEnabled).toContain('Enable');
+    expect(zh.selectionDelayMs).toContain('延迟');
+    expect(ja.ttsEngine).toContain('エンジン');
+    expect(en.ttsEngineAuto).toContain('Auto');
+    expect(zh.ttsMinimaxHeading).toContain('MiniMax');
+    expect(ja.whitelistOptionsHeading).toContain('オプション');
+    expect(en.whitelistAllFilesShown).toContain('All files');
+  });
 });
