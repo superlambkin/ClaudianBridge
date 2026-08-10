@@ -1,8 +1,9 @@
 import { Notice, Setting } from 'obsidian';
+import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 
-export function renderSelectionTab(containerEl: HTMLElement, store: ConfigStore): void {
+export function renderSelectionTab(_app: App, containerEl: HTMLElement, store: ConfigStore): void {
   const s = getLocaleStrings(getUILanguage());
 
   const draw = (): void => {

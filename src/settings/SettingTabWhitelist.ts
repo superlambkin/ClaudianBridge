@@ -1,10 +1,11 @@
 import { Notice, Setting } from 'obsidian';
+import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { DEFAULT_WHITELIST_SETTINGS } from '../core/settings';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { WHITELIST_PRESETS } from '../features/whitelist/presets';
 
-export function renderWhitelistTab(containerEl: HTMLElement, store: ConfigStore): void {
+export function renderWhitelistTab(_app: App, containerEl: HTMLElement, store: ConfigStore): void {
   const s = getLocaleStrings(getUILanguage());
 
   const draw = (): void => {

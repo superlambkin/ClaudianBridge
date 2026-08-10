@@ -190,7 +190,14 @@ export async function minimaxTtsSpeak(app: App | null, text: string, settings: T
   }
   let resp: { status: number; json: { ok?: boolean; data?: { audio?: string }; error?: string } };
   try {
-    resp = await app.requestUrl({
+    const requestUrl = (app as unknown as {
+      requestUrl?: (opts: { url: string; method: string; headers: Record<string, string>; body: string }) => Promise<typeof resp>;
+    }).requestUrl;
+    if (!requestUrl) {
+      noticeFn('⚠️ app.requestUrl が利用できません');
+      return false;
+    }
+    resp = await requestUrl({
       url: 'https://api.MiniMax.chat/v1/t2a_v2',
       method: 'POST',
       headers: { Authorization: `Bearer ${mm.apiKey}`, 'Content-Type': 'application/json' },
@@ -224,11 +231,14 @@ export async function playHexAudio(hex: string, format: string, noticeFn?: Notic
     noticeFn?.('⚠️ 音声データが空です');
     return false;
   }
-  // Build a blob URL
+  // Build a blob URL — cast to ArrayBuffer view since Blob constructor accepts ArrayBuffer | TypedArray
   const mime = format === 'wav' ? 'audio/wav' : format === 'pcm' ? 'audio/pcm' : 'audio/mpeg';
   let url: string;
   try {
-    const blob = new Blob([bytes], { type: mime });
+    // Slice into a fresh ArrayBuffer to satisfy Blob's BlobPart type strictness under TS lib mismatch
+    const ab = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(ab).set(bytes);
+    const blob = new Blob([ab], { type: mime });
     url = URL.createObjectURL(blob);
   } catch (e) {
     noticeFn?.(`⚠️ Blob 作成失敗: ${(e as Error).message}`);

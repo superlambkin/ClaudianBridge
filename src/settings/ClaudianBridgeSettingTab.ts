@@ -7,10 +7,12 @@ import { renderTtsTab } from './SettingTabTts';
 import { renderOfficeTab } from './SettingTabOffice';
 import { renderWhitelistTab } from './SettingTabWhitelist';
 
+type RenderFn = (app: App, el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>) => void;
+
 interface TabDef {
   id: string;
   labelKey: 'tabGeneral' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist';
-  render: (app: App, el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>) => void;
+  render: RenderFn;
 }
 
 const TABS: TabDef[] = [

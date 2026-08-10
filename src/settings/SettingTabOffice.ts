@@ -1,4 +1,5 @@
 import { Notice, Setting } from 'obsidian';
+import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 
@@ -8,7 +9,7 @@ const CONFLICT_OPTIONS = [
   { key: 'timestamp' as const, labelKey: 'officeConflictTimestamp' as const },
 ];
 
-export function renderOfficeTab(containerEl: HTMLElement, store: ConfigStore): void {
+export function renderOfficeTab(_app: App, containerEl: HTMLElement, store: ConfigStore): void {
   const s = getLocaleStrings(getUILanguage());
 
   const draw = (): void => {
