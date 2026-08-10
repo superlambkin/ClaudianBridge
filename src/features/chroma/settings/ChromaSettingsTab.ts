@@ -24,6 +24,33 @@ export function renderChromaTab(app: App, containerEl: HTMLElement, store: Confi
       cls: "setting-item-description",
     });
 
+    // ───── Master toggle (mirror renderOfficeTab.officeEnabled pattern) ─────
+    new Setting(containerEl)
+      .setName(s.chromaEnabled)
+      .setDesc(s.chromaEnabledDesc)
+      .addToggle((t) =>
+        t.setValue(cfg.chroma.enabled).onChange((v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, chroma: { ...latest.chroma, enabled: v } });
+            new Notice(s.noticeSaved);
+            draw();
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        })
+      );
+
+    // ───── Disabled state: render only the notice, no other Settings ─────
+    if (!cfg.chroma.enabled) {
+      containerEl.createEl("p", {
+        text: s.chromaDisabledNotice,
+        cls: "setting-item-description",
+      });
+      return;
+    }
+
     // ───── ChromaDB path ─────
     new Setting(containerEl)
       .setName(s.chromaChromaPath)

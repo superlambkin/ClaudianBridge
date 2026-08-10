@@ -95,6 +95,29 @@ describe('i18n', () => {
     expect(getLocaleStrings('en').tabChroma).toContain('Chroma');
     expect(getLocaleStrings('zh').tabChroma).toContain('Chroma');
   });
+  it('tabChroma は mojibake (U+FFFD) を含まない', () => {
+    for (const lang of SUPPORTED_LOCALES) {
+      const v = getLocaleStrings(lang).tabChroma;
+      expect(v.includes('�'), `tabChroma[${lang}] contains U+FFFD: ${v}`).toBe(false);
+    }
+  });
+  it('tabChroma は 🗄️ プレフィックスで始まる', () => {
+    expect(getLocaleStrings('ja').tabChroma.startsWith('🗄️')).toBe(true);
+    expect(getLocaleStrings('en').tabChroma.startsWith('🗄️')).toBe(true);
+    expect(getLocaleStrings('zh').tabChroma.startsWith('🗄️')).toBe(true);
+  });
+  it('tabChroma は en/zh で固定文言と一致する（mojibake 防止）', () => {
+    expect(getLocaleStrings('en').tabChroma).toBe('🗄️ Chroma Browser');
+    expect(getLocaleStrings('zh').tabChroma).toBe('🗄️ Chroma 浏览器');
+  });
+  it('chromaEnabled / chromaEnabledDesc / chromaDisabledNotice は 3 言語で存在する', () => {
+    for (const lang of SUPPORTED_LOCALES) {
+      const v = getLocaleStrings(lang);
+      expect(v.chromaEnabled.length, `${lang}.chromaEnabled empty`).toBeGreaterThan(0);
+      expect(v.chromaEnabledDesc.length, `${lang}.chromaEnabledDesc empty`).toBeGreaterThan(0);
+      expect(v.chromaDisabledNotice.length, `${lang}.chromaDisabledNotice empty`).toBeGreaterThan(0);
+    }
+  });
   it('chromaChromaPath は 3 言語で ChromaDB パスについて言及', () => {
     expect(getLocaleStrings('ja').chromaChromaPath).toContain('ChromaDB');
     expect(getLocaleStrings('en').chromaChromaPath.toLowerCase()).toContain('chroma');

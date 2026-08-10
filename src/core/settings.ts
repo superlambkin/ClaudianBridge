@@ -1,6 +1,15 @@
 export type OfficeConflictPolicy = 'overwrite' | 'skip' | 'timestamp';
 export type OfficeLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
+// Re-export chroma clamp constants so callers (tests, settings tab) can reference a single source of truth.
+export {
+  MAX_QUERY_RESULTS,
+  MIN_QUERY_RESULTS,
+  MAX_PREVIEW_LENGTH,
+  MIN_PREVIEW_LENGTH,
+} from '../features/chroma/defaults';
+import { MAX_QUERY_RESULTS, MIN_QUERY_RESULTS, MAX_PREVIEW_LENGTH, MIN_PREVIEW_LENGTH } from '../features/chroma/defaults';
+
 export interface OfficeSettings {
   enabled: boolean;
   pythonPath: string;
@@ -113,13 +122,22 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
 
 export function normalizeChromaSettings(raw: unknown): ChromaSettings {
   const r = (raw ?? {}) as Partial<ChromaSettings>;
+  // Clamp numeric values back into the legacy SettingsMigration safe range.
+  const rawNResults = Number(r.defaultNResults);
+  const rawPreview = Number(r.recordPreviewLength);
+  const defaultNResults = Number.isFinite(rawNResults)
+    ? Math.max(MIN_QUERY_RESULTS, Math.min(MAX_QUERY_RESULTS, Math.round(rawNResults)))
+    : DEFAULT_CHROMA_SETTINGS.defaultNResults;
+  const recordPreviewLength = Number.isFinite(rawPreview)
+    ? Math.max(MIN_PREVIEW_LENGTH, Math.min(MAX_PREVIEW_LENGTH, Math.round(rawPreview)))
+    : DEFAULT_CHROMA_SETTINGS.recordPreviewLength;
   return {
     enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_CHROMA_SETTINGS.enabled,
     chromaPath: typeof r.chromaPath === 'string' ? r.chromaPath : DEFAULT_CHROMA_SETTINGS.chromaPath,
     pythonPath: typeof r.pythonPath === 'string' && r.pythonPath !== '' ? r.pythonPath : DEFAULT_CHROMA_SETTINGS.pythonPath,
     embeddingModel: typeof r.embeddingModel === 'string' ? r.embeddingModel : DEFAULT_CHROMA_SETTINGS.embeddingModel,
-    defaultNResults: Number.isFinite(r.defaultNResults) ? Number(r.defaultNResults) : DEFAULT_CHROMA_SETTINGS.defaultNResults,
-    recordPreviewLength: Number.isFinite(r.recordPreviewLength) ? Number(r.recordPreviewLength) : DEFAULT_CHROMA_SETTINGS.recordPreviewLength,
+    defaultNResults,
+    recordPreviewLength,
     showProgressModal: typeof r.showProgressModal === 'boolean' ? r.showProgressModal : DEFAULT_CHROMA_SETTINGS.showProgressModal,
     enableRawSql: typeof r.enableRawSql === 'boolean' ? r.enableRawSql : DEFAULT_CHROMA_SETTINGS.enableRawSql,
     scriptPath: typeof r.scriptPath === 'string' ? r.scriptPath : DEFAULT_CHROMA_SETTINGS.scriptPath,
@@ -173,6 +191,12 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
 
 export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSettings {
   const r = (raw ?? {}) as Partial<ClaudianBridgeSettings>;
+  // Backfill chroma defaults first so the clamping pass has a well-defined baseline.
+  const chroma = normalizeChromaSettings(r.chroma);
+  // Defensive clamp in case downstream callers manipulate r.chroma after the helper ran.
+  // (This is a no-op for already-normalized data, but keeps the legacy migration contract intact.)
+  chroma.defaultNResults = Math.max(MIN_QUERY_RESULTS, Math.min(MAX_QUERY_RESULTS, Math.round(chroma.defaultNResults)));
+  chroma.recordPreviewLength = Math.max(MIN_PREVIEW_LENGTH, Math.min(MAX_PREVIEW_LENGTH, Math.round(chroma.recordPreviewLength)));
   return {
     general: {
       enabled: r.general?.enabled ?? true,
@@ -209,7 +233,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
-    chroma: normalizeChromaSettings(r.chroma),
+    chroma,
   };
 }
 

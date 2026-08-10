@@ -88,6 +88,9 @@ export interface LocaleStrings {
   whitelistResetButton: string;
   // Chroma Inspector (P5 統合)
   tabChroma: string;
+  chromaEnabled: string;
+  chromaEnabledDesc: string;
+  chromaDisabledNotice: string;
   chromaDescription: string;
   chromaChromaPath: string;
   chromaChromaPathDesc: string;
@@ -197,7 +200,10 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistResetButton: 'リセット',
     comingSoon: '🚧 このタブは次サブプロジェクト（P3/P4）で実装予定です。',
     // Chroma Inspector (P5 統合)
-    tabChroma: '� Chroma ブラウザ',
+    tabChroma: '🗄️ Chroma ブラウザ',
+    chromaEnabled: '🌐 Chroma 機能を有効化',
+    chromaEnabledDesc: 'Chroma ブラウザ (リボン / コマンド) とこの設定画面の利用全体を ON/OFF',
+    chromaDisabledNotice: '🔒 Chroma 機能は無効です。上のトグルを ON にすると設定項目とブラウザが利用可能になります。',
     chromaDescription: 'ChromaDB のコレクション閲覧・検索・詳細表示。Python CLI (_chroma_inspect.py) を Vault ルートから呼び出します。',
     chromaChromaPath: 'ChromaDB パス',
     chromaChromaPathDesc: 'Vault 相対または絶対パス。デフォルト: chroma_db',
@@ -305,7 +311,10 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistResetButton: 'Reset',
     comingSoon: '🚧 This tab will be implemented in the next sub-project (P3/P4).',
     // Chroma Inspector (P5 integration)
-    tabChroma: '� Chroma Browser',
+    tabChroma: '🗄️ Chroma Browser',
+    chromaEnabled: '🌐 Enable Chroma Feature',
+    chromaEnabledDesc: 'Master switch for the Chroma browser (ribbon / command) and this settings tab',
+    chromaDisabledNotice: '🔒 Chroma feature is disabled. Toggle ON above to expose settings and the browser.',
     chromaDescription: 'Browse, search and inspect ChromaDB collections. The Python CLI (_chroma_inspect.py) is invoked from the Vault root.',
     chromaChromaPath: 'ChromaDB path',
     chromaChromaPathDesc: 'Vault-relative or absolute. Default: chroma_db',
@@ -413,7 +422,10 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistResetButton: '重置',
     comingSoon: '🚧 此标签将在下一个子项目 (P3/P4) 中实现。',
     // Chroma Inspector (P5 集成)
-    tabChroma: '� Chroma 浏览器',
+    tabChroma: '🗄️ Chroma 浏览器',
+    chromaEnabled: '🌐 启用 Chroma 功能',
+    chromaEnabledDesc: 'Chroma 浏览器 (功能区 / 命令) 与此设置页的总开关',
+    chromaDisabledNotice: '🔒 Chroma 功能未启用。打开上方开关后,设置项与浏览器才会显示。',
     chromaDescription: '浏览、搜索并查看 ChromaDB 集合。从 Vault 根目录调用 Python CLI (_chroma_inspect.py)。',
     chromaChromaPath: 'ChromaDB 路径',
     chromaChromaPathDesc: 'Vault 相对路径或绝对路径。默认: chroma_db',

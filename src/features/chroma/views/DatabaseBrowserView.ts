@@ -27,7 +27,7 @@ import { resolveChromaPath } from "../util/path";
 import { vaultBasePath } from "../util/app";
 import { EmbeddingDimensionError } from "../chroma/chroma-runner";
 
-export const CHROMA_VIEW_TYPE = "chroma-database-browser";
+export const CHROMA_VIEW_TYPE = "chroma-inspector-browser";
 
 interface State {
   selected: string | null;
@@ -35,11 +35,11 @@ interface State {
 }
 
 /**
- * Plugin-shaped dependency: only `chroma` is consumed by the view. Accept any
- * structural shape that has a `chroma: ChromaSettings` property.
+ * Dependency contract: a `getSettings()` accessor that returns a fresh
+ * ChromaSettings snapshot on every call (instead of a frozen reference).
  */
 export interface DatabaseBrowserViewPlugin {
-  settings: { chroma: ChromaSettings };
+  getSettings: () => { chroma: ChromaSettings };
 }
 
 export class DatabaseBrowserView extends ItemView {
@@ -53,6 +53,11 @@ export class DatabaseBrowserView extends ItemView {
   constructor(leaf: WorkspaceLeaf, plugin: DatabaseBrowserViewPlugin) {
     super(leaf);
     this.plugin = plugin;
+  }
+
+  /** Convenience accessor for current chroma settings — always fresh. */
+  private get chroma(): ChromaSettings {
+    return this.plugin.getSettings().chroma;
   }
 
   getViewType(): string {
@@ -74,7 +79,7 @@ export class DatabaseBrowserView extends ItemView {
 
     const vaultRoot = vaultBasePath(this.app);
     const resolved = resolveChromaPath(
-      this.plugin.settings.chroma.chromaPath,
+      this.chroma.chromaPath,
       vaultRoot
     );
 
@@ -87,7 +92,7 @@ export class DatabaseBrowserView extends ItemView {
     this.searchPanel = new SearchPanel(root, {
       onRun: (filter) => void this.runSearch(filter),
       onOpenRawSql: () => this.openRawSql(),
-      showAdvanced: this.plugin.settings.chroma.enableRawSql,
+      showAdvanced: this.chroma.enableRawSql,
     });
 
     // ─── Two-pane split ───
@@ -109,7 +114,7 @@ export class DatabaseBrowserView extends ItemView {
             metadataIn: {},
             documentContains: "",
             queryText: "",
-            nResults: this.plugin.settings.chroma.defaultNResults,
+            nResults: this.chroma.defaultNResults,
           });
         }
       },
@@ -120,7 +125,7 @@ export class DatabaseBrowserView extends ItemView {
     const recordsContainer = rightPane.createDiv({ cls: "ci-records-area" });
     this.recordView = new RecordCardView(
       recordsContainer,
-      this.plugin.settings.chroma.recordPreviewLength
+      this.chroma.recordPreviewLength
     );
 
     // Initial empty state
@@ -144,7 +149,7 @@ export class DatabaseBrowserView extends ItemView {
     this.collectionList?.setStatus("🔄 読み込み中…", "info");
     try {
       const result = await ChromaService.listCollections({
-        settings: this.plugin.settings.chroma,
+        settings: this.chroma,
         vaultRoot,
       });
       this.collectionList?.setCollections(result.collections);
@@ -162,7 +167,7 @@ export class DatabaseBrowserView extends ItemView {
     const token = ++this.requestToken;
     this.state.lastFilter = filter;
 
-    const settings = this.plugin.settings.chroma;
+    const settings = this.chroma;
     if (!this.state.selected) {
       this.recordView?.render(
         [],
@@ -263,13 +268,13 @@ export class DatabaseBrowserView extends ItemView {
   }
 
   private openRawSql(): void {
-    if (!this.plugin.settings.chroma.enableRawSql) {
+    if (!this.chroma.enableRawSql) {
       new Notice("設定画面で「Enable raw SQL」をONにしてください。");
       return;
     }
     const vaultRoot = vaultBasePath(this.app);
     new RawSqlModal(this.app as never, {
-      settings: this.plugin.settings.chroma,
+      settings: this.chroma,
       vaultRoot,
     }).open();
   }

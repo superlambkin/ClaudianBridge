@@ -109,13 +109,19 @@ export default class ClaudianBridgePlugin extends Plugin {
 
     // 6. Chroma Inspector 統合: registerView + ribbon/command
     // chroma-inspector プラグインは disableLegacyPluginsOnce() で先に無効化済みなので
-    // アイコン重複は発生しない。chroma.enabled=false でもリボン/コマンドは登録するが
-    // 開く動作の中で store.load().chroma.enabled を見て notice を出す実装でも可。
-    this.registerView(
-      CHROMA_VIEW_TYPE,
-      (leaf) => new DatabaseBrowserView(leaf, { settings: this.cbSettings })
-    );
-    ChromaMenuRegistrar.register(this);
+    // アイコン重複は発生しない。chroma.enabled=false のときは view / ribbon / command を
+    // 一切登録しない（dead schema field だった過去の状態を解消）。
+    if (this.store.load().chroma.enabled) {
+      this.registerView(
+        CHROMA_VIEW_TYPE,
+        (leaf) =>
+          new DatabaseBrowserView(leaf, {
+            // Pass a live accessor so the view always sees the latest settings.
+            getSettings: () => this.cbSettings,
+          })
+      );
+      ChromaMenuRegistrar.register(this);
+    }
 
     console.log('[claudian-bridge] loaded');
   }

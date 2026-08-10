@@ -1,7 +1,7 @@
 // src/features/chroma/views/ChromaMenuRegistrar.ts — Ribbon icon + Command palette wiring.
 
 import { Notice, Plugin } from "obsidian";
-import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from "./DatabaseBrowserView";
+import { CHROMA_VIEW_TYPE } from "./DatabaseBrowserView";
 
 export class ChromaMenuRegistrar {
   /** Register the Ribbon icon and Command Palette entry. */
@@ -39,16 +39,5 @@ export class ChromaMenuRegistrar {
   }
 }
 
-/** Helper for main.ts: instantiate a DatabaseBrowserView for a leaf. */
-export function buildDatabaseBrowserView(
-  plugin: Plugin & { settings: import("../types").ChromaSettings },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  leaf: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  DatabaseBrowserViewCtor: new (...args: any[]) => unknown
-): unknown {
-  return new DatabaseBrowserViewCtor(leaf, plugin);
-}
-
 // Re-export so main.ts has a single import.
-export { DatabaseBrowserView };
+export { DatabaseBrowserView } from "./DatabaseBrowserView";

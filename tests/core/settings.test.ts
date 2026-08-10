@@ -103,6 +103,21 @@ describe('settings', () => {
     expect(norm.chroma.defaultNResults).toBe(5);
   });
 
+  it('normalize は chroma.defaultNResults を [1,100] にクランプする', () => {
+    expect(normalizeClaudianBridgeSettings({ chroma: { defaultNResults: 100000 } }).chroma.defaultNResults).toBe(100);
+    expect(normalizeClaudianBridgeSettings({ chroma: { defaultNResults: -5 } }).chroma.defaultNResults).toBe(1);
+    expect(normalizeClaudianBridgeSettings({ chroma: { defaultNResults: 0 } }).chroma.defaultNResults).toBe(1);
+    expect(normalizeClaudianBridgeSettings({ chroma: { defaultNResults: 42 } }).chroma.defaultNResults).toBe(42);
+    // round-trip: 12.7 → 13
+    expect(normalizeClaudianBridgeSettings({ chroma: { defaultNResults: 12.7 } }).chroma.defaultNResults).toBe(13);
+  });
+
+  it('normalize は chroma.recordPreviewLength を [20,10000] にクランプする', () => {
+    expect(normalizeClaudianBridgeSettings({ chroma: { recordPreviewLength: 5 } }).chroma.recordPreviewLength).toBe(20);
+    expect(normalizeClaudianBridgeSettings({ chroma: { recordPreviewLength: 99999 } }).chroma.recordPreviewLength).toBe(10000);
+    expect(normalizeClaudianBridgeSettings({ chroma: { recordPreviewLength: 240 } }).chroma.recordPreviewLength).toBe(240);
+  });
+
   it('validate は chroma 型違反を返す（enabled が boolean でない）', () => {
     const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, chroma: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.chroma, enabled: 'yes' as unknown as boolean } };
     expect(validateClaudianBridgeSettings(bad)).toContain('chroma.enabled');
