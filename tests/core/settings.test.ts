@@ -1,0 +1,27 @@
+import { describe, it, expect } from 'vitest';
+import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, normalizeClaudianBridgeSettings, validateClaudianBridgeSettings } from '../../src/core/settings';
+
+describe('settings', () => {
+  it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS は全フィールドを持つ', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS).toMatchObject({
+      general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false }, migrationResetAvailable: true },
+      selection: { enabled: true, delayMs: 300 },
+      tts: { enabled: true, engine: 'edge', voices: { zh: '', ja: '', en: '' }, minimax: { enabled: false, showInEngineList: false, apiKey: '', voiceIdZh: '', voiceIdJa: '', voiceIdEn: '', speed: 1, vol: 1, pitch: 0, audioFormat: 'mp3' }, voice: '' },
+      office: {},
+      whitelist: {},
+    });
+  });
+
+  it('normalize は欠落キーをデフォルトで埋める', () => {
+    const raw = { selection: { delayMs: 500 } };
+    const norm = normalizeClaudianBridgeSettings(raw);
+    expect(norm.selection.delayMs).toBe(500);
+    expect(norm.selection.enabled).toBe(true);
+    expect(norm.general.enabled).toBe(true);
+  });
+
+  it('validate は型違反を返す（enabled が boolean でない）', () => {
+    const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, general: { enabled: 'yes' as unknown as boolean, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false }, migrationResetAvailable: true } };
+    expect(validateClaudianBridgeSettings(bad)).toContain('general.enabled');
+  });
+});
