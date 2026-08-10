@@ -9,8 +9,13 @@ const dest = join(
 );
 
 mkdirSync(dest, { recursive: true });
-for (const file of ['main.js', 'manifest.json', 'styles.css']) {
-  copyFileSync(join(process.cwd(), file), join(dest, file));
-  console.log(`✅ ${file} -> ${dest}`);
+const files = [
+  { src: 'main.js', dst: 'main.js' },
+  { src: 'src/manifest.json', dst: 'manifest.json' },
+  { src: 'styles.css', dst: 'styles.css' },
+];
+for (const { src, dst } of files) {
+  copyFileSync(join(process.cwd(), src), join(dest, dst));
+  console.log(`✅ ${src} -> ${dest}/${dst}`);
 }
 console.log('🎉 Deploy complete. Enable "Claudian Bridge" in Obsidian Community Plugins.');
