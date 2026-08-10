@@ -23,3 +23,35 @@
   font-size: 13px;
 }
 .cb-action-btn:hover { opacity: 0.85; }
+
+/* Office conversion modal */
+.cb-modal { padding: 1em; }
+.cb-progress { margin-bottom: 12px; }
+.cb-progress-track {
+  height: 8px;
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cb-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--interactive-accent);
+  transition: width 0.3s ease;
+}
+.cb-progress-fill.cb-progress-done { background: var(--color-green); }
+.cb-progress-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block; }
+.cb-stage { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 13px; }
+.cb-stage-icon { width: 16px; text-align: center; }
+.cb-stage-icon.cb-st-running { color: var(--interactive-accent); }
+.cb-stage-icon.cb-st-ok { color: var(--color-green); }
+.cb-stage-icon.cb-st-fail { color: var(--color-red); }
+.cb-log {
+  width: 100%;
+  min-height: 120px;
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  margin: 8px 0;
+}
+.cb-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.cb-close-btn { margin-left: auto; }
