@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 const makeChild = () => {
   const listeners: Record<string, Array<(...a: unknown[]) => void>> = {};
@@ -40,6 +43,16 @@ describe('spawnPython', () => {
 });
 
 describe('MarkItDownRunner.run', () => {
+  let vaultRoot: string;
+  beforeEach(() => {
+    vaultRoot = mkdtempSync(join(tmpdir(), 'cb-md-'));
+    const scriptsDir = join(vaultRoot, '00_Vault管理', '_設定ファイル', '_scripts');
+    mkdirSync(scriptsDir, { recursive: true });
+    writeFileSync(join(scriptsDir, '_run_markitdown.py'), '');
+  });
+  afterEach(() => {
+    rmSync(vaultRoot, { recursive: true, force: true });
+  });
   it('ヘルパースクリプト不在なら exitCode 127', async () => {
     vi.spyOn(MarkItDownRunner, 'resolvePython').mockResolvedValue({ cmd: 'py', useShell: false });
     const r = await MarkItDownRunner.run('C:/src.docx', { pythonPath: 'py' }, 'C:/vault-no-scripts');
@@ -54,7 +67,7 @@ describe('MarkItDownRunner.run', () => {
       child.emit('exit', 0);
     });
     spawnMock.mockReturnValue(child as never);
-    const r = await MarkItDownRunner.run('C:/src.docx', { pythonPath: 'py' }, 'C:/vault');
+    const r = await MarkItDownRunner.run('C:/src.docx', { pythonPath: 'py' }, vaultRoot);
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toBe('# Markdown');
   });
@@ -63,7 +76,7 @@ describe('MarkItDownRunner.run', () => {
     const child = makeChild();
     setImmediate(() => { child.emitStdout('not-json'); child.emitStderr('boom'); child.emit('exit', 1); });
     spawnMock.mockReturnValue(child as never);
-    const r = await MarkItDownRunner.run('C:/src.docx', { pythonPath: 'py' }, 'C:/vault');
+    const r = await MarkItDownRunner.run('C:/src.docx', { pythonPath: 'py' }, vaultRoot);
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toBe('boom');
   });
