@@ -12,11 +12,15 @@ export class SettingTabWhitelist extends PluginSettingTab {
     this.pluginRef = plugin;
   }
 
+  private getStrings() {
+    const lang = (this.pluginRef as unknown as { env?: { language?: string } }).env?.language ?? 'en';
+    return getLocaleStrings(lang);
+  }
+
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    const lang = (this.pluginRef as unknown as { env?: { language?: string } }).env?.language ?? 'en';
-    const s = getLocaleStrings(lang);
+    const s = this.getStrings();
 
     containerEl.createEl('h2', { text: s.tabWhitelist });
     containerEl.createEl('p', {
@@ -167,7 +171,8 @@ export class SettingTabWhitelist extends PluginSettingTab {
       });
       this.display();
     } catch (e) {
-      new Notice(`⚠️ ${(e as Error).message}`);
+      const s = this.getStrings();
+      new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
       this.display();
     }
   }
