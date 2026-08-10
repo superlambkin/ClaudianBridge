@@ -83,4 +83,28 @@ describe('migrateFromLegacy', () => {
     const result2 = migrateFromLegacy(store, dir);
     expect(result2.migrated).not.toContain('vault-office-bridge');
   });
+
+  it('_disabled__extension-whitelist の data.json を変換してフラグを立てる', () => {
+    mkdirSync(join(dir, '_disabled__extension-whitelist'));
+    writeFileSync(
+      join(dir, '_disabled__extension-whitelist', 'data.json'),
+      JSON.stringify({ enabled: false, extensions: ['md', 'JSON'], alwaysShowFolders: false })
+    );
+    const result = migrateFromLegacy(store, dir);
+    expect(result.migrated).toContain('extension-whitelist');
+    const loaded = store.load();
+    expect(loaded.whitelist.enabled).toBe(false);
+    expect(loaded.whitelist.extensions).toEqual(['md', 'json']);
+    expect(loaded.whitelist.alwaysShowFolders).toBe(false);
+    expect(loaded.general.migratedFrom.extensionWhitelist).toBe(true);
+    expect(existsSync(join(dir, '_disabled__extension-whitelist', 'data.json.bak.json'))).toBe(true);
+  });
+
+  it('extension-whitelist は 2 度目の呼び出しでは移行しない', () => {
+    mkdirSync(join(dir, '_disabled__extension-whitelist'));
+    writeFileSync(join(dir, '_disabled__extension-whitelist', 'data.json'), JSON.stringify({ enabled: true, extensions: ['md'], alwaysShowFolders: true }));
+    migrateFromLegacy(store, dir);
+    const result2 = migrateFromLegacy(store, dir);
+    expect(result2.migrated).not.toContain('extension-whitelist');
+  });
 });

@@ -3,6 +3,7 @@ import { ConfigStore } from '../core/config-store';
 import { legacyDataJsonPath, readLegacyDataJson } from './read-legacy';
 import { convertFromClaudianSelectionBridge } from './convert-csb';
 import { convertFromVaultOfficeBridge } from './convert-vob';
+import { convertFromExtensionWhitelist } from './convert-ew';
 
 export interface MigrationResult {
   migrated: string[];
@@ -59,7 +60,25 @@ export function migrateFromLegacy(store: ConfigStore, pluginsDir: string): Migra
     }
   }
 
-  // extension-whitelist → P4 で実装
+  // extension-whitelist → whitelist
+  if (!cfg.general.migratedFrom.extensionWhitelist) {
+    const raw = readLegacyDataJson(pluginsDir, 'extension-whitelist');
+    if (raw) {
+      const partial = convertFromExtensionWhitelist(raw);
+      if (partial) {
+        const merged = { ...store.load(), ...partial };
+        store.save(merged);
+        const bak = backupLegacyData(pluginsDir, 'extension-whitelist');
+        if (bak) result.backup.push(bak);
+        result.migrated.push('extension-whitelist');
+        const cfg2 = {
+          ...store.load(),
+          general: { ...store.load().general, migratedFrom: { ...store.load().general.migratedFrom, extensionWhitelist: true } },
+        };
+        store.save(cfg2);
+      }
+    }
+  }
 
   return result;
 }
