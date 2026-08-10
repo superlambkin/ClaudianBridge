@@ -317,7 +317,7 @@ export function getLocaleStrings(lang: string): LocaleStrings {
 
 export function getUILanguage(locale?: string): SupportedLocale {
   const loc = locale ?? (typeof moment?.locale === 'function' ? moment.locale() : 'en');
-  if (loc === 'ja') return 'ja';
+  if (loc.startsWith('ja')) return 'ja';
   if (loc.startsWith('zh')) return 'zh';
   return 'en';
 }

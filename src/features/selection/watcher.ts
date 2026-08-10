@@ -10,10 +10,9 @@ function toElement(node: Node | null): Element | null {
   return node.nodeType === 1 ? (node as Element) : node.parentElement;
 }
 
-function isInAllowedScope(anchorNode: Node | null, popupEl: HTMLElement | null): boolean {
+function isInAllowedScope(anchorNode: Node | null): boolean {
   const el = toElement(anchorNode);
   if (!el || typeof el.closest !== 'function') return false;
-  if (popupEl && typeof popupEl.contains === 'function' && popupEl.contains(el)) return false;
   return SCOPE_SELECTORS.some((sel) => el.closest(sel) !== null);
 }
 
@@ -21,6 +20,7 @@ export function setupSelectionWatcher(app: App, store: ConfigStore, onTts?: (tex
   let popupEl: HTMLElement | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pointerDown = false;
+  let dismissed = false;
   let capturedText = '';
 
   function clearTimer() { if (timer) { clearTimeout(timer); timer = null; } }
@@ -34,7 +34,7 @@ export function setupSelectionWatcher(app: App, store: ConfigStore, onTts?: (tex
     if (pointerDown) return;
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
-    if (!isInAllowedScope(sel.anchorNode, null)) return;
+    if (!isInAllowedScope(sel.anchorNode)) return;
     const text = sel.toString();
     if (!text || text.trim().length < 1) return;
     capturedText = text;
@@ -42,8 +42,8 @@ export function setupSelectionWatcher(app: App, store: ConfigStore, onTts?: (tex
       timer = null;
       popupEl = buildPopup(
         app,
-        async () => { const ok = await addTextToClaudian(app, capturedText); if (ok) clearPopup(); },
-        async () => { await onTts?.(capturedText); clearPopup(); }
+        async () => { cancelAndHide(); await addTextToClaudian(app, capturedText); },
+        async () => { cancelAndHide(); await onTts?.(capturedText); }
       );
       document.body.appendChild(popupEl);
     }, cfg.selection.delayMs);
@@ -51,9 +51,18 @@ export function setupSelectionWatcher(app: App, store: ConfigStore, onTts?: (tex
 
   const onPointerDown = (e: PointerEvent) => {
     pointerDown = true;
-    if (popupEl && !popupEl.contains(e.target as Node)) cancelAndHide();
+    if (popupEl && !popupEl.contains(e.target as Node)) {
+      dismissed = true;
+      cancelAndHide();
+    } else {
+      dismissed = false;
+    }
   };
-  const onPointerUp = () => { pointerDown = false; onSelectionChange(); };
+  const onPointerUp = () => {
+    pointerDown = false;
+    if (!dismissed) onSelectionChange();
+    dismissed = false;
+  };
   const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') cancelAndHide(); };
   const onScroll = () => cancelAndHide();
 

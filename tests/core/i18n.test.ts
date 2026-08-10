@@ -41,6 +41,7 @@ describe('i18n', () => {
   });
   it('getUILanguage はロケール文字列から判定する', () => {
     expect(getUILanguage('ja')).toBe('ja');
+    expect(getUILanguage('ja-JP')).toBe('ja');
     expect(getUILanguage('zh-cn')).toBe('zh');
     expect(getUILanguage('zh-TW')).toBe('zh');
     expect(getUILanguage('en')).toBe('en');
