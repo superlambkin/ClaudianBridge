@@ -122,4 +122,41 @@ describe('settings', () => {
     const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, chroma: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.chroma, enabled: 'yes' as unknown as boolean } };
     expect(validateClaudianBridgeSettings(bad)).toContain('chroma.enabled');
   });
+
+  // === v0.2.0: Object context menu settings ===
+  describe('object context menu (v0.2.0)', () => {
+    it('objectMenuEnabled のデフォルトは true', () => {
+      const norm = normalizeClaudianBridgeSettings({});
+      expect(norm.selection.objectMenuEnabled).toBe(true);
+    });
+
+    it('objectMenuExcludeSelectors のデフォルトは 4 個', () => {
+      const norm = normalizeClaudianBridgeSettings({});
+      expect(norm.selection.objectMenuExcludeSelectors).toEqual([
+        '.cb-popup',
+        '.claudian-popup',
+        '.menu',
+        '.suggestion-container',
+      ]);
+    });
+
+    it('不正な objectMenuEnabled (string) は boolean に正規化される', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        selection: { objectMenuEnabled: 'yes' as unknown as boolean },
+      });
+      expect(norm.selection.objectMenuEnabled).toBe(true);
+    });
+
+    it('objectMenuExcludeSelectors が配列でない場合はデフォルトに fallback', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        selection: { objectMenuExcludeSelectors: 'bad' as unknown as string[] },
+      });
+      expect(norm.selection.objectMenuExcludeSelectors).toEqual([
+        '.cb-popup',
+        '.claudian-popup',
+        '.menu',
+        '.suggestion-container',
+      ]);
+    });
+  });
 });

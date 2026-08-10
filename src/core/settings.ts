@@ -1,6 +1,14 @@
 export type OfficeConflictPolicy = 'overwrite' | 'skip' | 'timestamp';
 export type OfficeLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
+// === v0.2.0: Object context menu defaults ===
+export const DEFAULT_OBJECT_EXCLUDE_SELECTORS: string[] = [
+  '.cb-popup',
+  '.claudian-popup',
+  '.menu',
+  '.suggestion-container',
+];
+
 // Re-export chroma clamp constants so callers (tests, settings tab) can reference a single source of truth.
 export {
   MAX_QUERY_RESULTS,
@@ -150,7 +158,14 @@ export interface ClaudianBridgeSettings {
     migratedFrom: { claudianSelectionBridge: boolean; extensionWhitelist: boolean; vaultOfficeBridge: boolean; chromaInspector: boolean };
     migrationResetAvailable: boolean;
   };
-  selection: { enabled: boolean; folderEnabled: boolean; delayMs: number };
+  selection: {
+    enabled: boolean;
+    folderEnabled: boolean;
+    delayMs: number;
+    // === v0.2.0: Object context menu ===
+    objectMenuEnabled: boolean;
+    objectMenuExcludeSelectors: string[];
+  };
   tts: {
     enabled: boolean;
     engine: 'edge' | 'claudetts' | 'auto' | 'webspeech' | 'minimax';
@@ -176,7 +191,7 @@ export interface ClaudianBridgeSettings {
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true },
-  selection: { enabled: true, folderEnabled: true, delayMs: 300 },
+  selection: { enabled: true, folderEnabled: true, delayMs: 300, objectMenuEnabled: true, objectMenuExcludeSelectors: [...DEFAULT_OBJECT_EXCLUDE_SELECTORS] },
   tts: {
     enabled: true,
     engine: 'edge',
@@ -212,6 +227,10 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       enabled: r.selection?.enabled ?? true,
       folderEnabled: r.selection?.folderEnabled ?? true,
       delayMs: r.selection?.delayMs ?? 300,
+      objectMenuEnabled: typeof r.selection?.objectMenuEnabled === 'boolean' ? r.selection.objectMenuEnabled : true,
+      objectMenuExcludeSelectors: Array.isArray(r.selection?.objectMenuExcludeSelectors)
+        ? r.selection.objectMenuExcludeSelectors.filter((s): s is string => typeof s === 'string')
+        : [...DEFAULT_OBJECT_EXCLUDE_SELECTORS],
     },
     tts: {
       enabled: r.tts?.enabled ?? true,
@@ -242,6 +261,8 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';
+  if (typeof cfg.selection.objectMenuEnabled !== 'boolean') return 'selection.objectMenuEnabled は boolean である必要があります';
+  if (!Array.isArray(cfg.selection.objectMenuExcludeSelectors)) return 'selection.objectMenuExcludeSelectors は配列である必要があります';
   if (typeof cfg.tts.enabled !== 'boolean') return 'tts.enabled は boolean である必要があります';
   const engines = ['edge', 'claudetts', 'auto', 'webspeech', 'minimax'];
   if (!engines.includes(cfg.tts.engine)) return `tts.engine が未知です: ${cfg.tts.engine}`;
