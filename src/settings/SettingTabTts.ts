@@ -1,4 +1,5 @@
 import { Notice, Setting } from 'obsidian';
+import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { addTextToTTS } from '../features/tts/core';
@@ -47,7 +48,7 @@ const MINIMAX_VOICE_CATALOG: Record<'zh' | 'ja' | 'en', string[]> = {
   ],
 };
 
-export function renderTtsTab(containerEl: HTMLElement, store: ConfigStore): void {
+export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigStore): void {
   const s = getLocaleStrings(getUILanguage());
 
   const draw = (): void => {
@@ -92,7 +93,7 @@ export function renderTtsTab(containerEl: HTMLElement, store: ConfigStore): void
       .setDesc(s.ttsTestSample)
       .addButton((b) => b.setButtonText(s.ttsTestButton).onClick(async () => {
         const latest = store.load();
-        await addTextToTTS(undefined as never, s.ttsTestSample, { engine: latest.tts.engine });
+        await addTextToTTS(app, s.ttsTestSample, latest.tts);
       }));
 
     // MiniMax 詳細設定

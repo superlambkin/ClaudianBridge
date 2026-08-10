@@ -10,7 +10,7 @@ import { renderWhitelistTab } from './SettingTabWhitelist';
 interface TabDef {
   id: string;
   labelKey: 'tabGeneral' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist';
-  render: (el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>) => void;
+  render: (app: App, el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>) => void;
 }
 
 const TABS: TabDef[] = [
@@ -42,6 +42,6 @@ export class ClaudianBridgeSettingTab extends PluginSettingTab {
     }
     const content = containerEl.createDiv('cb-tab-content');
     const tab = TABS.find((t) => t.id === this.current)!;
-    tab.render(content, this.store, this.resetMigration);
+    tab.render(this.app, content, this.store, this.resetMigration);
   }
 }
