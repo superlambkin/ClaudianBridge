@@ -22,4 +22,9 @@ describe('readLegacyDataJson', () => {
     writeFileSync(join(dir, 'ok', 'data.json'), JSON.stringify({ x: 1 }));
     expect(readLegacyDataJson(dir, 'ok')).toEqual({ x: 1 });
   });
+  it('_disabled__ プレフィックスフォルダからも読む', () => {
+    mkdirSync(join(dir, '_disabled__legacy2'));
+    writeFileSync(join(dir, '_disabled__legacy2', 'data.json'), JSON.stringify({ y: 2 }));
+    expect(readLegacyDataJson(dir, 'legacy2')).toEqual({ y: 2 });
+  });
 });
