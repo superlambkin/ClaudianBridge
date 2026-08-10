@@ -9,10 +9,17 @@ import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
 import { OfficeMenuRegistrar } from './features/office/menu';
 import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
+import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
+import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
 import * as path from 'path';
 
 export default class ClaudianBridgePlugin extends Plugin {
   private store!: ConfigStore;
+
+  /** Convenience accessor for views that want a settings snapshot. */
+  get cbSettings(): import('./core/settings').ClaudianBridgeSettings {
+    return this.store.load();
+  }
 
   async onload(): Promise<void> {
     // vault ルート解決（__dirname / process.cwd() は信用しない → app.vault.adapter.getBasePath()）
@@ -32,7 +39,7 @@ export default class ClaudianBridgePlugin extends Plugin {
       console.warn('[claudian-bridge] migrateFromLegacy error:', e);
     }
 
-    // 2. 旧プラグイン無効化（1度だけ）
+    // 2. 旧プラグイン無効化（1度だけ）— chroma-inspector をここで先にリネーム
     try {
       disableLegacyPluginsOnce(vaultRoot);
     } catch (e) {
@@ -56,7 +63,7 @@ export default class ClaudianBridgePlugin extends Plugin {
         ...cfg,
         general: {
           ...cfg.general,
-          migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false },
+          migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false },
           migrationResetAvailable: true,
         },
       });
@@ -99,6 +106,16 @@ export default class ClaudianBridgePlugin extends Plugin {
         }
       })
     );
+
+    // 6. Chroma Inspector 統合: registerView + ribbon/command
+    // chroma-inspector プラグインは disableLegacyPluginsOnce() で先に無効化済みなので
+    // アイコン重複は発生しない。chroma.enabled=false でもリボン/コマンドは登録するが
+    // 開く動作の中で store.load().chroma.enabled を見て notice を出す実装でも可。
+    this.registerView(
+      CHROMA_VIEW_TYPE,
+      (leaf) => new DatabaseBrowserView(leaf, { settings: this.cbSettings })
+    );
+    ChromaMenuRegistrar.register(this);
 
     console.log('[claudian-bridge] loaded');
   }

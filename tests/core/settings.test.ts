@@ -76,4 +76,35 @@ describe('settings', () => {
     const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, whitelist: { enabled: 'yes' as unknown as boolean, extensions: [], alwaysShowFolders: true } };
     expect(validateClaudianBridgeSettings(bad)).toContain('whitelist.enabled');
   });
+
+  it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.chroma は全フィールドを持つ', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.chroma).toMatchObject({
+      enabled: false,
+      chromaPath: 'chroma_db',
+      pythonPath: expect.any(String),
+      embeddingModel: '',
+      defaultNResults: 5,
+      recordPreviewLength: 240,
+      showProgressModal: true,
+      enableRawSql: false,
+      scriptPath: '',
+    });
+  });
+
+  it('normalize は chroma の欠落キーをデフォルトで埋める', () => {
+    const norm = normalizeClaudianBridgeSettings({ chroma: { chromaPath: 'my_chroma' } });
+    expect(norm.chroma.chromaPath).toBe('my_chroma');
+    expect(norm.chroma.enabled).toBe(false);
+    expect(norm.chroma.defaultNResults).toBe(5);
+  });
+
+  it('normalize は chroma の numeric を default で埋める', () => {
+    const norm = normalizeClaudianBridgeSettings({ chroma: { defaultNResults: 'bad' as unknown as number } });
+    expect(norm.chroma.defaultNResults).toBe(5);
+  });
+
+  it('validate は chroma 型違反を返す（enabled が boolean でない）', () => {
+    const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, chroma: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.chroma, enabled: 'yes' as unknown as boolean } };
+    expect(validateClaudianBridgeSettings(bad)).toContain('chroma.enabled');
+  });
 });

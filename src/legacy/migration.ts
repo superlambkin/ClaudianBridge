@@ -4,6 +4,7 @@ import { legacyDataJsonPath, readLegacyDataJson } from './read-legacy';
 import { convertFromClaudianSelectionBridge } from './convert-csb';
 import { convertFromVaultOfficeBridge } from './convert-vob';
 import { convertFromExtensionWhitelist } from './convert-ew';
+import { convertFromChromaInspector } from './convert-chroma';
 
 export interface MigrationResult {
   migrated: string[];
@@ -74,6 +75,26 @@ export function migrateFromLegacy(store: ConfigStore, pluginsDir: string): Migra
         const cfg2 = {
           ...store.load(),
           general: { ...store.load().general, migratedFrom: { ...store.load().general.migratedFrom, extensionWhitelist: true } },
+        };
+        store.save(cfg2);
+      }
+    }
+  }
+
+  // chroma-inspector → chroma
+  if (!cfg.general.migratedFrom.chromaInspector) {
+    const raw = readLegacyDataJson(pluginsDir, 'chroma-inspector');
+    if (raw) {
+      const partial = convertFromChromaInspector(raw);
+      if (partial) {
+        const merged = { ...store.load(), ...partial };
+        store.save(merged);
+        const bak = backupLegacyData(pluginsDir, 'chroma-inspector');
+        if (bak) result.backup.push(bak);
+        result.migrated.push('chroma-inspector');
+        const cfg2 = {
+          ...store.load(),
+          general: { ...store.load().general, migratedFrom: { ...store.load().general.migratedFrom, chromaInspector: true } },
         };
         store.save(cfg2);
       }

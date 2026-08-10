@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const LEGACY_PLUGIN_IDS = ['claudian-selection-bridge', 'vault-office-bridge', 'extension-whitelist'];
+const LEGACY_PLUGIN_IDS = ['claudian-selection-bridge', 'vault-office-bridge', 'extension-whitelist', 'chroma-inspector'];
 
 export interface DisableResult {
   disabled: string[];
@@ -30,7 +30,7 @@ export function disableLegacyPluginsOnce(obsidianDir: string): DisableResult {
   }
 
   // 2. フォルダを _disabled__ 接頭辞でリネーム（既に _disabled__ のものはスキップ）
-  for (const id of ['claudian-selection-bridge', 'vault-office-bridge']) {
+  for (const id of ['claudian-selection-bridge', 'vault-office-bridge', 'chroma-inspector']) {
     const from = path.join(obsidianDir, '.obsidian', 'plugins', id);
     const to = path.join(obsidianDir, '.obsidian', 'plugins', '_disabled__' + id);
     if (fs.existsSync(from)) {

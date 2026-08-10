@@ -86,6 +86,29 @@ export interface LocaleStrings {
   whitelistReset: string;
   whitelistResetDesc: string;
   whitelistResetButton: string;
+  // Chroma Inspector (P5 統合)
+  tabChroma: string;
+  chromaDescription: string;
+  chromaChromaPath: string;
+  chromaChromaPathDesc: string;
+  chromaPythonPath: string;
+  chromaPythonPathDesc: string;
+  chromaScriptPath: string;
+  chromaScriptPathDesc: string;
+  chromaEmbeddingModel: string;
+  chromaEmbeddingModelDesc: string;
+  chromaDefaultNResults: string;
+  chromaDefaultNResultsDesc: string;
+  chromaRecordPreviewLength: string;
+  chromaRecordPreviewLengthDesc: string;
+  chromaShowProgressModal: string;
+  chromaShowProgressModalDesc: string;
+  chromaEnableRawSql: string;
+  chromaEnableRawSqlDesc: string;
+  chromaTestConnection: string;
+  chromaTestOk: string; // {n}
+  chromaResolvedPath: string; // {path}
+  chromaScriptInfo: string; // {script}
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -173,6 +196,29 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistResetDesc: 'すべての設定を初期状態に戻します',
     whitelistResetButton: 'リセット',
     comingSoon: '🚧 このタブは次サブプロジェクト（P3/P4）で実装予定です。',
+    // Chroma Inspector (P5 統合)
+    tabChroma: '� Chroma ブラウザ',
+    chromaDescription: 'ChromaDB のコレクション閲覧・検索・詳細表示。Python CLI (_chroma_inspect.py) を Vault ルートから呼び出します。',
+    chromaChromaPath: 'ChromaDB パス',
+    chromaChromaPathDesc: 'Vault 相対または絶対パス。デフォルト: chroma_db',
+    chromaPythonPath: 'Python インタプリタ',
+    chromaPythonPathDesc: 'Windows: "py" / macOS・Linux: "python3"',
+    chromaScriptPath: 'Python スクリプトパス (上書き)',
+    chromaScriptPathDesc: '空欄 = <vault>/_chroma_inspect.py',
+    chromaEmbeddingModel: '埋め込みモデル',
+    chromaEmbeddingModelDesc: '意味検索（セマンティック検索）に使われます。コレクション作成時に使ったモデルと同じものを指定してください。空欄の場合は文書内検索として動作します。',
+    chromaDefaultNResults: 'デフォルト取得件数',
+    chromaDefaultNResultsDesc: '1〜100。デフォルト 5。',
+    chromaRecordPreviewLength: 'レコードプレビュー長 (文字)',
+    chromaRecordPreviewLengthDesc: '20〜10000。デフォルト 240。',
+    chromaShowProgressModal: '長時間処理で進捗モーダルを表示',
+    chromaShowProgressModalDesc: 'Chroma 操作中に進捗・ログを表示するモーダル',
+    chromaEnableRawSql: 'Raw SQL を有効化 (Advanced)',
+    chromaEnableRawSqlDesc: 'ON にすると Database Browser に SELECT 専用の SQL モーダルが表示されます。読み取り専用ですが USE WITH CARE。',
+    chromaTestConnection: '接続テスト',
+    chromaTestOk: '✅ OK — {n} 件のコレクション',
+    chromaResolvedPath: '解決済み ChromaDB: {path}',
+    chromaScriptInfo: 'Python スクリプト: {script}',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -258,6 +304,29 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistResetDesc: 'Restore all settings to defaults',
     whitelistResetButton: 'Reset',
     comingSoon: '🚧 This tab will be implemented in the next sub-project (P3/P4).',
+    // Chroma Inspector (P5 integration)
+    tabChroma: '� Chroma Browser',
+    chromaDescription: 'Browse, search and inspect ChromaDB collections. The Python CLI (_chroma_inspect.py) is invoked from the Vault root.',
+    chromaChromaPath: 'ChromaDB path',
+    chromaChromaPathDesc: 'Vault-relative or absolute. Default: chroma_db',
+    chromaPythonPath: 'Python interpreter',
+    chromaPythonPathDesc: 'Windows: "py" / macOS & Linux: "python3"',
+    chromaScriptPath: 'Python script path (override)',
+    chromaScriptPathDesc: 'Empty = <vault>/_chroma_inspect.py',
+    chromaEmbeddingModel: 'Embedding model',
+    chromaEmbeddingModelDesc: 'Used for semantic search. Specify the same model used when the collection was created. Empty = document search only.',
+    chromaDefaultNResults: 'Default result count',
+    chromaDefaultNResultsDesc: '1–100. Default 5.',
+    chromaRecordPreviewLength: 'Record preview length (chars)',
+    chromaRecordPreviewLengthDesc: '20–10000. Default 240.',
+    chromaShowProgressModal: 'Show progress modal during long operations',
+    chromaShowProgressModalDesc: 'Show a progress/log modal during Chroma operations',
+    chromaEnableRawSql: 'Enable raw SQL (Advanced)',
+    chromaEnableRawSqlDesc: 'When on, the Database Browser exposes a SELECT-only SQL modal. Read-only by design, but USE WITH CARE.',
+    chromaTestConnection: 'Test connection',
+    chromaTestOk: '✅ OK — {n} collection(s)',
+    chromaResolvedPath: 'Resolved ChromaDB: {path}',
+    chromaScriptInfo: 'Python script: {script}',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -343,6 +412,29 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistResetDesc: '将所有设置恢复为默认值',
     whitelistResetButton: '重置',
     comingSoon: '🚧 此标签将在下一个子项目 (P3/P4) 中实现。',
+    // Chroma Inspector (P5 集成)
+    tabChroma: '� Chroma 浏览器',
+    chromaDescription: '浏览、搜索并查看 ChromaDB 集合。从 Vault 根目录调用 Python CLI (_chroma_inspect.py)。',
+    chromaChromaPath: 'ChromaDB 路径',
+    chromaChromaPathDesc: 'Vault 相对路径或绝对路径。默认: chroma_db',
+    chromaPythonPath: 'Python 解释器',
+    chromaPythonPathDesc: 'Windows: "py" / macOS、Linux: "python3"',
+    chromaScriptPath: 'Python 脚本路径 (覆盖)',
+    chromaScriptPathDesc: '留空 = <vault>/_chroma_inspect.py',
+    chromaEmbeddingModel: '嵌入模型',
+    chromaEmbeddingModelDesc: '用于语义搜索。请指定创建集合时使用的同一模型。留空 = 仅文档内搜索。',
+    chromaDefaultNResults: '默认结果数',
+    chromaDefaultNResultsDesc: '1～100。默认 5。',
+    chromaRecordPreviewLength: '记录预览长度 (字符)',
+    chromaRecordPreviewLengthDesc: '20～10000。默认 240。',
+    chromaShowProgressModal: '长时间操作时显示进度弹窗',
+    chromaShowProgressModalDesc: 'Chroma 操作期间显示进度/日志弹窗',
+    chromaEnableRawSql: '启用 Raw SQL (高级)',
+    chromaEnableRawSqlDesc: '启用后,Database Browser 会显示仅 SELECT 的 SQL 弹窗。设计上只读,但请谨慎使用。',
+    chromaTestConnection: '测试连接',
+    chromaTestOk: '✅ OK — {n} 个集合',
+    chromaResolvedPath: '已解析 ChromaDB: {path}',
+    chromaScriptInfo: 'Python 脚本: {script}',
   },
 };
 

@@ -87,10 +87,49 @@ export function normalizeWhitelistSettings(raw: unknown): WhitelistSettings {
   };
 }
 
+export interface ChromaSettings {
+  enabled: boolean;
+  chromaPath: string;
+  pythonPath: string;
+  embeddingModel: string;
+  defaultNResults: number;
+  recordPreviewLength: number;
+  showProgressModal: boolean;
+  enableRawSql: boolean;
+  scriptPath: string;
+}
+
+export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
+  enabled: false, // master switch — default OFF until user opts in
+  chromaPath: 'chroma_db',
+  pythonPath: typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3',
+  embeddingModel: '',
+  defaultNResults: 5,
+  recordPreviewLength: 240,
+  showProgressModal: true,
+  enableRawSql: false,
+  scriptPath: '',
+};
+
+export function normalizeChromaSettings(raw: unknown): ChromaSettings {
+  const r = (raw ?? {}) as Partial<ChromaSettings>;
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_CHROMA_SETTINGS.enabled,
+    chromaPath: typeof r.chromaPath === 'string' ? r.chromaPath : DEFAULT_CHROMA_SETTINGS.chromaPath,
+    pythonPath: typeof r.pythonPath === 'string' && r.pythonPath !== '' ? r.pythonPath : DEFAULT_CHROMA_SETTINGS.pythonPath,
+    embeddingModel: typeof r.embeddingModel === 'string' ? r.embeddingModel : DEFAULT_CHROMA_SETTINGS.embeddingModel,
+    defaultNResults: Number.isFinite(r.defaultNResults) ? Number(r.defaultNResults) : DEFAULT_CHROMA_SETTINGS.defaultNResults,
+    recordPreviewLength: Number.isFinite(r.recordPreviewLength) ? Number(r.recordPreviewLength) : DEFAULT_CHROMA_SETTINGS.recordPreviewLength,
+    showProgressModal: typeof r.showProgressModal === 'boolean' ? r.showProgressModal : DEFAULT_CHROMA_SETTINGS.showProgressModal,
+    enableRawSql: typeof r.enableRawSql === 'boolean' ? r.enableRawSql : DEFAULT_CHROMA_SETTINGS.enableRawSql,
+    scriptPath: typeof r.scriptPath === 'string' ? r.scriptPath : DEFAULT_CHROMA_SETTINGS.scriptPath,
+  };
+}
+
 export interface ClaudianBridgeSettings {
   general: {
     enabled: boolean;
-    migratedFrom: { claudianSelectionBridge: boolean; extensionWhitelist: boolean; vaultOfficeBridge: boolean };
+    migratedFrom: { claudianSelectionBridge: boolean; extensionWhitelist: boolean; vaultOfficeBridge: boolean; chromaInspector: boolean };
     migrationResetAvailable: boolean;
   };
   selection: { enabled: boolean; folderEnabled: boolean; delayMs: number };
@@ -114,10 +153,11 @@ export interface ClaudianBridgeSettings {
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
+  chroma: ChromaSettings;
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false }, migrationResetAvailable: true },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true },
   selection: { enabled: true, folderEnabled: true, delayMs: 300 },
   tts: {
     enabled: true,
@@ -128,6 +168,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
+  chroma: { ...DEFAULT_CHROMA_SETTINGS },
 };
 
 export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSettings {
@@ -139,6 +180,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
         claudianSelectionBridge: r.general?.migratedFrom?.claudianSelectionBridge ?? false,
         extensionWhitelist: r.general?.migratedFrom?.extensionWhitelist ?? false,
         vaultOfficeBridge: r.general?.migratedFrom?.vaultOfficeBridge ?? false,
+        chromaInspector: r.general?.migratedFrom?.chromaInspector ?? false,
       },
       migrationResetAvailable: r.general?.migrationResetAvailable ?? true,
     },
@@ -167,6 +209,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
+    chroma: normalizeChromaSettings(r.chroma),
   };
 }
 
@@ -184,5 +227,14 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.whitelist.enabled !== 'boolean') return 'whitelist.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.whitelist.extensions)) return 'whitelist.extensions は配列である必要があります';
   if (typeof cfg.whitelist.alwaysShowFolders !== 'boolean') return 'whitelist.alwaysShowFolders は boolean である必要があります';
+  if (typeof cfg.chroma.enabled !== 'boolean') return 'chroma.enabled は boolean である必要があります';
+  if (typeof cfg.chroma.chromaPath !== 'string') return 'chroma.chromaPath は文字列である必要があります';
+  if (typeof cfg.chroma.pythonPath !== 'string') return 'chroma.pythonPath は文字列である必要があります';
+  if (typeof cfg.chroma.embeddingModel !== 'string') return 'chroma.embeddingModel は文字列である必要があります';
+  if (!Number.isFinite(cfg.chroma.defaultNResults)) return 'chroma.defaultNResults は数値である必要があります';
+  if (!Number.isFinite(cfg.chroma.recordPreviewLength)) return 'chroma.recordPreviewLength は数値である必要があります';
+  if (typeof cfg.chroma.showProgressModal !== 'boolean') return 'chroma.showProgressModal は boolean である必要があります';
+  if (typeof cfg.chroma.enableRawSql !== 'boolean') return 'chroma.enableRawSql は boolean である必要があります';
+  if (typeof cfg.chroma.scriptPath !== 'string') return 'chroma.scriptPath は文字列である必要があります';
   return null;
 }

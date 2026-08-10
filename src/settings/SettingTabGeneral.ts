@@ -31,6 +31,7 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
     ul.createEl('li', { text: `claudian-selection-bridge: ${cfg.general.migratedFrom.claudianSelectionBridge ? s.migrated : s.notMigrated}` });
     ul.createEl('li', { text: `vault-office-bridge: ${cfg.general.migratedFrom.vaultOfficeBridge ? s.migrated : s.notMigrated}` });
     ul.createEl('li', { text: `extension-whitelist: ${cfg.general.migratedFrom.extensionWhitelist ? s.migrated : s.notMigrated}` });
+    ul.createEl('li', { text: `chroma-inspector: ${cfg.general.migratedFrom.chromaInspector ? s.migrated : s.notMigrated}` });
 
     if (cfg.general.migrationResetAvailable) {
       new Setting(containerEl)

@@ -90,4 +90,24 @@ describe('i18n', () => {
     expect(getLocaleStrings('zh').ttsTestSample).toContain('今天');
     expect(getLocaleStrings('en').ttsTestSample).toContain('weather');
   });
+  it('tabChroma は 3 言語で定義され Chroma ブラウザを示す', () => {
+    expect(getLocaleStrings('ja').tabChroma).toContain('Chroma');
+    expect(getLocaleStrings('en').tabChroma).toContain('Chroma');
+    expect(getLocaleStrings('zh').tabChroma).toContain('Chroma');
+  });
+  it('chromaChromaPath は 3 言語で ChromaDB パスについて言及', () => {
+    expect(getLocaleStrings('ja').chromaChromaPath).toContain('ChromaDB');
+    expect(getLocaleStrings('en').chromaChromaPath.toLowerCase()).toContain('chroma');
+    expect(getLocaleStrings('zh').chromaChromaPath).toContain('ChromaDB');
+  });
+  it('chromaTestOk は {n} プレースホルダを含む', () => {
+    expect(getLocaleStrings('ja').chromaTestOk).toContain('{n}');
+    expect(getLocaleStrings('en').chromaTestOk).toContain('{n}');
+    expect(getLocaleStrings('zh').chromaTestOk).toContain('{n}');
+  });
+  it('chromaResolvedPath は {path} プレースホルダを含む', () => {
+    expect(getLocaleStrings('ja').chromaResolvedPath).toContain('{path}');
+    expect(getLocaleStrings('en').chromaResolvedPath).toContain('{path}');
+    expect(getLocaleStrings('zh').chromaResolvedPath).toContain('{path}');
+  });
 });

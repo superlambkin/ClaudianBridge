@@ -9,31 +9,35 @@ beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'cb-disable-')); });
 afterEach(() => { rmSync(dir, { recursive: true, force: true }); });
 
 describe('disableLegacyPluginsOnce', () => {
-  it('community-plugins.json から3プラグイン除外', () => {
+  it('community-plugins.json から4プラグイン除外 (chroma-inspector 含む)', () => {
     mkdirSync(join(dir, '.obsidian', 'plugins', 'claudian-selection-bridge'), { recursive: true });
     mkdirSync(join(dir, '.obsidian', 'plugins', 'vault-office-bridge'), { recursive: true });
     mkdirSync(join(dir, '.obsidian', 'plugins', '_disabled__extension-whitelist'), { recursive: true });
+    mkdirSync(join(dir, '.obsidian', 'plugins', 'chroma-inspector'), { recursive: true });
     writeFileSync(
       join(dir, '.obsidian', 'community-plugins.json'),
-      JSON.stringify({ plugins: ['claudian-selection-bridge', 'vault-office-bridge', 'extension-whitelist', 'other-plugin'] })
+      JSON.stringify({ plugins: ['claudian-selection-bridge', 'vault-office-bridge', 'extension-whitelist', 'chroma-inspector', 'other-plugin'] })
     );
     const result = disableLegacyPluginsOnce(dir);
-    expect(result.disabled).toEqual(expect.arrayContaining(['claudian-selection-bridge', 'vault-office-bridge', 'extension-whitelist']));
+    expect(result.disabled).toEqual(expect.arrayContaining(['claudian-selection-bridge', 'vault-office-bridge', 'extension-whitelist', 'chroma-inspector']));
     const cp = JSON.parse(readFileSync(join(dir, '.obsidian', 'community-plugins.json'), 'utf-8'));
     expect(cp.plugins).toEqual(['other-plugin']);
   });
 
-  it('フォルダを _disabled__ 接頭辞でリネーム', () => {
+  it('フォルダを _disabled__ 接頭辞でリネーム (chroma-inspector 含む)', () => {
     mkdirSync(join(dir, '.obsidian', 'plugins', 'claudian-selection-bridge'), { recursive: true });
     mkdirSync(join(dir, '.obsidian', 'plugins', 'vault-office-bridge'), { recursive: true });
+    mkdirSync(join(dir, '.obsidian', 'plugins', 'chroma-inspector'), { recursive: true });
     writeFileSync(
       join(dir, '.obsidian', 'community-plugins.json'),
-      JSON.stringify({ plugins: ['claudian-selection-bridge', 'vault-office-bridge'] })
+      JSON.stringify({ plugins: ['claudian-selection-bridge', 'vault-office-bridge', 'chroma-inspector'] })
     );
     disableLegacyPluginsOnce(dir);
     expect(existsSync(join(dir, '.obsidian', 'plugins', '_disabled__claudian-selection-bridge'))).toBe(true);
     expect(existsSync(join(dir, '.obsidian', 'plugins', '_disabled__vault-office-bridge'))).toBe(true);
+    expect(existsSync(join(dir, '.obsidian', 'plugins', '_disabled__chroma-inspector'))).toBe(true);
     expect(existsSync(join(dir, '.obsidian', 'plugins', 'claudian-selection-bridge'))).toBe(false);
+    expect(existsSync(join(dir, '.obsidian', 'plugins', 'chroma-inspector'))).toBe(false);
   });
 
   it('フラグが存在すれば2度目は何もしない', () => {

@@ -26,7 +26,7 @@ describe('migrateFromLegacy', () => {
     const result = migrateFromLegacy(store, dir);
     expect(result.migrated).toEqual([]);
     expect(store.load().general.migratedFrom).toEqual({
-      claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false,
+      claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false,
     });
   });
 
@@ -106,5 +106,39 @@ describe('migrateFromLegacy', () => {
     migrateFromLegacy(store, dir);
     const result2 = migrateFromLegacy(store, dir);
     expect(result2.migrated).not.toContain('extension-whitelist');
+  });
+
+  it('chroma-inspector の data.json を変換してフラグを立てる', () => {
+    mkdirSync(join(dir, 'chroma-inspector'));
+    writeFileSync(
+      join(dir, 'chroma-inspector', 'data.json'),
+      JSON.stringify({
+        chromaPath: 'my_chroma',
+        pythonPath: 'py',
+        embeddingModel: 'all-MiniLM-L6-v2',
+        defaultNResults: 8,
+        recordPreviewLength: 360,
+        showProgressModal: false,
+        enableRawSql: true,
+        scriptPath: '',
+      })
+    );
+    const result = migrateFromLegacy(store, dir);
+    expect(result.migrated).toContain('chroma-inspector');
+    const loaded = store.load();
+    expect(loaded.chroma.chromaPath).toBe('my_chroma');
+    expect(loaded.chroma.embeddingModel).toBe('all-MiniLM-L6-v2');
+    expect(loaded.chroma.defaultNResults).toBe(8);
+    expect(loaded.chroma.enabled).toBe(true); // 既存ユーザー → ON
+    expect(loaded.general.migratedFrom.chromaInspector).toBe(true);
+    expect(existsSync(join(dir, 'chroma-inspector', 'data.json.bak.json'))).toBe(true);
+  });
+
+  it('chroma-inspector は 2 度目の呼び出しでは移行しない', () => {
+    mkdirSync(join(dir, 'chroma-inspector'));
+    writeFileSync(join(dir, 'chroma-inspector', 'data.json'), JSON.stringify({ chromaPath: 'chroma_db', pythonPath: 'py' }));
+    migrateFromLegacy(store, dir);
+    const result2 = migrateFromLegacy(store, dir);
+    expect(result2.migrated).not.toContain('chroma-inspector');
   });
 });
