@@ -24,4 +24,30 @@ describe('settings', () => {
     const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, general: { enabled: 'yes' as unknown as boolean, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false }, migrationResetAvailable: true } };
     expect(validateClaudianBridgeSettings(bad)).toContain('general.enabled');
   });
+
+  it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.office は全フィールドを持つ', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.office).toMatchObject({
+      enabled: true,
+      pythonPath: expect.any(String),
+      markitdownArgs: '',
+      enabledExtensions: expect.arrayContaining(['docx', 'pdf']),
+      conflictPolicy: 'overwrite',
+      frontmatterTemplate: expect.stringContaining('{{title}}'),
+      logLevel: 'info',
+      showProgressModal: true,
+      outputDirOverride: '',
+    });
+  });
+
+  it('normalize は office の欠落キーをデフォルトで埋める', () => {
+    const norm = normalizeClaudianBridgeSettings({ office: { pythonPath: 'py' } });
+    expect(norm.office.pythonPath).toBe('py');
+    expect(norm.office.enabled).toBe(true);
+    expect(norm.office.enabledExtensions).toEqual(['docx', 'xlsx', 'pptx', 'pdf', 'html', 'htm', 'csv']);
+  });
+
+  it('validate は office 型違反を返す（enabled が boolean でない）', () => {
+    const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, office: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.office, enabled: 'yes' as unknown as boolean } };
+    expect(validateClaudianBridgeSettings(bad)).toContain('office.enabled');
+  });
 });
