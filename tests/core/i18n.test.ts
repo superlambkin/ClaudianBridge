@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getLocaleStrings, SUPPORTED_LOCALES } from '../../src/core/i18n';
+import { getLocaleStrings, getUILanguage, SUPPORTED_LOCALES } from '../../src/core/i18n';
 
 describe('i18n', () => {
   it('3 言語すべてサポート', () => {
@@ -38,5 +38,14 @@ describe('i18n', () => {
     expect(zh.ttsMinimaxHeading).toContain('MiniMax');
     expect(ja.whitelistOptionsHeading).toContain('オプション');
     expect(en.whitelistAllFilesShown).toContain('All files');
+  });
+  it('getUILanguage はロケール文字列から判定する', () => {
+    expect(getUILanguage('ja')).toBe('ja');
+    expect(getUILanguage('zh-cn')).toBe('zh');
+    expect(getUILanguage('zh-TW')).toBe('zh');
+    expect(getUILanguage('en')).toBe('en');
+    expect(getUILanguage('en-US')).toBe('en');
+    expect(getUILanguage(undefined)).toBe('en');
+    expect(getUILanguage('fr')).toBe('en');
   });
 });

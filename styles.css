@@ -114,3 +114,30 @@
   transition: opacity 0.15s;
 }
 .cb-whitelist-preset-card button:hover { opacity: 0.85; }
+
+/* Settings 5-tab switcher */
+.cb-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 1em;
+  flex-wrap: wrap;
+}
+.cb-tab-btn {
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+.cb-tab-btn:hover { background: var(--background-modifier-hover); }
+.cb-tab-btn.is-active {
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  border-color: var(--background-modifier-border);
+  font-weight: 600;
+}
+.cb-tab-content { padding-top: 0.5em; }

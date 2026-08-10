@@ -1,3 +1,5 @@
+import { moment } from 'obsidian';
+
 export type SupportedLocale = 'ja' | 'zh' | 'en';
 export const SUPPORTED_LOCALES: SupportedLocale[] = ['ja', 'zh', 'en'];
 
@@ -311,4 +313,11 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
 export function getLocaleStrings(lang: string): LocaleStrings {
   if (lang === 'ja' || lang === 'zh' || lang === 'en') return STRINGS[lang];
   return STRINGS.en;
+}
+
+export function getUILanguage(locale?: string): SupportedLocale {
+  const loc = locale ?? (typeof moment?.locale === 'function' ? moment.locale() : 'en');
+  if (loc === 'ja') return 'ja';
+  if (loc.startsWith('zh')) return 'zh';
+  return 'en';
 }

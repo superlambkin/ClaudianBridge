@@ -1,21 +1,13 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Notice, Setting } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
-import { getLocaleStrings } from '../core/i18n';
+import { getLocaleStrings, getUILanguage } from '../core/i18n';
 
-export class SettingTabSelection extends PluginSettingTab {
-  private pluginRef: Plugin;
+export function renderSelectionTab(containerEl: HTMLElement, store: ConfigStore): void {
+  const s = getLocaleStrings(getUILanguage());
 
-  constructor(app: App, plugin: Plugin, private store: ConfigStore) {
-    super(app, plugin);
-    this.pluginRef = plugin;
-  }
-
-  display(): void {
-    const { containerEl } = this;
+  const draw = (): void => {
     containerEl.empty();
-    const lang = (this.pluginRef as unknown as { env?: { language?: string } }).env?.language ?? 'en';
-    const s = getLocaleStrings(lang);
-    const cfg = this.store.load();
+    const cfg = store.load();
 
     containerEl.createEl('h2', { text: s.tabSelection });
 
@@ -24,11 +16,11 @@ export class SettingTabSelection extends PluginSettingTab {
       .setDesc(s.selectionEnabledDesc)
       .addToggle((t) => t.setValue(cfg.selection.enabled).onChange((v) => {
         try {
-          this.store.save({ ...cfg, selection: { ...cfg.selection, enabled: v } });
+          store.save({ ...cfg, selection: { ...cfg.selection, enabled: v } });
           new Notice(s.noticeSaved);
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-          this.display();
+          draw();
         }
       }));
 
@@ -40,11 +32,13 @@ export class SettingTabSelection extends PluginSettingTab {
         const n = Number(v);
         if (!Number.isInteger(n) || n < 0) return;
         try {
-          this.store.save({ ...cfg, selection: { ...cfg.selection, delayMs: n } });
+          store.save({ ...cfg, selection: { ...cfg.selection, delayMs: n } });
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-          this.display();
+          draw();
         }
       }));
-  }
+  };
+
+  draw();
 }

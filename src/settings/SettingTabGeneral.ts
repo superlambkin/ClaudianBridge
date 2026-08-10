@@ -1,53 +1,46 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Notice, Setting } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
-import type { ClaudianBridgeSettings } from '../core/settings';
-import { getLocaleStrings } from '../core/i18n';
+import { getLocaleStrings, getUILanguage } from '../core/i18n';
 
-export class SettingTabGeneral extends PluginSettingTab {
-  private pluginRef: Plugin;
+export function renderGeneralTab(containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>): void {
+  const s = getLocaleStrings(getUILanguage());
 
-  constructor(app: App, plugin: Plugin, private store: ConfigStore, private resetMigration: () => Promise<void>) {
-    super(app, plugin);
-    this.pluginRef = plugin;
-  }
-
-  display(): void {
-    const { containerEl } = this;
+  const draw = (): void => {
     containerEl.empty();
-    const lang = (this.pluginRef as unknown as { env?: { language?: string } }).env?.language ?? 'en';
-    const strings = getLocaleStrings(lang);
-    const cfg = this.store.load();
+    const cfg = store.load();
 
-    containerEl.createEl('h2', { text: strings.tabGeneral });
+    containerEl.createEl('h2', { text: s.tabGeneral });
 
     new Setting(containerEl)
-      .setName(strings.generalEnabled)
-      .setDesc(strings.generalEnabledDesc)
+      .setName(s.generalEnabled)
+      .setDesc(s.generalEnabledDesc)
       .addToggle((t) => t.setValue(cfg.general.enabled).onChange((v) => {
         try {
-          this.store.save({ ...cfg, general: { ...cfg.general, enabled: v } });
-          new Notice(strings.noticeSaved);
+          store.save({ ...cfg, general: { ...cfg.general, enabled: v } });
+          new Notice(s.noticeSaved);
         } catch (e) {
-          new Notice(strings.noticeSaveFailed.replace('{msg}', (e as Error).message));
-          this.display();
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
         }
       }));
 
-    containerEl.createEl('h3', { text: strings.migratedFrom });
+    containerEl.createEl('h3', { text: s.migratedFrom });
     const ul = containerEl.createEl('ul');
-    ul.createEl('li', { text: `claudian-selection-bridge: ${cfg.general.migratedFrom.claudianSelectionBridge ? strings.migrated : strings.notMigrated}` });
-    ul.createEl('li', { text: `vault-office-bridge: ${cfg.general.migratedFrom.vaultOfficeBridge ? strings.migrated : strings.notMigrated}` });
-    ul.createEl('li', { text: `extension-whitelist: ${cfg.general.migratedFrom.extensionWhitelist ? strings.migrated : strings.notMigrated}` });
+    ul.createEl('li', { text: `claudian-selection-bridge: ${cfg.general.migratedFrom.claudianSelectionBridge ? s.migrated : s.notMigrated}` });
+    ul.createEl('li', { text: `vault-office-bridge: ${cfg.general.migratedFrom.vaultOfficeBridge ? s.migrated : s.notMigrated}` });
+    ul.createEl('li', { text: `extension-whitelist: ${cfg.general.migratedFrom.extensionWhitelist ? s.migrated : s.notMigrated}` });
 
     if (cfg.general.migrationResetAvailable) {
       new Setting(containerEl)
-        .setName(strings.resetMigration)
-        .setDesc(strings.resetMigrationDesc)
-        .addButton((b) => b.setButtonText(strings.resetMigrationButton).setWarning().onClick(async () => {
-          await this.resetMigration();
-          new Notice(strings.resetMigrationNotice);
-          this.display();
+        .setName(s.resetMigration)
+        .setDesc(s.resetMigrationDesc)
+        .addButton((b) => b.setButtonText(s.resetMigrationButton).setWarning().onClick(async () => {
+          await resetMigration?.();
+          new Notice(s.resetMigrationNotice);
+          draw();
         }));
     }
-  }
+  };
+
+  draw();
 }

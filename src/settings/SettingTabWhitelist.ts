@@ -1,26 +1,14 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Notice, Setting } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { DEFAULT_WHITELIST_SETTINGS } from '../core/settings';
-import { getLocaleStrings } from '../core/i18n';
+import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { WHITELIST_PRESETS } from '../features/whitelist/presets';
 
-export class SettingTabWhitelist extends PluginSettingTab {
-  private pluginRef: Plugin;
+export function renderWhitelistTab(containerEl: HTMLElement, store: ConfigStore): void {
+  const s = getLocaleStrings(getUILanguage());
 
-  constructor(app: App, plugin: Plugin, private store: ConfigStore) {
-    super(app, plugin);
-    this.pluginRef = plugin;
-  }
-
-  private getStrings() {
-    const lang = (this.pluginRef as unknown as { env?: { language?: string } }).env?.language ?? 'en';
-    return getLocaleStrings(lang);
-  }
-
-  display(): void {
-    const { containerEl } = this;
+  const draw = (): void => {
     containerEl.empty();
-    const s = this.getStrings();
 
     containerEl.createEl('h2', { text: s.tabWhitelist });
     containerEl.createEl('p', {
@@ -28,7 +16,7 @@ export class SettingTabWhitelist extends PluginSettingTab {
       attr: { style: 'color: var(--text-muted); margin-bottom: 2em;' },
     });
 
-    const cfg = this.store.load();
+    const cfg = store.load();
 
     // 有効化
     new Setting(containerEl)
@@ -36,12 +24,12 @@ export class SettingTabWhitelist extends PluginSettingTab {
       .setDesc(s.whitelistEnabledDesc)
       .addToggle((t) => t.setValue(cfg.whitelist.enabled).onChange((v) => {
         try {
-          const latest = this.store.load();
-          this.store.save({ ...latest, whitelist: { ...latest.whitelist, enabled: v } });
+          const latest = store.load();
+          store.save({ ...latest, whitelist: { ...latest.whitelist, enabled: v } });
           new Notice(s.noticeSaved);
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-          this.display();
+          draw();
         }
       }));
 
@@ -55,14 +43,14 @@ export class SettingTabWhitelist extends PluginSettingTab {
         text.setPlaceholder(s.whitelistAddExtensionPlaceholder);
         text.inputEl.addEventListener('keydown', async (e) => {
           if (e.key === 'Enter') {
-            await this.addExtension((e.target as HTMLInputElement).value);
+            await addExtension((e.target as HTMLInputElement).value);
           }
         });
       })
       .addButton((button) =>
         button.setButtonText(s.whitelistAddExtensionButton).onClick(async () => {
           const input = addSetting.controlEl.querySelector('input');
-          if (input) await this.addExtension(input.value);
+          if (input) await addExtension(input.value);
         })
       );
 
@@ -80,18 +68,18 @@ export class SettingTabWhitelist extends PluginSettingTab {
         const removeBtn = tag.createEl('span', { cls: 'cb-whitelist-tag-remove', text: '✕' });
         removeBtn.addEventListener('click', async () => {
           try {
-            const latest = this.store.load();
-            this.store.save({
+            const latest = store.load();
+            store.save({
               ...latest,
               whitelist: {
                 ...latest.whitelist,
                 extensions: latest.whitelist.extensions.filter((e) => e !== ext),
               },
             });
-            this.display();
+            draw();
           } catch (e) {
             new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-            this.display();
+            draw();
           }
         });
       });
@@ -114,15 +102,15 @@ export class SettingTabWhitelist extends PluginSettingTab {
       const btn = card.createEl('button', { text: s.whitelistApplyButton, attr: { style: 'margin-top: 6px; cursor: pointer;' } });
       btn.addEventListener('click', async () => {
         try {
-          const latest = this.store.load();
+          const latest = store.load();
           const next = preset.extensions[0] === '*'
             ? []
             : Array.from(new Set([...latest.whitelist.extensions, ...preset.extensions])).sort();
-          this.store.save({ ...latest, whitelist: { ...latest.whitelist, extensions: next } });
-          this.display();
+          store.save({ ...latest, whitelist: { ...latest.whitelist, extensions: next } });
+          draw();
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-          this.display();
+          draw();
         }
       });
     });
@@ -134,11 +122,11 @@ export class SettingTabWhitelist extends PluginSettingTab {
       .setDesc(s.whitelistAlwaysShowFoldersDesc)
       .addToggle((t) => t.setValue(cfg.whitelist.alwaysShowFolders).onChange((v) => {
         try {
-          const latest = this.store.load();
-          this.store.save({ ...latest, whitelist: { ...latest.whitelist, alwaysShowFolders: v } });
+          const latest = store.load();
+          store.save({ ...latest, whitelist: { ...latest.whitelist, alwaysShowFolders: v } });
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-          this.display();
+          draw();
         }
       }));
 
@@ -149,31 +137,32 @@ export class SettingTabWhitelist extends PluginSettingTab {
       .setDesc(s.whitelistResetDesc)
       .addButton((b) => b.setButtonText(s.whitelistResetButton).setWarning().onClick(() => {
         try {
-          const latest = this.store.load();
-          this.store.save({ ...latest, whitelist: { ...DEFAULT_WHITELIST_SETTINGS } });
-          this.display();
+          const latest = store.load();
+          store.save({ ...latest, whitelist: { ...DEFAULT_WHITELIST_SETTINGS } });
+          draw();
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-          this.display();
+          draw();
         }
       }));
-  }
+  };
 
-  private async addExtension(raw: string): Promise<void> {
+  const addExtension = async (raw: string): Promise<void> => {
     const ext = raw.trim().toLowerCase().replace(/^\./, '');
     if (!ext) return;
     try {
-      const latest = this.store.load();
+      const latest = store.load();
       if (latest.whitelist.extensions.includes(ext)) return;
-      this.store.save({
+      store.save({
         ...latest,
         whitelist: { ...latest.whitelist, extensions: [...latest.whitelist.extensions, ext] },
       });
-      this.display();
+      draw();
     } catch (e) {
-      const s = this.getStrings();
       new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-      this.display();
+      draw();
     }
-  }
+  };
+
+  draw();
 }

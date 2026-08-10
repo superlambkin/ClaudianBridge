@@ -1,11 +1,8 @@
-import { Plugin, Notice } from 'obsidian';
+import { Plugin, Notice, TFolder } from 'obsidian';
 import { ConfigStore } from './core/config-store';
-import { SettingTabGeneral } from './settings/SettingTabGeneral';
-import { SettingTabSelection } from './settings/SettingTabSelection';
-import { SettingTabTts } from './settings/SettingTabTts';
-import { SettingTabOffice } from './settings/SettingTabOffice';
-import { SettingTabWhitelist } from './settings/SettingTabWhitelist';
+import { ClaudianBridgeSettingTab } from './settings/ClaudianBridgeSettingTab';
 import { setupSelectionWatcher } from './features/selection/watcher';
+import { addFolderToClaudian } from './features/selection/core';
 import { addTextToTTS } from './features/tts/core';
 import { migrateFromLegacy } from './legacy/migration';
 import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
@@ -51,8 +48,8 @@ export default class ClaudianBridgePlugin extends Plugin {
       }
     }
 
-    // 3. 設定タブ登録（5タブ）
-    this.addSettingTab(new SettingTabGeneral(this.app, this, this.store, async () => {
+    // 3. 設定タブ登録（1ページ / 内部5タブ）
+    this.addSettingTab(new ClaudianBridgeSettingTab(this.app, this, this.store, async () => {
       // 移行リセット：フラグをクリアして migration やり直し可能に
       const cfg = this.store.load();
       this.store.save({
@@ -64,10 +61,6 @@ export default class ClaudianBridgePlugin extends Plugin {
         },
       });
     }));
-    this.addSettingTab(new SettingTabSelection(this.app, this, this.store));
-    this.addSettingTab(new SettingTabTts(this.app, this, this.store));
-    this.addSettingTab(new SettingTabOffice(this.app, this, this.store));
-    this.addSettingTab(new SettingTabWhitelist(this.app, this, this.store));
 
     // 4. 機能登録
     const cleanupSelection = setupSelectionWatcher(this.app, this.store, async (text) => {
@@ -94,6 +87,18 @@ export default class ClaudianBridgePlugin extends Plugin {
     };
     OfficeMenuRegistrar.registerFileMenu(this, this.app, officeSettingsRef, openSettings);
     OfficeMenuRegistrar.registerMultiSelect(this, this.app, officeSettingsRef, openSettings);
+
+    // 5.5 フォルダ右クリック「Add to Claudian」
+    this.registerEvent(
+      this.app.workspace.on('file-menu', (menu, file) => {
+        if (file instanceof TFolder) {
+          menu.addItem((item) => item
+            .setTitle('Add to Claudian')
+            .setIcon('message-square-plus')
+            .onClick(() => { void addFolderToClaudian(this.app, file); }));
+        }
+      })
+    );
 
     console.log('[claudian-bridge] loaded');
   }
