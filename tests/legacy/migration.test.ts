@@ -59,4 +59,28 @@ describe('migrateFromLegacy', () => {
     migrateFromLegacy(store, dir);
     expect(existsSync(join(dir, 'claudian-selection-bridge', 'data.json.bak.json'))).toBe(true);
   });
+
+  it('_disabled__vault-office-bridge の data.json を変換してフラグを立てる', () => {
+    mkdirSync(join(dir, '_disabled__vault-office-bridge'));
+    writeFileSync(
+      join(dir, '_disabled__vault-office-bridge', 'data.json'),
+      JSON.stringify({ pythonPath: 'py', enabledExtensions: ['docx', 'pdf'], conflictPolicy: 'skip', outputDirOverride: '' })
+    );
+    const result = migrateFromLegacy(store, dir);
+    expect(result.migrated).toContain('vault-office-bridge');
+    const loaded = store.load();
+    expect(loaded.office.pythonPath).toBe('py');
+    expect(loaded.office.enabledExtensions).toEqual(['docx', 'pdf']);
+    expect(loaded.office.conflictPolicy).toBe('skip');
+    expect(loaded.general.migratedFrom.vaultOfficeBridge).toBe(true);
+    expect(existsSync(join(dir, '_disabled__vault-office-bridge', 'data.json.bak.json'))).toBe(true);
+  });
+
+  it('vault-office-bridge は 2 度目の呼び出しでは移行しない', () => {
+    mkdirSync(join(dir, '_disabled__vault-office-bridge'));
+    writeFileSync(join(dir, '_disabled__vault-office-bridge', 'data.json'), JSON.stringify({ pythonPath: 'py', enabledExtensions: ['docx'], conflictPolicy: 'overwrite', outputDirOverride: '' }));
+    migrateFromLegacy(store, dir);
+    const result2 = migrateFromLegacy(store, dir);
+    expect(result2.migrated).not.toContain('vault-office-bridge');
+  });
 });
