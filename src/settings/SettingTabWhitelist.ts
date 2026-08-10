@@ -158,9 +158,9 @@ export class SettingTabWhitelist extends PluginSettingTab {
   private async addExtension(raw: string): Promise<void> {
     const ext = raw.trim().toLowerCase().replace(/^\./, '');
     if (!ext) return;
-    const latest = this.store.load();
-    if (latest.whitelist.extensions.includes(ext)) return;
     try {
+      const latest = this.store.load();
+      if (latest.whitelist.extensions.includes(ext)) return;
       this.store.save({
         ...latest,
         whitelist: { ...latest.whitelist, extensions: [...latest.whitelist.extensions, ext] },
