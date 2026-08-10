@@ -50,4 +50,29 @@ describe('settings', () => {
     const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, office: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.office, enabled: 'yes' as unknown as boolean } };
     expect(validateClaudianBridgeSettings(bad)).toContain('office.enabled');
   });
+
+  it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.whitelist は全フィールドを持つ', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.whitelist).toMatchObject({
+      enabled: true,
+      extensions: expect.arrayContaining(['md', 'pdf']),
+      alwaysShowFolders: true,
+    });
+  });
+
+  it('normalize は whitelist の欠落キーをデフォルトで埋める', () => {
+    const norm = normalizeClaudianBridgeSettings({ whitelist: { enabled: false } });
+    expect(norm.whitelist.enabled).toBe(false);
+    expect(norm.whitelist.extensions).toEqual(expect.arrayContaining(['md', 'canvas', 'pdf']));
+    expect(norm.whitelist.alwaysShowFolders).toBe(true);
+  });
+
+  it('normalize は extensions 要素を正規化する（trim/lowercase/先頭ドット除去/空文字除去）', () => {
+    const norm = normalizeClaudianBridgeSettings({ whitelist: { extensions: ['.MD', ' PDF ', '', 'JSON'] as unknown as string[] } });
+    expect(norm.whitelist.extensions).toEqual(['md', 'pdf', 'json']);
+  });
+
+  it('validate は whitelist 型違反を返す（enabled が boolean でない）', () => {
+    const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, whitelist: { enabled: 'yes' as unknown as boolean, extensions: [], alwaysShowFolders: true } };
+    expect(validateClaudianBridgeSettings(bad)).toContain('whitelist.enabled');
+  });
 });

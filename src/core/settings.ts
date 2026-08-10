@@ -61,6 +61,32 @@ export function normalizeOfficeSettings(raw: unknown): OfficeSettings {
   };
 }
 
+export interface WhitelistSettings {
+  enabled: boolean;
+  extensions: string[];
+  alwaysShowFolders: boolean;
+}
+
+export const DEFAULT_WHITELIST_SETTINGS: WhitelistSettings = {
+  enabled: true,
+  extensions: ['md', 'canvas', 'pdf', 'png', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'],
+  alwaysShowFolders: true,
+};
+
+export function normalizeWhitelistSettings(raw: unknown): WhitelistSettings {
+  const r = (raw ?? {}) as Partial<WhitelistSettings>;
+  return {
+    enabled: r.enabled ?? DEFAULT_WHITELIST_SETTINGS.enabled,
+    extensions: Array.isArray(r.extensions)
+      ? r.extensions
+          .filter((e): e is string => typeof e === 'string')
+          .map((e) => e.trim().toLowerCase().replace(/^\./, ''))
+          .filter((e) => e.length > 0)
+      : [...DEFAULT_WHITELIST_SETTINGS.extensions],
+    alwaysShowFolders: r.alwaysShowFolders ?? DEFAULT_WHITELIST_SETTINGS.alwaysShowFolders,
+  };
+}
+
 export interface ClaudianBridgeSettings {
   general: {
     enabled: boolean;
@@ -87,7 +113,7 @@ export interface ClaudianBridgeSettings {
     voice: string;
   };
   office: OfficeSettings;
-  whitelist: Record<string, never>;
+  whitelist: WhitelistSettings;
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
@@ -101,7 +127,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     voice: '',
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
-  whitelist: {},
+  whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
 };
 
 export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSettings {
@@ -136,7 +162,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       voice: r.tts?.voice ?? '',
     },
     office: normalizeOfficeSettings(r.office),
-    whitelist: {},
+    whitelist: normalizeWhitelistSettings(r.whitelist),
   };
 }
 
@@ -150,5 +176,8 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.office.enabled !== 'boolean') return 'office.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.office.enabledExtensions)) return 'office.enabledExtensions は配列である必要があります';
   if (!['overwrite', 'skip', 'timestamp'].includes(cfg.office.conflictPolicy)) return 'office.conflictPolicy が未知です';
+  if (typeof cfg.whitelist.enabled !== 'boolean') return 'whitelist.enabled は boolean である必要があります';
+  if (!Array.isArray(cfg.whitelist.extensions)) return 'whitelist.extensions は配列である必要があります';
+  if (typeof cfg.whitelist.alwaysShowFolders !== 'boolean') return 'whitelist.alwaysShowFolders は boolean である必要があります';
   return null;
 }
