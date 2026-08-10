@@ -10,6 +10,8 @@ import { addTextToTTS } from './features/tts/core';
 import { migrateFromLegacy } from './legacy/migration';
 import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
 import { OfficeMenuRegistrar } from './features/office/menu';
+import { buildWhitelistCss } from './features/whitelist/css-builder';
+import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
 import * as path from 'path';
 
 export default class ClaudianBridgePlugin extends Plugin {
@@ -40,6 +42,15 @@ export default class ClaudianBridgePlugin extends Plugin {
       console.warn('[claudian-bridge] disableLegacyPluginsOnce error:', e);
     }
 
+    // 2.5 Whitelist CSS 注入（whitelist.enabled 時のみ）
+    {
+      const w = this.store.load().whitelist;
+      if (w.enabled) {
+        const css = buildWhitelistCss(w.extensions, w.alwaysShowFolders);
+        if (css) installWhitelistCss(css);
+      }
+    }
+
     // 3. 設定タブ登録（5タブ）
     this.addSettingTab(new SettingTabGeneral(this.app, this, this.store, async () => {
       // 移行リセット：フラグをクリアして migration やり直し可能に
@@ -66,7 +77,9 @@ export default class ClaudianBridgePlugin extends Plugin {
     this.register(cleanupSelection);
     // 外部変更検知（UI 更新は SettingTab の onChange で実施済み）。close は onunload で実施
     this.store.watch(() => {
-      /* 外部変更時のフック */
+      const w = this.store.load().whitelist;
+      const css = w.enabled ? buildWhitelistCss(w.extensions, w.alwaysShowFolders) : null;
+      if (css) installWhitelistCss(css); else removeWhitelistCss();
     });
 
     // 5. Office 変換メニュー登録（registerFileMenu が内部で registerEvent を呼ぶ）
@@ -86,6 +99,7 @@ export default class ClaudianBridgePlugin extends Plugin {
   }
 
   onunload(): void {
+    removeWhitelistCss();
     this.store.close();
     console.log('[claudian-bridge] unloaded');
   }
