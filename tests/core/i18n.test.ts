@@ -19,4 +19,9 @@ describe('i18n', () => {
     expect(getLocaleStrings('en').officeEnabled).toContain('Enable');
     expect(getLocaleStrings('zh').officeEnabled).toContain('启用');
   });
+  it('whitelist ラベルを 3 言語で持つ', () => {
+    expect(getLocaleStrings('ja').whitelistEnabled).toContain('有効');
+    expect(getLocaleStrings('en').whitelistEnabled).toContain('Enable');
+    expect(getLocaleStrings('zh').whitelistEnabled).toContain('启用');
+  });
 });

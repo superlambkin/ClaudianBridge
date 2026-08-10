@@ -56,7 +56,7 @@ export default class ClaudianBridgePlugin extends Plugin {
     this.addSettingTab(new SettingTabSelection(this.app, this, this.store));
     this.addSettingTab(new SettingTabTts(this.app, this, this.store));
     this.addSettingTab(new SettingTabOffice(this.app, this, this.store));
-    this.addSettingTab(new SettingTabWhitelist(this.app, this));
+    this.addSettingTab(new SettingTabWhitelist(this.app, this, this.store));
 
     // 4. 機能登録
     const cleanupSelection = setupSelectionWatcher(this.app, this.store, async (text) => {

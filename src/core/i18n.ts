@@ -34,6 +34,22 @@ export interface LocaleStrings {
   officeShowProgressModalDesc: string;
   // Office / Whitelist プレースホルダー
   comingSoon: string;
+  whitelistEnabled: string;
+  whitelistEnabledDesc: string;
+  whitelistExtensionsHeading: string;
+  whitelistExtensionsDesc: string;
+  whitelistAddExtension: string;
+  whitelistAddExtensionDesc: string;
+  whitelistAddExtensionPlaceholder: string;
+  whitelistAddExtensionButton: string;
+  whitelistPresetsHeading: string;
+  whitelistPresetsDesc: string;
+  whitelistApplyButton: string;
+  whitelistAlwaysShowFolders: string;
+  whitelistAlwaysShowFoldersDesc: string;
+  whitelistReset: string;
+  whitelistResetDesc: string;
+  whitelistResetButton: string;
 }
 
 const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -69,6 +85,23 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     officeOutputDirOverrideDesc: '変換結果の .md を保存する絶対パス',
     officeShowProgressModal: '進捗モーダルを表示',
     officeShowProgressModalDesc: '変換中に進捗・ログを表示するモーダル',
+    // ja
+    whitelistEnabled: '✅ 有効化',
+    whitelistEnabledDesc: '拡張子フィルターのON/OFF',
+    whitelistExtensionsHeading: '📋 許可する拡張子',
+    whitelistExtensionsDesc: 'ここに登録した拡張子のファイルだけが左側一覧に表示されます',
+    whitelistAddExtension: '追加する拡張子',
+    whitelistAddExtensionDesc: 'ドットなしで入力（例: json, yaml, js）',
+    whitelistAddExtensionPlaceholder: '拡張子名',
+    whitelistAddExtensionButton: '＋ 追加',
+    whitelistPresetsHeading: '🎯 プリセット',
+    whitelistPresetsDesc: '現在のリストに追加する形式です。「ALL」はフィルターを解除します。',
+    whitelistApplyButton: '適用',
+    whitelistAlwaysShowFolders: '📁 フォルダは常に表示',
+    whitelistAlwaysShowFoldersDesc: 'フォルダをフィルター対象外とする',
+    whitelistReset: '🔄 デフォルトにリセット',
+    whitelistResetDesc: 'すべての設定を初期状態に戻します',
+    whitelistResetButton: 'リセット',
     comingSoon: '🚧 このタブは次サブプロジェクト（P3/P4）で実装予定です。',
   },
   en: {
@@ -103,6 +136,23 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     officeOutputDirOverrideDesc: 'Absolute path to save converted .md files',
     officeShowProgressModal: 'Show progress modal',
     officeShowProgressModalDesc: 'Show a progress/log modal during conversion',
+    // en
+    whitelistEnabled: '✅ Enable',
+    whitelistEnabledDesc: 'Toggle the extension filter',
+    whitelistExtensionsHeading: '📋 Allowed extensions',
+    whitelistExtensionsDesc: 'Only files with these extensions appear in the file list',
+    whitelistAddExtension: 'Add extension',
+    whitelistAddExtensionDesc: 'Enter without dot (e.g. json, yaml, js)',
+    whitelistAddExtensionPlaceholder: 'extension',
+    whitelistAddExtensionButton: '+ Add',
+    whitelistPresetsHeading: '🎯 Presets',
+    whitelistPresetsDesc: 'Adds these to your current list. "ALL" disables the filter.',
+    whitelistApplyButton: 'Apply',
+    whitelistAlwaysShowFolders: '📁 Always show folders',
+    whitelistAlwaysShowFoldersDesc: 'Folders are not affected by the filter',
+    whitelistReset: '🔄 Reset to default',
+    whitelistResetDesc: 'Restore all settings to defaults',
+    whitelistResetButton: 'Reset',
     comingSoon: '🚧 This tab will be implemented in the next sub-project (P3/P4).',
   },
   zh: {
@@ -137,6 +187,23 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     officeOutputDirOverrideDesc: '保存转换结果 .md 的绝对路径',
     officeShowProgressModal: '显示进度弹窗',
     officeShowProgressModalDesc: '转换时显示进度和日志弹窗',
+    // zh
+    whitelistEnabled: '✅ 启用',
+    whitelistEnabledDesc: '切换扩展名过滤',
+    whitelistExtensionsHeading: '📋 允许的扩展名',
+    whitelistExtensionsDesc: '仅显示列表中扩展名的文件',
+    whitelistAddExtension: '添加扩展名',
+    whitelistAddExtensionDesc: '不含点（例如 json, yaml, js）',
+    whitelistAddExtensionPlaceholder: '扩展名',
+    whitelistAddExtensionButton: '＋ 添加',
+    whitelistPresetsHeading: '🎯 预设',
+    whitelistPresetsDesc: '添加到当前列表。「ALL」会取消过滤。',
+    whitelistApplyButton: '应用',
+    whitelistAlwaysShowFolders: '📁 始终显示文件夹',
+    whitelistAlwaysShowFoldersDesc: '文件夹不受过滤影响',
+    whitelistReset: '🔄 恢复默认',
+    whitelistResetDesc: '将所有设置恢复为默认值',
+    whitelistResetButton: '重置',
     comingSoon: '🚧 此标签将在下一个子项目 (P3/P4) 中实现。',
   },
 };
