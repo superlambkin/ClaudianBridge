@@ -34,9 +34,14 @@ export interface LocaleStrings {
   ttsMinimaxHeading: string;
   ttsMinimaxEnabled: string;
   ttsMinimaxApiKey: string;
+  ttsMinimaxApiKeyDesc: string;
   ttsMinimaxVoiceZh: string;
+  ttsMinimaxVoiceZhDesc: string;
   ttsMinimaxVoiceJa: string;
+  ttsMinimaxVoiceJaDesc: string;
   ttsMinimaxVoiceEn: string;
+  ttsMinimaxVoiceEnDesc: string;
+  ttsMinimaxEnabledDesc: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -114,10 +119,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsTestButton: '🔊 テスト再生',
     ttsMinimaxHeading: '🎤 MiniMax クラウド TTS',
     ttsMinimaxEnabled: '有効化',
+    ttsMinimaxEnabledDesc: 'MiniMax クラウド音声合成を有効化',
     ttsMinimaxApiKey: 'API Key',
+    ttsMinimaxApiKeyDesc: 'MiniMax API の認証キー',
     ttsMinimaxVoiceZh: 'Chinese voice ID',
+    ttsMinimaxVoiceZhDesc: '中国語の voice ID',
     ttsMinimaxVoiceJa: 'Japanese voice ID',
+    ttsMinimaxVoiceJaDesc: '日本語の voice ID',
     ttsMinimaxVoiceEn: 'English voice ID',
+    ttsMinimaxVoiceEnDesc: '英語の voice ID',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -194,10 +204,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsTestButton: '🔊 Test voice',
     ttsMinimaxHeading: '🎤 MiniMax Cloud TTS',
     ttsMinimaxEnabled: 'Enable',
+    ttsMinimaxEnabledDesc: 'Enable MiniMax cloud TTS',
     ttsMinimaxApiKey: 'API Key',
+    ttsMinimaxApiKeyDesc: 'MiniMax API authentication key',
     ttsMinimaxVoiceZh: 'Chinese voice ID',
+    ttsMinimaxVoiceZhDesc: 'Voice ID for Chinese',
     ttsMinimaxVoiceJa: 'Japanese voice ID',
+    ttsMinimaxVoiceJaDesc: 'Voice ID for Japanese',
     ttsMinimaxVoiceEn: 'English voice ID',
+    ttsMinimaxVoiceEnDesc: 'Voice ID for English',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -274,10 +289,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsTestButton: '🔊 测试声音',
     ttsMinimaxHeading: '🎤 MiniMax 云 TTS',
     ttsMinimaxEnabled: '启用',
+    ttsMinimaxEnabledDesc: '启用 MiniMax 云端语音合成',
     ttsMinimaxApiKey: 'API 密钥',
+    ttsMinimaxApiKeyDesc: 'MiniMax API 认证密钥',
     ttsMinimaxVoiceZh: '中文语音 ID',
+    ttsMinimaxVoiceZhDesc: '中文语音的 ID',
     ttsMinimaxVoiceJa: '日语语音 ID',
+    ttsMinimaxVoiceJaDesc: '日语语音的 ID',
     ttsMinimaxVoiceEn: '英语语音 ID',
+    ttsMinimaxVoiceEnDesc: '英语语音的 ID',
     resetMigration: '🔄 重新导入旧设置',
     resetMigrationDesc: '从旧插件 data.json 重新导入（需重启 Obsidian）',
     resetMigrationButton: '🔄 重置迁移',
