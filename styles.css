@@ -55,3 +55,62 @@
 }
 .cb-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
 .cb-close-btn { margin-left: auto; }
+
+/* Whitelist tags */
+.cb-whitelist-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+}
+.cb-whitelist-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: var(--font-monospace);
+  transition: opacity 0.15s;
+}
+.cb-whitelist-tag:hover { opacity: 0.85; }
+.cb-whitelist-tag-remove {
+  cursor: pointer;
+  font-size: 0.75em;
+  opacity: 0.7;
+  padding: 0 2px;
+  line-height: 1;
+}
+.cb-whitelist-tag-remove:hover { opacity: 1; color: var(--text-error); }
+
+/* Preset cards */
+.cb-whitelist-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.cb-whitelist-preset-card {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--background-secondary);
+  transition: background 0.15s;
+}
+.cb-whitelist-preset-card:hover { background: var(--background-modifier-hover); }
+.cb-whitelist-preset-card button {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 0.8em;
+  transition: opacity 0.15s;
+}
+.cb-whitelist-preset-card button:hover { opacity: 0.85; }
