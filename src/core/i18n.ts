@@ -16,6 +16,8 @@ export interface LocaleStrings {
   generalEnabledDesc: string;
   selectionEnabled: string;
   selectionEnabledDesc: string;
+  selectionFolderEnabled: string;
+  selectionFolderEnabledDesc: string;
   selectionDelayMs: string;
   selectionDelayMsDesc: string;
   ttsEnabled: string;
@@ -27,6 +29,8 @@ export interface LocaleStrings {
   ttsEngineAuto: string;
   ttsEngineWebspeech: string;
   ttsEngineMinimax: string;
+  ttsTestSample: string;
+  ttsTestButton: string;
   ttsMinimaxHeading: string;
   ttsMinimaxEnabled: string;
   ttsMinimaxApiKey: string;
@@ -79,20 +83,22 @@ export interface LocaleStrings {
   whitelistResetButton: string;
 }
 
-const STRINGS: Record<SupportedLocale, LocaleStrings> = {
+export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
   ja: {
-    tabGeneral: '🎛️ Claudian Bridge — 一般',
+    tabGeneral: '🎛️ 一般',
     tabSelection: '📝 テキスト挿入',
     tabTts: '🔊 テキスト読み上げ',
     tabOffice: '📄 ファイル変換',
     tabWhitelist: '🗂️ 拡張子フィルタ',
-    settingsTitle: 'Claudian Bridge 設定',
+    settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ 保存しました',
     noticeSaveFailed: '⚠️ 保存失敗: {msg}',
     generalEnabled: '🌐 プラグイン有効化',
     generalEnabledDesc: 'Claudian Bridge 全体を ON/OFF',
     selectionEnabled: '🌐 機能 ON/OFF',
     selectionEnabledDesc: '選択テキストを Claudian 入力に挿入する機能を有効化',
+    selectionFolderEnabled: '📁 フォルダ右クリック追加',
+    selectionFolderEnabledDesc: 'フォルダを右クリック → Add to Claudian を有効化',
     selectionDelayMs: '⏱️ ポップアップ遅延 (ms)',
     selectionDelayMsDesc: '選択後フローティングボタンが表示されるまでの遅延',
     ttsEnabled: '🌐 機能 ON/OFF',
@@ -104,6 +110,8 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEngineAuto: '自動 (ClaudeTTS → Web Speech フォールバック)',
     ttsEngineWebspeech: 'Web SpeechSynthesis API',
     ttsEngineMinimax: 'MiniMax クラウド TTS',
+    ttsTestSample: '今日は天気がいい。山に登りたい。',
+    ttsTestButton: '🔊 テスト再生',
     ttsMinimaxHeading: '🎤 MiniMax クラウド TTS',
     ttsMinimaxEnabled: '有効化',
     ttsMinimaxApiKey: 'API Key',
@@ -157,18 +165,20 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     comingSoon: '🚧 このタブは次サブプロジェクト（P3/P4）で実装予定です。',
   },
   en: {
-    tabGeneral: '🎛️ Claudian Bridge — General',
+    tabGeneral: '🎛️ General',
     tabSelection: '📝 Text Insertion',
     tabTts: '🔊 Text To Speech',
     tabOffice: '📄 File Conversion',
     tabWhitelist: '🗂️ Extension Filter',
-    settingsTitle: 'Claudian Bridge Settings',
+    settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ Saved',
     noticeSaveFailed: '⚠️ Save failed: {msg}',
     generalEnabled: '🌐 Enable Plugin',
     generalEnabledDesc: 'Toggle Claudian Bridge globally',
     selectionEnabled: '🌐 Enable Feature',
     selectionEnabledDesc: 'Insert selected text into Claudian input',
+    selectionFolderEnabled: '📁 Folder right-click add',
+    selectionFolderEnabledDesc: 'Enable right-click → Add to Claudian on folders',
     selectionDelayMs: '⏱️ Popup delay (ms)',
     selectionDelayMsDesc: 'Delay before the floating button appears after selection',
     ttsEnabled: '🌐 Enable Feature',
@@ -180,6 +190,8 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEngineAuto: 'Auto (ClaudeTTS → Web Speech fallback)',
     ttsEngineWebspeech: 'Web SpeechSynthesis API',
     ttsEngineMinimax: 'MiniMax cloud TTS',
+    ttsTestSample: "The weather is nice today. I'd like to climb a mountain.",
+    ttsTestButton: '🔊 Test voice',
     ttsMinimaxHeading: '🎤 MiniMax Cloud TTS',
     ttsMinimaxEnabled: 'Enable',
     ttsMinimaxApiKey: 'API Key',
@@ -233,18 +245,20 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     comingSoon: '🚧 This tab will be implemented in the next sub-project (P3/P4).',
   },
   zh: {
-    tabGeneral: '🎛️ Claudian Bridge — 一般',
+    tabGeneral: '🎛️ 一般',
     tabSelection: '📝 文本插入',
     tabTts: '🔊 文本朗读',
     tabOffice: '📄 文件转换',
     tabWhitelist: '🗂️ 扩展名过滤',
-    settingsTitle: 'Claudian Bridge 设置',
-    noticeSaved: '✅ 已保存',
-    noticeSaveFailed: '⚠️ 保存失败: {msg}',
+    settingsTitle: 'Claudian Bridge',
+    noticeSaved: '✅ 已写入',
+    noticeSaveFailed: '⚠️ 写入失败: {msg}',
     generalEnabled: '🌐 启用插件',
     generalEnabledDesc: '全局开关 Claudian Bridge',
     selectionEnabled: '🌐 启用功能',
     selectionEnabledDesc: '将选中文本插入 Claudian 输入框',
+    selectionFolderEnabled: '📁 文件夹右键添加',
+    selectionFolderEnabledDesc: '启用文件夹右键 → Add to Claudian',
     selectionDelayMs: '⏱️ 弹窗延迟 (毫秒)',
     selectionDelayMsDesc: '选中后到悬浮按钮出现的延迟',
     ttsEnabled: '🌐 启用功能',
@@ -256,6 +270,8 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEngineAuto: '自动 (ClaudeTTS → Web Speech 回退)',
     ttsEngineWebspeech: 'Web SpeechSynthesis API',
     ttsEngineMinimax: 'MiniMax 云 TTS',
+    ttsTestSample: '今天天气不错。我想去爬山。',
+    ttsTestButton: '🔊 测试声音',
     ttsMinimaxHeading: '🎤 MiniMax 云 TTS',
     ttsMinimaxEnabled: '启用',
     ttsMinimaxApiKey: 'API 密钥',
@@ -284,7 +300,7 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     officeFrontmatterTemplate: 'Frontmatter 模板',
     officeFrontmatterTemplateDesc: '占位符: {{title}} / {{sourcePath}} / {{date}} / {{ext}} / {{sizeBytes}} / {{sha256}}',
     officeOutputDirOverride: '输出目录（可选，留空=原文件夹）',
-    officeOutputDirOverrideDesc: '保存转换结果 .md 的绝对路径',
+    officeOutputDirOverrideDesc: '存放转换结果 .md 的绝对路径',
     officeShowProgressModal: '显示进度弹窗',
     officeShowProgressModalDesc: '转换时显示进度和日志弹窗',
     // zh

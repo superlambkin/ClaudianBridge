@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getLocaleStrings, getUILanguage, SUPPORTED_LOCALES } from '../../src/core/i18n';
+import { getLocaleStrings, getUILanguage, STRINGS, SUPPORTED_LOCALES } from '../../src/core/i18n';
 
 describe('i18n', () => {
   it('3 言語すべてサポート', () => {
@@ -30,7 +30,7 @@ describe('i18n', () => {
     const zh = getLocaleStrings('zh');
     expect(ja.noticeSaved).toContain('保存');
     expect(en.noticeSaved).toContain('Saved');
-    expect(zh.noticeSaved).toContain('保存');
+    expect(zh.noticeSaved).toContain('已写入');
     expect(en.generalEnabled).toContain('Enable');
     expect(zh.selectionDelayMs).toContain('延迟');
     expect(ja.ttsEngine).toContain('エンジン');
@@ -48,5 +48,46 @@ describe('i18n', () => {
     expect(getUILanguage('en-US')).toBe('en');
     expect(getUILanguage(undefined)).toBe('en');
     expect(getUILanguage('fr')).toBe('en');
+  });
+  it('settingsTitle は全言語で "Claudian Bridge" のみ（タイトル重複なし）', () => {
+    expect(getLocaleStrings('ja').settingsTitle).toBe('Claudian Bridge');
+    expect(getLocaleStrings('en').settingsTitle).toBe('Claudian Bridge');
+    expect(getLocaleStrings('zh').settingsTitle).toBe('Claudian Bridge');
+  });
+  it('tabGeneral は "🎛️" プレフィックスを持つ（他タブと統一）', () => {
+    expect(getLocaleStrings('ja').tabGeneral.startsWith('🎛️')).toBe(true);
+    expect(getLocaleStrings('en').tabGeneral.startsWith('🎛️')).toBe(true);
+    expect(getLocaleStrings('zh').tabGeneral.startsWith('🎛️')).toBe(true);
+  });
+  it('zh STRINGS は日本語漢字を含まない', () => {
+    const jaChars = ['設定','挿入','読み上げ','追加','削除','エンジン','有効化','拡張子','フォルダ','フォルダ','保存','失敗','テスト','プレースホルダ','リセット','オプション','全て','並び替え','ハイライト'];
+    for (const key of Object.keys(STRINGS.zh) as Array<keyof typeof STRINGS.zh>) {
+      const v = STRINGS.zh[key];
+      if (typeof v !== 'string') continue;
+      for (const c of jaChars) expect(v, `${key} contains ${c}`).not.toContain(c);
+    }
+  });
+  it('selectionFolderEnabled は 3 言語で存在し、各言語のフォルダ表現を含む', () => {
+    const ja = getLocaleStrings('ja').selectionFolderEnabled;
+    const en = getLocaleStrings('en').selectionFolderEnabled;
+    const zh = getLocaleStrings('zh').selectionFolderEnabled;
+    expect(ja).toContain('フォルダ');
+    expect(en.toLowerCase()).toContain('folder');
+    expect(zh).toContain('文件夹');
+  });
+  it('selectionFolderEnabledDesc は 3 言語で存在する', () => {
+    expect(getLocaleStrings('ja').selectionFolderEnabledDesc.length).toBeGreaterThan(0);
+    expect(getLocaleStrings('en').selectionFolderEnabledDesc.length).toBeGreaterThan(0);
+    expect(getLocaleStrings('zh').selectionFolderEnabledDesc.length).toBeGreaterThan(0);
+  });
+  it('ttsTestButton は 3 言語で存在する', () => {
+    expect(getLocaleStrings('ja').ttsTestButton.length).toBeGreaterThan(0);
+    expect(getLocaleStrings('en').ttsTestButton.length).toBeGreaterThan(0);
+    expect(getLocaleStrings('zh').ttsTestButton.length).toBeGreaterThan(0);
+  });
+  it('ttsTestSample は UI 言語ごとに固有のサンプル文を持つ', () => {
+    expect(getLocaleStrings('ja').ttsTestSample).toContain('今日');
+    expect(getLocaleStrings('zh').ttsTestSample).toContain('今天');
+    expect(getLocaleStrings('en').ttsTestSample).toContain('weather');
   });
 });

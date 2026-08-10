@@ -18,7 +18,7 @@ describe('convertFromClaudianSelectionBridge', () => {
     };
     const result = convertFromClaudianSelectionBridge(raw);
     expect(result).toMatchObject({
-      selection: { enabled: true, delayMs: 500 },
+      selection: { enabled: true, folderEnabled: true, delayMs: 500 },
       tts: { engine: 'claudetts', voices: { zh: 'zh-voice' }, minimax: { apiKey: 'k' } },
     });
   });

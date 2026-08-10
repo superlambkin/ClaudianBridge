@@ -93,7 +93,7 @@ export interface ClaudianBridgeSettings {
     migratedFrom: { claudianSelectionBridge: boolean; extensionWhitelist: boolean; vaultOfficeBridge: boolean };
     migrationResetAvailable: boolean;
   };
-  selection: { enabled: boolean; delayMs: number };
+  selection: { enabled: boolean; folderEnabled: boolean; delayMs: number };
   tts: {
     enabled: boolean;
     engine: 'edge' | 'claudetts' | 'auto' | 'webspeech' | 'minimax';
@@ -118,7 +118,7 @@ export interface ClaudianBridgeSettings {
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false }, migrationResetAvailable: true },
-  selection: { enabled: true, delayMs: 300 },
+  selection: { enabled: true, folderEnabled: true, delayMs: 300 },
   tts: {
     enabled: true,
     engine: 'edge',
@@ -142,7 +142,11 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       },
       migrationResetAvailable: r.general?.migrationResetAvailable ?? true,
     },
-    selection: { enabled: r.selection?.enabled ?? true, delayMs: r.selection?.delayMs ?? 300 },
+    selection: {
+      enabled: r.selection?.enabled ?? true,
+      folderEnabled: r.selection?.folderEnabled ?? true,
+      delayMs: r.selection?.delayMs ?? 300,
+    },
     tts: {
       enabled: r.tts?.enabled ?? true,
       engine: r.tts?.engine ?? 'edge',
@@ -169,6 +173,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
 export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): string | null {
   if (typeof cfg.general.enabled !== 'boolean') return 'general.enabled は boolean である必要があります';
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
+  if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';
   if (typeof cfg.tts.enabled !== 'boolean') return 'tts.enabled は boolean である必要があります';
   const engines = ['edge', 'claudetts', 'auto', 'webspeech', 'minimax'];

@@ -1,6 +1,7 @@
 import { Notice, Setting } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
+import { addTextToTTS } from '../features/tts/core';
 
 type EngineKey = 'edge' | 'claudetts' | 'auto' | 'webspeech' | 'minimax';
 type EngineLabelKey = 'ttsEngineEdge' | 'ttsEngineClaudetts' | 'ttsEngineAuto' | 'ttsEngineWebspeech' | 'ttsEngineMinimax';
@@ -47,6 +48,14 @@ export function renderTtsTab(containerEl: HTMLElement, store: ConfigStore): void
           }
         });
       });
+
+    // テスト再生ボタン（現在の UI 言語のサンプル文）
+    new Setting(containerEl)
+      .setName(s.ttsTestButton)
+      .setDesc(s.ttsTestSample)
+      .addButton((b) => b.setButtonText(s.ttsTestButton).onClick(async () => {
+        await addTextToTTS(undefined as never, s.ttsTestSample, { engine: cfg.tts.engine });
+      }));
 
     // MiniMax 詳細設定
     containerEl.createEl('h3', { text: s.ttsMinimaxHeading });

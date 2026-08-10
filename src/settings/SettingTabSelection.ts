@@ -25,6 +25,19 @@ export function renderSelectionTab(containerEl: HTMLElement, store: ConfigStore)
       }));
 
     new Setting(containerEl)
+      .setName(s.selectionFolderEnabled)
+      .setDesc(s.selectionFolderEnabledDesc)
+      .addToggle((t) => t.setValue(cfg.selection.folderEnabled).onChange((v) => {
+        try {
+          store.save({ ...cfg, selection: { ...cfg.selection, folderEnabled: v } });
+          new Notice(s.noticeSaved);
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+
+    new Setting(containerEl)
       .setName(s.selectionDelayMs)
       .setDesc(s.selectionDelayMsDesc)
       .addText((t) => t.setValue(String(cfg.selection.delayMs)).onChange((v) => {

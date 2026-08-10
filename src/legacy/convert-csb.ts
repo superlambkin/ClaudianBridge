@@ -9,6 +9,7 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
   return {
     selection: {
       enabled: typeof r.enabled === 'boolean' ? r.enabled : true,
+      folderEnabled: true,
       delayMs: typeof r.delayMs === 'number' ? r.delayMs : 300,
     },
     tts: {

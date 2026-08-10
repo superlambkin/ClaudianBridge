@@ -88,10 +88,10 @@ export default class ClaudianBridgePlugin extends Plugin {
     OfficeMenuRegistrar.registerFileMenu(this, this.app, officeSettingsRef, openSettings);
     OfficeMenuRegistrar.registerMultiSelect(this, this.app, officeSettingsRef, openSettings);
 
-    // 5.5 フォルダ右クリック「Add to Claudian」
+    // 5.5 フォルダ右クリック「Add to Claudian」（selection.folderEnabled が true の時のみ）
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
-        if (file instanceof TFolder) {
+        if (file instanceof TFolder && this.store.load().selection.folderEnabled) {
           menu.addItem((item) => item
             .setTitle('Add to Claudian')
             .setIcon('message-square-plus')
