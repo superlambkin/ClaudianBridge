@@ -86,6 +86,7 @@ export class OfficeMenuRegistrar {
     const workspace = app.workspace as Workspace;
     const handler = (menu: Menu, file: TFile | string): void => {
       if (!(file instanceof TFile)) return;
+      if (!settingsRef().enabled) return;
       const ext = file.extension.toLowerCase();
       if (!settingsRef().enabledExtensions.includes(ext)) return;
       menu.addItem((item: MenuItem) => {
@@ -107,6 +108,7 @@ export class OfficeMenuRegistrar {
   static registerMultiSelect(plugin: PluginHost, app: App, settingsRef: () => OfficeSettings, onOpenSettings: () => void): void {
     const workspace = app.workspace as Workspace;
     const handler = (menu: Menu, files: TFile[] | TFile): void => {
+      if (!settingsRef().enabled) return;
       const arr = Array.isArray(files) ? files : [files];
       if (arr.length < 2) return;
       const targets = arr.filter((f) => settingsRef().enabledExtensions.includes(f.extension.toLowerCase()));

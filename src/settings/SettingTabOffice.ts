@@ -30,7 +30,8 @@ export class SettingTabOffice extends PluginSettingTab {
       .setDesc(s.officeEnabledDesc)
       .addToggle((t) => t.setValue(cfg.office.enabled).onChange((v) => {
         try {
-          this.store.save({ ...cfg, office: { ...cfg.office, enabled: v } });
+          const latest = this.store.load();
+          this.store.save({ ...latest, office: { ...latest.office, enabled: v } });
           new Notice('✅ 保存しました');
         } catch (e) {
           new Notice(`⚠️ 保存失敗: ${(e as Error).message}`);
@@ -42,7 +43,10 @@ export class SettingTabOffice extends PluginSettingTab {
       .setName(s.officePythonPath)
       .setDesc(s.officePythonPathDesc)
       .addText((t) => t.setValue(cfg.office.pythonPath).onChange((v) => {
-        try { this.store.save({ ...cfg, office: { ...cfg.office, pythonPath: v } }); } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); }
+        try {
+          const latest = this.store.load();
+          this.store.save({ ...latest, office: { ...latest.office, pythonPath: v } });
+        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
       }));
 
     new Setting(containerEl)
@@ -50,9 +54,10 @@ export class SettingTabOffice extends PluginSettingTab {
       .setDesc(s.officeEnabledExtensionsDesc)
       .addText((t) => t.setValue(cfg.office.enabledExtensions.join(',')).onChange((v) => {
         try {
+          const latest = this.store.load();
           const list = v.split(',').map((x) => x.trim()).filter(Boolean);
-          this.store.save({ ...cfg, office: { ...cfg.office, enabledExtensions: list } });
-        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); }
+          this.store.save({ ...latest, office: { ...latest.office, enabledExtensions: list } });
+        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
       }));
 
     new Setting(containerEl)
@@ -62,8 +67,9 @@ export class SettingTabOffice extends PluginSettingTab {
         for (const o of CONFLICT_OPTIONS) d.addOption(o.key, s[o.labelKey]);
         d.setValue(cfg.office.conflictPolicy).onChange((v) => {
           try {
-            this.store.save({ ...cfg, office: { ...cfg.office, conflictPolicy: v as typeof cfg.office.conflictPolicy } });
-          } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); }
+            const latest = this.store.load();
+            this.store.save({ ...latest, office: { ...latest.office, conflictPolicy: v as typeof cfg.office.conflictPolicy } });
+          } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
         });
       });
 
@@ -71,21 +77,30 @@ export class SettingTabOffice extends PluginSettingTab {
       .setName(s.officeFrontmatterTemplate)
       .setDesc(s.officeFrontmatterTemplateDesc)
       .addTextArea((t) => t.setValue(cfg.office.frontmatterTemplate).onChange((v) => {
-        try { this.store.save({ ...cfg, office: { ...cfg.office, frontmatterTemplate: v } }); } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); }
+        try {
+          const latest = this.store.load();
+          this.store.save({ ...latest, office: { ...latest.office, frontmatterTemplate: v } });
+        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
       }));
 
     new Setting(containerEl)
       .setName(s.officeOutputDirOverride)
       .setDesc(s.officeOutputDirOverrideDesc)
       .addText((t) => t.setValue(cfg.office.outputDirOverride).onChange((v) => {
-        try { this.store.save({ ...cfg, office: { ...cfg.office, outputDirOverride: v } }); } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); }
+        try {
+          const latest = this.store.load();
+          this.store.save({ ...latest, office: { ...latest.office, outputDirOverride: v } });
+        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
       }));
 
     new Setting(containerEl)
       .setName(s.officeShowProgressModal)
       .setDesc(s.officeShowProgressModalDesc)
       .addToggle((t) => t.setValue(cfg.office.showProgressModal).onChange((v) => {
-        try { this.store.save({ ...cfg, office: { ...cfg.office, showProgressModal: v } }); } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); }
+        try {
+          const latest = this.store.load();
+          this.store.save({ ...latest, office: { ...latest.office, showProgressModal: v } });
+        } catch (e) { new Notice(`⚠️ ${(e as Error).message}`); this.display(); }
       }));
   }
 }

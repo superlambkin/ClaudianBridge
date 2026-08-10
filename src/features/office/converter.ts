@@ -9,6 +9,12 @@ import { MarkItDownRunner } from './markitdown';
 import { SplitterRunner } from './splitter';
 import { ProgressModal } from './progress-modal';
 
+function localDateTime(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export type SplitMode = 'single' | 'split';
 
 export interface ConversionItemResult {
@@ -30,7 +36,8 @@ export class OfficeConverter {
     settings: OfficeSettings,
     modal: ProgressModal
   ): Promise<ConversionItemResult> {
-    const vaultRoot = app.vault.adapter.basePath;
+    const adapter = app.vault.adapter as { getBasePath?: () => string; basePath?: string };
+    const vaultRoot = adapter.getBasePath ? adapter.getBasePath() : (adapter.basePath ?? process.cwd());
     const srcAbs = VaultPath.absolute(vaultRoot, file.path);
     const ext = file.extension.toLowerCase();
 
@@ -62,7 +69,7 @@ export class OfficeConverter {
     const fmApplied = FrontmatterApplier.expand(settings.frontmatterTemplate, {
       title: file.basename,
       sourcePath: file.path,
-      date: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      date: localDateTime(),
       ext,
       sizeBytes: buffer.byteLength,
       sha256,
@@ -76,6 +83,17 @@ export class OfficeConverter {
     const mainName = settings.conflictPolicy === 'timestamp' ? `${stem}_${Date.now()}` : stem;
     const mainRel = path.posix.join(outputDirRel, `${mainName}.md`);
     const mainAbs = path.join(outputDirAbs, `${mainName}.md`);
+    if (settings.conflictPolicy === 'skip') {
+      try {
+        await fs.access(mainAbs);
+        modal.setStage('Writing main .md', 'ok');
+        modal.appendLog(`[SKIP] ${mainRel} (exists)`);
+        modal.setButtonsEnabled({ copy: true, open: true, retry: true, settings: true });
+        return { path: file.path, ok: false, message: 'skipped (exists)', outputs: [mainRel] };
+      } catch {
+        /* not exists → proceed to write */
+      }
+    }
     await fs.mkdir(path.dirname(mainAbs), { recursive: true });
     await fs.writeFile(mainAbs, fullMd, 'utf8');
     modal.setStage('Writing main .md', 'ok');
