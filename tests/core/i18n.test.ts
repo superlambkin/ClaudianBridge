@@ -14,4 +14,9 @@ describe('i18n', () => {
   it('zh は「一般」を含む', () => {
     expect(getLocaleStrings('zh').tabGeneral).toContain('一般');
   });
+  it('office ラベルを 3 言語で持つ', () => {
+    expect(getLocaleStrings('ja').officeEnabled).toContain('機能');
+    expect(getLocaleStrings('en').officeEnabled).toContain('Enable');
+    expect(getLocaleStrings('zh').officeEnabled).toContain('启用');
+  });
 });

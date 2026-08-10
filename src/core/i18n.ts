@@ -15,6 +15,23 @@ export interface LocaleStrings {
   migratedFrom: string;
   notMigrated: string;
   migrated: string;
+  officeEnabled: string;
+  officeEnabledDesc: string;
+  officePythonPath: string;
+  officePythonPathDesc: string;
+  officeEnabledExtensions: string;
+  officeEnabledExtensionsDesc: string;
+  officeConflictPolicy: string;
+  officeConflictPolicyDesc: string;
+  officeConflictOverwrite: string;
+  officeConflictSkip: string;
+  officeConflictTimestamp: string;
+  officeFrontmatterTemplate: string;
+  officeFrontmatterTemplateDesc: string;
+  officeOutputDirOverride: string;
+  officeOutputDirOverrideDesc: string;
+  officeShowProgressModal: string;
+  officeShowProgressModalDesc: string;
   // Office / Whitelist プレースホルダー
   comingSoon: string;
 }
@@ -34,6 +51,24 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     migratedFrom: '旧プラグイン移行状態',
     notMigrated: '⏳ 未移行',
     migrated: '✅ 移行済み',
+    // ja
+    officeEnabled: '🌐 機能 ON/OFF',
+    officeEnabledDesc: 'Office/PDF/HTML/CSV → Markdown 変換を有効化',
+    officePythonPath: 'Python Path',
+    officePythonPathDesc: 'markitdown を呼ぶ Python 実行ファイル（例: py / python3 / フルパス）',
+    officeEnabledExtensions: '有効拡張子（カンマ区切り）',
+    officeEnabledExtensionsDesc: '右クリックメニューを表示する拡張子',
+    officeConflictPolicy: '同名 .md 衝突時',
+    officeConflictPolicyDesc: '出力先に同名 Markdown がある場合の挙動',
+    officeConflictOverwrite: '上書き',
+    officeConflictSkip: 'スキップ',
+    officeConflictTimestamp: 'タイムスタンプ付与',
+    officeFrontmatterTemplate: 'Frontmatter Template',
+    officeFrontmatterTemplateDesc: 'プレースホルダ: {{title}} / {{sourcePath}} / {{date}} / {{ext}} / {{sizeBytes}} / {{sha256}}',
+    officeOutputDirOverride: '出力ディレクトリ（任意・空なら元と同階層）',
+    officeOutputDirOverrideDesc: '変換結果の .md を保存する絶対パス',
+    officeShowProgressModal: '進捗モーダルを表示',
+    officeShowProgressModalDesc: '変換中に進捗・ログを表示するモーダル',
     comingSoon: '🚧 このタブは次サブプロジェクト（P3/P4）で実装予定です。',
   },
   en: {
@@ -50,6 +85,24 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     migratedFrom: 'Legacy plugin migration status',
     notMigrated: '⏳ Not migrated',
     migrated: '✅ Migrated',
+    // en
+    officeEnabled: '🌐 Enable Feature',
+    officeEnabledDesc: 'Enable Office/PDF/HTML/CSV → Markdown conversion',
+    officePythonPath: 'Python Path',
+    officePythonPathDesc: 'Python executable for markitdown (e.g. py / python3 / full path)',
+    officeEnabledExtensions: 'Enabled extensions (comma-separated)',
+    officeEnabledExtensionsDesc: 'Extensions that show the context menu',
+    officeConflictPolicy: 'On conflicting .md name',
+    officeConflictPolicyDesc: 'Behavior when output Markdown already exists',
+    officeConflictOverwrite: 'Overwrite',
+    officeConflictSkip: 'Skip',
+    officeConflictTimestamp: 'Add timestamp',
+    officeFrontmatterTemplate: 'Frontmatter Template',
+    officeFrontmatterTemplateDesc: 'Placeholders: {{title}} / {{sourcePath}} / {{date}} / {{ext}} / {{sizeBytes}} / {{sha256}}',
+    officeOutputDirOverride: 'Output directory (optional, empty = same folder)',
+    officeOutputDirOverrideDesc: 'Absolute path to save converted .md files',
+    officeShowProgressModal: 'Show progress modal',
+    officeShowProgressModalDesc: 'Show a progress/log modal during conversion',
     comingSoon: '🚧 This tab will be implemented in the next sub-project (P3/P4).',
   },
   zh: {
@@ -66,6 +119,24 @@ const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     migratedFrom: '旧插件迁移状态',
     notMigrated: '⏳ 未迁移',
     migrated: '✅ 已迁移',
+    // zh
+    officeEnabled: '🌐 启用功能',
+    officeEnabledDesc: '启用 Office/PDF/HTML/CSV → Markdown 转换',
+    officePythonPath: 'Python 路径',
+    officePythonPathDesc: '调用 markitdown 的 Python 可执行文件（如 py / python3 / 完整路径）',
+    officeEnabledExtensions: '启用扩展名（逗号分隔）',
+    officeEnabledExtensionsDesc: '显示右键菜单的扩展名',
+    officeConflictPolicy: '同名 .md 冲突时',
+    officeConflictPolicyDesc: '输出目录已存在同名 Markdown 时的行为',
+    officeConflictOverwrite: '覆盖',
+    officeConflictSkip: '跳过',
+    officeConflictTimestamp: '添加时间戳',
+    officeFrontmatterTemplate: 'Frontmatter 模板',
+    officeFrontmatterTemplateDesc: '占位符: {{title}} / {{sourcePath}} / {{date}} / {{ext}} / {{sizeBytes}} / {{sha256}}',
+    officeOutputDirOverride: '输出目录（可选，留空=原文件夹）',
+    officeOutputDirOverrideDesc: '保存转换结果 .md 的绝对路径',
+    officeShowProgressModal: '显示进度弹窗',
+    officeShowProgressModalDesc: '转换时显示进度和日志弹窗',
     comingSoon: '🚧 此标签将在下一个子项目 (P3/P4) 中实现。',
   },
 };
