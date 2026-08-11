@@ -20,6 +20,10 @@ interface AppWithPlugins {
 
 let _handle: ClaudeQuotaHandle | null = null;
 
+export function getClaudeQuotaHandle(): ClaudeQuotaHandle | null {
+  return _handle;
+}
+
 /**
  * Mount the Claude quota bar and start the service.
  *
@@ -73,6 +77,9 @@ export async function registerClaudeQuota(
   if (mountedWrapper) {
     bindRefreshDelegation(mountedWrapper, service, view);
   }
+
+  // Service 更新を View に反映
+  service.onUpdate((snap) => view.render(snap));
 
   // quotaEnabled が true のときだけ Service 起動
   if (cfg.general.quotaEnabled) {

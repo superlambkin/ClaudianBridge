@@ -13,7 +13,7 @@ import * as fsPromises from 'fs/promises';
 import { ClaudeQuotaService } from '../../../src/features/quota/core';
 import { Platform } from 'obsidian';
 import { resetMocks, mockFetch } from '../../mocks/obsidian';
-import type { QuotaSnapshot } from '../../../src/features/quota/types';
+import { EVENT_QUOTA_UPDATED, type QuotaSnapshot } from '../../../src/features/quota/types';
 
 const spawnMock = vi.mocked(spawn);
 const readFileMock = vi.mocked(fsPromises.readFile);
@@ -171,6 +171,12 @@ describe('ClaudeQuotaService.fetchQuota', () => {
     expect(snap.status).toBe('error');
   });
 
+  it('429 → success 状態を返す（前回値保持）', async () => {
+    mockFetch(async () => new Response('Too Many Requests', { status: 429 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('success');
+  });
+
   it('Authorization ヘッダーに Bearer トークンが含まれる', async () => {
     let capturedAuth: string | null = null;
     mockFetch(async (_url, init) => {
@@ -283,6 +289,18 @@ describe('ClaudeQuotaService lifecycle', () => {
     expect(cb).not.toHaveBeenCalled();
     expect(svc.getSnapshot().status).toBe('unsupported');
     await svc.stop();
+  });
+
+  it('emit で workspace.trigger が発火', async () => {
+    const trigger = vi.fn();
+    const local = new ClaudeQuotaService({
+      app: { workspace: { trigger } } as never,
+      store: {} as never,
+      refreshSec: 60,
+    });
+    await local.start();
+    expect(trigger).toHaveBeenCalledWith(EVENT_QUOTA_UPDATED, expect.objectContaining({ status: 'success' }));
+    await local.stop();
   });
 
   it('refreshSec=0 のとき start でタイマー起動しない', async () => {

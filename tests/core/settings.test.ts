@@ -140,6 +140,11 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
     expect(s.general.quotaEnabled).toBe(false);
   });
 
+  it('quotaRefreshSec が 0 のとき 0 を許可', () => {
+    const s = normalizeClaudianBridgeSettings({ general: { quotaRefreshSec: 0 } });
+    expect(s.general.quotaRefreshSec).toBe(0);
+  });
+
   it('quotaRefreshSec が 5 のとき 10 にクランプ', () => {
     const s = normalizeClaudianBridgeSettings({ general: { quotaRefreshSec: 5 } });
     expect(s.general.quotaRefreshSec).toBe(10);

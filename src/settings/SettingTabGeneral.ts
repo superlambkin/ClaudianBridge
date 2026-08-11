@@ -3,6 +3,7 @@ import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { clampRefreshSec } from '../core/settings';
+import { getClaudeQuotaHandle, registerClaudeQuota } from '../features/quota/index';
 
 export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>): void {
   const s = getLocaleStrings(getUILanguage());
@@ -37,6 +38,13 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
         try {
           const latest = store.load();
           store.save({ ...latest, general: { ...latest.general, quotaEnabled: v } });
+          const handle = getClaudeQuotaHandle();
+          if (!v && handle) {
+            void handle.service.stop();
+            handle.view.unmount();
+          } else if (v) {
+            void registerClaudeQuota(_app, store);
+          }
           new Notice(s.noticeSaved);
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));

@@ -5,7 +5,7 @@ import { spawn } from 'child_process';
 import { Platform } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
-import { createIdleSnapshot, type QuotaSnapshot, type QuotaStatus } from './types';
+import { createIdleSnapshot, EVENT_QUOTA_UPDATED, type QuotaSnapshot, type QuotaStatus } from './types';
 
 export interface ClaudeQuotaServiceOptions {
   app: App;
@@ -93,6 +93,10 @@ export class ClaudeQuotaService {
       });
       if (res.status === 401 || res.status === 403) {
         return this.setStatus('expired', `HTTP ${res.status}`);
+      }
+      if (res.status === 429) {
+        // 前回値を保持して error 扱いにしない
+        return this.setStatus('success', undefined);
       }
       if (!res.ok) {
         return this.setStatus('error', `HTTP ${res.status}`);
@@ -213,6 +217,7 @@ export class ClaudeQuotaService {
   /** 全購読者にスナップショットを通知 */
   private emit(): void {
     const snap = this.snapshot;
+    this.opts.app.workspace?.trigger(EVENT_QUOTA_UPDATED, snap);
     for (const cb of this.listeners) {
       try {
         cb(snap);

@@ -130,10 +130,10 @@ export default class ClaudianBridgePlugin extends Plugin {
     console.log('[claudian-bridge] loaded');
   }
 
-  async onunload(): Promise<void> {
+  onunload(): void {
     removeWhitelistCss();
     if (this.quotaHandle) {
-      await unregisterClaudeQuota();
+      void unregisterClaudeQuota();
       this.quotaHandle = null;
     }
     this.store.close();

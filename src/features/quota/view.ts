@@ -89,9 +89,19 @@ export class QuotaBarView {
     this.el.setAttribute('data-status', snap.status);
 
     const s = getLocaleStrings(getUILanguage());
+
+    if (snap.status === 'success') {
+      this.renderSuccess(snap, s);
+      return;
+    }
+
+    this.renderMessageState(snap.status, s);
+  }
+
+  private renderSuccess(snap: QuotaSnapshot, s: ReturnType<typeof getLocaleStrings>): void {
     const { fiveHour, sevenDay } = snap.windows;
 
-    const main = appendSpan(this.el, 'claudian-quota-bar__main');
+    const main = appendSpan(this.el!, 'claudian-quota-bar__main');
     const dot = appendSpan(main, 'claudian-quota-bar__dot');
     dot.setAttribute('data-color', colorFor(fiveHour.utilization));
     appendSpan(main, 'claudian-quota-bar__label', s.quotaWindow5h);
@@ -99,9 +109,49 @@ export class QuotaBarView {
     const cd = formatCountdown(fiveHour.resetsAt);
     if (cd) appendSpan(main, 'claudian-quota-bar__countdown', `🕘 ${cd}`);
 
-    const sub = appendSpan(this.el, 'claudian-quota-bar__sub');
+    const sub = appendSpan(this.el!, 'claudian-quota-bar__sub');
     appendSpan(sub, 'claudian-quota-bar__sub-label', s.quotaWindow7d);
     appendSpan(sub, 'claudian-quota-bar__value', pct(sevenDay.utilization));
+
+    const btn = this.el!.ownerDocument.createElement('button');
+    btn.className = 'claudian-quota-bar__refresh clickable-icon';
+    btn.setAttribute('aria-label', s.quotaRefresh);
+    btn.textContent = '↻';
+    this.el!.appendChild(btn);
+  }
+
+  private renderMessageState(
+    status: QuotaSnapshot['status'],
+    s: ReturnType<typeof getLocaleStrings>,
+  ): void {
+    if (!this.el) return;
+
+    const main = appendSpan(this.el, 'claudian-quota-bar__main');
+    const dot = appendSpan(main, 'claudian-quota-bar__dot');
+    const label = appendSpan(main, 'claudian-quota-bar__label');
+
+    this.el.classList.toggle('claudian-quota-bar--pulse', status === 'fetching');
+
+    switch (status) {
+      case 'fetching':
+        dot.setAttribute('data-color', 'gray');
+        label.textContent = s.quotaFetching;
+        break;
+      case 'expired':
+        dot.setAttribute('data-color', 'gray');
+        label.textContent = `⚠ ${s.quotaNotLoggedIn}`;
+        break;
+      case 'error':
+        dot.setAttribute('data-color', 'red');
+        label.textContent = `❌ ${s.quotaError}`;
+        break;
+      case 'unsupported':
+        dot.setAttribute('data-color', 'gray');
+        label.textContent = s.quotaUnsupportedMobile;
+        break;
+      default:
+        label.textContent = '';
+    }
 
     const btn = this.el.ownerDocument.createElement('button');
     btn.className = 'claudian-quota-bar__refresh clickable-icon';

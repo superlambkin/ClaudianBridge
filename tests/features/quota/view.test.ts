@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { colorFor, formatCountdown, QuotaBarView } from '../../../src/features/quota/view';
 import type { QuotaSnapshot } from '../../../src/features/quota/types';
+import { getLocaleStrings } from '../../../src/core/i18n';
 
 describe('colorFor', () => {
   it('<70 → green', () => expect(colorFor(0)).toBe('green'));
@@ -113,5 +114,64 @@ describe('QuotaBarView', () => {
 
     const bar = container.parentElement?.querySelector('.claudian-quota-bar');
     expect(bar?.getAttribute('data-status')).toBe('expired');
+  });
+
+  it('render(error) → i18n 文案を表示', () => {
+    const s = getLocaleStrings('en');
+    const snap: QuotaSnapshot = {
+      status: 'error',
+      windows: {
+        fiveHour: { utilization: null, resetsAt: null },
+        sevenDay: { utilization: null, resetsAt: null },
+      },
+      extraUsage: null,
+      fetchedAt: Date.now(),
+      tokenSource: 'none',
+    };
+    view!.mount(container);
+    view!.render(snap);
+
+    const bar = container.parentElement?.querySelector('.claudian-quota-bar');
+    expect(bar?.textContent).toContain(s.quotaError);
+    expect(bar?.querySelector('[data-color="red"]')).not.toBeNull();
+  });
+
+  it('render(fetching) → i18n 文案を表示', () => {
+    const s = getLocaleStrings('en');
+    const snap: QuotaSnapshot = {
+      status: 'fetching',
+      windows: {
+        fiveHour: { utilization: null, resetsAt: null },
+        sevenDay: { utilization: null, resetsAt: null },
+      },
+      extraUsage: null,
+      fetchedAt: Date.now(),
+      tokenSource: 'none',
+    };
+    view!.mount(container);
+    view!.render(snap);
+
+    const bar = container.parentElement?.querySelector('.claudian-quota-bar');
+    expect(bar?.textContent).toContain(s.quotaFetching);
+    expect(bar?.classList.contains('claudian-quota-bar--pulse')).toBe(true);
+  });
+
+  it('render(unsupported) → i18n 文案を表示', () => {
+    const s = getLocaleStrings('en');
+    const snap: QuotaSnapshot = {
+      status: 'unsupported',
+      windows: {
+        fiveHour: { utilization: null, resetsAt: null },
+        sevenDay: { utilization: null, resetsAt: null },
+      },
+      extraUsage: null,
+      fetchedAt: Date.now(),
+      tokenSource: 'none',
+    };
+    view!.mount(container);
+    view!.render(snap);
+
+    const bar = container.parentElement?.querySelector('.claudian-quota-bar');
+    expect(bar?.textContent).toContain(s.quotaUnsupportedMobile);
   });
 });
