@@ -167,11 +167,8 @@ let mobileMode = false;
 export function setMobileMode(value: boolean): void { mobileMode = value; }
 export function getPlatformIsMobile(): boolean { return mobileMode; }
 
-// === combined reset ===
+// === fetch reset ===
 export function resetMocks(): void {
   fetchMock = null;
-  spawnMock = null;
-  readFileMock = null;
-  mobileMode = false;
   (globalThis as { fetch?: typeof fetch }).fetch = undefined;
 }
