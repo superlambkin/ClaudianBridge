@@ -191,3 +191,105 @@ describe('ClaudeQuotaService.fetchQuota', () => {
     expect(capturedBeta).toBe('oauth-2025-04-20');
   });
 });
+
+describe('ClaudeQuotaService lifecycle', () => {
+  let svc: ClaudeQuotaService;
+
+  beforeEach(() => {
+    Platform.isMobile = false;
+    spawnMock.mockReset();
+    readFileMock.mockReset();
+    // macOS Keychain からの token 取得をスタブ
+    spawnMock.mockImplementation((() => {
+      const handlers: Record<string, Array<(...a: unknown[]) => void>> = {};
+      const stdoutHandlers: Array<(chunk: Buffer) => void> = [];
+      const child: unknown = {
+        stdout: {
+          on(ev: string, fn: (...a: unknown[]) => void) {
+            if (ev === 'data') stdoutHandlers.push(fn as (chunk: Buffer) => void);
+            return this;
+          },
+        },
+        on(ev: string, fn: (...a: unknown[]) => void) {
+          (handlers[ev] ??= []).push(fn);
+          return this;
+        },
+        emit(ev: string, ...args: unknown[]) {
+          if (ev === 'data' && stdoutHandlers[0]) stdoutHandlers[0](Buffer.from(args[0] as string));
+          (handlers[ev] ?? []).forEach((fn) => fn(...args));
+        },
+      };
+      queueMicrotask(() => {
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('data', '{"claudeAiOauth":{"accessToken":"t","expiresAt":9999999999}}');
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('close', 0);
+      });
+      return child;
+    }) as never);
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+    }), { status: 200 }));
+    svc = new ClaudeQuotaService({
+      app: {} as never,
+      store: {} as never,
+      refreshSec: 60,
+    });
+  });
+
+  afterEach(() => {
+    resetMocks();
+    Platform.isMobile = false;
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+  });
+
+  it('start でタイマー起動 + 即座に 1 回フェッチ', async () => {
+    await svc.start();
+    expect(svc.getSnapshot().status).toBe('success');
+    await svc.stop();
+  });
+
+  it('stop でタイマー解除、それ以降のフェッチ停止', async () => {
+    await svc.start();
+    await svc.stop();
+    const before = svc.getSnapshot().fetchedAt;
+    await new Promise(r => setTimeout(r, 100));
+    expect(svc.getSnapshot().fetchedAt).toBe(before);
+  });
+
+  it('forceRefresh は即座にフェッチ', async () => {
+    await svc.start();
+    const before = svc.getSnapshot().fetchedAt;
+    await new Promise(r => setTimeout(r, 10));
+    await svc.forceRefresh();
+    expect(svc.getSnapshot().fetchedAt).toBeGreaterThan(before);
+    await svc.stop();
+  });
+
+  it('onUpdate で状態変化を購読', async () => {
+    const cb = vi.fn();
+    const unsub = svc.onUpdate(cb);
+    await svc.start();
+    expect(cb).toHaveBeenCalled();
+    unsub();
+    await svc.stop();
+  });
+
+  it('Mobile では start でフェッチしない', async () => {
+    Platform.isMobile = true;
+    const cb = vi.fn();
+    svc.onUpdate(cb);
+    await svc.start();
+    expect(cb).not.toHaveBeenCalled();
+    expect(svc.getSnapshot().status).toBe('unsupported');
+    await svc.stop();
+  });
+
+  it('refreshSec=0 のとき start でタイマー起動しない', async () => {
+    const local = new ClaudeQuotaService({ app: {} as never, store: {} as never, refreshSec: 0 });
+    await local.start();
+    expect(local.getSnapshot().status).toBe('success'); // 即座 1 回は走る
+    await local.stop();
+    // その後のタイマーは無いので手動 forceRefresh のみ
+  });
+});

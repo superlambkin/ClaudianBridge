@@ -145,12 +145,82 @@ export class ClaudeQuotaService {
     return this.snapshot;
   }
 
-  // --- 以下は Task 6 で実装するスタブ ---
-  start(): Promise<void> { return Promise.resolve(); }
-  stop(): Promise<void> { return Promise.resolve(); }
-  forceRefresh(): Promise<QuotaSnapshot> { return Promise.resolve(this.snapshot); }
-  getSnapshot(): QuotaSnapshot { return this.snapshot; }
-  onUpdate(_cb: (snap: QuotaSnapshot) => void): () => void { return () => {}; }
+  // --- ライフサイクル (Task 6) ---
+
+  /** Service を起動（タイマー開始 + 即座に 1 回フェッチ） */
+  async start(): Promise<void> {
+    if (Platform.isMobile) {
+      this.snapshot = { ...this.snapshot, status: 'unsupported' };
+      // Mobile では emit しない（per 仕様: fetch しない）
+      return;
+    }
+    await this.refreshOnce();
+    if (this.opts.refreshSec > 0 && !this.timer) {
+      this.timer = setInterval(() => {
+        void this.refreshOnce();
+      }, this.opts.refreshSec * 1000);
+    }
+  }
+
+  /** Service を停止（タイマー解除 + 購読者クリア） */
+  async stop(): Promise<void> {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    this.listeners.clear();
+  }
+
+  /** 手動即時フェッチ */
+  async forceRefresh(): Promise<QuotaSnapshot> {
+    await this.refreshOnce();
+    return this.snapshot;
+  }
+
+  /** 現在のスナップショットを返す */
+  getSnapshot(): QuotaSnapshot {
+    return this.snapshot;
+  }
+
+  /** スナップショット更新の購読（unsubscribe 関数を返す） */
+  onUpdate(cb: (snap: QuotaSnapshot) => void): () => void {
+    this.listeners.add(cb);
+    return () => {
+      this.listeners.delete(cb);
+    };
+  }
+
+  /** 1 回フェッチ（in-flight ガード付き） */
+  private async refreshOnce(): Promise<void> {
+    if (this.inFlight) return;
+    this.inFlight = true;
+    try {
+      this.snapshot = { ...this.snapshot, status: 'fetching' };
+      this.emit();
+      const token = await this.readToken();
+      if (!token) {
+        this.snapshot = { ...this.snapshot, status: 'expired', error: 'no token' };
+        this.emit();
+        return;
+      }
+      this.snapshot = await this.fetchQuota(token);
+      this.emit();
+    } finally {
+      this.inFlight = false;
+    }
+  }
+
+  /** 全購読者にスナップショットを通知 */
+  private emit(): void {
+    const snap = this.snapshot;
+    for (const cb of this.listeners) {
+      try {
+        cb(snap);
+      } catch {
+        /* listener error は握り潰す */
+      }
+    }
+  }
 }
 
 let _instance: ClaudeQuotaService | null = null;
