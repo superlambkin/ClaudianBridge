@@ -293,3 +293,149 @@ describe('ClaudeQuotaService lifecycle', () => {
     // その後のタイマーは無いので手動 forceRefresh のみ
   });
 });
+
+describe('ClaudeQuotaService.parseUsageResponse', () => {
+  let svc: ClaudeQuotaService;
+
+  beforeEach(() => {
+    Platform.isMobile = false;
+    svc = new ClaudeQuotaService({ app: {} as never, store: {} as never, refreshSec: 60 });
+  });
+
+  afterEach(() => {
+    resetMocks();
+  });
+
+  it('extra_usage + seven_day_opus / seven_day_sonnet をパース', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+      extra_usage: { is_enabled: true, utilization: 15, resets_at: '2026-08-12T00:00:00Z' },
+      seven_day_opus: { utilization: 7, resets_at: '2026-08-14T12:00:00Z' },
+      seven_day_sonnet: { utilization: 8, resets_at: '2026-08-14T13:00:00Z' },
+    }), { status: 200 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('t');
+    expect(snap.extraUsage?.isEnabled).toBe(true);
+    expect(snap.extraUsage?.utilization).toBe(15);
+    expect(snap.windows.sevenDayOpus?.utilization).toBe(7);
+    expect(snap.windows.sevenDaySonnet?.utilization).toBe(8);
+  });
+
+  it('extra_usage が不完全でもクラッシュしない', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+      extra_usage: { is_enabled: false },
+    }), { status: 200 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('t');
+    expect(snap.extraUsage?.isEnabled).toBe(false);
+    expect(snap.extraUsage?.utilization).toBeNull();
+    expect(snap.extraUsage?.resetsAt).toBeNull();
+  });
+});
+
+describe('ClaudeQuotaService timer callback', () => {
+  beforeEach(() => {
+    Platform.isMobile = false;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    resetMocks();
+    Platform.isMobile = false;
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+  });
+
+  it('タイマー経過で追加フェッチが実行される', async () => {
+    const spawnMockLocal = vi.mocked(spawn);
+    spawnMockLocal.mockReset();
+    spawnMockLocal.mockImplementation((() => {
+      const handlers: Record<string, Array<(...a: unknown[]) => void>> = {};
+      const stdoutHandlers: Array<(chunk: Buffer) => void> = [];
+      const child: unknown = {
+        stdout: {
+          on(ev: string, fn: (...a: unknown[]) => void) {
+            if (ev === 'data') stdoutHandlers.push(fn as (chunk: Buffer) => void);
+            return this;
+          },
+        },
+        on(ev: string, fn: (...a: unknown[]) => void) {
+          (handlers[ev] ??= []).push(fn);
+          return this;
+        },
+        emit(ev: string, ...args: unknown[]) {
+          if (ev === 'data' && stdoutHandlers[0]) stdoutHandlers[0](Buffer.from(args[0] as string));
+          (handlers[ev] ?? []).forEach((fn) => fn(...args));
+        },
+      };
+      queueMicrotask(() => {
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('data', '{"claudeAiOauth":{"accessToken":"t","expiresAt":9999999999}}');
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('close', 0);
+      });
+      return child;
+    }) as never);
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+    }), { status: 200 }));
+
+    const local = new ClaudeQuotaService({ app: {} as never, store: {} as never, refreshSec: 60 });
+    await local.start();
+    const before = local.getSnapshot().fetchedAt;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(local.getSnapshot().fetchedAt).toBeGreaterThan(before);
+    await local.stop();
+  });
+});
+
+describe('ClaudeQuotaService emit error handling', () => {
+  beforeEach(() => {
+    Platform.isMobile = false;
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+    const spawnMockLocal = vi.mocked(spawn);
+    spawnMockLocal.mockReset();
+    spawnMockLocal.mockImplementation((() => {
+      const handlers: Record<string, Array<(...a: unknown[]) => void>> = {};
+      const stdoutHandlers: Array<(chunk: Buffer) => void> = [];
+      const child: unknown = {
+        stdout: {
+          on(ev: string, fn: (...a: unknown[]) => void) {
+            if (ev === 'data') stdoutHandlers.push(fn as (chunk: Buffer) => void);
+            return this;
+          },
+        },
+        on(ev: string, fn: (...a: unknown[]) => void) {
+          (handlers[ev] ??= []).push(fn);
+          return this;
+        },
+        emit(ev: string, ...args: unknown[]) {
+          if (ev === 'data' && stdoutHandlers[0]) stdoutHandlers[0](Buffer.from(args[0] as string));
+          (handlers[ev] ?? []).forEach((fn) => fn(...args));
+        },
+      };
+      queueMicrotask(() => {
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('data', '{"claudeAiOauth":{"accessToken":"t","expiresAt":9999999999}}');
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('close', 0);
+      });
+      return child;
+    }) as never);
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+    }), { status: 200 }));
+  });
+
+  afterEach(() => {
+    resetMocks();
+    Platform.isMobile = false;
+  });
+
+  it('listener 例外は握り潰される', async () => {
+    const local = new ClaudeQuotaService({ app: {} as never, store: {} as never, refreshSec: 60 });
+    local.onUpdate(() => { throw new Error('boom'); });
+    await expect(local.start()).resolves.not.toThrow();
+    await local.stop();
+  });
+});
