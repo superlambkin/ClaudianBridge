@@ -10,7 +10,7 @@ const QUOTA_REFRESH_MIN_SEC_LOCAL = 10;
 const QUOTA_REFRESH_MAX_SEC_LOCAL = 600;
 const QUOTA_REFRESH_DEFAULT_SEC_LOCAL = 60;
 
-function clampRefreshSec(v: unknown): number {
+export function clampRefreshSec(v: unknown): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return QUOTA_REFRESH_DEFAULT_SEC_LOCAL;
   return Math.max(
     QUOTA_REFRESH_MIN_SEC_LOCAL,

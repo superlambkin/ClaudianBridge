@@ -2,6 +2,7 @@ import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
+import { clampRefreshSec } from '../core/settings';
 
 export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>): void {
   const s = getLocaleStrings(getUILanguage());
@@ -25,6 +26,42 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
           draw();
         }
       }));
+
+    // ───── Claude 残量検出 (v0.3.0) ─────
+    containerEl.createEl('h3', { text: s.quotaEnabled });
+
+    new Setting(containerEl)
+      .setName(s.quotaEnabled)
+      .setDesc(s.quotaEnabledDesc)
+      .addToggle((t) => t.setValue(cfg.general.quotaEnabled).onChange((v) => {
+        try {
+          const latest = store.load();
+          store.save({ ...latest, general: { ...latest.general, quotaEnabled: v } });
+          new Notice(s.noticeSaved);
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+
+    new Setting(containerEl)
+      .setName(s.quotaRefreshSec)
+      .setDesc(s.quotaRefreshSecDesc)
+      .addText((t) =>
+        t
+          .setValue(String(cfg.general.quotaRefreshSec))
+          .onChange((v) => {
+            const n = parseInt(v, 10);
+            if (!Number.isFinite(n)) return;
+            try {
+              const latest = store.load();
+              store.save({ ...latest, general: { ...latest.general, quotaRefreshSec: clampRefreshSec(n) } });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          })
+      );
 
     containerEl.createEl('h3', { text: s.migratedFrom });
     const ul = containerEl.createEl('ul');
