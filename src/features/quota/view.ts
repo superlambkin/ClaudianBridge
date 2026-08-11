@@ -1,3 +1,4 @@
+import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import type { QuotaSnapshot } from './types';
 
 export type QuotaColor = 'green' | 'orange' | 'red' | 'gray';
@@ -87,23 +88,24 @@ export class QuotaBarView {
     this.el.replaceChildren();
     this.el.setAttribute('data-status', snap.status);
 
+    const s = getLocaleStrings(getUILanguage());
     const { fiveHour, sevenDay } = snap.windows;
 
     const main = appendSpan(this.el, 'claudian-quota-bar__main');
     const dot = appendSpan(main, 'claudian-quota-bar__dot');
     dot.setAttribute('data-color', colorFor(fiveHour.utilization));
-    appendSpan(main, 'claudian-quota-bar__label', '5h');
+    appendSpan(main, 'claudian-quota-bar__label', s.quotaWindow5h);
     appendSpan(main, 'claudian-quota-bar__value', pct(fiveHour.utilization));
     const cd = formatCountdown(fiveHour.resetsAt);
     if (cd) appendSpan(main, 'claudian-quota-bar__countdown', `🕘 ${cd}`);
 
     const sub = appendSpan(this.el, 'claudian-quota-bar__sub');
-    appendSpan(sub, 'claudian-quota-bar__sub-label', '7d');
+    appendSpan(sub, 'claudian-quota-bar__sub-label', s.quotaWindow7d);
     appendSpan(sub, 'claudian-quota-bar__value', pct(sevenDay.utilization));
 
     const btn = this.el.ownerDocument.createElement('button');
     btn.className = 'claudian-quota-bar__refresh clickable-icon';
-    btn.setAttribute('aria-label', 'Refresh quota');
+    btn.setAttribute('aria-label', s.quotaRefresh);
     btn.textContent = '↻';
     this.el.appendChild(btn);
   }
