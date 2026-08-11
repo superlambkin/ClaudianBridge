@@ -129,3 +129,49 @@ export class MarkdownRenderer {
 
 export function setIcon(_el: El, _icon: string) { /* no-op */ }
 export function setText(el: El, text: string) { (el as unknown as { textContent: string }).textContent = text; }
+
+// ── quota-feature mocks ────────────────────────────────────────────────
+// fetch / spawn / fs / Platform のスタブ。tests/features/quota/* から利用される。
+
+// === fetch ===
+let fetchMock: ((input: RequestInfo, init?: RequestInit) => Promise<Response>) | null = null;
+
+export function mockFetch(impl: typeof fetchMock): void {
+  fetchMock = impl;
+  (globalThis as { fetch?: typeof fetch }).fetch = impl as typeof fetch;
+}
+
+// === spawn ===
+export interface SpawnMockResult {
+  stdout: string;
+  stderr?: string;
+  exitCode?: number;
+}
+
+let spawnMock: ((cmd: string, args: string[]) => SpawnMockResult | Error) | null = null;
+
+export function mockSpawn(impl: (cmd: string, args: string[]) => SpawnMockResult | Error): void {
+  spawnMock = impl;
+}
+
+export function clearSpawnMock(): void { spawnMock = null; }
+
+// === fs ===
+let readFileMock: ((path: string) => string | Error) | null = null;
+
+export function mockReadFile(impl: (path: string) => string | Error): void { readFileMock = impl; }
+export function clearReadFileMock(): void { readFileMock = null; }
+
+// === Platform ===
+let mobileMode = false;
+export function setMobileMode(value: boolean): void { mobileMode = value; }
+export function getPlatformIsMobile(): boolean { return mobileMode; }
+
+// === combined reset ===
+export function resetMocks(): void {
+  fetchMock = null;
+  spawnMock = null;
+  readFileMock = null;
+  mobileMode = false;
+  (globalThis as { fetch?: typeof fetch }).fetch = undefined;
+}
