@@ -39,7 +39,7 @@ describe('ClaudeQuotaService.readToken', () => {
 
   it('Mobile のとき readToken は null を返す', async () => {
     Platform.isMobile = true;
-    const token = await (svc as unknown as { readToken: () => Promise<string | null> }).readToken();
+    const token = await svc.readToken();
     expect(token).toBeNull();
   });
 
@@ -70,7 +70,7 @@ describe('ClaudeQuotaService.readToken', () => {
       });
       return child;
     }) as never);
-    const token = await (svc as unknown as { readToken: () => Promise<string | null> }).readToken();
+    const token = await svc.readToken();
     expect(token).toBe('keychain-token');
   });
 
@@ -93,7 +93,7 @@ describe('ClaudeQuotaService.readToken', () => {
       return child;
     }) as never);
     readFileMock.mockResolvedValue('{"claudeAiOauth":{"accessToken":"file-token","expiresAt":9999999999}}' as never);
-    const token = await (svc as unknown as { readToken: () => Promise<string | null> }).readToken();
+    const token = await svc.readToken();
     expect(token).toBe('file-token');
   });
 
@@ -116,7 +116,7 @@ describe('ClaudeQuotaService.readToken', () => {
       return child;
     }) as never);
     readFileMock.mockRejectedValue(new Error('ENOENT .credentials.json'));
-    const token = await (svc as unknown as { readToken: () => Promise<string | null> }).readToken();
+    const token = await svc.readToken();
     expect(token).toBeNull();
   });
 });
