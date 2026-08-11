@@ -11,6 +11,7 @@ import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
+import { registerObjectContextMenu } from './features/object';
 import * as path from 'path';
 
 export default class ClaudianBridgePlugin extends Plugin {
@@ -75,6 +76,10 @@ export default class ClaudianBridgePlugin extends Plugin {
       await addTextToTTS(this.app, text, { engine: cfg.tts.engine });
     });
     this.register(cleanupSelection);
+
+    // === v0.2.0: Object context menu ===
+    registerObjectContextMenu(this, this.store);
+
     // 外部変更検知（UI 更新は SettingTab の onChange で実施済み）。close は onunload で実施
     this.store.watch(() => {
       const w = this.store.load().whitelist;
