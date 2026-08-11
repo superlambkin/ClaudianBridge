@@ -130,6 +130,12 @@ export class MarkdownRenderer {
 export function setIcon(_el: El, _icon: string) { /* no-op */ }
 export function setText(el: El, text: string) { (el as unknown as { textContent: string }).textContent = text; }
 
+// Platform: モバイル/デスクトップ判定（quota feature で使用）
+export const Platform: { isDesktop: boolean; isMobile: boolean } = {
+  isDesktop: true,
+  isMobile: false,
+};
+
 // ── quota-feature mocks ────────────────────────────────────────────────
 // fetch / spawn / fs / Platform のスタブ。tests/features/quota/* から利用される。
 
