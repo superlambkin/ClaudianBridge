@@ -11,10 +11,12 @@ import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
+import { registerClaudeQuota, unregisterClaudeQuota } from './features/quota/index';
 import * as path from 'path';
 
 export default class ClaudianBridgePlugin extends Plugin {
   private store!: ConfigStore;
+  private quotaHandle: Awaited<ReturnType<typeof registerClaudeQuota>> = null;
 
   /** Convenience accessor for views that want a settings snapshot. */
   get cbSettings(): import('./core/settings').ClaudianBridgeSettings {
@@ -123,11 +125,17 @@ export default class ClaudianBridgePlugin extends Plugin {
       ChromaMenuRegistrar.register(this);
     }
 
+    this.quotaHandle = await registerClaudeQuota(this.app, this.store);
+
     console.log('[claudian-bridge] loaded');
   }
 
   onunload(): void {
     removeWhitelistCss();
+    if (this.quotaHandle) {
+      void unregisterClaudeQuota();
+      this.quotaHandle = null;
+    }
     this.store.close();
     console.log('[claudian-bridge] unloaded');
   }

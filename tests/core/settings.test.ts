@@ -123,3 +123,40 @@ describe('settings', () => {
     expect(validateClaudianBridgeSettings(bad)).toContain('chroma.enabled');
   });
 });
+
+describe('normalizeClaudianBridgeSettings - quota', () => {
+  it('quotaEnabled のデフォルトは false', () => {
+    const s = normalizeClaudianBridgeSettings({});
+    expect(s.general.quotaEnabled).toBe(false);
+  });
+
+  it('quotaRefreshSec のデフォルトは 60', () => {
+    const s = normalizeClaudianBridgeSettings({});
+    expect(s.general.quotaRefreshSec).toBe(60);
+  });
+
+  it('quotaEnabled が boolean でない場合 false に正規化', () => {
+    const s = normalizeClaudianBridgeSettings({ general: { quotaEnabled: 'yes' as unknown as boolean } });
+    expect(s.general.quotaEnabled).toBe(false);
+  });
+
+  it('quotaRefreshSec が 0 のとき 0 を許可', () => {
+    const s = normalizeClaudianBridgeSettings({ general: { quotaRefreshSec: 0 } });
+    expect(s.general.quotaRefreshSec).toBe(0);
+  });
+
+  it('quotaRefreshSec が 5 のとき 10 にクランプ', () => {
+    const s = normalizeClaudianBridgeSettings({ general: { quotaRefreshSec: 5 } });
+    expect(s.general.quotaRefreshSec).toBe(10);
+  });
+
+  it('quotaRefreshSec が 9999 のとき 600 にクランプ', () => {
+    const s = normalizeClaudianBridgeSettings({ general: { quotaRefreshSec: 9999 } });
+    expect(s.general.quotaRefreshSec).toBe(600);
+  });
+
+  it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general に quota フィールドが含まれる', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general).toHaveProperty('quotaEnabled');
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general).toHaveProperty('quotaRefreshSec');
+  });
+});

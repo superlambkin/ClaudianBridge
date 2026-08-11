@@ -1,6 +1,25 @@
 export type OfficeConflictPolicy = 'overwrite' | 'skip' | 'timestamp';
 export type OfficeLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
+// Local clamp helper for general.quotaRefreshSec.
+// Defined here (not imported from src/features/quota/types) to avoid a circular dependency:
+// quota/types.ts is intentionally decoupled from core/settings.ts so that the quota feature
+// can be developed in isolation. If the canonical helper ever needs to move, prefer
+// keeping the boundary one-way (core → features).
+const QUOTA_REFRESH_MIN_SEC_LOCAL = 10;
+const QUOTA_REFRESH_MAX_SEC_LOCAL = 600;
+const QUOTA_REFRESH_DEFAULT_SEC_LOCAL = 60;
+
+export function clampRefreshSec(v: unknown): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return QUOTA_REFRESH_DEFAULT_SEC_LOCAL;
+  const floored = Math.floor(v);
+  if (floored === 0) return 0;
+  return Math.max(
+    QUOTA_REFRESH_MIN_SEC_LOCAL,
+    Math.min(QUOTA_REFRESH_MAX_SEC_LOCAL, floored)
+  );
+}
+
 // Re-export chroma clamp constants so callers (tests, settings tab) can reference a single source of truth.
 export {
   MAX_QUERY_RESULTS,
@@ -149,6 +168,8 @@ export interface ClaudianBridgeSettings {
     enabled: boolean;
     migratedFrom: { claudianSelectionBridge: boolean; extensionWhitelist: boolean; vaultOfficeBridge: boolean; chromaInspector: boolean };
     migrationResetAvailable: boolean;
+    quotaEnabled: boolean;
+    quotaRefreshSec: number;
   };
   selection: { enabled: boolean; folderEnabled: boolean; delayMs: number };
   tts: {
@@ -175,7 +196,7 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60 },
   selection: { enabled: true, folderEnabled: true, delayMs: 300 },
   tts: {
     enabled: true,
@@ -207,6 +228,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
         chromaInspector: r.general?.migratedFrom?.chromaInspector ?? false,
       },
       migrationResetAvailable: r.general?.migrationResetAvailable ?? true,
+      quotaEnabled: typeof r.general?.quotaEnabled === 'boolean' ? r.general.quotaEnabled : false,
+      quotaRefreshSec: clampRefreshSec(r.general?.quotaRefreshSec),
     },
     selection: {
       enabled: r.selection?.enabled ?? true,

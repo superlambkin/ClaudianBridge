@@ -112,6 +112,17 @@ export interface LocaleStrings {
   chromaTestOk: string; // {n}
   chromaResolvedPath: string; // {path}
   chromaScriptInfo: string; // {script}
+  quotaEnabled: string;
+  quotaEnabledDesc: string;
+  quotaRefreshSec: string;
+  quotaRefreshSecDesc: string;
+  quotaFetching: string;
+  quotaNotLoggedIn: string;
+  quotaError: string;
+  quotaUnsupportedMobile: string;
+  quotaRefresh: string;
+  quotaWindow5h: string;
+  quotaWindow7d: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -225,6 +236,17 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     chromaTestOk: '✅ OK — {n} 件のコレクション',
     chromaResolvedPath: '解決済み ChromaDB: {path}',
     chromaScriptInfo: 'Python スクリプト: {script}',
+    quotaEnabled: 'Claude 残量検出',
+    quotaEnabledDesc: 'Claude Code の OAuth 利用状況を表示します（デスクトップのみ）',
+    quotaRefreshSec: '更新間隔（秒）',
+    quotaRefreshSecDesc: '10〜600。0 で無効化',
+    quotaFetching: '読み込み中…',
+    quotaNotLoggedIn: 'Claude Code に未ログインです',
+    quotaError: '残量取得に失敗しました',
+    quotaUnsupportedMobile: '残量検出はデスクトップでのみ利用可能です',
+    quotaRefresh: '残量を更新',
+    quotaWindow5h: '5時間',
+    quotaWindow7d: '7日間',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -336,6 +358,17 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     chromaTestOk: '✅ OK — {n} collection(s)',
     chromaResolvedPath: 'Resolved ChromaDB: {path}',
     chromaScriptInfo: 'Python script: {script}',
+    quotaEnabled: 'Claude quota detection',
+    quotaEnabledDesc: 'Show Claude Code OAuth usage (desktop only)',
+    quotaRefreshSec: 'Refresh interval (sec)',
+    quotaRefreshSecDesc: '10–600 seconds. 0 disables.',
+    quotaFetching: 'Fetching…',
+    quotaNotLoggedIn: 'Not logged in to Claude Code',
+    quotaError: 'Failed to fetch quota',
+    quotaUnsupportedMobile: 'Quota detection is desktop-only',
+    quotaRefresh: 'Refresh quota',
+    quotaWindow5h: '5h',
+    quotaWindow7d: '7d',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -447,6 +480,17 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     chromaTestOk: '✅ OK — {n} 个集合',
     chromaResolvedPath: '已解析 ChromaDB: {path}',
     chromaScriptInfo: 'Python 脚本: {script}',
+    quotaEnabled: 'Claude 残量检测',
+    quotaEnabledDesc: '显示 Claude Code OAuth 使用情况（仅桌面端）',
+    quotaRefreshSec: '刷新间隔（秒）',
+    quotaRefreshSecDesc: '10–600 秒范围，0 表示禁用',
+    quotaFetching: '加载中…',
+    quotaNotLoggedIn: '未登录 Claude Code',
+    quotaError: '获取额度失败',
+    quotaUnsupportedMobile: '残量检测仅在桌面端可用',
+    quotaRefresh: '刷新额度',
+    quotaWindow5h: '5小时',
+    quotaWindow7d: '7天',
   },
 };
 

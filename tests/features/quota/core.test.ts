@@ -1,0 +1,459 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// vi.mock は import の前に置く必要がある（hoisted）
+vi.mock('child_process', () => ({
+  spawn: vi.fn(),
+}));
+vi.mock('fs/promises', () => ({
+  readFile: vi.fn(),
+}));
+
+import { spawn } from 'child_process';
+import * as fsPromises from 'fs/promises';
+import { ClaudeQuotaService } from '../../../src/features/quota/core';
+import { Platform } from 'obsidian';
+import { resetMocks, mockFetch } from '../../mocks/obsidian';
+import { EVENT_QUOTA_UPDATED, type QuotaSnapshot } from '../../../src/features/quota/types';
+
+const spawnMock = vi.mocked(spawn);
+const readFileMock = vi.mocked(fsPromises.readFile);
+
+describe('ClaudeQuotaService.readToken', () => {
+  let svc: ClaudeQuotaService;
+
+  beforeEach(() => {
+    Platform.isMobile = false;
+    spawnMock.mockReset();
+    readFileMock.mockReset();
+    // デフォルト: macOS 環境
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+    svc = new ClaudeQuotaService({
+      app: {} as never,
+      store: { load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60 } }) } as never,
+      refreshSec: 60,
+    });
+  });
+
+  afterEach(() => {
+    Platform.isMobile = false;
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+  });
+
+  it('Mobile のとき readToken は null を返す', async () => {
+    Platform.isMobile = true;
+    const token = await svc.readToken();
+    expect(token).toBeNull();
+  });
+
+  it('macOS で Keychain から accessToken を取得', async () => {
+    spawnMock.mockImplementation((() => {
+      const handlers: Record<string, Array<(...a: unknown[]) => void>> = {};
+      const stdoutHandlers: Array<(chunk: Buffer) => void> = [];
+      const child: unknown = {
+        stdout: {
+          on(ev: string, fn: (...a: unknown[]) => void) {
+            if (ev === 'data') stdoutHandlers.push(fn as (chunk: Buffer) => void);
+            return this;
+          },
+        },
+        on(ev: string, fn: (...a: unknown[]) => void) {
+          (handlers[ev] ??= []).push(fn);
+          return this;
+        },
+        emit(ev: string, ...args: unknown[]) {
+          if (ev === 'data' && stdoutHandlers[0]) stdoutHandlers[0](Buffer.from(args[0] as string));
+          (handlers[ev] ?? []).forEach((fn) => fn(...args));
+        },
+      };
+      // 非同期で stdout data → close を発火
+      queueMicrotask(() => {
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('data', '{"claudeAiOauth":{"accessToken":"keychain-token","expiresAt":9999999999}}');
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('close', 0);
+      });
+      return child;
+    }) as never);
+    const token = await svc.readToken();
+    expect(token).toBe('keychain-token');
+  });
+
+  it('Keychain 失敗時はファイルから fallback', async () => {
+    spawnMock.mockImplementation((() => {
+      const handlers: Record<string, Array<(...a: unknown[]) => void>> = {};
+      const child: unknown = {
+        stdout: { on() { return this; } },
+        on(ev: string, fn: (...a: unknown[]) => void) {
+          (handlers[ev] ??= []).push(fn);
+          return this;
+        },
+        emit(ev: string, ...args: unknown[]) {
+          (handlers[ev] ?? []).forEach((fn) => fn(...args));
+        },
+      };
+      queueMicrotask(() => {
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('error', new Error('spawn ENOENT security'));
+      });
+      return child;
+    }) as never);
+    readFileMock.mockResolvedValue('{"claudeAiOauth":{"accessToken":"file-token","expiresAt":9999999999}}' as never);
+    const token = await svc.readToken();
+    expect(token).toBe('file-token');
+  });
+
+  it('両方失敗で null を返す', async () => {
+    spawnMock.mockImplementation((() => {
+      const handlers: Record<string, Array<(...a: unknown[]) => void>> = {};
+      const child: unknown = {
+        stdout: { on() { return this; } },
+        on(ev: string, fn: (...a: unknown[]) => void) {
+          (handlers[ev] ??= []).push(fn);
+          return this;
+        },
+        emit(ev: string, ...args: unknown[]) {
+          (handlers[ev] ?? []).forEach((fn) => fn(...args));
+        },
+      };
+      queueMicrotask(() => {
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('error', new Error('spawn ENOENT security'));
+      });
+      return child;
+    }) as never);
+    readFileMock.mockRejectedValue(new Error('ENOENT .credentials.json'));
+    const token = await svc.readToken();
+    expect(token).toBeNull();
+  });
+});
+
+describe('ClaudeQuotaService.fetchQuota', () => {
+  let svc: ClaudeQuotaService;
+
+  beforeEach(() => {
+    Platform.isMobile = false;
+    spawnMock.mockReset();
+    readFileMock.mockReset();
+    svc = new ClaudeQuotaService({
+      app: {} as never,
+      store: { load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60 } }) } as never,
+      refreshSec: 60,
+    });
+  });
+
+  afterEach(() => {
+    resetMocks();
+  });
+
+  it('200 OK → success 状態の QuotaSnapshot を返す', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 62, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 23, resets_at: '2026-08-14T11:00:00Z' },
+    }), { status: 200 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('success');
+    expect(snap.windows.fiveHour.utilization).toBe(62);
+    expect(snap.windows.sevenDay.utilization).toBe(23);
+  });
+
+  it('401 → expired 状態を返す', async () => {
+    mockFetch(async () => new Response('Unauthorized', { status: 401 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('expired');
+  });
+
+  it('500 → error 状態を返す', async () => {
+    mockFetch(async () => new Response('Server Error', { status: 500 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('error');
+    expect(snap.error).toContain('500');
+  });
+
+  it('JSON 解析失敗 → error 状態を返す', async () => {
+    mockFetch(async () => new Response('<html>error</html>', { status: 200 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('error');
+  });
+
+  it('429 → success 状態を返す（前回値保持）', async () => {
+    mockFetch(async () => new Response('Too Many Requests', { status: 429 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('success');
+  });
+
+  it('Authorization ヘッダーに Bearer トークンが含まれる', async () => {
+    let capturedAuth: string | null = null;
+    mockFetch(async (_url, init) => {
+      capturedAuth = (init?.headers as Record<string, string>)?.['Authorization'] ?? null;
+      return new Response('{}', { status: 200 });
+    });
+    await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('my-token');
+    expect(capturedAuth).toBe('Bearer my-token');
+  });
+
+  it('anthropic-beta: oauth-2025-04-20 ヘッダーが含まれる', async () => {
+    let capturedBeta: string | null = null;
+    mockFetch(async (_url, init) => {
+      capturedBeta = (init?.headers as Record<string, string>)?.['anthropic-beta'] ?? null;
+      return new Response('{}', { status: 200 });
+    });
+    await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('t');
+    expect(capturedBeta).toBe('oauth-2025-04-20');
+  });
+});
+
+describe('ClaudeQuotaService lifecycle', () => {
+  let svc: ClaudeQuotaService;
+
+  beforeEach(() => {
+    Platform.isMobile = false;
+    spawnMock.mockReset();
+    readFileMock.mockReset();
+    // macOS Keychain からの token 取得をスタブ
+    spawnMock.mockImplementation((() => {
+      const handlers: Record<string, Array<(...a: unknown[]) => void>> = {};
+      const stdoutHandlers: Array<(chunk: Buffer) => void> = [];
+      const child: unknown = {
+        stdout: {
+          on(ev: string, fn: (...a: unknown[]) => void) {
+            if (ev === 'data') stdoutHandlers.push(fn as (chunk: Buffer) => void);
+            return this;
+          },
+        },
+        on(ev: string, fn: (...a: unknown[]) => void) {
+          (handlers[ev] ??= []).push(fn);
+          return this;
+        },
+        emit(ev: string, ...args: unknown[]) {
+          if (ev === 'data' && stdoutHandlers[0]) stdoutHandlers[0](Buffer.from(args[0] as string));
+          (handlers[ev] ?? []).forEach((fn) => fn(...args));
+        },
+      };
+      queueMicrotask(() => {
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('data', '{"claudeAiOauth":{"accessToken":"t","expiresAt":9999999999}}');
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('close', 0);
+      });
+      return child;
+    }) as never);
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+    }), { status: 200 }));
+    svc = new ClaudeQuotaService({
+      app: {} as never,
+      store: {} as never,
+      refreshSec: 60,
+    });
+  });
+
+  afterEach(() => {
+    resetMocks();
+    Platform.isMobile = false;
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+  });
+
+  it('start でタイマー起動 + 即座に 1 回フェッチ', async () => {
+    await svc.start();
+    expect(svc.getSnapshot().status).toBe('success');
+    await svc.stop();
+  });
+
+  it('stop でタイマー解除、それ以降のフェッチ停止', async () => {
+    await svc.start();
+    await svc.stop();
+    const before = svc.getSnapshot().fetchedAt;
+    await new Promise(r => setTimeout(r, 100));
+    expect(svc.getSnapshot().fetchedAt).toBe(before);
+  });
+
+  it('forceRefresh は即座にフェッチ', async () => {
+    await svc.start();
+    const before = svc.getSnapshot().fetchedAt;
+    await new Promise(r => setTimeout(r, 10));
+    await svc.forceRefresh();
+    expect(svc.getSnapshot().fetchedAt).toBeGreaterThan(before);
+    await svc.stop();
+  });
+
+  it('onUpdate で状態変化を購読', async () => {
+    const cb = vi.fn();
+    const unsub = svc.onUpdate(cb);
+    await svc.start();
+    expect(cb).toHaveBeenCalled();
+    unsub();
+    await svc.stop();
+  });
+
+  it('Mobile では start でフェッチしない', async () => {
+    Platform.isMobile = true;
+    const cb = vi.fn();
+    svc.onUpdate(cb);
+    await svc.start();
+    expect(cb).not.toHaveBeenCalled();
+    expect(svc.getSnapshot().status).toBe('unsupported');
+    await svc.stop();
+  });
+
+  it('emit で workspace.trigger が発火', async () => {
+    const trigger = vi.fn();
+    const local = new ClaudeQuotaService({
+      app: { workspace: { trigger } } as never,
+      store: {} as never,
+      refreshSec: 60,
+    });
+    await local.start();
+    expect(trigger).toHaveBeenCalledWith(EVENT_QUOTA_UPDATED, expect.objectContaining({ status: 'success' }));
+    await local.stop();
+  });
+
+  it('refreshSec=0 のとき start でタイマー起動しない', async () => {
+    const local = new ClaudeQuotaService({ app: {} as never, store: {} as never, refreshSec: 0 });
+    await local.start();
+    expect(local.getSnapshot().status).toBe('success'); // 即座 1 回は走る
+    await local.stop();
+    // その後のタイマーは無いので手動 forceRefresh のみ
+  });
+});
+
+describe('ClaudeQuotaService.parseUsageResponse', () => {
+  let svc: ClaudeQuotaService;
+
+  beforeEach(() => {
+    Platform.isMobile = false;
+    svc = new ClaudeQuotaService({ app: {} as never, store: {} as never, refreshSec: 60 });
+  });
+
+  afterEach(() => {
+    resetMocks();
+  });
+
+  it('extra_usage + seven_day_opus / seven_day_sonnet をパース', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+      extra_usage: { is_enabled: true, utilization: 15, resets_at: '2026-08-12T00:00:00Z' },
+      seven_day_opus: { utilization: 7, resets_at: '2026-08-14T12:00:00Z' },
+      seven_day_sonnet: { utilization: 8, resets_at: '2026-08-14T13:00:00Z' },
+    }), { status: 200 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('t');
+    expect(snap.extraUsage?.isEnabled).toBe(true);
+    expect(snap.extraUsage?.utilization).toBe(15);
+    expect(snap.windows.sevenDayOpus?.utilization).toBe(7);
+    expect(snap.windows.sevenDaySonnet?.utilization).toBe(8);
+  });
+
+  it('extra_usage が不完全でもクラッシュしない', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+      extra_usage: { is_enabled: false },
+    }), { status: 200 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('t');
+    expect(snap.extraUsage?.isEnabled).toBe(false);
+    expect(snap.extraUsage?.utilization).toBeNull();
+    expect(snap.extraUsage?.resetsAt).toBeNull();
+  });
+});
+
+describe('ClaudeQuotaService timer callback', () => {
+  beforeEach(() => {
+    Platform.isMobile = false;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    resetMocks();
+    Platform.isMobile = false;
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+  });
+
+  it('タイマー経過で追加フェッチが実行される', async () => {
+    const spawnMockLocal = vi.mocked(spawn);
+    spawnMockLocal.mockReset();
+    spawnMockLocal.mockImplementation((() => {
+      const handlers: Record<string, Array<(...a: unknown[]) => void>> = {};
+      const stdoutHandlers: Array<(chunk: Buffer) => void> = [];
+      const child: unknown = {
+        stdout: {
+          on(ev: string, fn: (...a: unknown[]) => void) {
+            if (ev === 'data') stdoutHandlers.push(fn as (chunk: Buffer) => void);
+            return this;
+          },
+        },
+        on(ev: string, fn: (...a: unknown[]) => void) {
+          (handlers[ev] ??= []).push(fn);
+          return this;
+        },
+        emit(ev: string, ...args: unknown[]) {
+          if (ev === 'data' && stdoutHandlers[0]) stdoutHandlers[0](Buffer.from(args[0] as string));
+          (handlers[ev] ?? []).forEach((fn) => fn(...args));
+        },
+      };
+      queueMicrotask(() => {
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('data', '{"claudeAiOauth":{"accessToken":"t","expiresAt":9999999999}}');
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('close', 0);
+      });
+      return child;
+    }) as never);
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+    }), { status: 200 }));
+
+    const local = new ClaudeQuotaService({ app: {} as never, store: {} as never, refreshSec: 60 });
+    await local.start();
+    const before = local.getSnapshot().fetchedAt;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(local.getSnapshot().fetchedAt).toBeGreaterThan(before);
+    await local.stop();
+  });
+});
+
+describe('ClaudeQuotaService emit error handling', () => {
+  beforeEach(() => {
+    Platform.isMobile = false;
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+    const spawnMockLocal = vi.mocked(spawn);
+    spawnMockLocal.mockReset();
+    spawnMockLocal.mockImplementation((() => {
+      const handlers: Record<string, Array<(...a: unknown[]) => void>> = {};
+      const stdoutHandlers: Array<(chunk: Buffer) => void> = [];
+      const child: unknown = {
+        stdout: {
+          on(ev: string, fn: (...a: unknown[]) => void) {
+            if (ev === 'data') stdoutHandlers.push(fn as (chunk: Buffer) => void);
+            return this;
+          },
+        },
+        on(ev: string, fn: (...a: unknown[]) => void) {
+          (handlers[ev] ??= []).push(fn);
+          return this;
+        },
+        emit(ev: string, ...args: unknown[]) {
+          if (ev === 'data' && stdoutHandlers[0]) stdoutHandlers[0](Buffer.from(args[0] as string));
+          (handlers[ev] ?? []).forEach((fn) => fn(...args));
+        },
+      };
+      queueMicrotask(() => {
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('data', '{"claudeAiOauth":{"accessToken":"t","expiresAt":9999999999}}');
+        (child as { emit: (ev: string, ...a: unknown[]) => void }).emit('close', 0);
+      });
+      return child;
+    }) as never);
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 5, resets_at: '2026-08-14T11:00:00Z' },
+    }), { status: 200 }));
+  });
+
+  afterEach(() => {
+    resetMocks();
+    Platform.isMobile = false;
+  });
+
+  it('listener 例外は握り潰される', async () => {
+    const local = new ClaudeQuotaService({ app: {} as never, store: {} as never, refreshSec: 60 });
+    local.onUpdate(() => { throw new Error('boom'); });
+    await expect(local.start()).resolves.not.toThrow();
+    await local.stop();
+  });
+});
