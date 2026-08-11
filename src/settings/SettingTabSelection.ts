@@ -52,6 +52,92 @@ export function renderSelectionTab(_app: App, containerEl: HTMLElement, store: C
           draw();
         }
       }));
+
+    // Object context menu
+    containerEl.createEl('h3', { text: s.objectMenuHeading });
+
+    new Setting(containerEl)
+      .setName(s.objectMenuEnabled)
+      .setDesc(s.objectMenuEnabledDesc)
+      .addToggle((t) => t.setValue(cfg.selection.objectMenuEnabled).onChange((v) => {
+        try {
+          store.save({ ...cfg, selection: { ...cfg.selection, objectMenuEnabled: v } });
+          new Notice(s.noticeSaved);
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+
+    const excludeSetting = new Setting(containerEl)
+      .setName(s.objectMenuExcludeHeading)
+      .setDesc(s.objectMenuExcludeDesc)
+      .addText((text) => {
+        text.setPlaceholder(s.objectMenuExcludePlaceholder);
+        text.inputEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            void addExcludeSelector((e.target as HTMLInputElement).value);
+          }
+        });
+      })
+      .addButton((button) =>
+        button.setButtonText(s.objectMenuExcludeButton).onClick(() => {
+          const input = excludeSetting.controlEl.querySelector('input');
+          if (input) void addExcludeSelector(input.value);
+        })
+      );
+
+    if (cfg.selection.objectMenuExcludeSelectors.length === 0) {
+      containerEl.createEl('p', {
+        text: s.objectMenuExcludeEmpty,
+        attr: { style: 'color: var(--text-muted); font-style: italic;' },
+      });
+    } else {
+      const tagContainer = containerEl.createDiv('cb-object-exclude-tags');
+      cfg.selection.objectMenuExcludeSelectors.forEach((selector) => {
+        const tag = tagContainer.createEl('span', { cls: 'cb-object-exclude-tag' });
+        tag.createEl('span', { text: selector });
+        const removeBtn = tag.createEl('span', { cls: 'cb-object-exclude-tag-remove', text: '✕' });
+        removeBtn.addEventListener('click', () => {
+          void (async () => {
+            try {
+              const latest = store.load();
+              store.save({
+                ...latest,
+                selection: {
+                  ...latest.selection,
+                  objectMenuExcludeSelectors: latest.selection.objectMenuExcludeSelectors.filter((s) => s !== selector),
+                },
+              });
+              draw();
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          })();
+        });
+      });
+    }
+  };
+
+  const addExcludeSelector = async (raw: string): Promise<void> => {
+    const selector = raw.trim();
+    if (!selector) return;
+    try {
+      const latest = store.load();
+      if (latest.selection.objectMenuExcludeSelectors.includes(selector)) return;
+      store.save({
+        ...latest,
+        selection: {
+          ...latest.selection,
+          objectMenuExcludeSelectors: [...latest.selection.objectMenuExcludeSelectors, selector],
+        },
+      });
+      draw();
+    } catch (e) {
+      new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+      draw();
+    }
   };
 
   draw();

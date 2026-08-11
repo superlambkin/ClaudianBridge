@@ -20,6 +20,14 @@ export interface LocaleStrings {
   selectionFolderEnabledDesc: string;
   selectionDelayMs: string;
   selectionDelayMsDesc: string;
+  objectMenuHeading: string;
+  objectMenuEnabled: string;
+  objectMenuEnabledDesc: string;
+  objectMenuExcludeHeading: string;
+  objectMenuExcludeDesc: string;
+  objectMenuExcludePlaceholder: string;
+  objectMenuExcludeButton: string;
+  objectMenuExcludeEmpty: string;
   ttsEnabled: string;
   ttsEnabledDesc: string;
   ttsEngine: string;
@@ -132,6 +140,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     selectionFolderEnabledDesc: 'フォルダを右クリック → Add to Claudian を有効化',
     selectionDelayMs: '⏱️ ポップアップ遅延 (ms)',
     selectionDelayMsDesc: '選択後フローティングボタンが表示されるまでの遅延',
+    objectMenuHeading: '🖱️ オブジェクト右クリックメニュー',
+    objectMenuEnabled: '✅ 有効化',
+    objectMenuEnabledDesc: '画像・リンク・コードブロックなどのオブジェクトを右クリックして Claudian に送信',
+    objectMenuExcludeHeading: '🚫 除外セレクタ',
+    objectMenuExcludeDesc: '右クリックメニューを表示しない要素の CSS セレクタ',
+    objectMenuExcludePlaceholder: '例: .my-class',
+    objectMenuExcludeButton: '＋ 追加',
+    objectMenuExcludeEmpty: '（除外セレクタは未設定です）',
     ttsEnabled: '🌐 機能 ON/OFF',
     ttsEnabledDesc: 'Add to TTS を有効化',
     ttsEngine: '🔊 TTS エンジン',
@@ -243,6 +259,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     selectionFolderEnabledDesc: 'Enable right-click → Add to Claudian on folders',
     selectionDelayMs: '⏱️ Popup delay (ms)',
     selectionDelayMsDesc: 'Delay before the floating button appears after selection',
+    objectMenuHeading: '🖱️ Object context menu',
+    objectMenuEnabled: '✅ Enable',
+    objectMenuEnabledDesc: 'Right-click objects like images, links, code blocks to send to Claudian',
+    objectMenuExcludeHeading: '🚫 Exclude selectors',
+    objectMenuExcludeDesc: 'CSS selectors for elements that should not show the context menu',
+    objectMenuExcludePlaceholder: 'e.g. .my-class',
+    objectMenuExcludeButton: '+ Add',
+    objectMenuExcludeEmpty: '(No exclude selectors set)',
     ttsEnabled: '🌐 Enable Feature',
     ttsEnabledDesc: 'Enable Add to TTS',
     ttsEngine: '🔊 TTS Engine',
@@ -354,6 +378,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     selectionFolderEnabledDesc: '启用文件夹右键 → Add to Claudian',
     selectionDelayMs: '⏱️ 弹窗延迟 (毫秒)',
     selectionDelayMsDesc: '选中后到悬浮按钮出现的延迟',
+    objectMenuHeading: '🖱️ 对象右键菜单',
+    objectMenuEnabled: '✅ 启用',
+    objectMenuEnabledDesc: '右键图片、链接、代码块等对象发送到 Claudian',
+    objectMenuExcludeHeading: '🚫 排除选择器',
+    objectMenuExcludeDesc: '不显示右键菜单的元素的 CSS 选择器',
+    objectMenuExcludePlaceholder: '例如 .my-class',
+    objectMenuExcludeButton: '＋ 添加',
+    objectMenuExcludeEmpty: '（未设置排除选择器）',
     ttsEnabled: '🌐 启用功能',
     ttsEnabledDesc: '启用 Add to TTS',
     ttsEngine: '🔊 TTS 引擎',
