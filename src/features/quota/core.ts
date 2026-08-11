@@ -5,7 +5,7 @@ import { spawn } from 'child_process';
 import { Platform } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
-import { createIdleSnapshot, type QuotaSnapshot } from './types';
+import { createIdleSnapshot, type QuotaSnapshot, type QuotaStatus } from './types';
 
 export interface ClaudeQuotaServiceOptions {
   app: App;
@@ -80,7 +80,72 @@ export class ClaudeQuotaService {
     return typeof token === 'string' ? token : null;
   }
 
-  // --- 以下は Task 5-6 で実装するスタブ ---
+  /** OAuth Usage API を叩いて残量スナップショットを取得 */
+  async fetchQuota(token: string): Promise<QuotaSnapshot> {
+    try {
+      const res = await fetch('https://api.anthropic.com/api/oauth/usage', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'anthropic-beta': 'oauth-2025-04-20',
+          'User-Agent': 'claudian-bridge/1.0',
+        },
+      });
+      if (res.status === 401 || res.status === 403) {
+        return this.setStatus('expired', `HTTP ${res.status}`);
+      }
+      if (!res.ok) {
+        return this.setStatus('error', `HTTP ${res.status}`);
+      }
+      const json = (await res.json()) as Record<string, unknown>;
+      return this.parseUsageResponse(json);
+    } catch (e) {
+      return this.setStatus('error', e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  private parseUsageResponse(json: Record<string, unknown>): QuotaSnapshot {
+    const windowFrom = (w: unknown): { utilization: number | null; resetsAt: string | null } => {
+      if (!w || typeof w !== 'object') return { utilization: null, resetsAt: null };
+      const obj = w as { utilization?: unknown; resets_at?: unknown };
+      return {
+        utilization: typeof obj.utilization === 'number' ? obj.utilization : null,
+        resetsAt: typeof obj.resets_at === 'string' ? obj.resets_at : null,
+      };
+    };
+
+    const extra = json.extra_usage as
+      | { is_enabled?: unknown; utilization?: unknown; resets_at?: unknown }
+      | undefined;
+
+    const snapshot: QuotaSnapshot = {
+      status: 'success',
+      windows: {
+        fiveHour: windowFrom(json.five_hour),
+        sevenDay: windowFrom(json.seven_day),
+      },
+      extraUsage: extra
+        ? {
+            isEnabled: Boolean(extra.is_enabled),
+            utilization: typeof extra.utilization === 'number' ? extra.utilization : null,
+            resetsAt: typeof extra.resets_at === 'string' ? extra.resets_at : null,
+          }
+        : null,
+      fetchedAt: Date.now(),
+      tokenSource: this.snapshot.tokenSource,
+    };
+    if (json.seven_day_opus) snapshot.windows.sevenDayOpus = windowFrom(json.seven_day_opus);
+    if (json.seven_day_sonnet) snapshot.windows.sevenDaySonnet = windowFrom(json.seven_day_sonnet);
+    this.snapshot = snapshot;
+    return snapshot;
+  }
+
+  private setStatus(status: QuotaStatus, error?: string): QuotaSnapshot {
+    this.snapshot = { ...this.snapshot, status, error, fetchedAt: Date.now() };
+    return this.snapshot;
+  }
+
+  // --- 以下は Task 6 で実装するスタブ ---
   start(): Promise<void> { return Promise.resolve(); }
   stop(): Promise<void> { return Promise.resolve(); }
   forceRefresh(): Promise<QuotaSnapshot> { return Promise.resolve(this.snapshot); }

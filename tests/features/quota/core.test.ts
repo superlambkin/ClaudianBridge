@@ -12,6 +12,8 @@ import { spawn } from 'child_process';
 import * as fsPromises from 'fs/promises';
 import { ClaudeQuotaService } from '../../../src/features/quota/core';
 import { Platform } from 'obsidian';
+import { resetMocks, mockFetch } from '../../mocks/obsidian';
+import type { QuotaSnapshot } from '../../../src/features/quota/types';
 
 const spawnMock = vi.mocked(spawn);
 const readFileMock = vi.mocked(fsPromises.readFile);
@@ -118,5 +120,74 @@ describe('ClaudeQuotaService.readToken', () => {
     readFileMock.mockRejectedValue(new Error('ENOENT .credentials.json'));
     const token = await svc.readToken();
     expect(token).toBeNull();
+  });
+});
+
+describe('ClaudeQuotaService.fetchQuota', () => {
+  let svc: ClaudeQuotaService;
+
+  beforeEach(() => {
+    Platform.isMobile = false;
+    spawnMock.mockReset();
+    readFileMock.mockReset();
+    svc = new ClaudeQuotaService({
+      app: {} as never,
+      store: { load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60 } }) } as never,
+      refreshSec: 60,
+    });
+  });
+
+  afterEach(() => {
+    resetMocks();
+  });
+
+  it('200 OK → success 状態の QuotaSnapshot を返す', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 62, resets_at: '2026-08-11T19:30:00Z' },
+      seven_day: { utilization: 23, resets_at: '2026-08-14T11:00:00Z' },
+    }), { status: 200 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('success');
+    expect(snap.windows.fiveHour.utilization).toBe(62);
+    expect(snap.windows.sevenDay.utilization).toBe(23);
+  });
+
+  it('401 → expired 状態を返す', async () => {
+    mockFetch(async () => new Response('Unauthorized', { status: 401 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('expired');
+  });
+
+  it('500 → error 状態を返す', async () => {
+    mockFetch(async () => new Response('Server Error', { status: 500 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('error');
+    expect(snap.error).toContain('500');
+  });
+
+  it('JSON 解析失敗 → error 状態を返す', async () => {
+    mockFetch(async () => new Response('<html>error</html>', { status: 200 }));
+    const snap = await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('test-token');
+    expect(snap.status).toBe('error');
+  });
+
+  it('Authorization ヘッダーに Bearer トークンが含まれる', async () => {
+    let capturedAuth: string | null = null;
+    mockFetch(async (_url, init) => {
+      capturedAuth = (init?.headers as Record<string, string>)?.['Authorization'] ?? null;
+      return new Response('{}', { status: 200 });
+    });
+    await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('my-token');
+    expect(capturedAuth).toBe('Bearer my-token');
+  });
+
+  it('anthropic-beta: oauth-2025-04-20 ヘッダーが含まれる', async () => {
+    let capturedBeta: string | null = null;
+    mockFetch(async (_url, init) => {
+      capturedBeta = (init?.headers as Record<string, string>)?.['anthropic-beta'] ?? null;
+      return new Response('{}', { status: 200 });
+    });
+    await (svc as unknown as { fetchQuota: (t: string) => Promise<QuotaSnapshot> }).fetchQuota('t');
+    expect(capturedBeta).toBe('oauth-2025-04-20');
   });
 });
