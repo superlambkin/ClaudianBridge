@@ -1,8 +1,10 @@
 import type { App } from 'obsidian';
 import { Notice } from 'obsidian';
 import { spawn } from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { ANIME_TTS_ADAPTER_PY } from './anime-tts-adapter';
 
 type NoticeFn = (m: string) => void;
 
@@ -158,12 +160,168 @@ export async function webSpeechSpeak(text: string, settings: TtsSettings, notice
 }
 
 /* ============================================================================
+ * Engine: anime-tts (Damarcreative) — local VITS, Japanese only
+ * ========================================================================== */
+
+const DAMARCREATIVE_DEFAULT_MODEL = 'ameth.pth';
+const DAMARCREATIVE_DEFAULT_CONFIG = 'configs/config-single-speaker.json';
+const PYTHON_CANDIDATES = ['py', 'python3', 'python'];
+
+async function pickPython(noticeFn: NoticeFn): Promise<string | null> {
+  // which コマンドが無い環境（Windows）を考慮し、spawn 失敗で次候補をためす
+  for (const cmd of PYTHON_CANDIDATES) {
+    try {
+      const child = spawn(cmd, ['--version'], { windowsHide: true });
+      const ok = await new Promise<boolean>((resolve) => {
+        let resolved = false;
+        child.on('error', () => { if (!resolved) { resolved = true; resolve(false); } });
+        child.on('close', (code) => { if (!resolved) { resolved = true; resolve(code === 0); } });
+        setTimeout(() => { if (!resolved) { resolved = true; resolve(false); } }, 2000);
+      });
+      if (ok) return cmd;
+    } catch {
+      // continue
+    }
+  }
+  return null;
+}
+
+function detectLang(text: string): 'ja' | 'zh' | 'en' {
+  // ひらがな・カタカナ → ja
+  for (const ch of text) {
+    const cp = ch.codePointAt(0) ?? 0;
+    if (cp >= 0x3040 && cp <= 0x30ff) return 'ja';
+  }
+  // CJK 漢字が多くラテン文字より多ければ zh 寄りだが、damarcreative は日本語専用なので 'zh' として拒否
+  return 'en';
+}
+
+export async function damarcreativeSpeak(text: string, settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
+  // 言語判定（日本語以外は即座に拒否）
+  const lang = detectLang(text);
+  if (lang !== 'ja') {
+    noticeFn('⚠️ anime-tts (Damarcreative) は日本語のみ対応です');
+    return false;
+  }
+
+  const dir = (settings.animeTtsDir ?? '').trim();
+  if (!dir) {
+    noticeFn('⚠️ anime-tts ディレクトリ未設定。設定 → テキスト読み上げ で animeTtsDir を指定してください');
+    return false;
+  }
+  if (!fs.existsSync(dir)) {
+    noticeFn(`⚠️ anime-tts ディレクトリが存在しません: ${dir}`);
+    return false;
+  }
+  // 上流 clone の指標: models.py と configs ディレクトリ
+  if (!fs.existsSync(path.join(dir, 'models.py')) || !fs.existsSync(path.join(dir, 'configs'))) {
+    noticeFn('⚠️ 指定ディレクトリは anime-tts のクローンではないようです（models.py / configs/ が見つかりません）');
+    return false;
+  }
+  const modelPath = path.join(dir, 'model', DAMARCREATIVE_DEFAULT_MODEL);
+  if (!fs.existsSync(modelPath)) {
+    noticeFn(`⚠️ モデルが見つかりません: ${modelPath}。anime-tts ディレクトリで python download-model.py を実行してください`);
+    return false;
+  }
+
+  const py = await pickPython(noticeFn);
+  if (!py) {
+    noticeFn('⚠️ Python が見つかりません。py / python3 / python のいずれかを PATH に追加してください');
+    return false;
+  }
+
+  // アダプタと出力 wav を tmp に展開
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cb-anime-tts-'));
+  const adapterPath = path.join(tmpRoot, 'anime_tts_adapter.py');
+  const outPath = path.join(tmpRoot, 'out.wav');
+  try {
+    fs.writeFileSync(adapterPath, ANIME_TTS_ADAPTER_PY, 'utf8');
+  } catch (e) {
+    noticeFn(`⚠️ アダプタ書き出し失敗: ${(e as Error).message}`);
+    return false;
+  }
+
+  const args = [adapterPath, '--dir', dir, '--model', DAMARCREATIVE_DEFAULT_MODEL, '--config', DAMARCREATIVE_DEFAULT_CONFIG, '--out', outPath];
+  console.log('[claudian-bridge TTS] anime-tts spawning:', { py, args, textLen: text.length, textPreview: text.slice(0, 40) });
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(py, args, { windowsHide: true });
+    } catch (e) {
+      noticeFn(`⚠️ anime-tts 起動失敗: ${(e as Error).message}`);
+      return resolve(false);
+    }
+    let err = '';
+    child.stderr?.on('data', (d) => (err += d.toString()));
+    child.on('error', (e) => {
+      console.error('[claudian-bridge TTS] anime-tts spawn error event:', e.message);
+      if (settled) return;
+      settled = true;
+      noticeFn(`⚠️ anime-tts 失敗: ${e.message}`);
+      resolve(false);
+    });
+    child.on('close', (code) => {
+      console.log('[claudian-bridge TTS] anime-tts child close:', { code, stderr: err.slice(0, 300) });
+      if (settled) return;
+      settled = true;
+      if (code !== 0) {
+        noticeFn(`⚠️ anime-tts 失敗 (exit ${code}): ${err.slice(0, 200)}`);
+        resolve(false);
+        return;
+      }
+      // exit 0 でも wav が無い場合
+      if (!fs.existsSync(outPath)) {
+        noticeFn('⚠️ anime-tts 音声生成に失敗しました（wav 未生成）');
+        resolve(false);
+        return;
+      }
+      // wav 再生（Electron renderer の Audio 経由）
+      try {
+        const audio = new Audio();
+        audio.src = URL.createObjectURL(new Blob([fs.readFileSync(outPath)], { type: 'audio/wav' }));
+        audio.onended = () => { try { URL.revokeObjectURL(audio.src); } catch { /* ignore */ } resolve(true); };
+        audio.onerror = () => { try { URL.revokeObjectURL(audio.src); } catch { /* ignore */ } noticeFn('⚠️ anime-tts wav 再生エラー'); resolve(false); };
+        audio.play().catch((e) => {
+          try { URL.revokeObjectURL(audio.src); } catch { /* ignore */ }
+          noticeFn(`⚠️ anime-tts 再生失敗: ${(e as Error).message}`);
+          resolve(false);
+        });
+        // 再生成功判定は audio.onended に委ねるため、ここでは wav 削除せず onended/onerror で行う
+        // ただし resolve 後（同期フォールバック）には確実に削除するため setTimeout も仕込む
+        const cleanup = (): void => {
+          try { fs.unlinkSync(outPath); } catch { /* ignore */ }
+          try { fs.unlinkSync(adapterPath); } catch { /* ignore */ }
+          try { fs.rmdirSync(tmpRoot); } catch { /* ignore */ }
+        };
+        audio.addEventListener('ended', cleanup, { once: true });
+        audio.addEventListener('error', cleanup, { once: true });
+      } catch (e) {
+        noticeFn(`⚠️ anime-tts 再生準備失敗: ${(e as Error).message}`);
+        resolve(false);
+      }
+    });
+    try {
+      child.stdin?.write(text);
+      child.stdin?.end();
+    } catch (e) {
+      noticeFn(`⚠️ anime-tts stdin 書き込み失敗: ${(e as Error).message}`);
+      if (!settled) { settled = true; resolve(false); }
+    }
+  });
+}
+
+/* ============================================================================
  * Dispatcher
  * ========================================================================== */
 
 export async function addTextToTTS(_app: App | null, text: string, settings: TtsSettings): Promise<boolean> {
   const noticeFn = (m: string): void => { new Notice(m); };
-  // v0.6.0: edge は claude-tts スクリプト経由、webspeech はブラウザ API
+  // v0.7.0: damarcreative は日本語ローカル VITS、edge は claude-tts スクリプト経由、webspeech はブラウザ API
+  if (settings.engine === 'damarcreative') {
+    return damarcreativeSpeak(text, settings, noticeFn);
+  }
   if (settings.engine === 'edge') {
     return claudettsHttpSpeak(text, settings, noticeFn);
   }
