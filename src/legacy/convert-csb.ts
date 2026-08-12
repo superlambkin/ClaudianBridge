@@ -1,4 +1,5 @@
 import type { ClaudianBridgeSettings } from '../core/settings';
+import { DEFAULT_OBJECT_EXCLUDE_SELECTORS } from '../core/settings';
 
 export function convertFromClaudianSelectionBridge(raw: unknown): Partial<ClaudianBridgeSettings> | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -11,6 +12,8 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
       enabled: typeof r.enabled === 'boolean' ? r.enabled : true,
       folderEnabled: true,
       delayMs: typeof r.delayMs === 'number' ? r.delayMs : 300,
+      objectMenuEnabled: true,
+      objectMenuExcludeSelectors: [...DEFAULT_OBJECT_EXCLUDE_SELECTORS],
     },
     tts: {
       enabled: true,

@@ -89,6 +89,39 @@
 }
 .cb-whitelist-tag-remove:hover { opacity: 1; color: var(--text-error); }
 
+/* Object context menu exclude selectors */
+.cb-object-exclude-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+}
+.cb-object-exclude-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: var(--font-monospace);
+  transition: opacity 0.15s;
+}
+.cb-object-exclude-tag:hover { opacity: 0.85; }
+.cb-object-exclude-tag-remove {
+  cursor: pointer;
+  font-size: 0.75em;
+  opacity: 0.7;
+  padding: 0 2px;
+  line-height: 1;
+}
+.cb-object-exclude-tag-remove:hover { opacity: 1; color: var(--text-error); }
+
 /* Preset cards */
 .cb-whitelist-presets {
   display: grid;

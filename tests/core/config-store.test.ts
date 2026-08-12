@@ -40,7 +40,7 @@ describe('ConfigStore', () => {
   });
 
   it('save 後 load で round-trip', () => {
-    const next = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, selection: { enabled: true, folderEnabled: true, delayMs: 999 } };
+    const next = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, selection: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.selection, delayMs: 999 } };
     store.save(next);
     expect(store.load().selection.delayMs).toBe(999);
   });
