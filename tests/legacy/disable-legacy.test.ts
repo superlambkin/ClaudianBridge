@@ -57,4 +57,18 @@ describe('disableLegacyPluginsOnce', () => {
     disableLegacyPluginsOnce(dir);
     expect(existsSync(join(dir, '.obsidian', '.claudian-bridge.legacy-disabled'))).toBe(true);
   });
+
+  it('claudian-bridge 自身は community-plugins.json から除外しない（v0.2.0 regression 防止）', () => {
+    mkdirSync(join(dir, '.obsidian', 'plugins', 'claudian-selection-bridge'), { recursive: true });
+    writeFileSync(
+      join(dir, '.obsidian', 'community-plugins.json'),
+      JSON.stringify({ plugins: ['claudian-selection-bridge', 'claudian-bridge', 'realclaudian'] })
+    );
+    disableLegacyPluginsOnce(dir);
+    const cp = JSON.parse(readFileSync(join(dir, '.obsidian', 'community-plugins.json'), 'utf-8'));
+    // claudian-bridge と realclaudian は除外されない
+    expect(cp.plugins).toContain('claudian-bridge');
+    expect(cp.plugins).toContain('realclaudian');
+    expect(cp.plugins).not.toContain('claudian-selection-bridge');
+  });
 });
