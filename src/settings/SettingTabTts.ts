@@ -60,7 +60,9 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
     const voiceTable = containerEl.createDiv({ cls: 'cb-tts-voices' });
     voiceTable.createEl('p', { text: s.ttsVoicesHint, cls: 'setting-item-description' });
 
-    const currentEngineVoices = cfg.tts.voices[cfg.tts.engine];
+    const currentEngineVoices = cfg.tts.engine === 'damarcreative'
+      ? { zh: '', ja: '', en: '' }
+      : cfg.tts.voices[cfg.tts.engine];
     const renderVoiceRow = (langKey: 'zh' | 'ja' | 'en', label: string): void => {
       const presets = EDGE_VOICE_PRESETS[langKey];
       const current = currentEngineVoices[langKey] || '';

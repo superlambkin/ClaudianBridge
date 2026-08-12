@@ -16,16 +16,20 @@ type NoticeFn = (m: string) => void;
  * voices はエンジンごとにネスト（engine = 'edge' なら voices.edge を参照）。
  */
 export interface TtsSettings {
-  engine: 'edge' | 'webspeech';
+  engine: 'edge' | 'webspeech' | 'damarcreative';
   /** IETF/voice-name map per engine per language (populated from data.json). */
   voices: {
     edge:      { zh: string; ja: string; en: string };
     webspeech: { zh: string; ja: string; en: string };
   };
+  /** anime-tts (Damarcreative) のローカル配置ディレクトリ。空文字 = 未セットアップ。 */
+  animeTtsDir?: string;
 }
 
 /** 選択中エンジンに対応する言語別 voices を取得 */
 export function voicesFor(settings: TtsSettings, lang: 'zh' | 'ja' | 'en'): string {
+  // damarcreative は voices マップを持たない（音声モデルは animeTtsDir 側で決まる）
+  if (settings.engine === 'damarcreative') return '';
   return settings.voices[settings.engine][lang];
 }
 

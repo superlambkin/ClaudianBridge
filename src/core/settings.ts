@@ -246,11 +246,13 @@ export interface ClaudianBridgeSettings {
   };
   tts: {
     enabled: boolean;
-    engine: 'edge' | 'webspeech';
+    engine: 'edge' | 'webspeech' | 'damarcreative';
     voices: {
       edge:      { zh: string; ja: string; en: string };
       webspeech: { zh: string; ja: string; en: string };
     };
+    /** anime-tts (Damarcreative) のローカル配置ディレクトリ。空文字 = 未セットアップ。 */
+    animeTtsDir: string;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -282,6 +284,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
       edge:      { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' },
       webspeech: { zh: '',         ja: '',       en: '' },
     },
+    animeTtsDir: '',
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -349,7 +352,9 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     },
     tts: {
       enabled: r.tts?.enabled ?? true,
-      engine: r.tts?.engine === 'webspeech' ? 'webspeech' : 'edge',
+      engine: r.tts?.engine === 'webspeech' ? 'webspeech'
+            : r.tts?.engine === 'damarcreative' ? 'damarcreative'
+            : 'edge',
       voices: (() => {
         // v0.6.0 migration: 旧平型 { voices: { zh, ja, en } } → ネスト型 { voices: { edge, webspeech } }
         const rawVoices = (r.tts?.voices ?? {}) as Record<string, unknown>;
@@ -382,6 +387,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
           webspeech: readEngine(webRaw, ''),
         };
       })(),
+      animeTtsDir: typeof r.tts?.animeTtsDir === 'string' ? (r.tts.animeTtsDir as string) : '',
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
@@ -405,8 +411,9 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     if (typeof cfg.selection.objectMenuContextFlags[k] !== 'boolean') return `selection.objectMenuContextFlags.${k} は boolean である必要があります`;
   }
   if (typeof cfg.tts.enabled !== 'boolean') return 'tts.enabled は boolean である必要があります';
-  const engines = ['edge', 'webspeech'];
+  const engines = ['edge', 'webspeech', 'damarcreative'];
   if (!engines.includes(cfg.tts.engine)) return `tts.engine が未知です: ${cfg.tts.engine}`;
+  if (typeof cfg.tts.animeTtsDir !== 'string') return 'tts.animeTtsDir は文字列である必要があります';
   if (typeof cfg.office.enabled !== 'boolean') return 'office.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.office.enabledExtensions)) return 'office.enabledExtensions は配列である必要があります';
   if (!['overwrite', 'skip', 'timestamp'].includes(cfg.office.conflictPolicy)) return 'office.conflictPolicy が未知です';
