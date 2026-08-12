@@ -274,3 +274,24 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
     expect(validateClaudianBridgeSettings(bad)).toContain('objectMenuTypeFlags.button');
   });
 });
+
+describe('tts (v0.7.0: damarcreative engine)', () => {
+  it('TC-A01: DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts に animeTtsDir: "" が存在する', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts.animeTtsDir).toBe('');
+  });
+
+  it('TC-A01 続き: animeTtsDir が空文字以外でも保持される', () => {
+    const norm = normalizeClaudianBridgeSettings({ tts: { animeTtsDir: 'D:\\tools\\anime-tts' } });
+    expect(norm.tts.animeTtsDir).toBe('D:\\tools\\anime-tts');
+  });
+
+  it('TC-A02: validate が engine="damarcreative" を許容する', () => {
+    const cfg = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, tts: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts, engine: 'damarcreative' as const } };
+    expect(validateClaudianBridgeSettings(cfg)).toBeNull();
+  });
+
+  it('TC-A02 続き: validate が未知の engine を拒否する', () => {
+    const cfg = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, tts: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts, engine: 'unknown' as unknown as 'edge' } };
+    expect(validateClaudianBridgeSettings(cfg)).toContain('tts.engine');
+  });
+});
