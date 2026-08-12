@@ -134,4 +134,14 @@ describe('i18n', () => {
     expect(getLocaleStrings('en').chromaResolvedPath).toContain('{path}');
     expect(getLocaleStrings('zh').chromaResolvedPath).toContain('{path}');
   });
+  it('TC-A07: ttsEngineDamarcreative / ttsAnimeTtsDir / ttsAnimeTtsTest が 3 言語で非空', () => {
+    for (const lang of SUPPORTED_LOCALES) {
+      const v = getLocaleStrings(lang);
+      expect(v.ttsEngineDamarcreative.length, `${lang}.ttsEngineDamarcreative empty`).toBeGreaterThan(0);
+      expect(v.ttsAnimeTtsDir.length, `${lang}.ttsAnimeTtsDir empty`).toBeGreaterThan(0);
+      expect(v.ttsAnimeTtsDirDesc.length, `${lang}.ttsAnimeTtsDirDesc empty`).toBeGreaterThan(0);
+      expect(v.ttsAnimeTtsTest.length, `${lang}.ttsAnimeTtsTest empty`).toBeGreaterThan(0);
+      expect(v.ttsAnimeTtsTestDesc.length, `${lang}.ttsAnimeTtsTestDesc empty`).toBeGreaterThan(0);
+    }
+  });
 });
