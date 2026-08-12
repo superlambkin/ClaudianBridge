@@ -62,3 +62,40 @@ export function createIdleSnapshot(): QuotaSnapshot {
     tokenSource: 'none',
   };
 }
+
+// ===== マルチプロバイダ残量検知 (v0.4.0) =====
+
+/** サポート対象プロバイダ ID */
+export type ProviderId = 'claude' | 'deepseek' | 'kimi' | 'minimax';
+
+/** 汎用プロバイダ残量（表示用） */
+export interface ProviderQuota {
+  status: 'fetching' | 'success' | 'expired' | 'error';
+  providerId: ProviderId;
+  label: string;
+  value: string;
+  pct: number | null;
+  detail?: string;
+  error?: string;
+}
+
+/** 残量取得プロバイダ抽象 */
+export interface QuotaProvider {
+  id: ProviderId;
+  label: string;
+  /** 環境変数キー（未設定なら undefined → 非表示） */
+  envKeys: string[];
+  isConfigured(): boolean;
+  fetch(): Promise<ProviderQuota>;
+}
+
+/** プロバイダ自動切替間隔の境界 */
+export const DEFAULT_QUOTA_SWITCH_SEC = 30;
+export const QUOTA_SWITCH_MIN_SEC = 5;
+export const QUOTA_SWITCH_MAX_SEC = 600;
+
+/** 切替間隔を [MIN, MAX] にクランプ、不正値はデフォルト */
+export function clampSwitchSec(v: unknown): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return DEFAULT_QUOTA_SWITCH_SEC;
+  return Math.max(QUOTA_SWITCH_MIN_SEC, Math.min(QUOTA_SWITCH_MAX_SEC, Math.floor(v)));
+}
