@@ -217,7 +217,8 @@ export class ClaudeQuotaService {
   /** 全購読者にスナップショットを通知 */
   private emit(): void {
     const snap = this.snapshot;
-    this.opts.app.workspace?.trigger(EVENT_QUOTA_UPDATED, snap);
+    const trigger = (this.opts.app as { workspace?: { trigger?: (n: string, ...a: unknown[]) => void } }).workspace?.trigger;
+    if (typeof trigger === 'function') trigger(EVENT_QUOTA_UPDATED, snap);
     for (const cb of this.listeners) {
       try {
         cb(snap);

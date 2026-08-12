@@ -142,11 +142,14 @@ describe('Quota Integration', () => {
     const anchor = document.querySelector('.claudian-input-wrapper') as HTMLElement;
     const handle = await registerClaudeQuota(
       makeAppWithWrapper(anchor) as never,
-      { load: () => cfg } as never,
+      { load: () => cfg, getEnv: () => undefined } as never,
     );
 
     expect(handle).not.toBeNull();
-    expect(handle!.service.getSnapshot().status).toBe('success');
+    // v0.4.0: MultiQuotaService.getActive() で Claude snapshot を確認
+    const active = handle!.service.getActive();
+    expect(active?.providerId).toBe('claude');
+    expect(active?.status).toBe('success');
     await handle!.dispose();
   });
 

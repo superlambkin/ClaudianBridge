@@ -19,6 +19,9 @@ import { Platform } from 'obsidian';
 import { resetMocks, mockFetch } from '../../mocks/obsidian';
 import { registerClaudeQuota, unregisterClaudeQuota } from '../../../src/features/quota/index';
 
+// 環境変数を完全にクリア（CI や開発環境で API キーが設定されている場合に provider が available になるのを防ぐ）
+const noEnv = (): string | undefined => undefined;
+
 describe('registerClaudeQuota', () => {
   beforeEach(() => {
     Platform.isMobile = false;
@@ -29,7 +32,6 @@ describe('registerClaudeQuota', () => {
   afterEach(() => {
     Platform.isMobile = false;
     document.body.innerHTML = '';
-    // 念のためグローバル状態をクリア
     void unregisterClaudeQuota();
   });
 
@@ -37,7 +39,10 @@ describe('registerClaudeQuota', () => {
     Platform.isMobile = true;
     const handle = await registerClaudeQuota(
       {} as never,
-      { load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60 } }) } as never,
+      {
+        load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60, quotaSwitchSec: 30 } }),
+        getEnv: noEnv,
+      } as never,
     );
     expect(handle).toBeNull();
   });
@@ -49,7 +54,10 @@ describe('registerClaudeQuota', () => {
     }), { status: 200 }));
     const handle = await registerClaudeQuota(
       {} as never,
-      { load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60 } }) } as never,
+      {
+        load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60, quotaSwitchSec: 30 } }),
+        getEnv: noEnv,
+      } as never,
     );
     expect(handle).not.toBeNull();
     expect(handle?.service).toBeDefined();
@@ -58,16 +66,18 @@ describe('registerClaudeQuota', () => {
     await handle?.dispose();
   });
 
-  it('quotaEnabled=false のとき Service は start しない', async () => {
+  it('quotaEnabled=false のとき Claude プロバイダは available に入らない', async () => {
     const handle = await registerClaudeQuota(
       {} as never,
-      { load: () => ({ general: { quotaEnabled: false, quotaRefreshSec: 60 } }) } as never,
+      {
+        load: () => ({ general: { quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 30 } }),
+        getEnv: noEnv,
+      } as never,
     );
     expect(handle).not.toBeNull();
-    // Service は start していないので snapshot は完全に idle 状態
-    const snap = handle!.service.getSnapshot();
-    expect(snap.status).toBe('idle');
-    expect(snap.fetchedAt).toBe(0);
+    // quotaEnabled=false なので Claude は available に入らず、active は null
+    expect(handle!.service.getAvailableIds()).toEqual([]);
+    expect(handle!.service.getActive()).toBeNull();
     await handle?.dispose();
   });
 
@@ -78,35 +88,74 @@ describe('registerClaudeQuota', () => {
     }), { status: 200 }));
     const handle = await registerClaudeQuota(
       {} as never,
-      { load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60 } }) } as never,
+      {
+        load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60, quotaSwitchSec: 30 } }),
+        getEnv: noEnv,
+      } as never,
     );
     expect(handle).not.toBeNull();
     await handle?.dispose();
-    // dispose 後の状態確認（status は defined で何かしら存在）
-    expect(handle?.service.getSnapshot().status).toBeDefined();
+    // dispose 後：Claude token 無しのため 'expired' 状態（=リソース解放確認）
+    const active = handle?.service.getActive();
+    expect(active?.status).toBe('expired');
   });
 
-  it('2 回呼んでも同じ handle を返し DOM に quota-bar は 1 つのみ（冪等）', async () => {
+  it('2 回呼んでも同じ handle を返し DOM に cb-quota-indicator は 1 つのみ（冪等）', async () => {
     mockFetch(async () => new Response(JSON.stringify({
       five_hour: { utilization: 10, resets_at: '2099-01-01T00:00:00Z' },
       seven_day: { utilization: 5, resets_at: '2099-01-01T00:00:00Z' },
     }), { status: 200 }));
 
-    // ラッパ要素を DOM に用意（QuotaBarView.mount の anchor として）
-    const wrapper = document.createElement('div');
-    wrapper.className = 'claudian-input-wrapper';
-    document.body.appendChild(wrapper);
+    // NewTab ボタンを DOM に用意（v0.4.0 マウント位置）
+    const nav = document.createElement('div');
+    nav.className = 'claudian-input-nav-actions';
+    const newTabBtn = document.createElement('button');
+    newTabBtn.className = 'claudian-new-tab-btn';
+    nav.appendChild(newTabBtn);
+    document.body.appendChild(nav);
 
     const fakeApp = {
-      plugins: { plugins: { realclaudian: { getView: () => ({ getInputWrapper: () => wrapper }) } } },
+      workspace: { on: () => null, offref: () => {} },
+      plugins: { plugins: { realclaudian: { getView: () => ({ containerEl: nav }) } } },
     } as never;
-    const store = { load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60 } }) } as never;
+    const store = {
+      load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60, quotaSwitchSec: 30 } }),
+      getEnv: noEnv,
+    } as never;
 
     const h1 = await registerClaudeQuota(fakeApp, store);
     const h2 = await registerClaudeQuota(fakeApp, store);
 
     expect(h1).toBe(h2);
-    expect(document.querySelectorAll('.claudian-quota-bar').length).toBe(1);
+    expect(document.querySelectorAll('.cb-quota-indicator').length).toBe(1);
     await h1?.dispose();
+  });
+
+  it('NewTab ボタンの左隣に cb-quota-indicator がマウントされる', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2099-01-01T00:00:00Z' },
+      seven_day: { utilization: 5, resets_at: '2099-01-01T00:00:00Z' },
+    }), { status: 200 }));
+
+    const nav = document.createElement('div');
+    nav.className = 'claudian-input-nav-actions';
+    const newTabBtn = document.createElement('button');
+    newTabBtn.className = 'claudian-new-tab-btn';
+    nav.appendChild(newTabBtn);
+    document.body.appendChild(nav);
+
+    const fakeApp = {
+      workspace: { on: () => null, offref: () => {} },
+      plugins: { plugins: { realclaudian: { getView: () => ({ containerEl: nav }) } } },
+    } as never;
+    const handle = await registerClaudeQuota(fakeApp, {
+      load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 0, quotaSwitchSec: 0 } }),
+      getEnv: noEnv,
+    } as never);
+
+    const bar = nav.querySelector('.cb-quota-indicator');
+    expect(bar).not.toBeNull();
+    expect(bar!.nextElementSibling).toBe(newTabBtn);
+    await handle?.dispose();
   });
 });

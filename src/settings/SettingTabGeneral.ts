@@ -2,7 +2,7 @@ import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
-import { clampRefreshSec } from '../core/settings';
+import { clampRefreshSec, clampSwitchSec } from '../core/settings';
 import { getClaudeQuotaHandle, registerClaudeQuota } from '../features/quota/index';
 
 export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>): void {
@@ -64,6 +64,26 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
             try {
               const latest = store.load();
               store.save({ ...latest, general: { ...latest.general, quotaRefreshSec: clampRefreshSec(n) } });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          })
+      );
+
+    // v0.4.0: プロバイダ自動切替間隔
+    new Setting(containerEl)
+      .setName(s.quotaSwitchSec)
+      .setDesc(s.quotaSwitchSecDesc)
+      .addText((t) =>
+        t
+          .setValue(String(cfg.general.quotaSwitchSec))
+          .onChange((v) => {
+            const n = parseInt(v, 10);
+            if (!Number.isFinite(n)) return;
+            try {
+              const latest = store.load();
+              store.save({ ...latest, general: { ...latest.general, quotaSwitchSec: clampSwitchSec(n) } });
             } catch (e) {
               new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
               draw();

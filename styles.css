@@ -230,3 +230,33 @@
   0%, 100% { opacity: 0.4; }
   50%      { opacity: 1.0; }
 }
+
+/* === Multi-provider quota indicator (v0.4.0) === */
+.cb-quota-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: default;
+  white-space: nowrap;
+}
+.cb-quota-indicator__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  flex: none;
+}
+.cb-quota-indicator__dot[data-color="green"]  { background: #4caf50; }
+.cb-quota-indicator__dot[data-color="orange"] { background: #ff9800; }
+.cb-quota-indicator__dot[data-color="red"]    { background: #f44336; }
+.cb-quota-indicator__dot[data-color="gray"]   { background: #9e9e9e; }
+.cb-quota-indicator__label { font-weight: 500; }
+.cb-quota-indicator__value { font-variant-numeric: tabular-nums; }
+.cb-quota-indicator[data-status="fetching"] .cb-quota-indicator__dot {
+  animation: cb-quota-pulse 1.2s ease-in-out infinite;
+}
+@keyframes cb-quota-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1.0; }
+}

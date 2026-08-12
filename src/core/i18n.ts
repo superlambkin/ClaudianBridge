@@ -131,6 +131,10 @@ export interface LocaleStrings {
   quotaRefresh: string;
   quotaWindow5h: string;
   quotaWindow7d: string;
+  // v0.4.0: Multi-provider quota switch interval
+  quotaSwitchSec: string;
+  quotaSwitchSecDesc: string;
+  quotaNoProvider: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -263,6 +267,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaRefresh: '残量を更新',
     quotaWindow5h: '5時間',
     quotaWindow7d: '7日間',
+    quotaSwitchSec: 'プロバイダ切替間隔（秒）',
+    quotaSwitchSecDesc: '5〜600 の範囲。各プロバイダの表示時間',
+    quotaNoProvider: '残量対象なし',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -393,6 +400,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaRefresh: 'Refresh quota',
     quotaWindow5h: '5h',
     quotaWindow7d: '7d',
+    quotaSwitchSec: 'Provider switch interval (sec)',
+    quotaSwitchSecDesc: '5–600 seconds per provider',
+    quotaNoProvider: 'No provider configured',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -523,6 +533,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaRefresh: '刷新额度',
     quotaWindow5h: '5小时',
     quotaWindow7d: '7天',
+    quotaSwitchSec: '提供商切换间隔（秒）',
+    quotaSwitchSecDesc: '5–600 秒每个提供商',
+    quotaNoProvider: '无可用提供商',
   },
 };
 

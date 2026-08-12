@@ -10,6 +10,11 @@ const QUOTA_REFRESH_MIN_SEC_LOCAL = 10;
 const QUOTA_REFRESH_MAX_SEC_LOCAL = 600;
 const QUOTA_REFRESH_DEFAULT_SEC_LOCAL = 60;
 
+// v0.4.0: Multi-provider quota switch interval
+const QUOTA_SWITCH_MIN_SEC_LOCAL = 5;
+const QUOTA_SWITCH_MAX_SEC_LOCAL = 600;
+const QUOTA_SWITCH_DEFAULT_SEC_LOCAL = 30;
+
 export function clampRefreshSec(v: unknown): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return QUOTA_REFRESH_DEFAULT_SEC_LOCAL;
   const floored = Math.floor(v);
@@ -17,6 +22,16 @@ export function clampRefreshSec(v: unknown): number {
   return Math.max(
     QUOTA_REFRESH_MIN_SEC_LOCAL,
     Math.min(QUOTA_REFRESH_MAX_SEC_LOCAL, floored)
+  );
+}
+
+export function clampSwitchSec(v: unknown): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return QUOTA_SWITCH_DEFAULT_SEC_LOCAL;
+  const floored = Math.floor(v);
+  if (floored === 0) return 0;
+  return Math.max(
+    QUOTA_SWITCH_MIN_SEC_LOCAL,
+    Math.min(QUOTA_SWITCH_MAX_SEC_LOCAL, floored)
   );
 }
 
@@ -178,6 +193,7 @@ export interface ClaudianBridgeSettings {
     migrationResetAvailable: boolean;
     quotaEnabled: boolean;
     quotaRefreshSec: number;
+    quotaSwitchSec: number;  // v0.4.0: provider rotation interval
   };
   selection: {
     enabled: boolean;
@@ -211,7 +227,7 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60 },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 30 },
   selection: { enabled: true, folderEnabled: true, delayMs: 300, objectMenuEnabled: true, objectMenuExcludeSelectors: [...DEFAULT_OBJECT_EXCLUDE_SELECTORS] },
   tts: {
     enabled: true,
@@ -245,6 +261,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       migrationResetAvailable: r.general?.migrationResetAvailable ?? true,
       quotaEnabled: typeof r.general?.quotaEnabled === 'boolean' ? r.general.quotaEnabled : false,
       quotaRefreshSec: clampRefreshSec(r.general?.quotaRefreshSec),
+      quotaSwitchSec: clampSwitchSec(r.general?.quotaSwitchSec),
     },
     selection: {
       enabled: r.selection?.enabled ?? true,

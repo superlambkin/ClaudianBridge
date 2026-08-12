@@ -1,21 +1,33 @@
-import type { App } from 'obsidian';
+import type { App, EventRef } from 'obsidian';
 import { Platform } from 'obsidian';
-import { ClaudeQuotaService } from './core';
+import { MultiQuotaService } from './service';
 import { QuotaBarView } from './view';
 import type { ConfigStore } from '../../core/config-store';
 
 export interface ClaudeQuotaHandle {
-  service: ClaudeQuotaService;
+  service: MultiQuotaService;
   view: QuotaBarView;
   dispose(): Promise<void>;
 }
 
+interface RealClaudianViewShape {
+  // v0.3.0 で利用
+  getInputWrapper?: () => HTMLElement | null;
+  // v0.4.0 で追加（直接プロパティ参照）
+  newTabButtonEl?: HTMLElement | null;
+  containerEl?: HTMLElement | null;
+}
+
 interface RealClaudianPluginShape {
-  getView?: () => { getInputWrapper?: () => HTMLElement | null } | null;
+  getView?: () => RealClaudianViewShape | null;
 }
 
 interface AppWithPlugins {
   plugins?: { plugins?: Record<string, RealClaudianPluginShape | undefined> };
+  workspace?: {
+    on?: (name: string, cb: (...args: unknown[]) => void) => EventRef | null;
+    offref?: (ref: EventRef) => void;
+  };
 }
 
 let _handle: ClaudeQuotaHandle | null = null;
@@ -25,22 +37,43 @@ export function getClaudeQuotaHandle(): ClaudeQuotaHandle | null {
 }
 
 /**
- * Mount the Claude quota bar and start the service.
+ * realclaudian の NewTab ボタン要素を取得（複数経路の防御的アクセサ）。
+ *
+ * 1) 直接プロパティ `newTabButtonEl`
+ * 2) `containerEl` 内のセレクタ `.claudian-new-tab-btn` または `[aria-label="New tab"]`
+ * 3) 旧 API の input-wrapper にフォールバック
+ */
+function getAnchor(view: unknown): HTMLElement | null {
+  if (!view) return null;
+  const v = view as RealClaudianViewShape;
+  // 1) 直接プロパティ
+  if (v.newTabButtonEl instanceof HTMLElement) return v.newTabButtonEl;
+  // 2) containerEl 内のセレクタ
+  if (v.containerEl instanceof HTMLElement) {
+    const found = v.containerEl.querySelector<HTMLElement>(
+      '.claudian-new-tab-btn, [aria-label="New tab"]',
+    );
+    if (found) return found;
+  }
+  // 3) 旧 API フォールバック
+  const wrapper = v.getInputWrapper?.();
+  if (wrapper) return wrapper;
+  return null;
+}
+
+/**
+ * Mount the multi-provider quota indicator and start the service.
  *
  * Returns `null` on Mobile (desktop-only feature).
  * Returns a `ClaudeQuotaHandle` on desktop — `dispose()` cleans up everything.
  *
- * Mounts the view by calling `realclaudian.getView().getInputWrapper()`.
- * If the plugin is absent or the API throws, mount is silently skipped
- * (the service still runs so callers can read the snapshot via the events).
- *
- * Service is only `start()`ed when `quotaEnabled` is true; otherwise the
- * service stays in 'idle' state and no polling happens.
+ * Mounts the view at `.claudian-new-tab-btn` (the NewTab button) left neighbor.
+ * If the plugin is absent or the API throws, mount is retried on `layout-change`
+ * (e.g. when realclaudian is opened later).
  *
  * **Idempotent**: calling registerClaudeQuota() a second time while a handle
  * is still active returns the existing handle instead of creating a new
- * service/view. This prevents double-mount when both main.ts (onload) and
- * SettingTabGeneral (toggle ON) call it.
+ * service/view.
  */
 export async function registerClaudeQuota(
   app: App,
@@ -53,51 +86,57 @@ export async function registerClaudeQuota(
   if (_handle) return _handle;
 
   const cfg = store.load();
-  const service = new ClaudeQuotaService({
+  // store.getEnv が提供されていればそれを使用（テスト時の環境変数隔離用）。
+  // 実機では ConfigStore が process.env を読む。
+  const getEnv = (store as unknown as { getEnv?: (k: string) => string | undefined }).getEnv
+    ?? ((k: string) => process.env[k]);
+  const service = new MultiQuotaService({
     app,
     store,
     refreshSec: cfg.general.quotaRefreshSec,
+    switchSec: cfg.general.quotaSwitchSec ?? 30,
+    getEnv,
   });
 
   const view = new QuotaBarView();
+  let layoutRef: EventRef | null = null;
 
-  // realclaudian が有効ならラッパ要素を取得して view をマウント
-  // 失敗しても silent にスキップ（service は動かし続ける）
-  const realClaudian = (app as unknown as AppWithPlugins)?.plugins?.plugins?.['realclaudian'];
-  let mountedWrapper: HTMLElement | null = null;
-  if (realClaudian?.getView) {
+  const tryMount = (): boolean => {
+    if (view.isMounted() && view.isConnected()) return true;
+    if (view.isMounted() && !view.isConnected()) view.unmount();
+    const realClaudian = (app as unknown as AppWithPlugins)?.plugins?.plugins?.['realclaudian'];
+    if (!realClaudian?.getView) return false;
     try {
       const v = realClaudian.getView();
-      const wrapper = v?.getInputWrapper?.();
-      if (wrapper) {
-        view.mount(wrapper);
-        mountedWrapper = wrapper;
-      }
+      const anchor = getAnchor(v);
+      if (!anchor) return false;
+      view.mount(anchor);
+      view.render(service.getActive());
+      return true;
     } catch {
-      // マウント失敗は silent skip
+      return false;
+    }
+  };
+
+  // 初回マウント試行。失敗時は layout-change で再試行
+  if (!tryMount()) {
+    const ws = (app as unknown as AppWithPlugins)?.workspace;
+    if (ws?.on) {
+      layoutRef = ws.on('layout-change', () => {
+        tryMount();
+      });
     }
   }
 
-  // refresh ボタンの click をイベント委譲でバインド。
-  // render() が 60s tick で replaceChildren() してボタンを破棄するため、
-  // 直接バインドは最初の render 後の tick で切れる。container は mount 期間中
-  // 生き残るため、委譲が安全（Task 7-8 review の申し送り）。
-  if (mountedWrapper) {
-    bindRefreshDelegation(mountedWrapper, service, view);
-  }
-
-  // Service 更新を View に反映
-  service.onUpdate((snap) => view.render(snap));
-
-  // quotaEnabled が true のときだけ Service 起動
-  if (cfg.general.quotaEnabled) {
-    await service.start();
-  }
+  service.onUpdate((q) => view.render(q));
+  await service.start();
 
   const handle: ClaudeQuotaHandle = {
     service,
     view,
     async dispose() {
+      const ws = (app as unknown as AppWithPlugins)?.workspace;
+      if (layoutRef && ws?.offref) ws.offref(layoutRef);
       await service.stop();
       view.unmount();
       if (_handle === handle) _handle = null;
@@ -110,27 +149,4 @@ export async function registerClaudeQuota(
 /** unregisterClaudeQuota() — for plugin onunload */
 export async function unregisterClaudeQuota(): Promise<void> {
   if (_handle) await _handle.dispose();
-}
-
-/**
- * Wrapper 直前に挿入された quota-bar 要素に click イベント委譲を張る。
- *
- * QuotaBarView.render() は 60 秒 tick で `replaceChildren()` するため、
- * ボタンへの直接バインドは最初の render 後の tick で切れる罠がある。
- * quota-bar 要素自体は mount 期間中ずっと生き残るため、委譲が安全。
- */
-function bindRefreshDelegation(
-  wrapper: HTMLElement,
-  service: ClaudeQuotaService,
-  view: QuotaBarView,
-): void {
-  const bar = wrapper.previousElementSibling;
-  if (!(bar instanceof HTMLElement) || !bar.classList.contains('claudian-quota-bar')) return;
-  bar.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement | null;
-    if (!target) return;
-    if (target.classList.contains('claudian-quota-bar__refresh')) {
-      void service.forceRefresh().then((snap) => view.render(snap));
-    }
-  });
 }

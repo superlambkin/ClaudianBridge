@@ -40,6 +40,16 @@ describe('settings', () => {
     });
   });
 
+  it('quotaSwitchSec はデフォルト 30', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.general.quotaSwitchSec).toBe(30);
+  });
+
+  it('quotaSwitchSec は [5,600] にクランプ', () => {
+    const cfg = normalizeClaudianBridgeSettings({ general: { quotaSwitchSec: 9999 } });
+    expect(cfg.general.quotaSwitchSec).toBe(600);
+  });
+
   it('normalize は office の欠落キーをデフォルトで埋める', () => {
     const norm = normalizeClaudianBridgeSettings({ office: { pythonPath: 'py' } });
     expect(norm.office.pythonPath).toBe('py');
