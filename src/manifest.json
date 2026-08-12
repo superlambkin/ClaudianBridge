@@ -1,9 +1,9 @@
 {
   "id": "claudian-bridge",
   "name": "Claudian Bridge",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "minAppVersion": "1.7.2",
-  "description": "Unified Claudian integration: Add to Claudian (text+folder), Add to TTS (edge-TTS / WebSpeech), Office-to-Markdown, extension whitelist.",
+  "description": "Unified Claudian integration: Add to Claudian (text+folder), Add to TTS (edge-TTS / WebSpeech / anime-tts Damarcreative), Office-to-Markdown, extension whitelist.",
   "author": "MiuMiu",
   "isDesktopOnly": true
 }
