@@ -14,15 +14,30 @@ describe('createKimiProvider', () => {
     expect(p.isConfigured()).toBe(false);
   });
 
-  it('200 → 使用率 42%', async () => {
+  it('200 → 5時間窓の使用率 42% (limits[0] を参照)', async () => {
     const restore = mockFetchOnce(async () => new Response(JSON.stringify({
-      limit: 2048, used: 860, remaining: 1188, resetTime: '2099-01-01T00:00:00Z',
+      usage: { limit: '2048', used: '860', remaining: '1188', resetTime: '2099-01-01T00:00:00Z' },
+      limits: [{
+        window: { duration: 300, timeUnit: 'TIME_UNIT_MINUTE' },
+        detail: { limit: '100', remaining: '58', resetTime: '2099-01-01T00:00:00Z' },
+      }],
     }), { status: 200 }));
-    const p = createKimiProvider((k) => (k === 'KIMI_CODING_API_KEY' ? 'sk-kimi-x' : undefined));
+    const p = createKimiProvider(() => 'sk-kimi-x');
     const q = await p.fetch();
     expect(q.status).toBe('success');
     expect(q.value).toBe('42%');
     expect(q.pct).toBe(42);
+    restore();
+  });
+
+  it('200 → limits が無い場合トップレベル usage を使用', async () => {
+    const restore = mockFetchOnce(async () => new Response(JSON.stringify({
+      usage: { limit: '100', used: '39', remaining: '61', resetTime: '2099-01-01T00:00:00Z' },
+    }), { status: 200 }));
+    const p = createKimiProvider(() => 'sk-kimi-x');
+    const q = await p.fetch();
+    expect(q.status).toBe('success');
+    expect(q.pct).toBe(39);
     restore();
   });
 

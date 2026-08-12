@@ -1,10 +1,29 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from 'vitest';
-import { MultiQuotaService } from '../../../src/features/quota/service';
+import { MultiQuotaService, resolveApiKey, testProviderConnection } from '../../../src/features/quota/service';
+import { createDeepSeekProvider } from '../../../src/features/quota/providers/deepseek';
 
-function makeService(opts?: Partial<{ quotaEnabled: boolean; providers: string[] }>) {
+function makeService(opts?: Partial<{
+  quotaEnabled: boolean;
+  providers: string[];
+  apiKeys?: Record<string, string>;
+  displayModels?: { claude?: boolean; deepseek?: boolean; kimi?: boolean; minimax?: boolean };
+}>) {
   const store = {
-    load: () => ({ general: { quotaEnabled: opts?.quotaEnabled ?? true } }),
+    load: () => ({
+      general: { quotaEnabled: opts?.quotaEnabled ?? true },
+      quota: {
+        deepseekApiKey: opts?.apiKeys?.deepseek ?? '',
+        kimiApiKey: '',
+        minimaxApiKey: '',
+        displayModels: {
+          claude: opts?.displayModels?.claude ?? true,
+          deepseek: opts?.displayModels?.deepseek ?? true,
+          kimi: opts?.displayModels?.kimi ?? true,
+          minimax: opts?.displayModels?.minimax ?? true,
+        },
+      },
+    }),
   };
   const env = new Map<string, string>();
   (opts?.providers ?? []).forEach((k) => env.set(k, 'x'));
@@ -50,5 +69,104 @@ describe('MultiQuotaService', () => {
     svc.next();
     // 解除後は呼ばれない（直前の呼び出し回数は変化しない）
     expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('settings の API キーが環境変数より優先される', () => {
+    const env = (k: string) => (k === 'DEEPSEEK_API_KEY' ? 'env-key' : undefined);
+    expect(resolveApiKey('settings-key', env, ['DEEPSEEK_API_KEY'])).toBe('settings-key');
+    expect(resolveApiKey('', env, ['DEEPSEEK_API_KEY'])).toBe('env-key');
+    expect(resolveApiKey('   ', env, ['DEEPSEEK_API_KEY'])).toBe('env-key');
+    expect(resolveApiKey('', () => undefined, ['DEEPSEEK_API_KEY'])).toBeUndefined();
+  });
+
+  it('settings API キー設定時は DeepSeek が available になる', () => {
+    const svc = makeService({ quotaEnabled: false, apiKeys: { deepseek: 'sk-from-settings' } });
+    expect(svc.getAvailableIds()).toEqual(['deepseek']);
+  });
+
+  it('表示OFFのプロバイダは available に含まれない', () => {
+    const svc = makeService({ quotaEnabled: false, apiKeys: { deepseek: 'sk-from-settings' }, displayModels: { deepseek: false } });
+    expect(svc.getAvailableIds()).toEqual([]);
+  });
+
+  it('接続失敗（error）プロバイダは available に含まれない', async () => {
+    const svc = makeService({ quotaEnabled: false, apiKeys: { deepseek: 'sk-from-settings' } });
+    // refreshAll を実行し、fetch が error を返す状態を作る
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => new Response('{}', { status: 500 })) as typeof fetch;
+    try {
+      await svc.refreshAll();
+    } finally {
+      globalThis.fetch = orig;
+    }
+    expect(svc.getAvailableIds()).toEqual([]);
+  });
+
+  it('接続成功プロバイダは available に含まれる', async () => {
+    const svc = makeService({ quotaEnabled: false, apiKeys: { deepseek: 'sk-from-settings' } });
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(JSON.stringify({
+      is_available: true,
+      balance_infos: [{ currency: 'CNY', total_balance: '100.00' }],
+    }), { status: 200 })) as typeof fetch;
+    try {
+      await svc.refreshAll();
+    } finally {
+      globalThis.fetch = orig;
+    }
+    expect(svc.getAvailableIds()).toEqual(['deepseek']);
+  });
+
+  it('DeepSeek 残金 0 は available に含まれない（表示SKIP）', async () => {
+    const svc = makeService({ quotaEnabled: false, apiKeys: { deepseek: 'sk-from-settings' } });
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(JSON.stringify({
+      is_available: true,
+      balance_infos: [{ currency: 'CNY', total_balance: '0.00' }],
+    }), { status: 200 })) as typeof fetch;
+    try {
+      await svc.refreshAll();
+    } finally {
+      globalThis.fetch = orig;
+    }
+    expect(svc.getAvailableIds()).toEqual([]);
+  });
+});
+
+describe('testProviderConnection', () => {
+  it('キー未設定 → ok=false, error=no key', async () => {
+    const p = createDeepSeekProvider(() => undefined);
+    const r = await testProviderConnection(p);
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('no key');
+  });
+
+  it('fetch 成功 → ok=true, quota 付き', async () => {
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(JSON.stringify({
+      is_available: true,
+      balance_infos: [{ currency: 'CNY', total_balance: '99.00' }],
+    }), { status: 200 })) as typeof fetch;
+    try {
+      const p = createDeepSeekProvider(() => 'sk-test');
+      const r = await testProviderConnection(p);
+      expect(r.ok).toBe(true);
+      expect(r.quota?.value).toBe('¥99.00');
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+
+  it('fetch 例外 → ok=false, error メッセージ', async () => {
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => { throw new Error('network down'); }) as typeof fetch;
+    try {
+      const p = createDeepSeekProvider(() => 'sk-test');
+      const r = await testProviderConnection(p);
+      expect(r.ok).toBe(false);
+      expect(r.error).toContain('network down');
+    } finally {
+      globalThis.fetch = orig;
+    }
   });
 });

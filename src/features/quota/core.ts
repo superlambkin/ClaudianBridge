@@ -6,6 +6,7 @@ import { Platform } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { createIdleSnapshot, EVENT_QUOTA_UPDATED, type QuotaSnapshot, type QuotaStatus } from './types';
+import { httpGet } from './http';
 
 export interface ClaudeQuotaServiceOptions {
   app: App;
@@ -83,13 +84,10 @@ export class ClaudeQuotaService {
   /** OAuth Usage API を叩いて残量スナップショットを取得 */
   async fetchQuota(token: string): Promise<QuotaSnapshot> {
     try {
-      const res = await fetch('https://api.anthropic.com/api/oauth/usage', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'anthropic-beta': 'oauth-2025-04-20',
-          'User-Agent': 'claudian-bridge/1.0',
-        },
+      const res = await httpGet('https://api.anthropic.com/api/oauth/usage', {
+        'Authorization': `Bearer ${token}`,
+        'anthropic-beta': 'oauth-2025-04-20',
+        'User-Agent': 'claudian-bridge/1.0',
       });
       if (res.status === 401 || res.status === 403) {
         return this.setStatus('expired', `HTTP ${res.status}`);
@@ -217,8 +215,15 @@ export class ClaudeQuotaService {
   /** 全購読者にスナップショットを通知 */
   private emit(): void {
     const snap = this.snapshot;
-    const trigger = (this.opts.app as { workspace?: { trigger?: (n: string, ...a: unknown[]) => void } }).workspace?.trigger;
-    if (typeof trigger === 'function') trigger(EVENT_QUOTA_UPDATED, snap);
+    // workspace.trigger は Obsidian 内部で例外を投げることがある（未知イベント名/環境依存）。
+    // quota 機能の通知は自前の listeners で完結するため、workspace 連携は best-effort とし
+    // 例外が onload を失敗させないよう try/catch で保護する。
+    try {
+      const trigger = (this.opts.app as { workspace?: { trigger?: (n: string, ...a: unknown[]) => void } }).workspace?.trigger;
+      if (typeof trigger === 'function') trigger(EVENT_QUOTA_UPDATED, snap);
+    } catch (e) {
+      console.warn('[claudian-bridge] workspace.trigger(EVENT_QUOTA_UPDATED) failed:', e);
+    }
     for (const cb of this.listeners) {
       try {
         cb(snap);

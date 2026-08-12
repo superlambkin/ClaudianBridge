@@ -69,6 +69,70 @@ export function renderSelectionTab(_app: App, containerEl: HTMLElement, store: C
         }
       }));
 
+    // ───── 部品種別トグル (v0.5.0) ─────
+    containerEl.createEl('h4', { text: s.objectMenuTypeHeading });
+    containerEl.createEl('p', { text: s.objectMenuTypeDesc, cls: 'setting-item-description' });
+
+    const typeEntries: Array<[keyof typeof cfg.selection.objectMenuTypeFlags, string]> = [
+      ['button', s.objectMenuTypeButton],
+      ['input', s.objectMenuTypeInput],
+      ['link', s.objectMenuTypeLink],
+      ['element', s.objectMenuTypeElement],
+    ];
+    for (const [key, label] of typeEntries) {
+      new Setting(containerEl)
+        .setName(label)
+        .addToggle((t) => t.setValue(cfg.selection.objectMenuTypeFlags[key]).onChange((v) => {
+          try {
+            const latest = store.load();
+            store.save({
+              ...latest,
+              selection: {
+                ...latest.selection,
+                objectMenuTypeFlags: { ...latest.selection.objectMenuTypeFlags, [key]: v },
+              },
+            });
+            new Notice(s.noticeSaved);
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        }));
+    }
+
+    // ───── 配置場所トグル (v0.5.0) ─────
+    containerEl.createEl('h4', { text: s.objectMenuContextHeading });
+    containerEl.createEl('p', { text: s.objectMenuContextDesc, cls: 'setting-item-description' });
+
+    const ctxEntries: Array<[keyof typeof cfg.selection.objectMenuContextFlags, string]> = [
+      ['ribbon', s.objectMenuContextRibbon],
+      ['sidebar', s.objectMenuContextSidebar],
+      ['modal', s.objectMenuContextModal],
+      ['settings', s.objectMenuContextSettings],
+      ['menu', s.objectMenuContextMenu],
+      ['workspace', s.objectMenuContextWorkspace],
+    ];
+    for (const [key, label] of ctxEntries) {
+      new Setting(containerEl)
+        .setName(label)
+        .addToggle((t) => t.setValue(cfg.selection.objectMenuContextFlags[key]).onChange((v) => {
+          try {
+            const latest = store.load();
+            store.save({
+              ...latest,
+              selection: {
+                ...latest.selection,
+                objectMenuContextFlags: { ...latest.selection.objectMenuContextFlags, [key]: v },
+              },
+            });
+            new Notice(s.noticeSaved);
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        }));
+    }
+
     const excludeSetting = new Setting(containerEl)
       .setName(s.objectMenuExcludeHeading)
       .setDesc(s.objectMenuExcludeDesc)

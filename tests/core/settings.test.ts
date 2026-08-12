@@ -40,9 +40,9 @@ describe('settings', () => {
     });
   });
 
-  it('quotaSwitchSec はデフォルト 30', () => {
+  it('quotaSwitchSec はデフォルト 5', () => {
     const cfg = normalizeClaudianBridgeSettings({});
-    expect(cfg.general.quotaSwitchSec).toBe(30);
+    expect(cfg.general.quotaSwitchSec).toBe(5);
   });
 
   it('quotaSwitchSec は [5,600] にクランプ', () => {
@@ -205,5 +205,72 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general に quota フィールドが含まれる', () => {
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general).toHaveProperty('quotaEnabled');
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general).toHaveProperty('quotaRefreshSec');
+  });
+
+  it('quota セクションはデフォルトで空の API キーを持つ', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota).toEqual({
+      claudeSettingsPath: expect.any(String),
+      deepseekApiKey: '',
+      kimiApiKey: '',
+      minimaxApiKey: '',
+      displayModels: { claude: true, deepseek: true, kimi: true, minimax: true },
+    });
+  });
+
+  it('normalize は quota セクションの API キーを保持する', () => {
+    const s = normalizeClaudianBridgeSettings({
+      quota: { deepseekApiKey: 'sk-ds', kimiApiKey: 'sk-kimi', minimaxApiKey: 'sk-mm' },
+    });
+    expect(s.quota.deepseekApiKey).toBe('sk-ds');
+    expect(s.quota.kimiApiKey).toBe('sk-kimi');
+    expect(s.quota.minimaxApiKey).toBe('sk-mm');
+  });
+
+  it('validate は quota.deepseekApiKey が文字列でない場合エラーを返す', () => {
+    const bad = {
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      quota: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota, deepseekApiKey: 42 as unknown as string },
+    };
+    expect(validateClaudianBridgeSettings(bad)).toContain('quota.deepseekApiKey');
+  });
+
+  it('normalize は quota.displayModels を保持する', () => {
+    const s = normalizeClaudianBridgeSettings({
+      quota: { displayModels: { claude: false, deepseek: true, kimi: false, minimax: true } },
+    });
+    expect(s.quota.displayModels).toEqual({ claude: false, deepseek: true, kimi: false, minimax: true });
+  });
+
+  it('validate は quota.displayModels.claude が boolean でない場合エラーを返す', () => {
+    const bad = {
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      quota: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota, displayModels: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.displayModels, claude: 'x' as unknown as boolean } },
+    };
+    expect(validateClaudianBridgeSettings(bad)).toContain('quota.displayModels.claude');
+  });
+
+  it('objectMenuTypeFlags / objectMenuContextFlags はデフォルト全ON', () => {
+    const s = normalizeClaudianBridgeSettings({});
+    expect(s.selection.objectMenuTypeFlags).toEqual({ button: true, input: true, link: true, element: true });
+    expect(s.selection.objectMenuContextFlags).toEqual({ ribbon: true, sidebar: true, modal: true, settings: true, menu: true, workspace: true });
+  });
+
+  it('normalize は objectMenuTypeFlags を保持する', () => {
+    const s = normalizeClaudianBridgeSettings({
+      selection: { objectMenuTypeFlags: { button: false, input: true, link: true, element: false } },
+    });
+    expect(s.selection.objectMenuTypeFlags.button).toBe(false);
+    expect(s.selection.objectMenuTypeFlags.element).toBe(false);
+  });
+
+  it('validate は objectMenuTypeFlags.button が boolean でない場合エラーを返す', () => {
+    const bad = {
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      selection: {
+        ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.selection,
+        objectMenuTypeFlags: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.selection.objectMenuTypeFlags, button: 'x' as unknown as boolean },
+      },
+    };
+    expect(validateClaudianBridgeSettings(bad)).toContain('objectMenuTypeFlags.button');
   });
 });

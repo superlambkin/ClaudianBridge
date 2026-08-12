@@ -1,6 +1,6 @@
 import { TFile } from 'obsidian';
 import * as path from 'path';
-import * as fs from 'fs/promises';
+import * as fs from 'fs';
 import * as crypto from 'crypto';
 import type { OfficeSettings } from '../../core/settings';
 import { VaultPath } from './path';
@@ -43,7 +43,7 @@ export class OfficeConverter {
 
     modal.setStage('Reading source', 'running');
     try {
-      await fs.access(srcAbs);
+      await fs.promises.access(srcAbs);
     } catch {
       modal.setStage('Reading source', 'fail');
       modal.appendLog(`[ERROR] file not found: ${srcAbs}`);
@@ -64,7 +64,7 @@ export class OfficeConverter {
     modal.setStage('Invoking markitdown', 'ok');
     modal.setProgress(45);
 
-    const buffer = await fs.readFile(srcAbs);
+    const buffer = await fs.promises.readFile(srcAbs);
     const sha256 = crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 8);
     const fmApplied = FrontmatterApplier.expand(settings.frontmatterTemplate, {
       title: file.basename,
@@ -85,7 +85,7 @@ export class OfficeConverter {
     const mainAbs = path.join(outputDirAbs, `${mainName}.md`);
     if (settings.conflictPolicy === 'skip') {
       try {
-        await fs.access(mainAbs);
+        await fs.promises.access(mainAbs);
         modal.setStage('Writing main .md', 'ok');
         modal.appendLog(`[SKIP] ${mainRel} (exists)`);
         modal.setButtonsEnabled({ copy: true, open: true, retry: true, settings: true });
@@ -94,8 +94,8 @@ export class OfficeConverter {
         /* not exists → proceed to write */
       }
     }
-    await fs.mkdir(path.dirname(mainAbs), { recursive: true });
-    await fs.writeFile(mainAbs, fullMd, 'utf8');
+    await fs.promises.mkdir(path.dirname(mainAbs), { recursive: true });
+    await fs.promises.writeFile(mainAbs, fullMd, 'utf8');
     modal.setStage('Writing main .md', 'ok');
     modal.setProgress(65);
     modal.appendLog(`[OK] ${mainRel}`);

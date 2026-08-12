@@ -9,6 +9,7 @@ export interface LocaleStrings {
   tabTts: string;
   tabOffice: string;
   tabWhitelist: string;
+  tabQuota: string;
   settingsTitle: string;
   noticeSaved: string;
   noticeSaveFailed: string;
@@ -28,6 +29,20 @@ export interface LocaleStrings {
   objectMenuExcludePlaceholder: string;
   objectMenuExcludeButton: string;
   objectMenuExcludeEmpty: string;
+  objectMenuTypeHeading: string;
+  objectMenuTypeDesc: string;
+  objectMenuTypeButton: string;
+  objectMenuTypeInput: string;
+  objectMenuTypeLink: string;
+  objectMenuTypeElement: string;
+  objectMenuContextHeading: string;
+  objectMenuContextDesc: string;
+  objectMenuContextRibbon: string;
+  objectMenuContextSidebar: string;
+  objectMenuContextModal: string;
+  objectMenuContextSettings: string;
+  objectMenuContextMenu: string;
+  objectMenuContextWorkspace: string;
   ttsEnabled: string;
   ttsEnabledDesc: string;
   ttsEngine: string;
@@ -135,6 +150,39 @@ export interface LocaleStrings {
   quotaSwitchSec: string;
   quotaSwitchSecDesc: string;
   quotaNoProvider: string;
+  // LLM 残量検出タブ (v0.5.0)
+  quotaLlmHeading: string;
+  quotaLlmDesc: string;
+  quotaClaudeSettingsPath: string;
+  quotaClaudeSettingsPathDesc: string;
+  quotaCurrentLlm: string;
+  quotaCurrentLlmEmpty: string;
+  quotaProvider: string;
+  quotaModel: string;
+  quotaBaseUrl: string;
+  quotaApiKeysHeading: string;
+  quotaApiKeysDesc: string;
+  quotaDeepseekApiKey: string;
+  quotaKimiApiKey: string;
+  quotaMinimaxApiKey: string;
+  quotaApiKeyPlaceholder: string;
+  quotaTestConnection: string;
+  quotaTestOk: string;
+  quotaTestFail: string;
+  quotaSafe: string;
+  quotaCaution: string;
+  quotaDanger: string;
+  quotaColorUnknown: string;
+  quotaDeepseekValue: string;
+  quotaKimiValue: string;
+  quotaMinimaxValue: string;
+  quotaRefreshAll: string;
+  quotaDisplayModelsHeading: string;
+  quotaDisplayModelsDesc: string;
+  quotaDisplayClaude: string;
+  quotaDisplayDeepseek: string;
+  quotaDisplayKimi: string;
+  quotaDisplayMinimax: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -144,6 +192,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabTts: '🔊 テキスト読み上げ',
     tabOffice: '📄 ファイル変換',
     tabWhitelist: '🗂️ 拡張子フィルタ',
+    tabQuota: '🤖 LLM 残量',
     settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ 保存しました',
     noticeSaveFailed: '⚠️ 保存失敗: {msg}',
@@ -163,6 +212,20 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     objectMenuExcludePlaceholder: '例: .my-class',
     objectMenuExcludeButton: '＋ 追加',
     objectMenuExcludeEmpty: '（除外セレクタは未設定です）',
+    objectMenuTypeHeading: '🧩 対象とする部品種別',
+    objectMenuTypeDesc: '右クリックメニューを表示する UI 部品の種類',
+    objectMenuTypeButton: 'ボタン・メニュー項目',
+    objectMenuTypeInput: '入力欄・チェックボックス',
+    objectMenuTypeLink: 'リンク',
+    objectMenuTypeElement: 'その他の要素',
+    objectMenuContextHeading: '📍 対象とする配置場所',
+    objectMenuContextDesc: '右クリックメニューを表示する画面の場所',
+    objectMenuContextRibbon: 'リボン（上部ツールバー）',
+    objectMenuContextSidebar: 'サイドバー',
+    objectMenuContextModal: 'モーダル・ダイアログ',
+    objectMenuContextSettings: '設定画面',
+    objectMenuContextMenu: 'コンテキストメニュー内',
+    objectMenuContextWorkspace: 'ワークスペース全般',
     ttsEnabled: '🌐 機能 ON/OFF',
     ttsEnabledDesc: 'Add to TTS を有効化',
     ttsEngine: '🔊 TTS エンジン',
@@ -256,9 +319,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     chromaTestOk: '✅ OK — {n} 件のコレクション',
     chromaResolvedPath: '解決済み ChromaDB: {path}',
     chromaScriptInfo: 'Python スクリプト: {script}',
-    quotaEnabled: 'Claude 残量検出',
-    quotaEnabledDesc: 'Claude Code の OAuth 利用状況を表示します（デスクトップのみ）',
-    quotaRefreshSec: '更新間隔（秒）',
+    quotaEnabled: 'LLM 残量検出',
+    quotaEnabledDesc: 'Claude Code および各 LLM プロバイダの利用状況を表示します（デスクトップのみ）',
+    quotaRefreshSec: 'データ収集周期（秒）',
     quotaRefreshSecDesc: '10〜600。0 で無効化',
     quotaFetching: '読み込み中…',
     quotaNotLoggedIn: 'Claude Code に未ログインです',
@@ -267,9 +330,42 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaRefresh: '残量を更新',
     quotaWindow5h: '5時間',
     quotaWindow7d: '7日間',
-    quotaSwitchSec: 'プロバイダ切替間隔（秒）',
+    quotaSwitchSec: '表示モデル切替周期（秒）',
     quotaSwitchSecDesc: '5〜600 の範囲。各プロバイダの表示時間',
     quotaNoProvider: '残量対象なし',
+    // LLM 残量検出タブ (v0.5.0)
+    quotaLlmHeading: '🤖 LLM 残量検出',
+    quotaLlmDesc: 'Claude Code の設定ファイルと各 LLM プロバイダの API キーから残量を取得・表示します。',
+    quotaClaudeSettingsPath: 'Claude Code 設定ファイル',
+    quotaClaudeSettingsPathDesc: '現在の LLM（プロバイダ・モデル）情報の読み取り元',
+    quotaCurrentLlm: '現在の LLM',
+    quotaCurrentLlmEmpty: '（未検出）',
+    quotaProvider: 'プロバイダ',
+    quotaModel: 'モデル',
+    quotaBaseUrl: 'Base URL',
+    quotaApiKeysHeading: '🔑 API キー',
+    quotaApiKeysDesc: '各 LLM の API キーを入力し、「接続テスト」で成功したモデルの残量を表示します。',
+    quotaDeepseekApiKey: 'DeepSeek API キー',
+    quotaKimiApiKey: 'KIMI CODE API キー',
+    quotaMinimaxApiKey: 'MINIMAX API キー',
+    quotaApiKeyPlaceholder: 'sk-...',
+    quotaTestConnection: '接続テスト',
+    quotaTestOk: '✅ 接続OK',
+    quotaTestFail: '❌ 接続失敗: {msg}',
+    quotaSafe: '安全',
+    quotaCaution: '注意',
+    quotaDanger: '危険',
+    quotaColorUnknown: 'データなし',
+    quotaDeepseekValue: 'CNY 残金',
+    quotaKimiValue: '5時間使用量',
+    quotaMinimaxValue: '5時間使用量',
+    quotaRefreshAll: '🔄 全プロバイダ更新',
+    quotaDisplayModelsHeading: '🖥️ 表示モデル',
+    quotaDisplayModelsDesc: '表示するモデルを個別に ON/OFF。接続テストに失敗したモデルは表示されません。',
+    quotaDisplayClaude: 'Claude を表示',
+    quotaDisplayDeepseek: 'DeepSeek を表示',
+    quotaDisplayKimi: 'KIMI CODE を表示',
+    quotaDisplayMinimax: 'MINIMAX を表示',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -277,6 +373,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabTts: '🔊 Text To Speech',
     tabOffice: '📄 File Conversion',
     tabWhitelist: '🗂️ Extension Filter',
+    tabQuota: '🤖 LLM Quota',
     settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ Saved',
     noticeSaveFailed: '⚠️ Save failed: {msg}',
@@ -296,6 +393,20 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     objectMenuExcludePlaceholder: 'e.g. .my-class',
     objectMenuExcludeButton: '+ Add',
     objectMenuExcludeEmpty: '(No exclude selectors set)',
+    objectMenuTypeHeading: '🧩 Component types',
+    objectMenuTypeDesc: 'UI component types that show the context menu',
+    objectMenuTypeButton: 'Buttons / menu items',
+    objectMenuTypeInput: 'Inputs / checkboxes',
+    objectMenuTypeLink: 'Links',
+    objectMenuTypeElement: 'Other elements',
+    objectMenuContextHeading: '📍 Contexts',
+    objectMenuContextDesc: 'Screen locations that show the context menu',
+    objectMenuContextRibbon: 'Ribbon (top toolbar)',
+    objectMenuContextSidebar: 'Sidebar',
+    objectMenuContextModal: 'Modal / dialog',
+    objectMenuContextSettings: 'Settings',
+    objectMenuContextMenu: 'Inside context menus',
+    objectMenuContextWorkspace: 'Workspace general',
     ttsEnabled: '🌐 Enable Feature',
     ttsEnabledDesc: 'Enable Add to TTS',
     ttsEngine: '🔊 TTS Engine',
@@ -389,9 +500,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     chromaTestOk: '✅ OK — {n} collection(s)',
     chromaResolvedPath: 'Resolved ChromaDB: {path}',
     chromaScriptInfo: 'Python script: {script}',
-    quotaEnabled: 'Claude quota detection',
-    quotaEnabledDesc: 'Show Claude Code OAuth usage (desktop only)',
-    quotaRefreshSec: 'Refresh interval (sec)',
+    quotaEnabled: 'LLM quota detection',
+    quotaEnabledDesc: 'Show usage for Claude Code and each LLM provider (desktop only)',
+    quotaRefreshSec: 'Data collection interval (sec)',
     quotaRefreshSecDesc: '10–600 seconds. 0 disables.',
     quotaFetching: 'Fetching…',
     quotaNotLoggedIn: 'Not logged in to Claude Code',
@@ -400,9 +511,42 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaRefresh: 'Refresh quota',
     quotaWindow5h: '5h',
     quotaWindow7d: '7d',
-    quotaSwitchSec: 'Provider switch interval (sec)',
+    quotaSwitchSec: 'Display model switch interval (sec)',
     quotaSwitchSecDesc: '5–600 seconds per provider',
     quotaNoProvider: 'No provider configured',
+    // LLM quota tab (v0.5.0)
+    quotaLlmHeading: '🤖 LLM Quota Detection',
+    quotaLlmDesc: 'Reads the current LLM from the Claude Code settings file and fetches remaining quota from each configured provider API key.',
+    quotaClaudeSettingsPath: 'Claude Code settings file',
+    quotaClaudeSettingsPathDesc: 'Source for current LLM (provider/model) info',
+    quotaCurrentLlm: 'Current LLM',
+    quotaCurrentLlmEmpty: '(not detected)',
+    quotaProvider: 'Provider',
+    quotaModel: 'Model',
+    quotaBaseUrl: 'Base URL',
+    quotaApiKeysHeading: '🔑 API Keys',
+    quotaApiKeysDesc: 'Enter each LLM API key. Providers that pass the connection test show their remaining quota.',
+    quotaDeepseekApiKey: 'DeepSeek API key',
+    quotaKimiApiKey: 'KIMI CODE API key',
+    quotaMinimaxApiKey: 'MINIMAX API key',
+    quotaApiKeyPlaceholder: 'sk-...',
+    quotaTestConnection: 'Test connection',
+    quotaTestOk: '✅ Connection OK',
+    quotaTestFail: '❌ Connection failed: {msg}',
+    quotaSafe: 'Safe',
+    quotaCaution: 'Caution',
+    quotaDanger: 'Danger',
+    quotaColorUnknown: 'No data',
+    quotaDeepseekValue: 'CNY balance',
+    quotaKimiValue: '5h usage',
+    quotaMinimaxValue: '5h usage',
+    quotaRefreshAll: '🔄 Refresh all',
+    quotaDisplayModelsHeading: '🖥️ Display models',
+    quotaDisplayModelsDesc: 'Individually enable/disable models. Models that fail the connection test are not shown.',
+    quotaDisplayClaude: 'Show Claude',
+    quotaDisplayDeepseek: 'Show DeepSeek',
+    quotaDisplayKimi: 'Show KIMI CODE',
+    quotaDisplayMinimax: 'Show MINIMAX',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -410,6 +554,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabTts: '🔊 文本朗读',
     tabOffice: '📄 文件转换',
     tabWhitelist: '🗂️ 扩展名过滤',
+    tabQuota: '🤖 LLM 额度',
     settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ 已写入',
     noticeSaveFailed: '⚠️ 写入失败: {msg}',
@@ -429,6 +574,20 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     objectMenuExcludePlaceholder: '例如 .my-class',
     objectMenuExcludeButton: '＋ 添加',
     objectMenuExcludeEmpty: '（未设置排除选择器）',
+    objectMenuTypeHeading: '🧩 组件类型',
+    objectMenuTypeDesc: '显示右键菜单的 UI 组件类型',
+    objectMenuTypeButton: '按钮 / 菜单项',
+    objectMenuTypeInput: '输入框 / 复选框',
+    objectMenuTypeLink: '链接',
+    objectMenuTypeElement: '其他元素',
+    objectMenuContextHeading: '📍 所在位置',
+    objectMenuContextDesc: '显示右键菜单的界面位置',
+    objectMenuContextRibbon: '功能区（顶部工具栏）',
+    objectMenuContextSidebar: '侧边栏',
+    objectMenuContextModal: '弹窗 / 对话框',
+    objectMenuContextSettings: '设置界面',
+    objectMenuContextMenu: '右键菜单内部',
+    objectMenuContextWorkspace: '工作区全局',
     ttsEnabled: '🌐 启用功能',
     ttsEnabledDesc: '启用 Add to TTS',
     ttsEngine: '🔊 TTS 引擎',
@@ -522,9 +681,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     chromaTestOk: '✅ OK — {n} 个集合',
     chromaResolvedPath: '已解析 ChromaDB: {path}',
     chromaScriptInfo: 'Python 脚本: {script}',
-    quotaEnabled: 'Claude 残量检测',
-    quotaEnabledDesc: '显示 Claude Code OAuth 使用情况（仅桌面端）',
-    quotaRefreshSec: '刷新间隔（秒）',
+    quotaEnabled: 'LLM 额度检测',
+    quotaEnabledDesc: '显示 Claude Code 及各个 LLM 提供商的使用情况（仅桌面端）',
+    quotaRefreshSec: '数据采集周期（秒）',
     quotaRefreshSecDesc: '10–600 秒范围，0 表示禁用',
     quotaFetching: '加载中…',
     quotaNotLoggedIn: '未登录 Claude Code',
@@ -533,9 +692,42 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaRefresh: '刷新额度',
     quotaWindow5h: '5小时',
     quotaWindow7d: '7天',
-    quotaSwitchSec: '提供商切换间隔（秒）',
+    quotaSwitchSec: '显示模型切换周期（秒）',
     quotaSwitchSecDesc: '5–600 秒每个提供商',
     quotaNoProvider: '无可用提供商',
+    // LLM 额度检测标签 (v0.5.0)
+    quotaLlmHeading: '🤖 LLM 额度检测',
+    quotaLlmDesc: '从 Claude Code 配置文件读取当前 LLM，并从各提供商的 API 密钥获取剩余额度。',
+    quotaClaudeSettingsPath: 'Claude Code 配置文件',
+    quotaClaudeSettingsPathDesc: '当前 LLM（提供商/模型）信息的读取来源',
+    quotaCurrentLlm: '当前 LLM',
+    quotaCurrentLlmEmpty: '（未检测到）',
+    quotaProvider: '提供商',
+    quotaModel: '模型',
+    quotaBaseUrl: 'Base URL',
+    quotaApiKeysHeading: '🔑 API 密钥',
+    quotaApiKeysDesc: '输入各 LLM 的 API 密钥。连接测试成功的模型将显示剩余额度。',
+    quotaDeepseekApiKey: 'DeepSeek API 密钥',
+    quotaKimiApiKey: 'KIMI CODE API 密钥',
+    quotaMinimaxApiKey: 'MINIMAX API 密钥',
+    quotaApiKeyPlaceholder: 'sk-...',
+    quotaTestConnection: '测试连接',
+    quotaTestOk: '✅ 连接成功',
+    quotaTestFail: '❌ 连接失败: {msg}',
+    quotaSafe: '安全',
+    quotaCaution: '注意',
+    quotaDanger: '危险',
+    quotaColorUnknown: '无数据',
+    quotaDeepseekValue: 'CNY 余额',
+    quotaKimiValue: '5小时用量',
+    quotaMinimaxValue: '5小时用量',
+    quotaRefreshAll: '🔄 刷新全部',
+    quotaDisplayModelsHeading: '🖥️ 显示模型',
+    quotaDisplayModelsDesc: '单独启用/禁用显示的模型。连接测试失败的模型不会显示。',
+    quotaDisplayClaude: '显示 Claude',
+    quotaDisplayDeepseek: '显示 DeepSeek',
+    quotaDisplayKimi: '显示 KIMI CODE',
+    quotaDisplayMinimax: '显示 MINIMAX',
   },
 };
 

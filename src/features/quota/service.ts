@@ -14,6 +14,45 @@ export interface MultiQuotaServiceOptions {
   getEnv?: (k: string) => string | undefined;
 }
 
+/** 設定の API キー（settings.quota.*）を優先し、なければ環境変数へフォールバックするキー解決 */
+export function resolveApiKey(
+  settingsKey: string | undefined,
+  getEnv: (k: string) => string | undefined,
+  envKeys: string[],
+): string | undefined {
+  if (settingsKey && settingsKey.trim() !== '') return settingsKey.trim();
+  for (const k of envKeys) {
+    const v = getEnv(k);
+    if (v && v.trim() !== '') return v.trim();
+  }
+  return undefined;
+}
+
+/** 接続テスト結果 */
+export interface ConnectionTestResult {
+  ok: boolean;
+  quota?: ProviderQuota;
+  error?: string;
+}
+
+/** プロバイダに一時 API キーを渡して接続テスト（fetch を 1 回実行） */
+export async function testProviderConnection(
+  provider: QuotaProvider,
+): Promise<ConnectionTestResult> {
+  if (!provider.isConfigured()) {
+    return { ok: false, error: 'no key' };
+  }
+  try {
+    const quota = await provider.fetch();
+    if (quota.status === 'success') {
+      return { ok: true, quota };
+    }
+    return { ok: false, error: quota.error ?? quota.status };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** Claude snapshot → 汎用 ProviderQuota 変換 */
 export function claudeSnapshotToProviderQuota(snap: QuotaSnapshot): ProviderQuota {
   const five = snap.windows.fiveHour;
@@ -48,18 +87,27 @@ export class MultiQuotaService {
       refreshSec: opts.refreshSec,
     });
     const getEnv = opts.getEnv ?? ((k: string) => process.env[k]);
+    const cfg = opts.store.load();
     this.providers = [
-      createDeepSeekProvider(getEnv),
-      createKimiProvider(getEnv),
-      createMiniMaxProvider(getEnv),
+      createDeepSeekProvider(() => resolveApiKey(cfg.quota?.deepseekApiKey, getEnv, ['DEEPSEEK_API_KEY'])),
+      createKimiProvider(() => resolveApiKey(cfg.quota?.kimiApiKey, getEnv, ['KIMI_CODING_API_KEY', 'KIMI_API_KEY'])),
+      createMiniMaxProvider(() => resolveApiKey(cfg.quota?.minimaxApiKey, getEnv, ['MINIMAX_CN_API_KEY', 'MINIMAX_API_KEY'])),
     ].filter((p) => p.isConfigured());
   }
 
-  /** 表示対象プロバイダ ID のリスト（Claude は quotaEnabled 設定に依存） */
+  /** 表示対象プロバイダ ID のリスト（Claude は quotaEnabled 設定に依存、表示フラグ/接続成功のみ） */
   getAvailableIds(): ProviderId[] {
+    const cfg = this.opts.store.load();
+    const flags = cfg.quota?.displayModels ?? { claude: true, deepseek: true, kimi: true, minimax: true };
     const ids: ProviderId[] = [];
-    if (this.opts.store.load().general.quotaEnabled) ids.push('claude');
-    ids.push(...this.providers.map((p) => p.id));
+    if (cfg.general.quotaEnabled && flags.claude) ids.push('claude');
+    for (const p of this.providers) {
+      if (!flags[p.id]) continue; // 個別OFF
+      const q = this.quotas.get(p.id);
+      if (q && (q.status === 'error' || q.status === 'expired')) continue; // 接続失敗は非表示
+      if (q && q.zeroBalance) continue; // 残金 0 はスキップ
+      ids.push(p.id);
+    }
     return ids;
   }
 

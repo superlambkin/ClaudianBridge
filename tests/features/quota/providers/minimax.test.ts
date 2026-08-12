@@ -14,14 +14,31 @@ describe('createMiniMaxProvider', () => {
     expect(p.isConfigured()).toBe(false);
   });
 
-  it('200 → chat モデルの残量 38%', async () => {
+  it('200 → general モデルの残量%から使用量 62% を算出', async () => {
+    const restore = mockFetchOnce(async () => new Response(JSON.stringify({
+      model_remains: [
+        { model_name: 'general', current_interval_usage_count: 570, current_interval_total_count: 1500, current_interval_remaining_percent: 38 },
+        { model_name: 'video', current_interval_remaining_percent: 100 },
+      ],
+      base_resp: { status_code: 0 },
+    }), { status: 200 }));
+    const p = createMiniMaxProvider(() => 'sk-mm');
+    const q = await p.fetch();
+    expect(q.status).toBe('success');
+    // 使用量% = 100 - 残量% = 100 - 38 = 62
+    expect(q.pct).toBe(62);
+    expect(q.value).toBe('62%');
+    restore();
+  });
+
+  it('200 → remaining_percent 無しの場合 count から算出', async () => {
     const restore = mockFetchOnce(async () => new Response(JSON.stringify({
       model_remains: [
         { model_name: 'MiniMax-M2', current_interval_usage_count: 570, current_interval_total_count: 1500 },
       ],
       base_resp: { status_code: 0 },
     }), { status: 200 }));
-    const p = createMiniMaxProvider((k) => (k === 'MINIMAX_CN_API_KEY' ? 'sk-mm' : undefined));
+    const p = createMiniMaxProvider(() => 'sk-mm');
     const q = await p.fetch();
     expect(q.status).toBe('success');
     expect(q.pct).toBe(38);

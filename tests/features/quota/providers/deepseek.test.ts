@@ -19,7 +19,7 @@ describe('createDeepSeekProvider', () => {
       is_available: true,
       balance_infos: [{ currency: 'CNY', total_balance: '110.00' }],
     }), { status: 200 }));
-    const p = createDeepSeekProvider((k) => (k === 'DEEPSEEK_API_KEY' ? 'sk-test' : undefined));
+    const p = createDeepSeekProvider(() => 'sk-test');
     const q = await p.fetch();
     expect(q.status).toBe('success');
     expect(q.value).toBe('¥110.00');

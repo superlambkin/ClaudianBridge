@@ -6,13 +6,14 @@ import { renderSelectionTab } from './SettingTabSelection';
 import { renderTtsTab } from './SettingTabTts';
 import { renderOfficeTab } from './SettingTabOffice';
 import { renderWhitelistTab } from './SettingTabWhitelist';
+import { renderQuotaTab } from './SettingTabQuota';
 import { renderChromaTab } from '../features/chroma/settings/ChromaSettingsTab';
 
-type RenderFn = (app: App, el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>) => void;
+type RenderFn = (app: App, el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string) => void;
 
 interface TabDef {
   id: string;
-  labelKey: 'tabGeneral' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabChroma';
+  labelKey: 'tabGeneral' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabQuota' | 'tabChroma';
   render: RenderFn;
 }
 
@@ -22,6 +23,7 @@ const TABS: TabDef[] = [
   { id: 'tts', labelKey: 'tabTts', render: renderTtsTab },
   { id: 'office', labelKey: 'tabOffice', render: renderOfficeTab },
   { id: 'whitelist', labelKey: 'tabWhitelist', render: renderWhitelistTab },
+  { id: 'quota', labelKey: 'tabQuota', render: renderQuotaTab },
   { id: 'chroma', labelKey: 'tabChroma', render: renderChromaTab },
 ];
 
@@ -46,6 +48,7 @@ export class ClaudianBridgeSettingTab extends PluginSettingTab {
     }
     const content = containerEl.createDiv('cb-tab-content');
     const tab = TABS.find((t) => t.id === this.current)!;
-    tab.render(this.app, content, this.store, this.resetMigration);
+    const pluginId = (this as unknown as { plugin?: { manifest?: { id?: string } } }).plugin?.manifest?.id;
+    tab.render(this.app, content, this.store, this.resetMigration, pluginId);
   }
 }

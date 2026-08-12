@@ -1,10 +1,8 @@
 import { copyFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { homedir } from 'os';
 
 const dest = join(
-  homedir(),
-  'OneDrive', 'Edge', 'Obsidian Vault',
+  'Z:', 'Obsidian Vault',
   '.obsidian', 'plugins', 'claudian-bridge'
 );
 

@@ -13,7 +13,7 @@ const QUOTA_REFRESH_DEFAULT_SEC_LOCAL = 60;
 // v0.4.0: Multi-provider quota switch interval
 const QUOTA_SWITCH_MIN_SEC_LOCAL = 5;
 const QUOTA_SWITCH_MAX_SEC_LOCAL = 600;
-const QUOTA_SWITCH_DEFAULT_SEC_LOCAL = 30;
+const QUOTA_SWITCH_DEFAULT_SEC_LOCAL = 5;
 
 export function clampRefreshSec(v: unknown): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return QUOTA_REFRESH_DEFAULT_SEC_LOCAL;
@@ -162,6 +162,16 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
   scriptPath: '',
 };
 
+/** Claude Code の設定ファイル既定パス（ホームディレクトリ解決） */
+export function defaultClaudeSettingsPath(): string {
+  try {
+    const os = require('os') as typeof import('os');
+    return require('path').join(os.homedir(), '.claude', 'settings.json') as string;
+  } catch {
+    return 'C:\\Users\\superlambkin\\.claude\\settings.json';
+  }
+}
+
 export function normalizeChromaSettings(raw: unknown): ChromaSettings {
   const r = (raw ?? {}) as Partial<ChromaSettings>;
   // Clamp numeric values back into the legacy SettingsMigration safe range.
@@ -186,6 +196,33 @@ export function normalizeChromaSettings(raw: unknown): ChromaSettings {
   };
 }
 
+export interface QuotaDisplayFlags {
+  claude: boolean;
+  deepseek: boolean;
+  kimi: boolean;
+  minimax: boolean;
+}
+
+export interface QuotaSettings {
+  /** Claude Code の設定ファイル（LLM 情報の読み取り元） */
+  claudeSettingsPath: string;
+  /** DeepSeek API キー */
+  deepseekApiKey: string;
+  /** KIMI CODE API キー */
+  kimiApiKey: string;
+  /** MINIMAX API キー */
+  minimaxApiKey: string;
+  /** 表示モデル個別ON/OFF（v0.5.0） */
+  displayModels: QuotaDisplayFlags;
+}
+
+export const DEFAULT_QUOTA_DISPLAY_MODELS: QuotaDisplayFlags = {
+  claude: true,
+  deepseek: true,
+  kimi: true,
+  minimax: true,
+};
+
 export interface ClaudianBridgeSettings {
   general: {
     enabled: boolean;
@@ -195,6 +232,7 @@ export interface ClaudianBridgeSettings {
     quotaRefreshSec: number;
     quotaSwitchSec: number;  // v0.4.0: provider rotation interval
   };
+  quota: QuotaSettings;
   selection: {
     enabled: boolean;
     folderEnabled: boolean;
@@ -202,6 +240,9 @@ export interface ClaudianBridgeSettings {
     // === v0.2.0: Object context menu ===
     objectMenuEnabled: boolean;
     objectMenuExcludeSelectors: string[];
+    // === v0.5.0: Object context menu granular toggles ===
+    objectMenuTypeFlags: { button: boolean; input: boolean; link: boolean; element: boolean };
+    objectMenuContextFlags: { ribbon: boolean; sidebar: boolean; modal: boolean; settings: boolean; menu: boolean; workspace: boolean };
   };
   tts: {
     enabled: boolean;
@@ -227,8 +268,23 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 30 },
-  selection: { enabled: true, folderEnabled: true, delayMs: 300, objectMenuEnabled: true, objectMenuExcludeSelectors: [...DEFAULT_OBJECT_EXCLUDE_SELECTORS] },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5 },
+  quota: {
+    claudeSettingsPath: defaultClaudeSettingsPath(),
+    deepseekApiKey: '',
+    kimiApiKey: '',
+    minimaxApiKey: '',
+    displayModels: { ...DEFAULT_QUOTA_DISPLAY_MODELS },
+  },
+  selection: {
+    enabled: true,
+    folderEnabled: true,
+    delayMs: 300,
+    objectMenuEnabled: true,
+    objectMenuExcludeSelectors: [...DEFAULT_OBJECT_EXCLUDE_SELECTORS],
+    objectMenuTypeFlags: { button: true, input: true, link: true, element: true },
+    objectMenuContextFlags: { ribbon: true, sidebar: true, modal: true, settings: true, menu: true, workspace: true },
+  },
   tts: {
     enabled: true,
     engine: 'edge',
@@ -263,6 +319,20 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       quotaRefreshSec: clampRefreshSec(r.general?.quotaRefreshSec),
       quotaSwitchSec: clampSwitchSec(r.general?.quotaSwitchSec),
     },
+    quota: {
+      claudeSettingsPath: typeof r.quota?.claudeSettingsPath === 'string' && r.quota.claudeSettingsPath.trim() !== ''
+        ? r.quota.claudeSettingsPath
+        : defaultClaudeSettingsPath(),
+      deepseekApiKey: typeof r.quota?.deepseekApiKey === 'string' ? r.quota.deepseekApiKey : '',
+      kimiApiKey: typeof r.quota?.kimiApiKey === 'string' ? r.quota.kimiApiKey : '',
+      minimaxApiKey: typeof r.quota?.minimaxApiKey === 'string' ? r.quota.minimaxApiKey : '',
+      displayModels: {
+        claude: typeof r.quota?.displayModels?.claude === 'boolean' ? r.quota.displayModels.claude : true,
+        deepseek: typeof r.quota?.displayModels?.deepseek === 'boolean' ? r.quota.displayModels.deepseek : true,
+        kimi: typeof r.quota?.displayModels?.kimi === 'boolean' ? r.quota.displayModels.kimi : true,
+        minimax: typeof r.quota?.displayModels?.minimax === 'boolean' ? r.quota.displayModels.minimax : true,
+      },
+    },
     selection: {
       enabled: r.selection?.enabled ?? true,
       folderEnabled: r.selection?.folderEnabled ?? true,
@@ -271,6 +341,20 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       objectMenuExcludeSelectors: Array.isArray(r.selection?.objectMenuExcludeSelectors)
         ? r.selection.objectMenuExcludeSelectors.filter((s): s is string => typeof s === 'string')
         : [...DEFAULT_OBJECT_EXCLUDE_SELECTORS],
+      objectMenuTypeFlags: {
+        button: typeof r.selection?.objectMenuTypeFlags?.button === 'boolean' ? r.selection.objectMenuTypeFlags.button : true,
+        input: typeof r.selection?.objectMenuTypeFlags?.input === 'boolean' ? r.selection.objectMenuTypeFlags.input : true,
+        link: typeof r.selection?.objectMenuTypeFlags?.link === 'boolean' ? r.selection.objectMenuTypeFlags.link : true,
+        element: typeof r.selection?.objectMenuTypeFlags?.element === 'boolean' ? r.selection.objectMenuTypeFlags.element : true,
+      },
+      objectMenuContextFlags: {
+        ribbon: typeof r.selection?.objectMenuContextFlags?.ribbon === 'boolean' ? r.selection.objectMenuContextFlags.ribbon : true,
+        sidebar: typeof r.selection?.objectMenuContextFlags?.sidebar === 'boolean' ? r.selection.objectMenuContextFlags.sidebar : true,
+        modal: typeof r.selection?.objectMenuContextFlags?.modal === 'boolean' ? r.selection.objectMenuContextFlags.modal : true,
+        settings: typeof r.selection?.objectMenuContextFlags?.settings === 'boolean' ? r.selection.objectMenuContextFlags.settings : true,
+        menu: typeof r.selection?.objectMenuContextFlags?.menu === 'boolean' ? r.selection.objectMenuContextFlags.menu : true,
+        workspace: typeof r.selection?.objectMenuContextFlags?.workspace === 'boolean' ? r.selection.objectMenuContextFlags.workspace : true,
+      },
     },
     tts: {
       enabled: r.tts?.enabled ?? true,
@@ -303,6 +387,14 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';
   if (typeof cfg.selection.objectMenuEnabled !== 'boolean') return 'selection.objectMenuEnabled は boolean である必要があります';
   if (!Array.isArray(cfg.selection.objectMenuExcludeSelectors)) return 'selection.objectMenuExcludeSelectors は配列である必要があります';
+  if (typeof cfg.selection.objectMenuTypeFlags !== 'object' || cfg.selection.objectMenuTypeFlags === null) return 'selection.objectMenuTypeFlags はオブジェクトである必要があります';
+  for (const k of ['button', 'input', 'link', 'element'] as const) {
+    if (typeof cfg.selection.objectMenuTypeFlags[k] !== 'boolean') return `selection.objectMenuTypeFlags.${k} は boolean である必要があります`;
+  }
+  if (typeof cfg.selection.objectMenuContextFlags !== 'object' || cfg.selection.objectMenuContextFlags === null) return 'selection.objectMenuContextFlags はオブジェクトである必要があります';
+  for (const k of ['ribbon', 'sidebar', 'modal', 'settings', 'menu', 'workspace'] as const) {
+    if (typeof cfg.selection.objectMenuContextFlags[k] !== 'boolean') return `selection.objectMenuContextFlags.${k} は boolean である必要があります`;
+  }
   if (typeof cfg.tts.enabled !== 'boolean') return 'tts.enabled は boolean である必要があります';
   const engines = ['edge', 'claudetts', 'auto', 'webspeech', 'minimax'];
   if (!engines.includes(cfg.tts.engine)) return `tts.engine が未知です: ${cfg.tts.engine}`;
@@ -321,5 +413,12 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.chroma.showProgressModal !== 'boolean') return 'chroma.showProgressModal は boolean である必要があります';
   if (typeof cfg.chroma.enableRawSql !== 'boolean') return 'chroma.enableRawSql は boolean である必要があります';
   if (typeof cfg.chroma.scriptPath !== 'string') return 'chroma.scriptPath は文字列である必要があります';
+  if (typeof cfg.quota?.claudeSettingsPath !== 'string') return 'quota.claudeSettingsPath は文字列である必要があります';
+  if (typeof cfg.quota?.deepseekApiKey !== 'string') return 'quota.deepseekApiKey は文字列である必要があります';
+  if (typeof cfg.quota?.kimiApiKey !== 'string') return 'quota.kimiApiKey は文字列である必要があります';
+  if (typeof cfg.quota?.minimaxApiKey !== 'string') return 'quota.minimaxApiKey は文字列である必要があります';
+  for (const k of ['claude', 'deepseek', 'kimi', 'minimax'] as const) {
+    if (typeof cfg.quota?.displayModels?.[k] !== 'boolean') return `quota.displayModels.${k} は boolean である必要があります`;
+  }
   return null;
 }

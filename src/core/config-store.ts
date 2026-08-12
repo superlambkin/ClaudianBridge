@@ -12,8 +12,10 @@ export function defaultConfigPath(): string {
 export class ConfigStore {
   readonly configPath: string;
   private watcher: fs.FSWatcher | null = null;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSelfWrite = 0;
+  private lastMtimeMs: number | null = null;
 
   constructor(configPath: string = defaultConfigPath()) {
     this.configPath = configPath;
@@ -47,11 +49,44 @@ export class ConfigStore {
 
   watch(onExternalChange: (cfg: ClaudianBridgeSettings) => void): void {
     this.close();
-    this.watcher = fs.watch(this.configPath, () => {
+    const notify = () => {
       if (Date.now() - this.lastSelfWrite < 500) return;
       if (this.debounceTimer) clearTimeout(this.debounceTimer);
       this.debounceTimer = setTimeout(() => onExternalChange(this.load()), 300);
-    });
+    };
+    try {
+      // ネットワークドライブ（SMB 等）では fs.watch が失敗することがあるため、
+      // error ハンドラを必ず登録する（未ハンドルの error イベントがクラッシュを招く）。
+      this.watcher = fs.watch(this.configPath, notify);
+      this.watcher.on('error', () => {
+        this.close();
+        this.startPolling(notify);
+      });
+    } catch {
+      // fs.watch が同期 throw する環境ではポーリングへフォールバック
+      this.startPolling(notify);
+    }
+  }
+
+  /** fs.watch が使えない環境向けの mtime ポーリング監視 */
+  private startPolling(notify: () => void): void {
+    this.lastMtimeMs = null;
+    this.pollTimer = setInterval(() => {
+      try {
+        const mtime = fs.statSync(this.configPath).mtimeMs;
+        if (this.lastMtimeMs === null) {
+          // 初回は基準値を記録するだけで通知しない
+          this.lastMtimeMs = mtime;
+          return;
+        }
+        if (mtime !== this.lastMtimeMs) {
+          this.lastMtimeMs = mtime;
+          notify();
+        }
+      } catch {
+        // ファイル不存在などの一時エラーは無視
+      }
+    }, 1000);
   }
 
   close(): void {
@@ -59,5 +94,7 @@ export class ConfigStore {
     this.debounceTimer = null;
     this.watcher?.close();
     this.watcher = null;
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    this.pollTimer = null;
   }
 }

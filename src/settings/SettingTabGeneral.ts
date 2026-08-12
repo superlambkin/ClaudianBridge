@@ -2,10 +2,8 @@ import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
-import { clampRefreshSec, clampSwitchSec } from '../core/settings';
-import { getClaudeQuotaHandle, registerClaudeQuota } from '../features/quota/index';
 
-export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>): void {
+export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string): void {
   const s = getLocaleStrings(getUILanguage());
 
   const draw = (): void => {
@@ -17,79 +15,25 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
     new Setting(containerEl)
       .setName(s.generalEnabled)
       .setDesc(s.generalEnabledDesc)
-      .addToggle((t) => t.setValue(cfg.general.enabled).onChange((v) => {
+      .addToggle((t) => t.setValue(cfg.general.enabled).onChange(async (v) => {
         try {
           const latest = store.load();
           store.save({ ...latest, general: { ...latest.general, enabled: v } });
           new Notice(s.noticeSaved);
-        } catch (e) {
-          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-          draw();
-        }
-      }));
-
-    // ───── Claude 残量検出 (v0.3.0) ─────
-    containerEl.createEl('h3', { text: s.quotaEnabled });
-
-    new Setting(containerEl)
-      .setName(s.quotaEnabled)
-      .setDesc(s.quotaEnabledDesc)
-      .addToggle((t) => t.setValue(cfg.general.quotaEnabled).onChange((v) => {
-        try {
-          const latest = store.load();
-          store.save({ ...latest, general: { ...latest.general, quotaEnabled: v } });
-          const handle = getClaudeQuotaHandle();
-          if (!v && handle) {
-            void handle.service.stop();
-            handle.view.unmount();
-          } else if (v) {
-            void registerClaudeQuota(_app, store);
+          // 即時反映のためプラグインを再読み込み（onload が enabled を尊重する）
+          if (pluginId) {
+            const plugins = (_app as unknown as { plugins?: { enablePlugin?: (id: string) => Promise<void>; disablePlugin?: (id: string) => Promise<void> } }).plugins;
+            if (v) {
+              await plugins?.enablePlugin?.(pluginId);
+            } else {
+              await plugins?.disablePlugin?.(pluginId);
+            }
           }
-          new Notice(s.noticeSaved);
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           draw();
         }
       }));
-
-    new Setting(containerEl)
-      .setName(s.quotaRefreshSec)
-      .setDesc(s.quotaRefreshSecDesc)
-      .addText((t) =>
-        t
-          .setValue(String(cfg.general.quotaRefreshSec))
-          .onChange((v) => {
-            const n = parseInt(v, 10);
-            if (!Number.isFinite(n)) return;
-            try {
-              const latest = store.load();
-              store.save({ ...latest, general: { ...latest.general, quotaRefreshSec: clampRefreshSec(n) } });
-            } catch (e) {
-              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-              draw();
-            }
-          })
-      );
-
-    // v0.4.0: プロバイダ自動切替間隔
-    new Setting(containerEl)
-      .setName(s.quotaSwitchSec)
-      .setDesc(s.quotaSwitchSecDesc)
-      .addText((t) =>
-        t
-          .setValue(String(cfg.general.quotaSwitchSec))
-          .onChange((v) => {
-            const n = parseInt(v, 10);
-            if (!Number.isFinite(n)) return;
-            try {
-              const latest = store.load();
-              store.save({ ...latest, general: { ...latest.general, quotaSwitchSec: clampSwitchSec(n) } });
-            } catch (e) {
-              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-              draw();
-            }
-          })
-      );
 
     containerEl.createEl('h3', { text: s.migratedFrom });
     const ul = containerEl.createEl('ul');

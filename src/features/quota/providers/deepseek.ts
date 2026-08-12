@@ -1,4 +1,5 @@
 import type { ProviderQuota, QuotaProvider } from '../types';
+import { httpGet } from '../http';
 
 /**
  * DeepSeek 残高取得プロバイダ。
@@ -13,9 +14,9 @@ import type { ProviderQuota, QuotaProvider } from '../types';
  * - キー未設定: error (no key)
  */
 export function createDeepSeekProvider(
-  getEnv: (k: string) => string | undefined = (k) => process.env[k],
+  getKey: () => string | undefined = () => process.env.DEEPSEEK_API_KEY,
 ): QuotaProvider {
-  const keyOf = (): string | undefined => getEnv('DEEPSEEK_API_KEY');
+  const keyOf = getKey;
   return {
     id: 'deepseek',
     label: 'DeepSeek',
@@ -26,8 +27,9 @@ export function createDeepSeekProvider(
       if (!key) {
         return { status: 'error', providerId: 'deepseek', label: 'DeepSeek', value: '', pct: null, error: 'no key' };
       }
-      const res = await fetch('https://api.deepseek.com/user/balance', {
-        headers: { 'Authorization': `Bearer ${key}`, 'Accept': 'application/json' },
+      const res = await httpGet('https://api.deepseek.com/user/balance', {
+        'Authorization': `Bearer ${key}`,
+        'Accept': 'application/json',
       });
       if (res.status === 401 || res.status === 403) {
         return { status: 'expired', providerId: 'deepseek', label: 'DeepSeek', value: '', pct: null, error: `HTTP ${res.status}` };
@@ -37,6 +39,7 @@ export function createDeepSeekProvider(
       }
       const json = (await res.json()) as { balance_infos?: Array<{ total_balance?: string }> };
       const total = json.balance_infos?.[0]?.total_balance;
+      const zeroBalance = total !== undefined && Number(total) === 0;
       return {
         status: 'success',
         providerId: 'deepseek',
@@ -44,6 +47,8 @@ export function createDeepSeekProvider(
         value: `¥${total ?? '--'}`,
         pct: null,
         detail: '余额',
+        zeroBalance,
+        balance: total !== undefined ? Number(total) : null,
       };
     },
   };

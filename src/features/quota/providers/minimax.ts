@@ -1,4 +1,5 @@
 import type { ProviderQuota, QuotaProvider } from '../types';
+import { httpGet } from '../http';
 
 /**
  * MiniMax中国 token_plan 残量取得プロバイダ。
@@ -13,9 +14,9 @@ import type { ProviderQuota, QuotaProvider } from '../types';
  * - base_resp.status_code != 0 → error
  */
 export function createMiniMaxProvider(
-  getEnv: (k: string) => string | undefined = (k) => process.env[k],
+  getKey: () => string | undefined = () => process.env.MINIMAX_CN_API_KEY ?? process.env.MINIMAX_API_KEY,
 ): QuotaProvider {
-  const keyOf = (): string | undefined => getEnv('MINIMAX_CN_API_KEY') ?? getEnv('MINIMAX_API_KEY');
+  const keyOf = getKey;
   return {
     id: 'minimax',
     label: 'MiniMax',
@@ -26,8 +27,9 @@ export function createMiniMaxProvider(
       if (!key) {
         return { status: 'error', providerId: 'minimax', label: 'MiniMax', value: '', pct: null, error: 'no key' };
       }
-      const res = await fetch('https://api.minimaxi.com/v1/token_plan/remains', {
-        headers: { 'Authorization': `Bearer ${key}`, 'Accept': 'application/json' },
+      const res = await httpGet('https://api.minimaxi.com/v1/token_plan/remains', {
+        'Authorization': `Bearer ${key}`,
+        'Accept': 'application/json',
       });
       if (res.status === 401 || res.status === 403) {
         return { status: 'expired', providerId: 'minimax', label: 'MiniMax', value: '', pct: null, error: `HTTP ${res.status}` };
@@ -40,6 +42,7 @@ export function createMiniMaxProvider(
           model_name?: string;
           current_interval_usage_count?: number;
           current_interval_total_count?: number;
+          current_interval_remaining_count?: number;
           current_interval_remaining_percent?: number;
         }>;
         base_resp?: { status_code?: number };
@@ -47,11 +50,19 @@ export function createMiniMaxProvider(
       if (json.base_resp?.status_code && json.base_resp.status_code !== 0) {
         return { status: 'error', providerId: 'minimax', label: 'MiniMax', value: '', pct: null, error: `code ${json.base_resp.status_code}` };
       }
-      const chat = json.model_remains?.find((m) => m.model_name?.toLowerCase().startsWith('minimax-m'));
-      const pct = chat?.current_interval_remaining_percent
-        ?? (chat && chat.current_interval_total_count
-          ? Math.round((chat.current_interval_usage_count ?? 0) / chat.current_interval_total_count * 100)
-          : null);
+      // チャット（general / minimax-m 始まり）モデルを優先選択。
+      // 実際の API は "general" を返すため、minimax-m のみに限定しない。
+      const chat = json.model_remains?.find(
+        (m) => m.model_name?.toLowerCase() === 'general' || m.model_name?.toLowerCase().startsWith('minimax-m'),
+      ) ?? json.model_remains?.[0];
+      // current_interval_remaining_percent は「残量%」。使用量% = 100 - 残量%。
+      let pct: number | null = null;
+      if (chat && typeof chat.current_interval_remaining_percent === 'number' && Number.isFinite(chat.current_interval_remaining_percent)) {
+        pct = Math.round(100 - chat.current_interval_remaining_percent);
+      } else if (chat && (chat.current_interval_total_count ?? 0) > 0) {
+        const total = chat.current_interval_total_count as number;
+        pct = Math.round((chat.current_interval_usage_count ?? 0) / total * 100);
+      }
       return {
         status: 'success',
         providerId: 'minimax',

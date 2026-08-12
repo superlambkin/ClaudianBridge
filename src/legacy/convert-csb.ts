@@ -14,6 +14,8 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
       delayMs: typeof r.delayMs === 'number' ? r.delayMs : 300,
       objectMenuEnabled: true,
       objectMenuExcludeSelectors: [...DEFAULT_OBJECT_EXCLUDE_SELECTORS],
+      objectMenuTypeFlags: { button: true, input: true, link: true, element: true },
+      objectMenuContextFlags: { ribbon: true, sidebar: true, modal: true, settings: true, menu: true, workspace: true },
     },
     tts: {
       enabled: true,

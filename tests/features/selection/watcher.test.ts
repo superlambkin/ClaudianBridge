@@ -1,4 +1,4 @@
-// @vitest-environment happy-dom
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupSelectionWatcher } from '../../../src/features/selection/watcher';
 import { addTextToClaudian } from '../../../src/features/selection/core';

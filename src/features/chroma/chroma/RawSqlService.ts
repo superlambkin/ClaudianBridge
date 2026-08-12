@@ -10,7 +10,7 @@
 //   - Truncates to MAX_ROWS to keep the UI responsive
 
 import * as path from "path";
-import * as fs from "fs/promises";
+import * as fs from "fs";
 import type { ChromaSettings, SqlResult } from "../types";
 import { resolveChromaPath } from "../util/path";
 import { normalizeSql } from "./ResultNormalizer";
@@ -108,7 +108,7 @@ async function findSqliteFile(dir: string): Promise<string | null> {
   for (const name of candidates) {
     const full = path.join(dir, name);
     try {
-      await fs.access(full);
+      await fs.promises.access(full);
       return full;
     } catch {
       /* continue */

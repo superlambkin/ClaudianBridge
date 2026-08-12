@@ -7,6 +7,37 @@ export type ObjectInfo = {
   attributes?: Record<string, string>;
 };
 
+/** type/context フィルタ用の正規化カテゴリ */
+export type ObjectTypeCategory = 'button' | 'input' | 'link' | 'element';
+export type ObjectContextCategory = 'ribbon' | 'sidebar' | 'modal' | 'settings' | 'menu' | 'workspace';
+
+const TYPE_ROLE_MAP: Record<string, ObjectTypeCategory> = {
+  button: 'button',
+  menuitem: 'button',
+  tab: 'button',
+  switch: 'button',
+  checkbox: 'input',
+  radio: 'input',
+  slider: 'input',
+  option: 'input',
+  link: 'link',
+};
+
+/** inspector の type（role/tag 由来）を4カテゴリに正規化 */
+export function normalizeObjectType(type: string, tag?: string): ObjectTypeCategory {
+  if (type && TYPE_ROLE_MAP[type]) return TYPE_ROLE_MAP[type];
+  if (type === 'element' && tag === 'a') return 'link';
+  if (type === 'element' && tag === 'input') return 'input';
+  return 'element';
+}
+
+/** context 文字列を既知カテゴリに正規化（未知は workspace 扱い） */
+export function normalizeObjectContext(context: string): ObjectContextCategory {
+  const c = context as ObjectContextCategory;
+  if (c === 'ribbon' || c === 'sidebar' || c === 'modal' || c === 'settings' || c === 'menu' || c === 'workspace') return c;
+  return 'workspace';
+}
+
 const CONTEXT_SELECTORS: Array<[string, string]> = [
   ['.workspace-ribbon', 'ribbon'],
   ['.workspace-sidedock', 'sidebar'],
@@ -44,6 +75,18 @@ function getMeaningfulSource(el: HTMLElement): { name: string; sourceAttr: strin
 
   const placeholder = el.getAttribute('placeholder');
   if (placeholder) return { name: placeholder, sourceAttr: 'placeholder' };
+
+  // フォールバック: 意味のあるテキストを持つ要素も対象にする（全文部対応 v0.5.0）
+  // 空でなく、過度に長くないテキストのみ。巨大コンテナ（body/html 等）は除外。
+  const text = el.textContent?.trim() ?? '';
+  if (text.length > 0 && text.length <= 200) {
+    const tag = el.tagName.toLowerCase();
+    // body / html など文書全体を掴む構造タグは除外（誤爆防止）
+    const structuralTags = new Set(['body', 'html']);
+    if (!structuralTags.has(tag)) {
+      return { name: text, sourceAttr: 'text' };
+    }
+  }
 
   return null;
 }

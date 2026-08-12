@@ -1,4 +1,4 @@
-// @vitest-environment happy-dom
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { getMeaningfulInfo, type ObjectInfo } from '../../../src/features/object/inspector';
 
@@ -40,8 +40,29 @@ describe('getMeaningfulInfo', () => {
     expect(info.name).toBe('Settings');
   });
 
-  it('意味なし要素 → null', () => {
+  it('意味なし要素（テキスト無し） → null', () => {
     const e = el('span', { class: 'spacer' });
+    expect(getMeaningfulInfo(e)).toBeNull();
+  });
+
+  it('テキストのみの要素 → name にテキスト（全文部対応）', () => {
+    const e = el('p');
+    e.textContent = 'これはテキストです';
+    const info = getMeaningfulInfo(e)!;
+    expect(info.name).toBe('これはテキストです');
+    expect(info.attributes?.text).toBe('これはテキストです');
+  });
+
+  it('body は構造タグなので null（誤爆防止）', () => {
+    const e = document.body;
+    e.textContent = 'body のテキスト';
+    expect(getMeaningfulInfo(e)).toBeNull();
+    e.textContent = '';
+  });
+
+  it('空テキスト要素 → null', () => {
+    const e = el('p');
+    e.textContent = '   ';
     expect(getMeaningfulInfo(e)).toBeNull();
   });
 

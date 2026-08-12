@@ -39,9 +39,11 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
     let settled = false;
     const cmd = path.join(os.homedir(), '.claude', 'skills', 'claude-tts', 'scripts', 'commands.py');
     let child: ReturnType<typeof spawn>;
+    console.log('[claudian-bridge TTS] spawning:', { cmd, textLen: text.length, textPreview: text.slice(0, 40) });
     try {
       child = spawn('python', [cmd, 'speak'], { windowsHide: true });
     } catch (e) {
+      console.error('[claudian-bridge TTS] spawn threw:', e);
       noticeFn(`⚠️ ClaudeTTS 起動失敗: ${(e as Error).message}`);
       resolve(false);
       return;
@@ -51,12 +53,14 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
     child.stderr?.on('data', (d) => (err += d.toString()));
     child.stdout?.on('data', (d) => (out += d.toString()));
     child.on('error', (e) => {
+      console.error('[claudian-bridge TTS] spawn error event:', e.message);
       if (settled) return;
       settled = true;
       noticeFn(`⚠️ ClaudeTTS 失敗: ${e.message}`);
       resolve(false);
     });
     child.on('close', (code) => {
+      console.log('[claudian-bridge TTS] child close:', { code, stderr: err.slice(0, 300), stdout: out.slice(0, 100) });
       if (settled) return;
       settled = true;
       if (code === 0) {

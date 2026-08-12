@@ -77,6 +77,10 @@ export interface ProviderQuota {
   pct: number | null;
   detail?: string;
   error?: string;
+  /** 残金 0（表示スキップ用） */
+  zeroBalance?: boolean;
+  /** 残金（DeepSeek の CNY 数値、色判定用） */
+  balance?: number | null;
 }
 
 /** 残量取得プロバイダ抽象 */

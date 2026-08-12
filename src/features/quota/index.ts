@@ -2,6 +2,7 @@ import type { App, EventRef } from 'obsidian';
 import { Platform } from 'obsidian';
 import { MultiQuotaService } from './service';
 import { QuotaBarView } from './view';
+import { readLlmInfoFromSettings } from './llm-info';
 import type { ConfigStore } from '../../core/config-store';
 
 export interface ClaudeQuotaHandle {
@@ -99,6 +100,11 @@ export async function registerClaudeQuota(
   });
 
   const view = new QuotaBarView();
+  // 現在使用中モデルを settings.json から読み取り、インジケータに設定
+  try {
+    const llm = readLlmInfoFromSettings(cfg.quota?.claudeSettingsPath);
+    if (llm.model) view.setModel(llm.model);
+  } catch { /* best-effort */ }
   let layoutRef: EventRef | null = null;
 
   const tryMount = (): boolean => {
