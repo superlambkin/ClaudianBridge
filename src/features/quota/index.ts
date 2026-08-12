@@ -36,6 +36,11 @@ export function getClaudeQuotaHandle(): ClaudeQuotaHandle | null {
  *
  * Service is only `start()`ed when `quotaEnabled` is true; otherwise the
  * service stays in 'idle' state and no polling happens.
+ *
+ * **Idempotent**: calling registerClaudeQuota() a second time while a handle
+ * is still active returns the existing handle instead of creating a new
+ * service/view. This prevents double-mount when both main.ts (onload) and
+ * SettingTabGeneral (toggle ON) call it.
  */
 export async function registerClaudeQuota(
   app: App,
@@ -43,6 +48,9 @@ export async function registerClaudeQuota(
 ): Promise<ClaudeQuotaHandle | null> {
   // Mobile はデスクトップ専用機能
   if (Platform.isMobile) return null;
+
+  // 冪等性: 既存 handle があればそのまま返す（二重 register 防止）
+  if (_handle) return _handle;
 
   const cfg = store.load();
   const service = new ClaudeQuotaService({

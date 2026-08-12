@@ -85,4 +85,28 @@ describe('registerClaudeQuota', () => {
     // dispose 後の状態確認（status は defined で何かしら存在）
     expect(handle?.service.getSnapshot().status).toBeDefined();
   });
+
+  it('2 回呼んでも同じ handle を返し DOM に quota-bar は 1 つのみ（冪等）', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2099-01-01T00:00:00Z' },
+      seven_day: { utilization: 5, resets_at: '2099-01-01T00:00:00Z' },
+    }), { status: 200 }));
+
+    // ラッパ要素を DOM に用意（QuotaBarView.mount の anchor として）
+    const wrapper = document.createElement('div');
+    wrapper.className = 'claudian-input-wrapper';
+    document.body.appendChild(wrapper);
+
+    const fakeApp = {
+      plugins: { plugins: { realclaudian: { getView: () => ({ getInputWrapper: () => wrapper }) } } },
+    } as never;
+    const store = { load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 60 } }) } as never;
+
+    const h1 = await registerClaudeQuota(fakeApp, store);
+    const h2 = await registerClaudeQuota(fakeApp, store);
+
+    expect(h1).toBe(h2);
+    expect(document.querySelectorAll('.claudian-quota-bar').length).toBe(1);
+    await h1?.dispose();
+  });
 });

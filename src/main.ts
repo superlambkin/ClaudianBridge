@@ -12,10 +12,12 @@ import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/in
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
 import { registerObjectContextMenu } from './features/object';
+import { registerClaudeQuota, unregisterClaudeQuota } from './features/quota/index';
 import * as path from 'path';
 
 export default class ClaudianBridgePlugin extends Plugin {
   private store!: ConfigStore;
+  private quotaHandle: Awaited<ReturnType<typeof registerClaudeQuota>> = null;
 
   /** Convenience accessor for views that want a settings snapshot. */
   get cbSettings(): import('./core/settings').ClaudianBridgeSettings {
@@ -73,6 +75,7 @@ export default class ClaudianBridgePlugin extends Plugin {
     // 4. 機能登録
     const cleanupSelection = setupSelectionWatcher(this.app, this.store, async (text) => {
       const cfg = this.store.load();
+      console.log('[claudian-bridge] selection -> TTS clicked', { textLen: text.length, ttsEnabled: cfg.tts.enabled, engine: cfg.tts.engine });
       if (!cfg.tts.enabled) return;
       await addTextToTTS(this.app, text, cfg.tts);  // voices / minimax を含む完全設定
     });
@@ -129,11 +132,22 @@ export default class ClaudianBridgePlugin extends Plugin {
       ChromaMenuRegistrar.register(this);
     }
 
+    // 7. Claude 残量検出 (v0.3.0): quotaEnabled=true のとき onload で起動
+    // 設計書 §アーキテクチャ & データフロー に従い、onload から register。
+    // registerClaudeQuota() 自体は冪等なので SettingTab からの呼び出しと共存可能。
+    if (this.store.load().general.quotaEnabled) {
+      this.quotaHandle = await registerClaudeQuota(this.app, this.store);
+    }
+
     console.log('[claudian-bridge] loaded');
   }
 
-  onunload(): void {
+  async onunload(): Promise<void> {
     removeWhitelistCss();
+    if (this.quotaHandle) {
+      await unregisterClaudeQuota();
+      this.quotaHandle = null;
+    }
     this.store.close();
     console.log('[claudian-bridge] unloaded');
   }
