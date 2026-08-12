@@ -5,8 +5,17 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
   const ttsRaw = (r.tts as Record<string, unknown>) ?? {};
-  const voicesRaw = (ttsRaw.voices as Record<string, string>) ?? { zh: '', ja: '', en: '' };
-  const minimaxRaw = (ttsRaw.minimax as Record<string, unknown>) ?? {};
+  const voicesRaw = (ttsRaw.voices as Record<string, unknown>) ?? {};
+  // v0.6.0: 旧 engine 列挙 → 'edge' | 'webspeech' に絞る（非対応は 'edge' にフォールバック）
+  const legacyEngine = ttsRaw.engine as string | undefined;
+  const newEngine: 'edge' | 'webspeech' =
+    legacyEngine === 'webspeech' ? 'webspeech' : 'edge';
+  // 旧データ: 平型 voices.{zh,ja,en} / 新データ: ネスト voices.edge.* を両対応
+  const isNested = voicesRaw && ('edge' in voicesRaw || 'webspeech' in voicesRaw);
+  const edgeVoices = isNested
+    ? ((voicesRaw.edge as Record<string, unknown>) ?? {})
+    : voicesRaw;
+  const webVoices  = isNested ? ((voicesRaw.webspeech as Record<string, unknown>) ?? {}) : { zh: '', ja: '', en: '' };
   return {
     selection: {
       enabled: typeof r.enabled === 'boolean' ? r.enabled : true,
@@ -19,27 +28,19 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
     },
     tts: {
       enabled: true,
-      engine: (['edge', 'claudetts', 'auto', 'webspeech', 'minimax'].includes(ttsRaw.engine as string)
-        ? (ttsRaw.engine as 'edge' | 'claudetts' | 'auto' | 'webspeech' | 'minimax')
-        : 'edge'),
+      engine: newEngine,
       voices: {
-        zh: voicesRaw.zh ?? '',
-        ja: voicesRaw.ja ?? '',
-        en: voicesRaw.en ?? '',
+        edge: {
+          zh: typeof edgeVoices.zh === 'string' ? (edgeVoices.zh as string) : '',
+          ja: typeof edgeVoices.ja === 'string' ? (edgeVoices.ja as string) : '',
+          en: typeof edgeVoices.en === 'string' ? (edgeVoices.en as string) : '',
+        },
+        webspeech: {
+          zh: typeof webVoices.zh === 'string' ? (webVoices.zh as string) : '',
+          ja: typeof webVoices.ja === 'string' ? (webVoices.ja as string) : '',
+          en: typeof webVoices.en === 'string' ? (webVoices.en as string) : '',
+        },
       },
-      minimax: {
-        enabled: typeof minimaxRaw.enabled === 'boolean' ? minimaxRaw.enabled : false,
-        showInEngineList: typeof minimaxRaw.showInEngineList === 'boolean' ? minimaxRaw.showInEngineList : false,
-        apiKey: typeof minimaxRaw.apiKey === 'string' ? minimaxRaw.apiKey : '',
-        voiceIdZh: typeof minimaxRaw.voiceIdZh === 'string' ? minimaxRaw.voiceIdZh : '',
-        voiceIdJa: typeof minimaxRaw.voiceIdJa === 'string' ? minimaxRaw.voiceIdJa : '',
-        voiceIdEn: typeof minimaxRaw.voiceIdEn === 'string' ? minimaxRaw.voiceIdEn : '',
-        speed: typeof minimaxRaw.speed === 'number' ? minimaxRaw.speed : 1,
-        vol: typeof minimaxRaw.vol === 'number' ? minimaxRaw.vol : 1,
-        pitch: typeof minimaxRaw.pitch === 'number' ? minimaxRaw.pitch : 0,
-        audioFormat: typeof minimaxRaw.audioFormat === 'string' ? minimaxRaw.audioFormat : 'mp3',
-      },
-      voice: typeof ttsRaw.voice === 'string' ? (ttsRaw.voice as string) : '',
     },
   };
 }

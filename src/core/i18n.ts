@@ -48,23 +48,15 @@ export interface LocaleStrings {
   ttsEngine: string;
   ttsEngineDesc: string;
   ttsEngineEdge: string;
-  ttsEngineClaudetts: string;
-  ttsEngineAuto: string;
   ttsEngineWebspeech: string;
-  ttsEngineMinimax: string;
   ttsTestSample: string;
   ttsTestButton: string;
-  ttsMinimaxHeading: string;
-  ttsMinimaxEnabled: string;
-  ttsMinimaxApiKey: string;
-  ttsMinimaxApiKeyDesc: string;
-  ttsMinimaxVoiceZh: string;
-  ttsMinimaxVoiceZhDesc: string;
-  ttsMinimaxVoiceJa: string;
-  ttsMinimaxVoiceJaDesc: string;
-  ttsMinimaxVoiceEn: string;
-  ttsMinimaxVoiceEnDesc: string;
-  ttsMinimaxEnabledDesc: string;
+  ttsVoicesHint: string;
+  ttsVoiceZh: string;
+  ttsVoiceJa: string;
+  ttsVoiceEn: string;
+  ttsBrowserDefault: string;
+  ttsMinimaxRemovalNote: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -229,25 +221,17 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEnabled: '🌐 機能 ON/OFF',
     ttsEnabledDesc: 'Add to TTS を有効化',
     ttsEngine: '🔊 TTS エンジン',
-    ttsEngineDesc: '音声合成エンジンを選択',
-    ttsEngineEdge: 'ClaudeTTS (edge-tts → pyttsx3 → system.speech)',
-    ttsEngineClaudetts: 'ClaudeTTS HTTP bridge',
-    ttsEngineAuto: '自動 (ClaudeTTS → Web Speech フォールバック)',
-    ttsEngineWebspeech: 'Web SpeechSynthesis API',
-    ttsEngineMinimax: 'MiniMax クラウド TTS',
+    ttsEngineDesc: '音声合成エンジンを選択（edge-TTS / WebSpeech の 2 択）',
+    ttsEngineEdge: 'edge-TTS（クラウド・高品質）',
+    ttsEngineWebspeech: 'WebSpeech（ブラウザ標準）',
     ttsTestSample: '今日は天気がいい。山に登りたい。',
     ttsTestButton: '🔊 テスト再生',
-    ttsMinimaxHeading: '🎤 MiniMax クラウド TTS',
-    ttsMinimaxEnabled: '有効化',
-    ttsMinimaxEnabledDesc: 'MiniMax クラウド音声合成を有効化',
-    ttsMinimaxApiKey: 'API Key',
-    ttsMinimaxApiKeyDesc: 'MiniMax API の認証キー',
-    ttsMinimaxVoiceZh: 'Chinese voice ID',
-    ttsMinimaxVoiceZhDesc: '中国語の voice ID',
-    ttsMinimaxVoiceJa: 'Japanese voice ID',
-    ttsMinimaxVoiceJaDesc: '日本語の voice ID',
-    ttsMinimaxVoiceEn: 'English voice ID',
-    ttsMinimaxVoiceEnDesc: '英語の voice ID',
+    ttsVoicesHint: '選択中エンジンの音色。エンジンを切り替えると内容も切り替わります',
+    ttsVoiceZh: '中国語 (zh)',
+    ttsVoiceJa: '日本語 (ja)',
+    ttsVoiceEn: '英語 (en)',
+    ttsBrowserDefault: 'ブラウザ標準',
+    ttsMinimaxRemovalNote: 'ℹ️ 旧バージョンに存在した MiniMax 接続設定は、接続テスト失敗のため本バージョンから削除されました。',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -410,25 +394,17 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEnabled: '🌐 Enable Feature',
     ttsEnabledDesc: 'Enable Add to TTS',
     ttsEngine: '🔊 TTS Engine',
-    ttsEngineDesc: 'Select the speech synthesis engine',
-    ttsEngineEdge: 'ClaudeTTS (edge-tts → pyttsx3 → system.speech)',
-    ttsEngineClaudetts: 'ClaudeTTS HTTP bridge',
-    ttsEngineAuto: 'Auto (ClaudeTTS → Web Speech fallback)',
-    ttsEngineWebspeech: 'Web SpeechSynthesis API',
-    ttsEngineMinimax: 'MiniMax cloud TTS',
+    ttsEngineDesc: 'Select the speech synthesis engine (edge-TTS / WebSpeech)',
+    ttsEngineEdge: 'edge-TTS (cloud, high quality)',
+    ttsEngineWebspeech: 'WebSpeech (browser default)',
     ttsTestSample: "The weather is nice today. I'd like to climb a mountain.",
     ttsTestButton: '🔊 Test voice',
-    ttsMinimaxHeading: '🎤 MiniMax Cloud TTS',
-    ttsMinimaxEnabled: 'Enable',
-    ttsMinimaxEnabledDesc: 'Enable MiniMax cloud TTS',
-    ttsMinimaxApiKey: 'API Key',
-    ttsMinimaxApiKeyDesc: 'MiniMax API authentication key',
-    ttsMinimaxVoiceZh: 'Chinese voice ID',
-    ttsMinimaxVoiceZhDesc: 'Voice ID for Chinese',
-    ttsMinimaxVoiceJa: 'Japanese voice ID',
-    ttsMinimaxVoiceJaDesc: 'Voice ID for Japanese',
-    ttsMinimaxVoiceEn: 'English voice ID',
-    ttsMinimaxVoiceEnDesc: 'Voice ID for English',
+    ttsVoicesHint: 'Voices for the selected engine. Switching engines swaps the dropdowns.',
+    ttsVoiceZh: 'Chinese (zh)',
+    ttsVoiceJa: 'Japanese (ja)',
+    ttsVoiceEn: 'English (en)',
+    ttsBrowserDefault: 'Browser default',
+    ttsMinimaxRemovalNote: 'ℹ️ MiniMax settings from older versions have been removed (connection test failed).',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -591,25 +567,17 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEnabled: '🌐 启用功能',
     ttsEnabledDesc: '启用 Add to TTS',
     ttsEngine: '🔊 TTS 引擎',
-    ttsEngineDesc: '选择语音合成引擎',
-    ttsEngineEdge: 'ClaudeTTS (edge-tts → pyttsx3 → system.speech)',
-    ttsEngineClaudetts: 'ClaudeTTS HTTP bridge',
-    ttsEngineAuto: '自动 (ClaudeTTS → Web Speech 回退)',
-    ttsEngineWebspeech: 'Web SpeechSynthesis API',
-    ttsEngineMinimax: 'MiniMax 云 TTS',
+    ttsEngineDesc: '选择语音合成引擎（edge-TTS / WebSpeech）',
+    ttsEngineEdge: 'edge-TTS（云端·高质量）',
+    ttsEngineWebspeech: 'WebSpeech（浏览器标准）',
     ttsTestSample: '今天天气不错。我想去爬山。',
     ttsTestButton: '🔊 测试声音',
-    ttsMinimaxHeading: '🎤 MiniMax 云 TTS',
-    ttsMinimaxEnabled: '启用',
-    ttsMinimaxEnabledDesc: '启用 MiniMax 云端语音合成',
-    ttsMinimaxApiKey: 'API 密钥',
-    ttsMinimaxApiKeyDesc: 'MiniMax API 认证密钥',
-    ttsMinimaxVoiceZh: '中文语音 ID',
-    ttsMinimaxVoiceZhDesc: '中文语音的 ID',
-    ttsMinimaxVoiceJa: '日语语音 ID',
-    ttsMinimaxVoiceJaDesc: '日语语音的 ID',
-    ttsMinimaxVoiceEn: '英语语音 ID',
-    ttsMinimaxVoiceEnDesc: '英语语音的 ID',
+    ttsMinimaxRemovalNote: 'ℹ️ 旧版本中的 MiniMax 连接设置已删除（连接测试失败）',
+    ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
+    ttsVoiceZh: '中文 (zh)',
+    ttsVoiceJa: '日语 (ja)',
+    ttsVoiceEn: '英语 (en)',
+    ttsBrowserDefault: '浏览器默认',
     resetMigration: '🔄 重新导入旧设置',
     resetMigrationDesc: '从旧插件 data.json 重新导入（需重启 Obsidian）',
     resetMigrationButton: '🔄 重置迁移',

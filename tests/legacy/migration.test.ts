@@ -30,17 +30,19 @@ describe('migrateFromLegacy', () => {
     });
   });
 
-  it('claudian-selection-bridge の data.json を変換', () => {
+  it('claudian-selection-bridge の data.json を変換（v0.6.0: engine→edge, voices ネスト化）', () => {
     mkdirSync(join(dir, 'claudian-selection-bridge'));
     writeFileSync(
       join(dir, 'claudian-selection-bridge', 'data.json'),
-      JSON.stringify({ enabled: true, delayMs: 500, tts: { engine: 'claudetts', voices: { zh: '', ja: '', en: '' }, minimax: { enabled: false, showInEngineList: false, apiKey: '', voiceIdZh: '', voiceIdJa: '', voiceIdEn: '', speed: 1, vol: 1, pitch: 0, audioFormat: 'mp3' }, voice: '' } })
+      JSON.stringify({ enabled: true, delayMs: 500, tts: { engine: 'claudetts', voices: { zh: 'zh-voice', ja: 'ja-voice', en: 'en-voice' }, minimax: { enabled: false, showInEngineList: false, apiKey: '', voiceIdZh: '', voiceIdJa: '', voiceIdEn: '', speed: 1, vol: 1, pitch: 0, audioFormat: 'mp3' }, voice: '' } })
     );
     const result = migrateFromLegacy(store, dir);
     expect(result.migrated).toContain('claudian-selection-bridge');
     const loaded = store.load();
     expect(loaded.selection.delayMs).toBe(500);
-    expect(loaded.tts.engine).toBe('claudetts');
+    expect(loaded.tts.engine).toBe('edge');  // 'claudetts' は 'edge' にフォールバック
+    expect(loaded.tts.voices.edge).toEqual({ zh: 'zh-voice', ja: 'ja-voice', en: 'en-voice' });
+    expect(loaded.tts.voices.webspeech).toEqual({ zh: '', ja: '', en: '' });
     expect(loaded.general.migratedFrom.claudianSelectionBridge).toBe(true);
   });
 

@@ -6,7 +6,7 @@ describe('settings', () => {
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS).toMatchObject({
       general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false }, migrationResetAvailable: true },
       selection: { enabled: true, folderEnabled: true, delayMs: 300 },
-      tts: { enabled: true, engine: 'edge', voices: { zh: '', ja: '', en: '' }, minimax: { enabled: false, showInEngineList: false, apiKey: '', voiceIdZh: '', voiceIdJa: '', voiceIdEn: '', speed: 1, vol: 1, pitch: 0, audioFormat: 'mp3' }, voice: '' },
+      tts: { enabled: true, engine: 'edge', voices: { edge: { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' }, webspeech: { zh: '', ja: '', en: '' } } },
       office: {},
       whitelist: {},
     });

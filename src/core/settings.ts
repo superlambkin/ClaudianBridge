@@ -246,21 +246,11 @@ export interface ClaudianBridgeSettings {
   };
   tts: {
     enabled: boolean;
-    engine: 'edge' | 'claudetts' | 'auto' | 'webspeech' | 'minimax';
-    voices: { zh: string; ja: string; en: string };
-    minimax: {
-      enabled: boolean;
-      showInEngineList: boolean;
-      apiKey: string;
-      voiceIdZh: string;
-      voiceIdJa: string;
-      voiceIdEn: string;
-      speed: number;
-      vol: number;
-      pitch: number;
-      audioFormat: string;
+    engine: 'edge' | 'webspeech';
+    voices: {
+      edge:      { zh: string; ja: string; en: string };
+      webspeech: { zh: string; ja: string; en: string };
     };
-    voice: string;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -288,9 +278,10 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   tts: {
     enabled: true,
     engine: 'edge',
-    voices: { zh: '', ja: '', en: '' },
-    minimax: { enabled: false, showInEngineList: false, apiKey: '', voiceIdZh: '', voiceIdJa: '', voiceIdEn: '', speed: 1, vol: 1, pitch: 0, audioFormat: 'mp3' },
-    voice: '',
+    voices: {
+      edge:      { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' },
+      webspeech: { zh: '',         ja: '',       en: '' },
+    },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -358,21 +349,39 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     },
     tts: {
       enabled: r.tts?.enabled ?? true,
-      engine: r.tts?.engine ?? 'edge',
-      voices: { zh: r.tts?.voices?.zh ?? '', ja: r.tts?.voices?.ja ?? '', en: r.tts?.voices?.en ?? '' },
-      minimax: {
-        enabled: r.tts?.minimax?.enabled ?? false,
-        showInEngineList: r.tts?.minimax?.showInEngineList ?? false,
-        apiKey: r.tts?.minimax?.apiKey ?? '',
-        voiceIdZh: r.tts?.minimax?.voiceIdZh ?? '',
-        voiceIdJa: r.tts?.minimax?.voiceIdJa ?? '',
-        voiceIdEn: r.tts?.minimax?.voiceIdEn ?? '',
-        speed: r.tts?.minimax?.speed ?? 1,
-        vol: r.tts?.minimax?.vol ?? 1,
-        pitch: r.tts?.minimax?.pitch ?? 0,
-        audioFormat: r.tts?.minimax?.audioFormat ?? 'mp3',
-      },
-      voice: r.tts?.voice ?? '',
+      engine: r.tts?.engine === 'webspeech' ? 'webspeech' : 'edge',
+      voices: (() => {
+        // v0.6.0 migration: 旧平型 { voices: { zh, ja, en } } → ネスト型 { voices: { edge, webspeech } }
+        const rawVoices = (r.tts?.voices ?? {}) as Record<string, unknown>;
+        const flat = {
+          zh: typeof rawVoices.zh === 'string' ? (rawVoices.zh as string) : '',
+          ja: typeof rawVoices.ja === 'string' ? (rawVoices.ja as string) : '',
+          en: typeof rawVoices.en === 'string' ? (rawVoices.en as string) : '',
+        };
+        const edgeRaw = (rawVoices.edge ?? {}) as Record<string, unknown>;
+        const webRaw  = (rawVoices.webspeech ?? {}) as Record<string, unknown>;
+        const readEngine = (raw: Record<string, unknown>, fallback: string) => ({
+          zh: typeof raw.zh === 'string' && (raw.zh as string) !== '' ? (raw.zh as string) : fallback,
+          ja: typeof raw.ja === 'string' && (raw.ja as string) !== '' ? (raw.ja as string) : fallback,
+          en: typeof raw.en === 'string' && (raw.en as string) !== '' ? (raw.en as string) : fallback,
+        });
+        return {
+          edge: {
+            // 優先順位: edge.{lang} > 平型.{lang} > default
+            ...readEngine(edgeRaw, '__SENTINEL__'),
+            zh: typeof edgeRaw.zh === 'string' && (edgeRaw.zh as string) !== ''
+                  ? (edgeRaw.zh as string)
+                  : (flat.zh !== '' ? flat.zh : 'xiaoxiao'),
+            ja: typeof edgeRaw.ja === 'string' && (edgeRaw.ja as string) !== ''
+                  ? (edgeRaw.ja as string)
+                  : (flat.ja !== '' ? flat.ja : 'nanami'),
+            en: typeof edgeRaw.en === 'string' && (edgeRaw.en as string) !== ''
+                  ? (edgeRaw.en as string)
+                  : (flat.en !== '' ? flat.en : 'aria'),
+          },
+          webspeech: readEngine(webRaw, ''),
+        };
+      })(),
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
@@ -396,7 +405,7 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     if (typeof cfg.selection.objectMenuContextFlags[k] !== 'boolean') return `selection.objectMenuContextFlags.${k} は boolean である必要があります`;
   }
   if (typeof cfg.tts.enabled !== 'boolean') return 'tts.enabled は boolean である必要があります';
-  const engines = ['edge', 'claudetts', 'auto', 'webspeech', 'minimax'];
+  const engines = ['edge', 'webspeech'];
   if (!engines.includes(cfg.tts.engine)) return `tts.engine が未知です: ${cfg.tts.engine}`;
   if (typeof cfg.office.enabled !== 'boolean') return 'office.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.office.enabledExtensions)) return 'office.enabledExtensions は配列である必要があります';

@@ -2,51 +2,15 @@ import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
-import { addTextToTTS } from '../features/tts/core';
+import { addTextToTTS, SAMPLE_TEXT } from '../features/tts/core';
 
-type EngineKey = 'edge' | 'claudetts' | 'auto' | 'webspeech' | 'minimax';
-type EngineLabelKey = 'ttsEngineEdge' | 'ttsEngineClaudetts' | 'ttsEngineAuto' | 'ttsEngineWebspeech' | 'ttsEngineMinimax';
-
-const ENGINE_KEYS: Array<{ key: EngineKey; labelKey: EngineLabelKey }> = [
-  { key: 'edge', labelKey: 'ttsEngineEdge' },
-  { key: 'claudetts', labelKey: 'ttsEngineClaudetts' },
-  { key: 'auto', labelKey: 'ttsEngineAuto' },
-  { key: 'webspeech', labelKey: 'ttsEngineWebspeech' },
-  { key: 'minimax', labelKey: 'ttsEngineMinimax' },
-];
-
-const MINIMAX_VOICE_CATALOG: Record<'zh' | 'ja' | 'en', string[]> = {
-  zh: [
-    'moss_audio_ce44fc67-7ce3-11f0-8de5-96e35d26fb85',
-    'Chinese (Mandarin)_Lyrical_Voice',
-    'Chinese (Mandarin)_HK_Flight_Attendant',
-    'moss_audio_aaa1346a-7ce7-11f0-8e61-2e6e3c7ee85d',
-    'Chinese (Mandarin)_Gentle_Storyteller',
-    'moss_audio_4cb4dd5c-7ce3-11f0-8c1c-96e35d26fb85',
-    'moss_audio_e6e9caa8-7ce3-11f0-95c5-96e35d26fb85',
-    'Chinese (Mandarin)_Warm_Bestie',
-  ],
-  ja: [
-    'Japanese_Whisper_Belle',
-    'moss_audio_24875c4a-7be4-11f0-9359-4e72c55db738',
-    'moss_audio_7f4ee608-78ea-11f0-bb73-1e2a4cfcd245',
-    'moss_audio_c1a6a3ac-7be6-11f0-8e8e-36b92fbb4f95',
-    'Japanese_News_Anchor',
-    'Japanese_Anime_Character',
-    'Japanese_Soft_Girl',
-    'Japanese_Calm_Senior',
-  ],
-  en: [
-    'English_Graceful_Lady',
-    'English_Insightful_Speaker',
-    'English_radiant_girl',
-    'English_Persuasive_Man',
-    'English_Lucky_Robot',
-    'English_Professional_Anchor',
-    'English_calm_woman',
-    'English_energetic_boy',
-  ],
+const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
+  zh: ['xiaoxiao', 'yunxi', 'yunyang', 'yunjian', 'xiaoyi', 'yunxia'],
+  ja: ['nanami', 'keita'],
+  en: ['aria', 'guy', 'jenny'],
 };
+
+type EngineKey = 'edge' | 'webspeech';
 
 export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigStore): void {
   const s = getLocaleStrings(getUILanguage());
@@ -57,6 +21,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
 
     containerEl.createEl('h2', { text: s.tabTts });
 
+    // 1. TTS 有効化
     new Setting(containerEl)
       .setName(s.ttsEnabled)
       .setDesc(s.ttsEnabledDesc)
@@ -71,15 +36,19 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         }
       }));
 
+    // 2. エンジン選択（edge / webspeech の 2 択）
     new Setting(containerEl)
       .setName(s.ttsEngine)
       .setDesc(s.ttsEngineDesc)
       .addDropdown((d) => {
-        for (const e of ENGINE_KEYS) d.addOption(e.key, s[e.labelKey]);
+        d.addOption('edge', s.ttsEngineEdge);
+        d.addOption('webspeech', s.ttsEngineWebspeech);
         d.setValue(cfg.tts.engine).onChange((v) => {
           try {
             const latest = store.load();
-            store.save({ ...latest, tts: { ...latest.tts, engine: v as typeof cfg.tts.engine } });
+            const next = { ...latest, tts: { ...latest.tts, engine: v as EngineKey } };
+            store.save(next);
+            draw(); // 音色ドロップダウンとテストボタンを再描画
           } catch (e) {
             new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
             draw();
@@ -87,64 +56,41 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // テスト再生ボタン（現在の UI 言語のサンプル文）
-    new Setting(containerEl)
-      .setName(s.ttsTestButton)
-      .setDesc(s.ttsTestSample)
-      .addButton((b) => b.setButtonText(s.ttsTestButton).onClick(async () => {
-        const latest = store.load();
-        await addTextToTTS(app, s.ttsTestSample, latest.tts);
-      }));
+    // 3. 言語別音色 + テストボタン（選択中エンジンに従属）
+    const voiceTable = containerEl.createDiv({ cls: 'cb-tts-voices' });
+    voiceTable.createEl('p', { text: s.ttsVoicesHint, cls: 'setting-item-description' });
 
-    // MiniMax 詳細設定
-    containerEl.createEl('h3', { text: s.ttsMinimaxHeading });
-    new Setting(containerEl)
-      .setName(s.ttsMinimaxEnabled)
-      .setDesc(s.ttsMinimaxEnabledDesc)
-      .addToggle((t) => t.setValue(cfg.tts.minimax.enabled).onChange((v) => {
-        try {
-          const latest = store.load();
-          store.save({ ...latest, tts: { ...latest.tts, minimax: { ...latest.tts.minimax, enabled: v } } });
-        } catch (e) { new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message)); draw(); }
-      }));
-    new Setting(containerEl)
-      .setName(s.ttsMinimaxApiKey)
-      .setDesc(s.ttsMinimaxApiKeyDesc)
-      .addText((t) => t.setValue(cfg.tts.minimax.apiKey).onChange((v) => {
-        try {
-          const latest = store.load();
-          store.save({ ...latest, tts: { ...latest.tts, minimax: { ...latest.tts.minimax, apiKey: v } } });
-        } catch (e) { new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message)); }
-      }));
-
-    // MiniMax voice — 言語別カタログ 8 件のドロップダウン + 自由入力
-    const addMinimaxVoiceSetting = (
-      langKey: 'zh' | 'ja' | 'en',
-      label: string,
-      desc: string,
-      field: 'voiceIdZh' | 'voiceIdJa' | 'voiceIdEn',
-    ): void => {
-      const catalog = MINIMAX_VOICE_CATALOG[langKey];
-      const current = cfg.tts.minimax[field];
-      new Setting(containerEl)
+    const currentEngineVoices = cfg.tts.voices[cfg.tts.engine];
+    const renderVoiceRow = (langKey: 'zh' | 'ja' | 'en', label: string): void => {
+      const presets = EDGE_VOICE_PRESETS[langKey];
+      const current = currentEngineVoices[langKey] || '';
+      new Setting(voiceTable)
         .setName(label)
-        .setDesc(desc)
         .addDropdown((d) => {
-          // 現在の値がカタログにない場合は先頭に挿入（自由入力値の保護）
-          if (current && !catalog.includes(current)) d.addOption(current, `🔧 ${current}`);
-          for (const v of catalog) d.addOption(v, v);
-          d.setValue(current && catalog.includes(current) ? current : (current ?? catalog[0]))
-            .onChange((v) => {
-              try {
-                const latest = store.load();
-                store.save({ ...latest, tts: { ...latest.tts, minimax: { ...latest.tts.minimax, [field]: v } } });
-              } catch (e) { new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message)); }
-            });
-        });
+          // 空文字 = ブラウザ標準
+          d.addOption('', `(${s.ttsBrowserDefault ?? 'browser default'})`);
+          for (const v of presets) d.addOption(v, v);
+          // 現在の値が presets にない場合は先頭に挿入
+          if (current && !presets.includes(current)) d.addOption(current, `🔧 ${current}`);
+          d.setValue(current && (presets.includes(current) || current === '') ? current : '');
+        })
+        .addButton((b) => b
+          .setButtonText(s.ttsTestButton)
+          .onClick(async () => {
+            const latest = store.load();
+            await addTextToTTS(app, SAMPLE_TEXT[langKey], latest.tts);
+          })
+        );
     };
-    addMinimaxVoiceSetting('zh', s.ttsMinimaxVoiceZh, s.ttsMinimaxVoiceZhDesc, 'voiceIdZh');
-    addMinimaxVoiceSetting('ja', s.ttsMinimaxVoiceJa, s.ttsMinimaxVoiceJaDesc, 'voiceIdJa');
-    addMinimaxVoiceSetting('en', s.ttsMinimaxVoiceEn, s.ttsMinimaxVoiceEnDesc, 'voiceIdEn');
+    renderVoiceRow('zh', s.ttsVoiceZh);
+    renderVoiceRow('ja', s.ttsVoiceJa);
+    renderVoiceRow('en', s.ttsVoiceEn);
+
+    // 4. 削除注意文（旧 minimax 設定について）
+    const noteBox = containerEl.createDiv({ cls: 'setting-item-description' });
+    noteBox.createEl('p', {
+      text: s.ttsMinimaxRemovalNote,
+    });
   };
 
   draw();

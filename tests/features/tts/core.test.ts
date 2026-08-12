@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as path from 'path';
 import * as os from 'os';
 import { addTextToTTS } from '../../../src/features/tts/core';
+import type { TtsSettings } from '../../../src/features/tts/core';
 
 // ── mocks ──────────────────────────────────────────────────────────────────
 // Notice: replace with a spy so we can assert toast messages.
@@ -56,6 +57,17 @@ function makeChild(): ChildHandle {
 
 const expectedCmd = path.join(os.homedir(), '.claude', 'skills', 'claude-tts', 'scripts', 'commands.py');
 
+/** v0.6.0: voices がネスト必須になったテストヘルパー */
+function makeSettings(engine: 'edge' | 'webspeech'): TtsSettings {
+  return {
+    engine,
+    voices: {
+      edge:      { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' },
+      webspeech: { zh: '',         ja: '',       en: '' },
+    },
+  };
+}
+
 beforeEach(() => {
   spawnMock.mockReset();
   noticeMock.mockClear();
@@ -67,7 +79,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
 
-    const p = addTextToTTS(null as never, 'こんにちは', { engine: 'claudetts' });
+    const p = addTextToTTS(null as never, 'こんにちは', makeSettings('edge'));
     child.emit('close', 0);
     await p;
 
@@ -83,7 +95,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
 
-    const p = addTextToTTS(null as never, 'hello', { engine: 'claudetts' });
+    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
     child.emit('close', 0);
     await expect(p).resolves.toBe(true);
     expect(noticeMock).not.toHaveBeenCalled();
@@ -93,7 +105,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
 
-    const p = addTextToTTS(null as never, 'hello', { engine: 'claudetts' });
+    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
     child.stderr.emitData('使い方: python commands.py {status|test|config|voice|mute|speak} [args...]');
     child.emit('close', 0);
 
@@ -107,7 +119,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
 
-    const p = addTextToTTS(null as never, 'hello', { engine: 'claudetts' });
+    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
     child.stdout.emitData('usage: python commands.py speak <text>');
     child.emit('close', 0);
 
@@ -121,7 +133,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
 
-    const p = addTextToTTS(null as never, 'hello', { engine: 'claudetts' });
+    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
     child.stderr.emitData('boom');
     child.emit('close', 1);
 
@@ -135,7 +147,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
 
-    const p = addTextToTTS(null as never, 'hello', { engine: 'claudetts' });
+    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
     child.emit('error', new Error('ENOENT'));
     child.emit('close', -2);
 
@@ -145,23 +157,13 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     );
   });
 
-  it('auto engine: claudetts 失敗時は Web Speech フォールバックを試行する', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-
-    const p = addTextToTTS(null as never, 'hello', { engine: 'auto' });
-    child.stderr.emitData('使い方: python commands.py {status|test|config|voice|mute|speak} [args...]');
-    child.emit('close', 0);
-
-    // claudetts は usage 検出で false → Web Speech へ。Node 環境は window 無し → false。
+  it('webspeech engine: Node 環境では API がなく false を返す', async () => {
+    // engine=webspeech: Node 環境では window.speechSynthesis が無い → false
+    const p = addTextToTTS(null as never, 'hello', makeSettings('webspeech'));
     await expect(p).resolves.toBe(false);
-    expect(spawnMock).toHaveBeenCalledTimes(1);
-    // usage 警告 + Web Speech 非対応の 2 回 Notice が出る
+    expect(spawnMock).not.toHaveBeenCalled();
     expect(noticeMock).toHaveBeenCalledWith(
-      expect.stringContaining('speak サブコマンド未定義'),
-    );
-    expect(noticeMock).toHaveBeenCalledWith(
-      expect.stringContaining('Web SpeechSynthesis API'),
+      expect.stringContaining('Web SpeechSynthesis API が利用できません'),
     );
   });
 });

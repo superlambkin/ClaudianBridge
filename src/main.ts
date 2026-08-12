@@ -13,6 +13,7 @@ import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
 import { registerObjectContextMenu } from './features/object';
 import { registerClaudeQuota, unregisterClaudeQuota } from './features/quota/index';
+import { runTtsMigration } from './core/migrator';
 import * as path from 'path';
 import { initDiagAuto, diag, installGlobalErrorHandlers } from './core/diag';
 
@@ -62,6 +63,18 @@ export default class ClaudianBridgePlugin extends Plugin {
       } catch (e) {
         diag('disableLegacyPluginsOnce ERROR', e);
         console.warn('[claudian-bridge] disableLegacyPluginsOnce error:', e);
+      }
+
+      // 2.6 v0.6.0 TTS 簡素化マイグレーション（minimax 削除 + voices ネスト化 + Notice 1 回）
+      try {
+        const migrationResult = runTtsMigration(this.store, (m) => new Notice(m));
+        diag('runTtsMigration done', { executed: migrationResult.executed, removed: migrationResult.removed });
+        if (migrationResult.executed) {
+          console.warn('[claudian-bridge] TTS migration removed:', migrationResult.removed);
+        }
+      } catch (e) {
+        diag('runTtsMigration ERROR', e);
+        console.warn('[claudian-bridge] runTtsMigration error:', e);
       }
 
       // 2.5 Whitelist CSS 注入（general.enabled かつ whitelist.enabled 時のみ）

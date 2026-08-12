@@ -34,8 +34,9 @@ describe('i18n', () => {
     expect(en.generalEnabled).toContain('Enable');
     expect(zh.selectionDelayMs).toContain('延迟');
     expect(ja.ttsEngine).toContain('エンジン');
-    expect(en.ttsEngineAuto).toContain('Auto');
-    expect(zh.ttsMinimaxHeading).toContain('MiniMax');
+    expect(en.ttsEngineEdge).toContain('edge-TTS');
+    expect(zh.ttsEngineWebspeech).toContain('WebSpeech');
+    expect(ja.ttsMinimaxRemovalNote).toContain('MiniMax');
     expect(ja.whitelistOptionsHeading).toContain('オプション');
     expect(en.whitelistAllFilesShown).toContain('All files');
   });
