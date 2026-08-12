@@ -1,162 +1,73 @@
-import { getLocaleStrings, getUILanguage } from '../../core/i18n';
-import type { QuotaSnapshot } from './types';
+import type { ProviderQuota } from './types';
 
 export type QuotaColor = 'green' | 'orange' | 'red' | 'gray';
 
 /** 使用率 → 信号色。null / 非有限値はグレー（データ無し） */
-export function colorFor(util: number | null): QuotaColor {
-  if (util === null || !Number.isFinite(util)) return 'gray';
-  if (util >= 90) return 'red';
-  if (util >= 70) return 'orange';
+export function colorFor(pct: number | null): QuotaColor {
+  if (pct === null || !Number.isFinite(pct)) return 'gray';
+  if (pct >= 90) return 'red';
+  if (pct >= 70) return 'orange';
   return 'green';
 }
 
-/** ISO 文字列 → 残り時間の短縮表記（"3d 4h" / "2h45m" / "47m"） */
-export function formatCountdown(resetsAt: string | null, nowMs?: number): string {
-  if (!resetsAt) return '';
-  const now = nowMs ?? Date.now();
-  const target = new Date(resetsAt).getTime();
-  if (Number.isNaN(target)) return '';
-  const diffMs = target - now;
-  if (diffMs <= 0) return '0m';
-
-  const m = Math.floor(diffMs / 60_000);
-  const h = Math.floor(m / 60);
-  const d = Math.floor(h / 24);
-
-  if (d >= 1) return `${d}d ${h % 24}h`;
-  if (h >= 1) return `${h}h${m % 60}m`;
-  return `${m}m`;
-}
-
-/** 使用率の表示文字列。データ無しは "--" */
-function pct(util: number | null): string {
-  return util !== null ? `${util}%` : '--';
-}
-
 /**
- * span を生成して parent に追加する。
- * Obsidian の createSpan は HTMLElement へのランタイム拡張のため、
- * jsdom / ポップアウトウィンドウの両方で動く標準 DOM API を使う。
+ * NewTab ボタンの左隣に表示するコンパクトインジケータ (v0.4.0)。
+ *
+ * 旧 v0.3.0 の `claudian-quota-bar` は廃止。1 プロバイダ = 1 行で
+ * ドット + ラベル + 値の最小構成。`MultiQuotaService.onUpdate` から
+ * 渡される `ProviderQuota` をそのまま描画する。
  */
-function appendSpan(parent: HTMLElement, cls: string, text?: string): HTMLSpanElement {
-  const el = parent.ownerDocument.createElement('span');
-  el.className = cls;
-  if (text !== undefined) el.textContent = text;
-  parent.appendChild(el);
-  return el;
-}
-
-/** 入力欄の上に残量バーを表示するビュー */
 export class QuotaBarView {
   private el: HTMLElement | null = null;
-  private tickTimer: ReturnType<typeof setInterval> | null = null;
-  private lastSnapshot: QuotaSnapshot | null = null;
+
+  isMounted(): boolean {
+    return this.el !== null;
+  }
+
+  isConnected(): boolean {
+    return this.el?.isConnected ?? false;
+  }
 
   mount(anchor: HTMLElement): void {
-    if (this.el) return; // 冪等
+    if (this.el) return;
     const parent = anchor.parentElement;
     if (!parent) return;
-
     const el = anchor.ownerDocument.createElement('div');
-    el.className = 'claudian-quota-bar';
-    el.setAttribute('data-status', 'idle');
-    parent.insertBefore(el, anchor); // anchor の直前に挿入
+    el.className = 'cb-quota-indicator';
+    parent.insertBefore(el, anchor);
     this.el = el;
-
-    // 60 秒ごとのローカル tick（カウントダウンのみ再描画）
-    this.tickTimer = setInterval(() => {
-      if (this.lastSnapshot) this.render(this.lastSnapshot);
-    }, 60_000);
   }
 
   unmount(): void {
-    if (this.tickTimer) {
-      clearInterval(this.tickTimer);
-      this.tickTimer = null;
-    }
     if (this.el) {
       this.el.remove();
       this.el = null;
     }
-    this.lastSnapshot = null;
   }
 
-  render(snap: QuotaSnapshot): void {
+  render(q: ProviderQuota | null): void {
     if (!this.el) return;
-    this.lastSnapshot = snap;
     this.el.replaceChildren();
-    this.el.setAttribute('data-status', snap.status);
-
-    const s = getLocaleStrings(getUILanguage());
-
-    if (snap.status === 'success') {
-      this.renderSuccess(snap, s);
+    if (!q) {
+      this.el.setAttribute('data-status', 'idle');
       return;
     }
+    this.el.setAttribute('data-status', q.status);
+    if (q.detail) this.el.title = q.detail;
 
-    this.renderMessageState(snap.status, s);
-  }
+    const dot = this.el.ownerDocument.createElement('span');
+    dot.className = 'cb-quota-indicator__dot';
+    dot.setAttribute('data-color', colorFor(q.pct));
 
-  private renderSuccess(snap: QuotaSnapshot, s: ReturnType<typeof getLocaleStrings>): void {
-    const { fiveHour, sevenDay } = snap.windows;
+    const label = this.el.ownerDocument.createElement('span');
+    label.className = 'cb-quota-indicator__label';
+    label.textContent = q.label;
 
-    const main = appendSpan(this.el!, 'claudian-quota-bar__main');
-    const dot = appendSpan(main, 'claudian-quota-bar__dot');
-    dot.setAttribute('data-color', colorFor(fiveHour.utilization));
-    appendSpan(main, 'claudian-quota-bar__label', s.quotaWindow5h);
-    appendSpan(main, 'claudian-quota-bar__value', pct(fiveHour.utilization));
-    const cd = formatCountdown(fiveHour.resetsAt);
-    if (cd) appendSpan(main, 'claudian-quota-bar__countdown', `🕘 ${cd}`);
+    const value = this.el.ownerDocument.createElement('span');
+    value.className = 'cb-quota-indicator__value';
+    value.textContent =
+      q.status === 'success' ? q.value : q.status === 'expired' ? '⚠' : '❌';
 
-    const sub = appendSpan(this.el!, 'claudian-quota-bar__sub');
-    appendSpan(sub, 'claudian-quota-bar__sub-label', s.quotaWindow7d);
-    appendSpan(sub, 'claudian-quota-bar__value', pct(sevenDay.utilization));
-
-    const btn = this.el!.ownerDocument.createElement('button');
-    btn.className = 'claudian-quota-bar__refresh clickable-icon';
-    btn.setAttribute('aria-label', s.quotaRefresh);
-    btn.textContent = '↻';
-    this.el!.appendChild(btn);
-  }
-
-  private renderMessageState(
-    status: QuotaSnapshot['status'],
-    s: ReturnType<typeof getLocaleStrings>,
-  ): void {
-    if (!this.el) return;
-
-    const main = appendSpan(this.el, 'claudian-quota-bar__main');
-    const dot = appendSpan(main, 'claudian-quota-bar__dot');
-    const label = appendSpan(main, 'claudian-quota-bar__label');
-
-    this.el.classList.toggle('claudian-quota-bar--pulse', status === 'fetching');
-
-    switch (status) {
-      case 'fetching':
-        dot.setAttribute('data-color', 'gray');
-        label.textContent = s.quotaFetching;
-        break;
-      case 'expired':
-        dot.setAttribute('data-color', 'gray');
-        label.textContent = `⚠ ${s.quotaNotLoggedIn}`;
-        break;
-      case 'error':
-        dot.setAttribute('data-color', 'red');
-        label.textContent = `❌ ${s.quotaError}`;
-        break;
-      case 'unsupported':
-        dot.setAttribute('data-color', 'gray');
-        label.textContent = s.quotaUnsupportedMobile;
-        break;
-      default:
-        label.textContent = '';
-    }
-
-    const btn = this.el.ownerDocument.createElement('button');
-    btn.className = 'claudian-quota-bar__refresh clickable-icon';
-    btn.setAttribute('aria-label', s.quotaRefresh);
-    btn.textContent = '↻';
-    this.el.appendChild(btn);
+    this.el.append(dot, label, value);
   }
 }

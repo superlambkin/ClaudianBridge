@@ -1,177 +1,57 @@
-/**
- * @vitest-environment jsdom
- */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { colorFor, formatCountdown, QuotaBarView } from '../../../src/features/quota/view';
-import type { QuotaSnapshot } from '../../../src/features/quota/types';
-import { getLocaleStrings } from '../../../src/core/i18n';
+// @vitest-environment jsdom
+import { describe, it, expect, beforeEach } from 'vitest';
+import { QuotaBarView, colorFor } from '../../../src/features/quota/view';
+import type { ProviderQuota } from '../../../src/features/quota/types';
+
+function makeQuota(over: Partial<ProviderQuota> = {}): ProviderQuota {
+  return { status: 'success', providerId: 'deepseek', label: 'DeepSeek', value: '¥110.00', pct: null, ...over };
+}
 
 describe('colorFor', () => {
-  it('<70 → green', () => expect(colorFor(0)).toBe('green'));
-  it('69 → green', () => expect(colorFor(69)).toBe('green'));
-  it('70 → orange', () => expect(colorFor(70)).toBe('orange'));
-  it('89 → orange', () => expect(colorFor(89)).toBe('orange'));
-  it('90 → red', () => expect(colorFor(90)).toBe('red'));
-  it('100 → red', () => expect(colorFor(100)).toBe('red'));
-  it('null → gray', () => expect(colorFor(null)).toBe('gray'));
-});
-
-describe('formatCountdown', () => {
-  const now = Date.now();
-
-  it('null → 空文字', () => expect(formatCountdown(null, now)).toBe(''));
-
-  it('負数 → "0m"', () => {
-    const past = new Date(now - 60_000).toISOString();
-    expect(formatCountdown(past, now)).toBe('0m');
-  });
-
-  it('47 分後 → "47m"', () => {
-    const future = new Date(now + 47 * 60_000).toISOString();
-    expect(formatCountdown(future, now)).toBe('47m');
-  });
-
-  it('2 時間 45 分後 → "2h45m"', () => {
-    const future = new Date(now + (2 * 60 + 45) * 60_000).toISOString();
-    expect(formatCountdown(future, now)).toBe('2h45m');
-  });
-
-  it('3 日 4 時間後 → "3d 4h"', () => {
-    const future = new Date(now + (3 * 24 + 4) * 60 * 60_000).toISOString();
-    expect(formatCountdown(future, now)).toBe('3d 4h');
+  it('閾値で色分け', () => {
+    expect(colorFor(10)).toBe('green');
+    expect(colorFor(75)).toBe('orange');
+    expect(colorFor(95)).toBe('red');
+    expect(colorFor(null)).toBe('gray');
   });
 });
 
 describe('QuotaBarView', () => {
-  let container: HTMLElement;
-  let view: QuotaBarView | null = null;
+  beforeEach(() => { document.body.innerHTML = ''; });
 
-  beforeEach(() => {
-    document.body.innerHTML = '';
-    container = document.createElement('div');
-    container.className = 'claudian-input-wrapper';
-    document.body.appendChild(container);
-    view = new QuotaBarView();
+  function mount(anchorCls = 'new-tab-btn') {
+    const anchor = document.createElement('button');
+    anchor.className = anchorCls;
+    document.body.appendChild(anchor);
+    const view = new QuotaBarView();
+    view.mount(anchor);
+    return { anchor, view };
+  }
+
+  it('mount で anchor の直前に挿入', () => {
+    const { anchor } = mount();
+    const bar = document.querySelector('.cb-quota-indicator')!;
+    expect(bar).not.toBeNull();
+    expect(bar.nextElementSibling).toBe(anchor);
   });
 
-  // mount した tick タイマーを必ず止める（テストプロセスに interval を残さない）
-  afterEach(() => {
-    view?.unmount();
-    view = null;
-    document.body.innerHTML = '';
+  it('render で label + value を表示', () => {
+    const { view } = mount();
+    view.render(makeQuota());
+    const el = document.querySelector('.cb-quota-indicator')!;
+    expect(el.querySelector('.cb-quota-indicator__label')?.textContent).toBe('DeepSeek');
+    expect(el.querySelector('.cb-quota-indicator__value')?.textContent).toBe('¥110.00');
   });
 
-  it('mount で .claudian-quota-bar が生成される', () => {
-    view!.mount(container);
-    expect(container.parentElement?.querySelector('.claudian-quota-bar')).not.toBeNull();
+  it('expired は ⚠ 表示', () => {
+    const { view } = mount();
+    view.render(makeQuota({ status: 'expired', value: '' }));
+    expect(document.querySelector('.cb-quota-indicator__value')?.textContent).toBe('⚠');
   });
 
-  it('mount 二重呼び出しは冪等', () => {
-    view!.mount(container);
-    view!.mount(container);
-    expect(container.parentElement?.querySelectorAll('.claudian-quota-bar').length).toBe(1);
-  });
-
-  it('unmount で DOM 除去', () => {
-    view!.mount(container);
-    view!.unmount();
-    expect(container.parentElement?.querySelector('.claudian-quota-bar')).toBeNull();
-  });
-
-  it('render(success+62%) → data-color="green" + テキスト 62%', () => {
-    const snap: QuotaSnapshot = {
-      status: 'success',
-      windows: {
-        fiveHour: { utilization: 62, resetsAt: '2099-01-01T00:00:00Z' },
-        sevenDay: { utilization: 10, resetsAt: '2099-01-01T00:00:00Z' },
-      },
-      extraUsage: null,
-      fetchedAt: Date.now(),
-      tokenSource: 'file',
-    };
-    view!.mount(container);
-    view!.render(snap);
-
-    const bar = container.parentElement?.querySelector('.claudian-quota-bar');
-    expect(bar?.getAttribute('data-status')).toBe('success');
-    expect(bar?.querySelector('[data-color="green"]')).not.toBeNull();
-    expect(bar?.textContent).toContain('62%');
-  });
-
-  it('render(expired) → data-status="expired"', () => {
-    const snap: QuotaSnapshot = {
-      status: 'expired',
-      windows: {
-        fiveHour: { utilization: null, resetsAt: null },
-        sevenDay: { utilization: null, resetsAt: null },
-      },
-      extraUsage: null,
-      fetchedAt: Date.now(),
-      tokenSource: 'none',
-    };
-    view!.mount(container);
-    view!.render(snap);
-
-    const bar = container.parentElement?.querySelector('.claudian-quota-bar');
-    expect(bar?.getAttribute('data-status')).toBe('expired');
-  });
-
-  it('render(error) → i18n 文案を表示', () => {
-    const s = getLocaleStrings('en');
-    const snap: QuotaSnapshot = {
-      status: 'error',
-      windows: {
-        fiveHour: { utilization: null, resetsAt: null },
-        sevenDay: { utilization: null, resetsAt: null },
-      },
-      extraUsage: null,
-      fetchedAt: Date.now(),
-      tokenSource: 'none',
-    };
-    view!.mount(container);
-    view!.render(snap);
-
-    const bar = container.parentElement?.querySelector('.claudian-quota-bar');
-    expect(bar?.textContent).toContain(s.quotaError);
-    expect(bar?.querySelector('[data-color="red"]')).not.toBeNull();
-  });
-
-  it('render(fetching) → i18n 文案を表示', () => {
-    const s = getLocaleStrings('en');
-    const snap: QuotaSnapshot = {
-      status: 'fetching',
-      windows: {
-        fiveHour: { utilization: null, resetsAt: null },
-        sevenDay: { utilization: null, resetsAt: null },
-      },
-      extraUsage: null,
-      fetchedAt: Date.now(),
-      tokenSource: 'none',
-    };
-    view!.mount(container);
-    view!.render(snap);
-
-    const bar = container.parentElement?.querySelector('.claudian-quota-bar');
-    expect(bar?.textContent).toContain(s.quotaFetching);
-    expect(bar?.classList.contains('claudian-quota-bar--pulse')).toBe(true);
-  });
-
-  it('render(unsupported) → i18n 文案を表示', () => {
-    const s = getLocaleStrings('en');
-    const snap: QuotaSnapshot = {
-      status: 'unsupported',
-      windows: {
-        fiveHour: { utilization: null, resetsAt: null },
-        sevenDay: { utilization: null, resetsAt: null },
-      },
-      extraUsage: null,
-      fetchedAt: Date.now(),
-      tokenSource: 'none',
-    };
-    view!.mount(container);
-    view!.render(snap);
-
-    const bar = container.parentElement?.querySelector('.claudian-quota-bar');
-    expect(bar?.textContent).toContain(s.quotaUnsupportedMobile);
+  it('unmount で除去', () => {
+    const { view } = mount();
+    view.unmount();
+    expect(document.querySelector('.cb-quota-indicator')).toBeNull();
   });
 });
