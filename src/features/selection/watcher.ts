@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { addTextToClaudian } from './core';
-import { buildPopup } from './popup';
+import { buildPopup, positionPopup } from './popup';
 
 const SCOPE_SELECTORS = ['.cm-editor', '.markdown-preview-view', '.claudian-messages'];
 
@@ -21,14 +21,19 @@ export function setupSelectionWatcher(app: App, store: ConfigStore, onTts?: (tex
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pointerDown = false;
   let dismissed = false;
+  let pointerInPopup = false;
   let capturedText = '';
 
   function clearTimer() { if (timer) { clearTimeout(timer); timer = null; } }
   function clearPopup() { if (popupEl) { popupEl.remove(); popupEl = null; } }
-  function cancelAndHide() { clearTimer(); clearPopup(); }
+  function cancelAndHide() { pointerInPopup = false; clearTimer(); clearPopup(); }
 
   function onSelectionChange() {
-    clearTimer(); clearPopup();
+    clearTimer();
+    // ポップアップ内クリック中は popup を消さない・再アームしない
+    // （消すとボタンが click イベント前に DOM から外れ、onclick が発火しない）
+    if (pointerInPopup) return;
+    clearPopup();
     const cfg = store.load();
     if (!cfg.selection.enabled) return;
     if (pointerDown) return;
@@ -40,12 +45,17 @@ export function setupSelectionWatcher(app: App, store: ConfigStore, onTts?: (tex
     capturedText = text;
     timer = setTimeout(() => {
       timer = null;
+      // 発火時点の選択範囲で位置を決める（テキストはスケジュール時点の capturedText を使用）
+      const selNow = window.getSelection();
+      if (!selNow || selNow.rangeCount === 0) return;
+      const rect = selNow.getRangeAt(0).getBoundingClientRect();
       popupEl = buildPopup(
         app,
         async () => { cancelAndHide(); await addTextToClaudian(app, capturedText); },
         async () => { cancelAndHide(); await onTts?.(capturedText); }
       );
       document.body.appendChild(popupEl);
+      positionPopup(popupEl, rect);
     }, cfg.selection.delayMs);
   }
 
@@ -55,11 +65,17 @@ export function setupSelectionWatcher(app: App, store: ConfigStore, onTts?: (tex
       dismissed = true;
       cancelAndHide();
     } else {
+      pointerInPopup = popupEl ? popupEl.contains(e.target as Node) : false;
       dismissed = false;
     }
   };
-  const onPointerUp = () => {
+  const onPointerUp = (e: PointerEvent) => {
     pointerDown = false;
+    if (popupEl && popupEl.contains(e.target as Node)) {
+      // ポップアップ内（ボタン）を離した → popup を消さず click イベントを届ける
+      dismissed = false;
+      return;
+    }
     if (!dismissed) onSelectionChange();
     dismissed = false;
   };

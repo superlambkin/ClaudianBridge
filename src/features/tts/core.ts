@@ -47,7 +47,9 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
       return;
     }
     let err = '';
+    let out = '';
     child.stderr?.on('data', (d) => (err += d.toString()));
+    child.stdout?.on('data', (d) => (out += d.toString()));
     child.on('error', (e) => {
       if (settled) return;
       settled = true;
@@ -57,8 +59,15 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
     child.on('close', (code) => {
       if (settled) return;
       settled = true;
-      if (code === 0) resolve(true);
-      else {
+      if (code === 0) {
+        // 防御: commands.py speak 未定義で usage が出力されるパターンを検出
+        if (/使い方|usage/i.test(err) || /使い方|usage/i.test(out)) {
+          noticeFn('⚠️ ClaudeTTS speak サブコマンド未定義。~/.claude/skills/claude-tts/scripts/commands.py を更新してください');
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      } else {
         noticeFn(`⚠️ ClaudeTTS 失敗 (exit ${code}): ${err.slice(0, 200)}`);
         resolve(false);
       }
