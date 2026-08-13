@@ -91,20 +91,25 @@ export async function registerClaudeQuota(
   // 実機では ConfigStore が process.env を読む。
   const getEnv = (store as unknown as { getEnv?: (k: string) => string | undefined }).getEnv
     ?? ((k: string) => process.env[k]);
+  const view = new QuotaBarView();
+  // 現在使用中モデルを settings.json から読み取り、インジケータに設定
+  // （データ収集周期ごとに再読込し、モデル切替を表示へ反映）
+  const refreshModel = (): void => {
+    try {
+      const llm = readLlmInfoFromSettings(store.load().quota?.claudeSettingsPath);
+      view.setModel(llm.model);
+    } catch { /* best-effort */ }
+  };
+  refreshModel();
+
   const service = new MultiQuotaService({
     app,
     store,
     refreshSec: cfg.general.quotaRefreshSec,
     switchSec: cfg.general.quotaSwitchSec ?? 30,
     getEnv,
+    onCollect: refreshModel,
   });
-
-  const view = new QuotaBarView();
-  // 現在使用中モデルを settings.json から読み取り、インジケータに設定
-  try {
-    const llm = readLlmInfoFromSettings(cfg.quota?.claudeSettingsPath);
-    if (llm.model) view.setModel(llm.model);
-  } catch { /* best-effort */ }
   let layoutRef: EventRef | null = null;
 
   const tryMount = (): boolean => {

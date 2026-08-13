@@ -14,10 +14,14 @@ vi.mock('fs/promises', () => ({
   default: { readFile: vi.fn() },
   readFile: vi.fn(),
 }));
+vi.mock('../../../src/features/quota/llm-info', () => ({
+  readLlmInfoFromSettings: vi.fn(() => ({ provider: 'claude', model: null, baseUrl: null, authTokenPresent: false })),
+}));
 
 import { Platform } from 'obsidian';
 import { resetMocks, mockFetch } from '../../mocks/obsidian';
 import { registerClaudeQuota, unregisterClaudeQuota } from '../../../src/features/quota/index';
+import { readLlmInfoFromSettings } from '../../../src/features/quota/llm-info';
 
 // 環境変数を完全にクリア（CI や開発環境で API キーが設定されている場合に provider が available になるのを防ぐ）
 const noEnv = (): string | undefined => undefined;
@@ -156,6 +160,46 @@ describe('registerClaudeQuota', () => {
     const bar = nav.querySelector('.cb-quota-indicator');
     expect(bar).not.toBeNull();
     expect(bar!.nextElementSibling).toBe(newTabBtn);
+    await handle?.dispose();
+  });
+
+  it('データ収集周期（refreshAll）で現在モデルが再読込され表示更新される', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2099-01-01T00:00:00Z' },
+      seven_day: { utilization: 5, resets_at: '2099-01-01T00:00:00Z' },
+    }), { status: 200 }));
+
+    const nav = document.createElement('div');
+    nav.className = 'claudian-input-nav-actions';
+    const newTabBtn = document.createElement('button');
+    newTabBtn.className = 'claudian-new-tab-btn';
+    nav.appendChild(newTabBtn);
+    document.body.appendChild(nav);
+
+    const fakeApp = {
+      workspace: { on: () => null, offref: () => {} },
+      plugins: { plugins: { realclaudian: { getView: () => ({ containerEl: nav }) } } },
+    } as never;
+    const store = {
+      load: () => ({
+        general: { quotaEnabled: true, quotaRefreshSec: 0, quotaSwitchSec: 0 },
+        quota: { claudeSettingsPath: 'C:\\x\\settings.json' },
+      }),
+      getEnv: noEnv,
+    } as never;
+
+    const readMock = vi.mocked(readLlmInfoFromSettings);
+    readMock.mockReturnValue({ provider: 'claude', model: 'claude-opus-4', baseUrl: null, authTokenPresent: true });
+
+    const handle = await registerClaudeQuota(fakeApp, store);
+    const modelEl = () => document.querySelector('.cb-quota-indicator__model');
+    expect(modelEl()?.textContent).toBe('claude-opus-4');
+
+    // モデル変更 → データ収集周期（refreshAll）で再読込される
+    readMock.mockReturnValue({ provider: 'deepseek', model: 'deepseek-v4-flash[1M]', baseUrl: null, authTokenPresent: true });
+    await handle!.service.refreshAll();
+    expect(modelEl()?.textContent).toBe('deepseek-v4-flash[1M]');
+
     await handle?.dispose();
   });
 });
