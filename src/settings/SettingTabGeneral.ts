@@ -4,7 +4,7 @@ import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 
 /** プラグインバージョン（src/manifest.json と package.json に同期） */
-export const PLUGIN_VERSION = '0.7.0';
+export const PLUGIN_VERSION = '0.8.0';
 
 export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string): void {
   const s = getLocaleStrings(getUILanguage());
