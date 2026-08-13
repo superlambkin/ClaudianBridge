@@ -8,7 +8,7 @@ function makeService(opts?: Partial<{
   providers: string[];
   apiKeys?: Record<string, string>;
   displayModels?: { claude?: boolean; deepseek?: boolean; kimi?: boolean; minimax?: boolean };
-  onCollect?: () => void;   // ← 追加
+  onCollect?: () => void;
 }>) {
   const store = {
     load: () => ({
@@ -35,7 +35,7 @@ function makeService(opts?: Partial<{
     refreshSec: 0,
     switchSec: 0,
     getEnv,
-    onCollect: opts?.onCollect,   // ← 追加
+    onCollect: opts?.onCollect,
   } as never);
   return svc;
 }

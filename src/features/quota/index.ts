@@ -92,8 +92,7 @@ export async function registerClaudeQuota(
   const getEnv = (store as unknown as { getEnv?: (k: string) => string | undefined }).getEnv
     ?? ((k: string) => process.env[k]);
   const view = new QuotaBarView();
-  // 現在使用中モデルを settings.json から読み取り、インジケータに設定
-  // （データ収集周期ごとに再読込し、モデル切替を表示へ反映）
+  // 現在使用中モデルを settings.json から読み取り、インジケータに設定（データ収集周期ごとに再読込）
   const refreshModel = (): void => {
     try {
       const llm = readLlmInfoFromSettings(store.load().quota?.claudeSettingsPath);

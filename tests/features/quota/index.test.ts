@@ -202,4 +202,34 @@ describe('registerClaudeQuota', () => {
 
     await handle?.dispose();
   });
+
+  it('settings.json 読込失敗は best-effort（クラッシュせずモデル非表示）', async () => {
+    mockFetch(async () => new Response(JSON.stringify({
+      five_hour: { utilization: 10, resets_at: '2099-01-01T00:00:00Z' },
+      seven_day: { utilization: 5, resets_at: '2099-01-01T00:00:00Z' },
+    }), { status: 200 }));
+
+    const nav = document.createElement('div');
+    nav.className = 'claudian-input-nav-actions';
+    const newTabBtn = document.createElement('button');
+    newTabBtn.className = 'claudian-new-tab-btn';
+    nav.appendChild(newTabBtn);
+    document.body.appendChild(nav);
+
+    const fakeApp = {
+      workspace: { on: () => null, offref: () => {} },
+      plugins: { plugins: { realclaudian: { getView: () => ({ containerEl: nav }) } } },
+    } as never;
+    const store = {
+      load: () => ({ general: { quotaEnabled: true, quotaRefreshSec: 0, quotaSwitchSec: 0 }, quota: { claudeSettingsPath: 'C:\\x\\settings.json' } }),
+      getEnv: noEnv,
+    } as never;
+
+    vi.mocked(readLlmInfoFromSettings).mockImplementation(() => { throw new Error('parse error'); });
+
+    const handle = await registerClaudeQuota(fakeApp, store);
+    expect(handle).not.toBeNull();
+    expect(document.querySelector('.cb-quota-indicator__model')).toBeNull();
+    await handle?.dispose();
+  });
 });
