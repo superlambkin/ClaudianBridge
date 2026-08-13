@@ -174,7 +174,9 @@ export class MultiQuotaService {
       }),
     );
     this.emit();
-    this.opts.onCollect?.();   // ← 追加
+    try {
+      this.opts.onCollect?.();
+    } catch { /* best-effort: フック失敗で収集周期を止めない */ }
   }
 
   /** 表示プロバイダを次のものに進める（循環） */
