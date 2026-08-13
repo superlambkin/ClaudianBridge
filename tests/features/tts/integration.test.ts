@@ -10,14 +10,14 @@ import * as fs from 'fs';
  * claudian-bridge 本体と同じ呼び出し方（stdin にテキストを書き込む）で
  * `python commands.py speak` を実行し、音声合成が成功することを検証する。
  * 実環境依存（edge-tts のネットワーク + 再生）のため:
- * - `SKIP_INTEGRATION=1` でスキップ
+ * - デフォルトはスキップ（opt-in）。`RUN_INTEGRATION=1` の時のみ実 TTS を起動
  * - Python / commands.py が無ければスキップ
  */
 const commandsPy = path.join(os.homedir(), '.claude', 'skills', 'claude-tts', 'scripts', 'commands.py');
 const pythonBin = 'python';
 
 const shouldSkip =
-  process.env.SKIP_INTEGRATION === '1' || !fs.existsSync(commandsPy);
+  process.env.RUN_INTEGRATION !== '1' || !fs.existsSync(commandsPy);
 
 interface SpeakResult {
   code: number | null;
