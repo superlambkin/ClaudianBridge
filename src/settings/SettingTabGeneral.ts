@@ -3,6 +3,9 @@ import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 
+/** プラグインバージョン（src/manifest.json と package.json に同期） */
+export const PLUGIN_VERSION = '0.5.0';
+
 export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string): void {
   const s = getLocaleStrings(getUILanguage());
 
@@ -11,6 +14,11 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
     const cfg = store.load();
 
     containerEl.createEl('h2', { text: s.tabGeneral });
+
+    // バージョン情報
+    const versionRow = containerEl.createDiv('cb-version-row');
+    versionRow.createEl('span', { text: 'Claudian Bridge', cls: 'cb-version-row__name' });
+    versionRow.createEl('span', { text: `v${PLUGIN_VERSION}`, cls: 'cb-version-row__version' });
 
     new Setting(containerEl)
       .setName(s.generalEnabled)

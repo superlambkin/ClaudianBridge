@@ -231,6 +231,25 @@
   50%      { opacity: 1.0; }
 }
 
+/* === Version row (v0.5.0) === */
+.cb-version-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 4px 0 16px 0;
+  padding: 6px 12px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.cb-version-row__name {
+  font-weight: bold;
+}
+.cb-version-row__version {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+}
+
 /* === Multi-provider quota indicator (v0.4.0) === */
 .cb-quota-indicator {
   display: inline-flex;

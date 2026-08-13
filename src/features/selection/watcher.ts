@@ -3,7 +3,24 @@ import type { ConfigStore } from '../../core/config-store';
 import { addTextToClaudian } from './core';
 import { buildPopup, positionPopup } from './popup';
 
-const SCOPE_SELECTORS = ['.cm-editor', '.markdown-preview-view', '.claudian-messages'];
+// 選択ポップアップを表示できるスコープ（Obsidian の全ビュー種別をカバー）
+// - .cm-editor / .cm-content: ソースモード/ライブプレビュー
+// - .markdown-source-view: ソースビューラッパ
+// - .el-pre: ライブプレビューのレンダリングブロック
+// - .markdown-preview-view / .markdown-rendered: プレビューモード
+// - .canvas-wrapper / .canvas-node-content: キャンバス
+// - .claudian-messages: realclaudian のチャット領域
+const SCOPE_SELECTORS = [
+  '.cm-editor',
+  '.cm-content',
+  '.markdown-source-view',
+  '.el-pre',
+  '.markdown-preview-view',
+  '.markdown-rendered',
+  '.canvas-wrapper',
+  '.canvas-node-content',
+  '.claudian-messages',
+];
 
 function toElement(node: Node | null): Element | null {
   if (!node) return null;
