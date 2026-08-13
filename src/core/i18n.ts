@@ -49,7 +49,7 @@ export interface LocaleStrings {
   ttsEngineDesc: string;
   ttsEngineEdge: string;
   ttsEngineWebspeech: string;
-  ttsEngineDamarcreative: string;
+  ttsEnginePlachta: string;
   ttsTestSample: string;
   ttsTestButton: string;
   ttsVoicesHint: string;
@@ -58,10 +58,14 @@ export interface LocaleStrings {
   ttsVoiceEn: string;
   ttsBrowserDefault: string;
   ttsMinimaxRemovalNote: string;
-  ttsAnimeTtsDir: string;
-  ttsAnimeTtsDirDesc: string;
-  ttsAnimeTtsTest: string;
-  ttsAnimeTtsTestDesc: string;
+  ttsPlachtaPreset: string;
+  ttsPlachtaSpeaker: string;
+  ttsPlachtaLanguage: string;
+  ttsPlachtaSpeed: string;
+  ttsPlachtaTest: string;
+  ttsPlachtaOffline: string;
+  ttsPlachtaTimeout: string;
+  ttsPlachtaTooLong: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -229,6 +233,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEngineDesc: '音声合成エンジンを選択（edge-TTS / WebSpeech の 2 択）',
     ttsEngineEdge: 'edge-TTS（クラウド・高品質）',
     ttsEngineWebspeech: 'WebSpeech（ブラウザ標準）',
+    ttsEnginePlachta: 'Plachta VITS（クラウド）',
     ttsTestSample: '今日は天気がいい。山に登りたい。',
     ttsTestButton: '🔊 テスト再生',
     ttsVoicesHint: '選択中エンジンの音色。エンジンを切り替えると内容も切り替わります',
@@ -237,11 +242,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsVoiceEn: '英語 (en)',
     ttsBrowserDefault: 'ブラウザ標準',
     ttsMinimaxRemovalNote: 'ℹ️ 旧バージョンに存在した MiniMax 接続設定は、接続テスト失敗のため本バージョンから削除されました。',
-    ttsEngineDamarcreative: 'anime-tts (Damarcreative・日本語のみ・手動セットアップ要)',
-    ttsAnimeTtsDir: '📁 anime-tts ディレクトリ',
-    ttsAnimeTtsDirDesc: 'git clone した anime-tts のパス（例: D:\\tools\\anime-tts）。pyopenjtalk 等の依存とモデル download-model.py が必要です',
-    ttsAnimeTtsTest: '▶ テスト読み上げ（日本語）',
-    ttsAnimeTtsTestDesc: '未セットアップ時は案内 Notice が出ます',
+    ttsPlachtaPreset: 'クイック選択',
+    ttsPlachtaSpeaker: 'キャラクター',
+    ttsPlachtaLanguage: '言語',
+    ttsPlachtaSpeed: '速度',
+    ttsPlachtaTest: '▶ テスト読み上げ（Plachta）',
+    ttsPlachtaOffline: '⚠️ ネット接続を確認してください',
+    ttsPlachtaTimeout: '⚠️ タイムアウト（60秒）',
+    ttsPlachtaTooLong: '⚠️ テキストが長いです',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -407,6 +415,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEngineDesc: 'Select the speech synthesis engine (edge-TTS / WebSpeech)',
     ttsEngineEdge: 'edge-TTS (cloud, high quality)',
     ttsEngineWebspeech: 'WebSpeech (browser default)',
+    ttsEnginePlachta: 'Plachta VITS (Cloud)',
     ttsTestSample: "The weather is nice today. I'd like to climb a mountain.",
     ttsTestButton: '🔊 Test voice',
     ttsVoicesHint: 'Voices for the selected engine. Switching engines swaps the dropdowns.',
@@ -415,11 +424,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsVoiceEn: 'English (en)',
     ttsBrowserDefault: 'Browser default',
     ttsMinimaxRemovalNote: 'ℹ️ MiniMax settings from older versions have been removed (connection test failed).',
-    ttsEngineDamarcreative: 'anime-tts (Damarcreative, Japanese only, manual setup required)',
-    ttsAnimeTtsDir: '📁 anime-tts directory',
-    ttsAnimeTtsDirDesc: 'Path to your cloned anime-tts (e.g. D:\\tools\\anime-tts). Requires pyopenjtalk deps and python download-model.py',
-    ttsAnimeTtsTest: '▶ Test playback (Japanese)',
-    ttsAnimeTtsTestDesc: 'A notice will appear if setup is incomplete',
+    ttsPlachtaPreset: 'Quick Preset',
+    ttsPlachtaSpeaker: 'Character',
+    ttsPlachtaLanguage: 'Language',
+    ttsPlachtaSpeed: 'Speed',
+    ttsPlachtaTest: '▶ Test reading (Plachta)',
+    ttsPlachtaOffline: '⚠️ Check network',
+    ttsPlachtaTimeout: '⚠️ Timeout (60s)',
+    ttsPlachtaTooLong: '⚠️ Text too long',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -585,14 +597,18 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEngineDesc: '选择语音合成引擎（edge-TTS / WebSpeech）',
     ttsEngineEdge: 'edge-TTS（云端·高质量）',
     ttsEngineWebspeech: 'WebSpeech（浏览器标准）',
+    ttsEnginePlachta: 'Plachta VITS（云端）',
     ttsTestSample: '今天天气不错。我想去爬山。',
     ttsTestButton: '🔊 测试声音',
     ttsMinimaxRemovalNote: 'ℹ️ 旧版本中的 MiniMax 连接设置已删除（连接测试失败）',
-    ttsEngineDamarcreative: 'anime-tts (Damarcreative・仅日语・需手动配置)',
-    ttsAnimeTtsDir: '📁 anime-tts 目录',
-    ttsAnimeTtsDirDesc: '已 git clone 的 anime-tts 路径（如 D:\\tools\\anime-tts）。需 pyopenjtalk 等依赖及 python download-model.py',
-    ttsAnimeTtsTest: '▶ 测试朗读（日语）',
-    ttsAnimeTtsTestDesc: '未配置时将显示提示通知',
+    ttsPlachtaPreset: '快速选择',
+    ttsPlachtaSpeaker: '角色',
+    ttsPlachtaLanguage: '语言',
+    ttsPlachtaSpeed: '速度',
+    ttsPlachtaTest: '▶ 测试朗读（Plachta）',
+    ttsPlachtaOffline: '⚠️ 请检查网络连接',
+    ttsPlachtaTimeout: '⚠️ 超时（60秒）',
+    ttsPlachtaTooLong: '⚠️ 文本过长',
     ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
     ttsVoiceZh: '中文 (zh)',
     ttsVoiceJa: '日语 (ja)',
