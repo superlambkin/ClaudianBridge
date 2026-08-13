@@ -222,9 +222,9 @@ describe('damarcreativeSpeak (via addTextToTTS, v0.7.0)', () => {
     return existsMock.mockImplementation((p) => DAMAR_EXIST_PATHS.has(String(p)));
   };
 
-  it('TC-A04: dir 正常時 pickPython → adapter spawn し正しい引数・stdin で実行', async () => {
+  it('TC-A04: dir 正常時 pickPython → adapter spawn し正しい引数・--text-file で実行', async () => {
     stubExists();
-    // 1 回目: pickPython の 'py --version' → close 0 で成功
+    // 1 回目: pickPython の venv python --version → close 0 で成功
     const probe = makeChild();
     spawnMock.mockImplementationOnce(() => probe as never);
     // 2 回目: 本体 adapter → close 0 → wav 不在で E9 経路（false）
@@ -248,7 +248,10 @@ describe('damarcreativeSpeak (via addTextToTTS, v0.7.0)', () => {
     expect(adapterCall[1]).toContain('--model');
     expect(adapterCall[1]).toContain('ameth.pth');
     expect(adapterCall[1]).toContain('--out');
-    expect(child.stdin.write).toHaveBeenCalledWith('こんにちは');
+    // RC7 修正: テキストは --text-file 経由（stdin パイプは Electron でデッドロックするため）
+    expect(adapterCall[1]).toContain('--text-file');
+    // stdin.write は呼ばれず、end() のみで即クローズ
+    expect(child.stdin.write).not.toHaveBeenCalled();
     expect(child.stdin.end).toHaveBeenCalled();
     existsMock.mockReset();
   });

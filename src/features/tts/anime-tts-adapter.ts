@@ -29,7 +29,19 @@ def _build_argparser() -> argparse.ArgumentParser:
     p.add_argument('--model', default='ameth.pth', help='model filename under <dir>/model/')
     p.add_argument('--config', default='configs/config-single-speaker.json', help='hps config path (relative to --dir)')
     p.add_argument('--out', required=True, help='output wav path')
+    p.add_argument('--text-file', dest='text_file', default=None, help='path to UTF-8 text file (preferred over stdin)')
     return p
+
+
+def _resolve_device() -> str:
+    """GPU が利用可能なら 'cuda'、否则 'cpu'。CPU-only torch / GPU 非搭載環境を自動吸収。"""
+    try:
+        import torch  # type: ignore
+        if torch.cuda.is_available():
+            return 'cuda'
+    except Exception:
+        pass
+    return 'cpu'
 
 
 def _load_vits(dir_path: str, config_rel: str, model_file: str):
@@ -37,8 +49,9 @@ def _load_vits(dir_path: str, config_rel: str, model_file: str):
     import utils  # type: ignore
     import commons  # type: ignore
     import models  # type: ignore
-    from torch import no_grad
+    from torch import device as torch_device  # type: ignore
 
+    dev = _resolve_device()
     hps = utils.get_hparams_from_file(os.path.join(dir_path, config_rel))
     net_g = models.SynthesizerTrn(
         len(hps.symbols),
@@ -46,41 +59,45 @@ def _load_vits(dir_path: str, config_rel: str, model_file: str):
         hps.train.segment_size // hps.data.hop_length,
         n_speakers=hps.data.n_speakers if hasattr(hps.data, 'n_speakers') else 0,
         **hps.model,
-    ).cuda()
+    ).to(dev)
     _ = utils.load_checkpoint(os.path.join(dir_path, 'model', model_file), net_g, None)
     net_g.eval()
-    net_g.remove_weight_norm()
-    return hps, net_g, utils
+    # 注: 上流 SynthesizerTrn は remove_weight_norm を持たない（Generator 側のメソッド）。
+    # 上流 main.py も呼んでいないため、推論には不要。呼ぶと AttributeError になるため呼ばない。
+    return hps, net_g, utils, dev
 
 
-def _infer(hps, net_g, utils, text: str):
-    from torch import no_grad, LongTensor
+def _infer(hps, net_g, utils, text: str, dev: str):
+    from torch import no_grad, LongTensor  # type: ignore
+    # 上流 main.py 通り、text_to_sequence は text パッケージから取得（utils ではない）
+    from text import text_to_sequence  # type: ignore
     if text is None or text == '':
         raise RuntimeError('empty text on stdin')
     if getattr(hps.data, 'text_cleaners', None) is None:
         raise RuntimeError('hps.data.text_cleaners is missing')
-    cleaned = getattr(utils, 'text_to_sequence', None)
-    if cleaned is None:
-        raise RuntimeError('utils.text_to_sequence is missing in upstream utils.py')
     try:
-        seq = cleaned(text, hps.data.text_cleaners)
+        seq = text_to_sequence(text, hps.data.text_cleaners)
     except Exception as e:
         raise RuntimeError(f'text_to_sequence failed (likely non-Japanese): {e}')
     if not seq:
         raise RuntimeError('text_to_sequence returned empty sequence (non-Japanese input?)')
     with no_grad():
-        x_tst = LongTensor(seq).unsqueeze(0).cuda()
-        x_tst_lengths = LongTensor([len(seq)]).cuda()
+        x_tst = LongTensor(seq).unsqueeze(0).to(dev)
+        x_tst_lengths = LongTensor([len(seq)]).to(dev)
         audio = net_g.infer(x_tst, x_tst_lengths, noise_scale=.667, noise_scale_w=.6, length_scale=1.0)[0][0, 0].data.cpu().float().numpy()
     return audio, hps.data.sampling_rate
 
 
 def main() -> int:
     args = _build_argparser().parse_args()
-    text = _read_text_from_stdin()
+    if args.text_file:
+        with open(args.text_file, 'r', encoding='utf-8') as f:
+            text = f.read()
+    else:
+        text = _read_text_from_stdin()
     try:
-        hps, net_g, utils = _load_vits(args.dir, args.config, args.model)
-        audio, sr = _infer(hps, net_g, utils, text)
+        hps, net_g, utils, dev = _load_vits(args.dir, args.config, args.model)
+        audio, sr = _infer(hps, net_g, utils, text, dev)
     except Exception as e:
         print(f'[anime-tts adapter] inference error: {e}', file=sys.stderr)
         return 2

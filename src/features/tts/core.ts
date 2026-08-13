@@ -9,6 +9,20 @@ import { ANIME_TTS_ADAPTER_PY } from './anime-tts-adapter';
 type NoticeFn = (m: string) => void;
 
 /**
+ * anime-tts UAT 診断ログ（一時的・RC7 調査用）。
+ * 各ステップをファイルへ追記し、Obsidian 外から実機の進捗を観測できるようにする。
+ */
+const TTS_DEBUG_LOG = path.join(os.tmpdir(), 'cb-anime-tts-uat.log');
+function ttsDebug(stage: string, extra: Record<string, unknown> = {}): void {
+  try {
+    const ts = new Date().toISOString();
+    const line = `[${ts}] ${stage} ${JSON.stringify(extra)}\n`;
+    fs.appendFileSync(TTS_DEBUG_LOG, line, 'utf8');
+    console.log('[claudian-bridge TTS UAT]', stage, extra);
+  } catch { /* ignore */ }
+}
+
+/**
  * Minimal TTS settings surface consumed by core.ts. The real settings
  * (with engine-specific nested objects) come from ClaudianBridgeSettings
  * and are passed by main.ts / settings.ts; this interface is the subset
@@ -167,23 +181,49 @@ const DAMARCREATIVE_DEFAULT_MODEL = 'ameth.pth';
 const DAMARCREATIVE_DEFAULT_CONFIG = 'configs/config-single-speaker.json';
 const PYTHON_CANDIDATES = ['py', 'python3', 'python'];
 
-async function pickPython(noticeFn: NoticeFn): Promise<string | null> {
-  // which コマンドが無い環境（Windows）を考慮し、spawn 失敗で次候補をためす
+/**
+ * anime-tts 用 Python を解決する。
+ * 優先順位:
+ *   1. <animeTtsDir>/.venv の Python（セットアップ BAT が作成した仮想環境）
+ *      - Windows: .venv/Scripts/python.exe
+ *      - macOS/Linux: .venv/bin/python
+ *   2. システムの py / python3 / python（フォールバック）
+ *
+ * RC1 修正: 従来はシステム Python を起動していたため、.venv にだけインストール
+ * された torch / librosa / pyopenjtalk が見つからず ImportError で失敗していた。
+ * .venv の Python を直接起動することで依存解決を保証する。
+ */
+async function pickPython(animeTtsDir: string, _noticeFn: NoticeFn): Promise<string | null> {
+  // 優先候補 1: animeTtsDir 配下の .venv
+  const isWin = process.platform === 'win32';
+  const venvPython = path.join(animeTtsDir, '.venv', isWin ? 'Scripts' : 'bin', isWin ? 'python.exe' : 'python');
+  if (fs.existsSync(venvPython)) {
+    const ok = await probePython(venvPython);
+    if (ok) return venvPython;
+  }
+  // 優先候補 2: システム Python（従来挙動のフォールバック）
   for (const cmd of PYTHON_CANDIDATES) {
-    try {
-      const child = spawn(cmd, ['--version'], { windowsHide: true });
-      const ok = await new Promise<boolean>((resolve) => {
-        let resolved = false;
-        child.on('error', () => { if (!resolved) { resolved = true; resolve(false); } });
-        child.on('close', (code) => { if (!resolved) { resolved = true; resolve(code === 0); } });
-        setTimeout(() => { if (!resolved) { resolved = true; resolve(false); } }, 2000);
-      });
-      if (ok) return cmd;
-    } catch {
-      // continue
-    }
+    const ok = await probePython(cmd);
+    if (ok) return cmd;
   }
   return null;
+}
+
+/** spawn で Python が応答するか（--version exit 0）を確認。タイムアウト付き。 */
+function probePython(cmd: string): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(cmd, ['--version'], { windowsHide: true });
+    } catch {
+      resolve(false);
+      return;
+    }
+    let resolved = false;
+    child.on('error', () => { if (!resolved) { resolved = true; resolve(false); } });
+    child.on('close', (code) => { if (!resolved) { resolved = true; resolve(code === 0); } });
+    setTimeout(() => { if (!resolved) { resolved = true; child.kill(); resolve(false); } }, 2000);
+  });
 }
 
 function detectLang(text: string): 'ja' | 'zh' | 'en' {
@@ -197,36 +237,43 @@ function detectLang(text: string): 'ja' | 'zh' | 'en' {
 }
 
 export async function damarcreativeSpeak(text: string, settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
+  ttsDebug('ENTER damarcreativeSpeak', { textLen: text.length, textPreview: text.slice(0, 40), engine: settings.engine, animeTtsDir: settings.animeTtsDir });
   // 言語判定（日本語以外は即座に拒否）
   const lang = detectLang(text);
   if (lang !== 'ja') {
+    ttsDebug('REJECT lang', { lang });
     noticeFn('⚠️ anime-tts (Damarcreative) は日本語のみ対応です');
     return false;
   }
 
   const dir = (settings.animeTtsDir ?? '').trim();
   if (!dir) {
+    ttsDebug('REJECT empty dir');
     noticeFn('⚠️ anime-tts ディレクトリ未設定。設定 → テキスト読み上げ で animeTtsDir を指定してください');
     return false;
   }
   if (!fs.existsSync(dir)) {
+    ttsDebug('REJECT dir not found', { dir });
     noticeFn(`⚠️ anime-tts ディレクトリが存在しません: ${dir}`);
     return false;
   }
   // 上流 clone の指標: models.py と configs ディレクトリ
   if (!fs.existsSync(path.join(dir, 'models.py')) || !fs.existsSync(path.join(dir, 'configs'))) {
+    ttsDebug('REJECT not a clone', { dir });
     noticeFn('⚠️ 指定ディレクトリは anime-tts のクローンではないようです（models.py / configs/ が見つかりません）');
     return false;
   }
   const modelPath = path.join(dir, 'model', DAMARCREATIVE_DEFAULT_MODEL);
   if (!fs.existsSync(modelPath)) {
+    ttsDebug('REJECT model missing', { modelPath });
     noticeFn(`⚠️ モデルが見つかりません: ${modelPath}。anime-tts ディレクトリで python download-model.py を実行してください`);
     return false;
   }
 
-  const py = await pickPython(noticeFn);
+  const py = await pickPython(dir, noticeFn);
+  ttsDebug('pickPython resolved', { py });
   if (!py) {
-    noticeFn('⚠️ Python が見つかりません。py / python3 / python のいずれかを PATH に追加してください');
+    noticeFn('⚠️ Python が見つかりません。anime-tts ディレクトリで setup-anime-tts.bat を実行して .venv を作成するか、py / python3 / python を PATH に追加してください');
     return false;
   }
 
@@ -234,36 +281,53 @@ export async function damarcreativeSpeak(text: string, settings: TtsSettings, no
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cb-anime-tts-'));
   const adapterPath = path.join(tmpRoot, 'anime_tts_adapter.py');
   const outPath = path.join(tmpRoot, 'out.wav');
+  const textPath = path.join(tmpRoot, 'input.txt');
   try {
     fs.writeFileSync(adapterPath, ANIME_TTS_ADAPTER_PY, 'utf8');
+    // RC7 修正: stdin パイプは Electron renderer でデッドロックするため、
+    // テキストは UTF-8 ファイル経由で渡す（--text-file）。
+    fs.writeFileSync(textPath, text, 'utf8');
   } catch (e) {
+    ttsDebug('REJECT adapter write fail', { err: (e as Error).message });
     noticeFn(`⚠️ アダプタ書き出し失敗: ${(e as Error).message}`);
     return false;
   }
 
-  const args = [adapterPath, '--dir', dir, '--model', DAMARCREATIVE_DEFAULT_MODEL, '--config', DAMARCREATIVE_DEFAULT_CONFIG, '--out', outPath];
-  console.log('[claudian-bridge TTS] anime-tts spawning:', { py, args, textLen: text.length, textPreview: text.slice(0, 40) });
+  const args = [adapterPath, '--dir', dir, '--model', DAMARCREATIVE_DEFAULT_MODEL, '--config', DAMARCREATIVE_DEFAULT_CONFIG, '--out', outPath, '--text-file', textPath];
+  ttsDebug('spawning', { py, textLen: text.length });
 
   return new Promise<boolean>((resolve) => {
     let settled = false;
     let child: ReturnType<typeof spawn>;
     try {
-      child = spawn(py, args, { windowsHide: true });
+      child = spawn(py, args, {
+        windowsHide: true,
+        env: {
+          ...process.env,
+          // RC8 修正: numba の DEBUG ログ（初回 JIT 時に数百KBの stderr）が
+          // パイプバッファ（64KB）を詰まらせてデッドロックするのを防止。
+          NUMBA_LOG_LEVEL: 'WARNING',
+          NUMBA_DEBUG: '0',
+          PYTHONIOENCODING: 'utf-8',
+        },
+      });
+      ttsDebug('spawn called', { pid: child.pid });
     } catch (e) {
+      ttsDebug('spawn threw', { err: (e as Error).message });
       noticeFn(`⚠️ anime-tts 起動失敗: ${(e as Error).message}`);
       return resolve(false);
     }
     let err = '';
     child.stderr?.on('data', (d) => (err += d.toString()));
     child.on('error', (e) => {
-      console.error('[claudian-bridge TTS] anime-tts spawn error event:', e.message);
+      ttsDebug('child ERROR event', { err: e.message });
       if (settled) return;
       settled = true;
       noticeFn(`⚠️ anime-tts 失敗: ${e.message}`);
       resolve(false);
     });
     child.on('close', (code) => {
-      console.log('[claudian-bridge TTS] anime-tts child close:', { code, stderr: err.slice(0, 300) });
+      ttsDebug('child CLOSE', { code, wavExists: fs.existsSync(outPath), stderrTail: err.slice(-200) });
       if (settled) return;
       settled = true;
       if (code !== 0) {
@@ -279,12 +343,19 @@ export async function damarcreativeSpeak(text: string, settings: TtsSettings, no
       }
       // wav 再生（Electron renderer の Audio 経由）
       try {
+        const wavBytes = fs.readFileSync(outPath);
+        const blob = new Blob([wavBytes], { type: 'audio/wav' });
+        const url = URL.createObjectURL(blob);
         const audio = new Audio();
-        audio.src = URL.createObjectURL(new Blob([fs.readFileSync(outPath)], { type: 'audio/wav' }));
-        audio.onended = () => { try { URL.revokeObjectURL(audio.src); } catch { /* ignore */ } resolve(true); };
-        audio.onerror = () => { try { URL.revokeObjectURL(audio.src); } catch { /* ignore */ } noticeFn('⚠️ anime-tts wav 再生エラー'); resolve(false); };
-        audio.play().catch((e) => {
-          try { URL.revokeObjectURL(audio.src); } catch { /* ignore */ }
+        audio.src = url;
+        ttsDebug('audio prepared', { wavSize: wavBytes.length, url });
+        audio.onended = () => { ttsDebug('audio ENDED'); try { URL.revokeObjectURL(url); } catch { /* ignore */ } resolve(true); };
+        audio.onerror = (ev) => { ttsDebug('audio ONERROR', { ev: String(ev) }); try { URL.revokeObjectURL(url); } catch { /* ignore */ } noticeFn('⚠️ anime-tts wav 再生エラー'); resolve(false); };
+        audio.play().then(() => {
+          ttsDebug('audio.play() RESOLVED');
+        }).catch((e) => {
+          ttsDebug('audio.play() REJECTED', { err: (e as Error).message, name: (e as Error).name });
+          try { URL.revokeObjectURL(url); } catch { /* ignore */ }
           noticeFn(`⚠️ anime-tts 再生失敗: ${(e as Error).message}`);
           resolve(false);
         });
@@ -298,16 +369,20 @@ export async function damarcreativeSpeak(text: string, settings: TtsSettings, no
         audio.addEventListener('ended', cleanup, { once: true });
         audio.addEventListener('error', cleanup, { once: true });
       } catch (e) {
+        ttsDebug('audio setup threw', { err: (e as Error).message });
         noticeFn(`⚠️ anime-tts 再生準備失敗: ${(e as Error).message}`);
         resolve(false);
       }
     });
     try {
-      child.stdin?.write(text);
+      // RC7 修正: stdin は使わない（テキストは --text-file 経由）。
+      // ただし stdin を開いたまま放置すると Python 側が read() でブロックする
+      // 可能性があるため、即座に EOF で閉じる。
       child.stdin?.end();
+      ttsDebug('stdin closed (text via file)');
     } catch (e) {
-      noticeFn(`⚠️ anime-tts stdin 書き込み失敗: ${(e as Error).message}`);
-      if (!settled) { settled = true; resolve(false); }
+      ttsDebug('stdin close failed', { err: (e as Error).message });
+      // stdin クローズ失敗は致命的ではない（テキストはファイルにある）
     }
   });
 }
