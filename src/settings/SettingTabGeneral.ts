@@ -2,9 +2,10 @@ import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
+import manifest from '../manifest.json';
 
-/** プラグインバージョン（src/manifest.json と package.json に同期） */
-export const PLUGIN_VERSION = '0.8.0';
+/** プラグインバージョン（SSOT: src/manifest.json — バンドル時に esbuild が埋め込む） */
+export const PLUGIN_VERSION: string = manifest.version;
 
 export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string): void {
   const s = getLocaleStrings(getUILanguage());
