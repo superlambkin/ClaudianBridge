@@ -12,6 +12,8 @@ export interface MultiQuotaServiceOptions {
   refreshSec: number;
   switchSec: number;
   getEnv?: (k: string) => string | undefined;
+  /** データ収集周期（refreshAll 完了）ごとに呼ばれるフック */
+  onCollect?: () => void;
 }
 
 /** 設定の API キー（settings.quota.*）を優先し、なければ環境変数へフォールバックするキー解決 */
@@ -172,6 +174,7 @@ export class MultiQuotaService {
       }),
     );
     this.emit();
+    this.opts.onCollect?.();   // ← 追加
   }
 
   /** 表示プロバイダを次のものに進める（循環） */

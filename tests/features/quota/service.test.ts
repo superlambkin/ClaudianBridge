@@ -8,6 +8,7 @@ function makeService(opts?: Partial<{
   providers: string[];
   apiKeys?: Record<string, string>;
   displayModels?: { claude?: boolean; deepseek?: boolean; kimi?: boolean; minimax?: boolean };
+  onCollect?: () => void;   // ← 追加
 }>) {
   const store = {
     load: () => ({
@@ -34,6 +35,7 @@ function makeService(opts?: Partial<{
     refreshSec: 0,
     switchSec: 0,
     getEnv,
+    onCollect: opts?.onCollect,   // ← 追加
   } as never);
   return svc;
 }
@@ -130,6 +132,22 @@ describe('MultiQuotaService', () => {
       globalThis.fetch = orig;
     }
     expect(svc.getAvailableIds()).toEqual([]);
+  });
+
+  it('refreshAll 完了時に onCollect が呼ばれる', async () => {
+    const onCollect = vi.fn();
+    const svc = makeService({ quotaEnabled: false, apiKeys: { deepseek: 'sk' }, onCollect });
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(JSON.stringify({
+      is_available: true,
+      balance_infos: [{ currency: 'CNY', total_balance: '100.00' }],
+    }), { status: 200 })) as typeof fetch;
+    try {
+      await svc.refreshAll();
+    } finally {
+      globalThis.fetch = orig;
+    }
+    expect(onCollect).toHaveBeenCalledTimes(1);
   });
 });
 
