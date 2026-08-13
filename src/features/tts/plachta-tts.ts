@@ -1,22 +1,19 @@
 import type { TtsSettings } from './core';
+import type { PlachtaSettings, PlachtaLanguage } from '../../core/settings';
+
+// Re-export PlachtaSettings / PlachtaLanguage from canonical location (settings.ts).
+// これにより既存テスト (`tests/features/tts/plachta-tts.test.ts`) の `import type { PlachtaSettings } from 'plachta-tts'` を壊さない。
+export type { PlachtaSettings, PlachtaLanguage } from '../../core/settings';
 
 export const PLACHTA_SPACE_URL = 'https://plachta-vits-umamusume-voice-synthesizer.hf.space';
 export const PLACHTA_DEFAULT_SPEAKER = '特别周 Special Week (Umamusume Pretty Derby)';
-export const PLACHTA_DEFAULT_LANGUAGE = '日本語';
+export const PLACHTA_DEFAULT_LANGUAGE: PlachtaLanguage = '日本語';
 export const PLACHTA_DEFAULT_SPEED = 1.0;
 export const PLACHTA_POLL_INTERVAL_MS = 1000;
 export const PLACHTA_POLL_MAX_TIMES = 60;
 export const PLACHTA_TEXT_MAX_LENGTH = 1000;
 export const PLACHTA_SPEED_MIN = 0.5;
 export const PLACHTA_SPEED_MAX = 2.0;
-
-export type PlachtaLanguage = '日本語' | '简体中文' | 'English' | 'Mix';
-
-export interface PlachtaSettings {
-  speaker: string;
-  language: PlachtaLanguage;
-  speed: number;
-}
 
 export interface PlachtaPreset {
   label: string;
@@ -35,14 +32,6 @@ export const PLACHTA_PRESETS: PlachtaPreset[] = [
   { label: 'サノバウィッチ・中文',   speaker: '綾地 寧々 Ayachi Nene (Sanoba Witch)', language: '简体中文' },
   { label: 'サノバウィッチ・English', speaker: '綾地 寧々 Ayachi Nene (Sanoba Witch)', language: 'English' },
 ];
-
-// core.ts を touch せず TtsSettings に plachta プロパティを追加するための declaration merging
-// （Task 2 で core.ts へ正式に追加されるまでの橋渡し）。
-declare module './core' {
-  interface TtsSettings {
-    plachta?: PlachtaSettings;
-  }
-}
 
 interface PlachtaEffectiveSettings {
   speaker: string;

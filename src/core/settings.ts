@@ -112,6 +112,32 @@ export function normalizeOfficeSettings(raw: unknown): OfficeSettings {
   };
 }
 
+// === v0.8.0: Plachta Cloud TTS 設定 ===
+export type PlachtaLanguage = '日本語' | '简体中文' | 'English' | 'Mix';
+
+export interface PlachtaSettings {
+  speaker: string;
+  language: PlachtaLanguage;
+  speed: number;
+}
+
+/** TTS エンジン識別子。v0.8.0 で damarcreative → plachta に置換予定。Task 4 で damarcreative は完全削除。 */
+export type TtsEngine = 'edge' | 'webspeech' | 'plachta' | 'damarcreative';
+
+export const PLACHTA_DEFAULT_SPEAKER = '特别周 Special Week (Umamusume Pretty Derby)';
+export const PLACHTA_DEFAULT_LANGUAGE: PlachtaLanguage = '日本語';
+export const PLACHTA_DEFAULT_SPEED = 1.0;
+
+export const DEFAULT_PLACHTA_SETTINGS: PlachtaSettings = {
+  speaker: PLACHTA_DEFAULT_SPEAKER,
+  language: PLACHTA_DEFAULT_LANGUAGE,
+  speed: PLACHTA_DEFAULT_SPEED,
+};
+
+export const PLACHTA_LANGUAGES: readonly PlachtaLanguage[] = ['日本語', '简体中文', 'English', 'Mix'];
+export const PLACHTA_SPEED_MIN = 0.5;
+export const PLACHTA_SPEED_MAX = 2.0;
+
 export interface WhitelistSettings {
   enabled: boolean;
   extensions: string[];
@@ -246,13 +272,15 @@ export interface ClaudianBridgeSettings {
   };
   tts: {
     enabled: boolean;
-    engine: 'edge' | 'webspeech' | 'damarcreative';
+    engine: TtsEngine;
     voices: {
       edge:      { zh: string; ja: string; en: string };
       webspeech: { zh: string; ja: string; en: string };
     };
-    /** anime-tts (Damarcreative) のローカル配置ディレクトリ。空文字 = 未セットアップ。 */
-    animeTtsDir: string;
+    /** anime-tts (Damarcreative) のローカル配置ディレクトリ。空文字 = 未セットアップ。Task 4 で完全削除予定。 */
+    animeTtsDir?: string;
+    /** v0.8.0: Plachta Cloud TTS の設定。engine === 'plachta' のとき使用。 */
+    plachta?: PlachtaSettings;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -285,6 +313,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
       webspeech: { zh: '',         ja: '',       en: '' },
     },
     animeTtsDir: '',
+    plachta: { ...DEFAULT_PLACHTA_SETTINGS },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -353,7 +382,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     tts: {
       enabled: r.tts?.enabled ?? true,
       engine: r.tts?.engine === 'webspeech' ? 'webspeech'
-            : r.tts?.engine === 'damarcreative' ? 'damarcreative'
+            : r.tts?.engine === 'plachta' ? 'plachta'
+            : r.tts?.engine === 'damarcreative' ? 'damarcreative'  // Task 4 で完全削除予定
             : 'edge',
       voices: (() => {
         // v0.6.0 migration: 旧平型 { voices: { zh, ja, en } } → ネスト型 { voices: { edge, webspeech } }
@@ -388,6 +418,20 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
         };
       })(),
       animeTtsDir: typeof r.tts?.animeTtsDir === 'string' ? (r.tts.animeTtsDir as string) : '',
+      plachta: (() => {
+        // v0.8.0: Plachta 設定の正規化。型・範囲外は default にフォールバック。
+        const raw = (r.tts?.plachta ?? {}) as Partial<PlachtaSettings>;
+        const speaker = typeof raw.speaker === 'string' && raw.speaker.trim() !== ''
+          ? raw.speaker
+          : DEFAULT_PLACHTA_SETTINGS.speaker;
+        const language = (typeof raw.language === 'string' && (PLACHTA_LANGUAGES as readonly string[]).includes(raw.language))
+          ? raw.language
+          : DEFAULT_PLACHTA_SETTINGS.language;
+        const speed = typeof raw.speed === 'number' && Number.isFinite(raw.speed) && raw.speed >= PLACHTA_SPEED_MIN && raw.speed <= PLACHTA_SPEED_MAX
+          ? raw.speed
+          : DEFAULT_PLACHTA_SETTINGS.speed;
+        return { speaker, language: language as PlachtaLanguage, speed };
+      })(),
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
@@ -411,9 +455,14 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     if (typeof cfg.selection.objectMenuContextFlags[k] !== 'boolean') return `selection.objectMenuContextFlags.${k} は boolean である必要があります`;
   }
   if (typeof cfg.tts.enabled !== 'boolean') return 'tts.enabled は boolean である必要があります';
-  const engines = ['edge', 'webspeech', 'damarcreative'];
+  const engines: readonly TtsEngine[] = ['edge', 'webspeech', 'plachta', 'damarcreative'];  // Task 4 で damarcreative 削除予定
   if (!engines.includes(cfg.tts.engine)) return `tts.engine が未知です: ${cfg.tts.engine}`;
-  if (typeof cfg.tts.animeTtsDir !== 'string') return 'tts.animeTtsDir は文字列である必要があります';
+  if (typeof cfg.tts.animeTtsDir !== 'string') return 'tts.animeTtsDir は文字列である必要があります';  // Task 4 で削除予定
+  if (cfg.tts.plachta !== undefined) {
+    if (typeof cfg.tts.plachta.speaker !== 'string') return 'tts.plachta.speaker は文字列である必要があります';
+    if (!PLACHTA_LANGUAGES.includes(cfg.tts.plachta.language)) return `tts.plachta.language が未知です: ${cfg.tts.plachta.language}`;
+    if (typeof cfg.tts.plachta.speed !== 'number' || !Number.isFinite(cfg.tts.plachta.speed)) return 'tts.plachta.speed は数値である必要があります';
+  }
   if (typeof cfg.office.enabled !== 'boolean') return 'office.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.office.enabledExtensions)) return 'office.enabledExtensions は配列である必要があります';
   if (!['overwrite', 'skip', 'timestamp'].includes(cfg.office.conflictPolicy)) return 'office.conflictPolicy が未知です';

@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import type { PlachtaSettings, TtsEngine } from '../../core/settings';
 import { ANIME_TTS_ADAPTER_PY } from './anime-tts-adapter';
 
 type NoticeFn = (m: string) => void;
@@ -32,20 +33,24 @@ function ttsDebug(stage: string, extra: Record<string, unknown> = {}): void {
  * voices はエンジンごとにネスト（engine = 'edge' なら voices.edge を参照）。
  */
 export interface TtsSettings {
-  engine: 'edge' | 'webspeech' | 'damarcreative';
+  engine: TtsEngine;
   /** IETF/voice-name map per engine per language (populated from data.json). */
   voices: {
     edge:      { zh: string; ja: string; en: string };
     webspeech: { zh: string; ja: string; en: string };
   };
-  /** anime-tts (Damarcreative) のローカル配置ディレクトリ。空文字 = 未セットアップ。 */
+  /** anime-tts (Damarcreative) のローカル配置ディレクトリ。空文字 = 未セットアップ。Task 4 で削除予定。 */
   animeTtsDir?: string;
+  /** v0.8.0: Plachta Cloud TTS の設定。engine === 'plachta' のとき使用。 */
+  plachta?: PlachtaSettings;
 }
 
 /** 選択中エンジンに対応する言語別 voices を取得 */
 export function voicesFor(settings: TtsSettings, lang: 'zh' | 'ja' | 'en'): string {
-  // damarcreative は voices マップを持たない（音声モデルは animeTtsDir 側で決まる）
+  // damarcreative / plachta は voices マップを持たない（音声モデルはディレクトリ / クラウド側で決まる）。
+  // Task 4 で dispatcher 全体を整理する。
   if (settings.engine === 'damarcreative') return '';
+  if (settings.engine === 'plachta') return '';
   return settings.voices[settings.engine][lang];
 }
 
