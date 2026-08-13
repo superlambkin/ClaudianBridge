@@ -121,8 +121,8 @@ export interface PlachtaSettings {
   speed: number;
 }
 
-/** TTS エンジン識別子。v0.8.0 で damarcreative → plachta に置換予定。Task 4 で damarcreative は完全削除。 */
-export type TtsEngine = 'edge' | 'webspeech' | 'plachta' | 'damarcreative';
+/** TTS エンジン識別子。v0.8.0: spawn ベースのローカル VITS を完全削除しクラウド Plachta に置換。 */
+export type TtsEngine = 'edge' | 'webspeech' | 'plachta';
 
 export const PLACHTA_DEFAULT_SPEAKER = '特别周 Special Week (Umamusume Pretty Derby)';
 export const PLACHTA_DEFAULT_LANGUAGE: PlachtaLanguage = '日本語';
@@ -277,8 +277,6 @@ export interface ClaudianBridgeSettings {
       edge:      { zh: string; ja: string; en: string };
       webspeech: { zh: string; ja: string; en: string };
     };
-    /** anime-tts (Damarcreative) のローカル配置ディレクトリ。空文字 = 未セットアップ。Task 4 で完全削除予定。 */
-    animeTtsDir?: string;
     /** v0.8.0: Plachta Cloud TTS の設定。engine === 'plachta' のとき使用。 */
     plachta?: PlachtaSettings;
   };
@@ -312,7 +310,6 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
       edge:      { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' },
       webspeech: { zh: '',         ja: '',       en: '' },
     },
-    animeTtsDir: '',
     plachta: { ...DEFAULT_PLACHTA_SETTINGS },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
@@ -383,7 +380,6 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       enabled: r.tts?.enabled ?? true,
       engine: r.tts?.engine === 'webspeech' ? 'webspeech'
             : r.tts?.engine === 'plachta' ? 'plachta'
-            : r.tts?.engine === 'damarcreative' ? 'damarcreative'  // Task 4 で完全削除予定
             : 'edge',
       voices: (() => {
         // v0.6.0 migration: 旧平型 { voices: { zh, ja, en } } → ネスト型 { voices: { edge, webspeech } }
@@ -417,7 +413,6 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
           webspeech: readEngine(webRaw, ''),
         };
       })(),
-      animeTtsDir: typeof r.tts?.animeTtsDir === 'string' ? (r.tts.animeTtsDir as string) : '',
       plachta: (() => {
         // v0.8.0: Plachta 設定の正規化。型・範囲外は default にフォールバック。
         const raw = (r.tts?.plachta ?? {}) as Partial<PlachtaSettings>;
@@ -455,9 +450,8 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     if (typeof cfg.selection.objectMenuContextFlags[k] !== 'boolean') return `selection.objectMenuContextFlags.${k} は boolean である必要があります`;
   }
   if (typeof cfg.tts.enabled !== 'boolean') return 'tts.enabled は boolean である必要があります';
-  const engines: readonly TtsEngine[] = ['edge', 'webspeech', 'plachta', 'damarcreative'];  // Task 4 で damarcreative 削除予定
+  const engines: readonly TtsEngine[] = ['edge', 'webspeech', 'plachta'];
   if (!engines.includes(cfg.tts.engine)) return `tts.engine が未知です: ${cfg.tts.engine}`;
-  if (typeof cfg.tts.animeTtsDir !== 'string') return 'tts.animeTtsDir は文字列である必要があります';  // Task 4 で削除予定
   if (cfg.tts.plachta !== undefined) {
     if (typeof cfg.tts.plachta.speaker !== 'string') return 'tts.plachta.speaker は文字列である必要があります';
     if (!PLACHTA_LANGUAGES.includes(cfg.tts.plachta.language)) return `tts.plachta.language が未知です: ${cfg.tts.plachta.language}`;

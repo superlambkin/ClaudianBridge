@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as path from 'path';
 import * as os from 'os';
-import * as fs from 'fs';
 import { addTextToTTS } from '../../../src/features/tts/core';
 import type { TtsSettings } from '../../../src/features/tts/core';
+import { plachtaTtsSpeak } from '../../../src/features/tts/plachta-tts';
+import { PLACHTA_DEFAULT_SPEAKER } from '../../../src/features/tts/plachta-tts';
 
 // ── mocks ──────────────────────────────────────────────────────────────────
 // Notice: replace with a spy so we can assert toast messages.
@@ -14,12 +15,13 @@ vi.mock('obsidian', () => ({ Notice: noticeMock }));
 const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }));
 vi.mock('child_process', () => ({ spawn: spawnMock }));
 
-// fs.existsSync: モジュールレベルで差し替え（ESM namespace は configurable:false なため
-// vi.spyOn は失敗する → vi.mock で実体ごと差し替える）
-const { existsMock } = vi.hoisted(() => ({ existsMock: vi.fn() }));
-vi.mock('fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof fs>();
-  return { ...actual, existsSync: existsMock };
+// plachta-tts: mock して dispatcher の分岐を検証
+vi.mock('../../../src/features/tts/plachta-tts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/features/tts/plachta-tts')>();
+  return {
+    ...actual,
+    plachtaTtsSpeak: vi.fn(),
+  };
 });
 
 // ── helper: make a controllable ChildProcess-like handle ──────────────────
@@ -77,22 +79,27 @@ function makeSettings(engine: 'edge' | 'webspeech'): TtsSettings {
   };
 }
 
-/** v0.7.0: anime-tts 用 settings ヘルパー */
-function makeDamSettings(opts: { dir?: string } = {}): TtsSettings {
+/** v0.8.0: plachta エンジン用 settings ヘルパー */
+function makePlachtaSettings(): TtsSettings {
   return {
-    engine: 'damarcreative',
+    engine: 'plachta',
     voices: {
       edge:      { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' },
       webspeech: { zh: '',         ja: '',       en: '' },
     },
-    animeTtsDir: opts.dir ?? '',
+    plachta: {
+      speaker: PLACHTA_DEFAULT_SPEAKER,
+      language: '日本語',
+      speed: 1.0,
+    },
   };
 }
 
 beforeEach(() => {
   spawnMock.mockReset();
   noticeMock.mockClear();
-  existsMock.mockReset();
+  vi.mocked(plachtaTtsSpeak).mockReset();
+  vi.mocked(plachtaTtsSpeak).mockResolvedValue(true);
 });
 
 // ── tests ──────────────────────────────────────────────────────────────────
@@ -190,88 +197,26 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
   });
 });
 
-describe('damarcreativeSpeak (via addTextToTTS, v0.7.0)', () => {
-  it('TC-A03: animeTtsDir 未設定で spawn されず false + 案内 Notice', async () => {
-    const p = addTextToTTS(null as never, 'こんにちは', makeDamSettings());
-    await expect(p).resolves.toBe(false);
+describe('plachtaTtsSpeak (via addTextToTTS, v0.8.0)', () => {
+  it('TC-N01: engine === "plachta" → plachtaTtsSpeak が呼ばれ spawn されない', async () => {
+    const p = addTextToTTS(null as never, 'こんにちは', makePlachtaSettings());
+    await p;
+
+    // plachtaTtsSpeak が text と settings を受け取って呼ばれた
+    expect(plachtaTtsSpeak).toHaveBeenCalledTimes(1);
+    expect(plachtaTtsSpeak).toHaveBeenCalledWith(
+      'こんにちは',
+      expect.objectContaining({ engine: 'plachta' }),
+      expect.any(Function),
+    );
+    // spawn (edge 経路) は呼ばれない
     expect(spawnMock).not.toHaveBeenCalled();
-    expect(noticeMock).toHaveBeenCalledWith(
-      expect.stringContaining('anime-tts ディレクトリ未設定'),
-    );
   });
 
-  it('TC-A06: zh テキストを damarcreative で → spawn されず false + 日本語限定 Notice', async () => {
-    const p = addTextToTTS(null as never, '你好', makeDamSettings({ dir: 'D:\\fake' }));
+  it('TC-N01 続き: plachtaTtsSpeak が false を返したら dispatcher 全体も false を返す', async () => {
+    vi.mocked(plachtaTtsSpeak).mockResolvedValueOnce(false);
+    const p = addTextToTTS(null as never, 'こんにちは', makePlachtaSettings());
     await expect(p).resolves.toBe(false);
-    expect(spawnMock).not.toHaveBeenCalled();
-    expect(noticeMock).toHaveBeenCalledWith(
-      expect.stringContaining('日本語のみ対応'),
-    );
-  });
-
-  // 共通: fs.existsSync をパス検証用に偽装
-  // vi.mock('fs') で existsMock にすり替えてあるため、ここでは実装を差し替えるだけ。
-  const DAMAR_EXIST_PATHS = new Set<string>([
-    'D:\\fake',
-    'D:\\fake\\models.py',
-    'D:\\fake\\configs',
-    'D:\\fake\\model\\ameth.pth',
-  ]);
-  const stubExists = (): ReturnType<typeof vi.fn> => {
-    existsMock.mockReset();
-    return existsMock.mockImplementation((p) => DAMAR_EXIST_PATHS.has(String(p)));
-  };
-
-  it('TC-A04: dir 正常時 pickPython → adapter spawn し正しい引数・--text-file で実行', async () => {
-    stubExists();
-    // 1 回目: pickPython の venv python --version → close 0 で成功
-    const probe = makeChild();
-    spawnMock.mockImplementationOnce(() => probe as never);
-    // 2 回目: 本体 adapter → close 0 → wav 不在で E9 経路（false）
-    const child = makeChild();
-    spawnMock.mockImplementationOnce(() => child as never);
-
-    const p = addTextToTTS(null as never, 'こんにちは', makeDamSettings({ dir: 'D:\\fake' }));
-    // pickPython 内 await を解決
-    probe.emit('close', 0);
-    // microtask 待機 → addTextToTTS が adapter spawn を実行
-    await new Promise<void>((r) => setTimeout(r, 0));
-    // adapter exit 0 → wav 不在 → E9 → false
-    child.emit('close', 0);
-    await expect(p).resolves.toBe(false);
-
-    expect(spawnMock).toHaveBeenCalledTimes(2);
-    const adapterCall = spawnMock.mock.calls[1];
-    expect(adapterCall[1][0]).toContain('anime_tts_adapter.py');
-    expect(adapterCall[1]).toContain('--dir');
-    expect(adapterCall[1]).toContain('D:\\fake');
-    expect(adapterCall[1]).toContain('--model');
-    expect(adapterCall[1]).toContain('ameth.pth');
-    expect(adapterCall[1]).toContain('--out');
-    // RC7 修正: テキストは --text-file 経由（stdin パイプは Electron でデッドロックするため）
-    expect(adapterCall[1]).toContain('--text-file');
-    // stdin.write は呼ばれず、end() のみで即クローズ
-    expect(child.stdin.write).not.toHaveBeenCalled();
-    expect(child.stdin.end).toHaveBeenCalled();
-    existsMock.mockReset();
-  });
-
-  it('TC-A05: adapter spawn exit != 0 → false + Notice（stderr 末尾を保持）', async () => {
-    stubExists();
-    const probe = makeChild();
-    spawnMock.mockImplementationOnce(() => probe as never);
-    const child = makeChild();
-    spawnMock.mockImplementationOnce(() => child as never);
-
-    const p = addTextToTTS(null as never, 'こんにちは', makeDamSettings({ dir: 'D:\\fake' }));
-    probe.emit('close', 0);
-    await new Promise<void>((r) => setTimeout(r, 0));
-    child.stderr.emitData('ModuleNotFoundError: No module named torch');
-    child.emit('close', 1);
-    await expect(p).resolves.toBe(false);
-    expect(noticeMock).toHaveBeenCalledWith(
-      expect.stringContaining('anime-tts 失敗 (exit 1)'),
-    );
-    existsMock.mockReset();
+    expect(plachtaTtsSpeak).toHaveBeenCalledTimes(1);
   });
 });

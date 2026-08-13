@@ -41,7 +41,6 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
           en: typeof webVoices.en === 'string' ? (webVoices.en as string) : '',
         },
       },
-      animeTtsDir: '',
     },
   };
 }

@@ -3,6 +3,7 @@ import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { addTextToTTS, SAMPLE_TEXT } from '../features/tts/core';
+import type { TtsEngine } from '../core/settings';
 
 const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   zh: ['xiaoxiao', 'yunxi', 'yunyang', 'yunjian', 'xiaoyi', 'yunxia'],
@@ -10,7 +11,8 @@ const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   en: ['aria', 'guy', 'jenny'],
 };
 
-type EngineKey = 'edge' | 'webspeech' | 'damarcreative';
+// v0.8.0: spawn ベースのローカル VITS を削除し Plachta Cloud に置換。Task 6 で plachta 専用 UI（プリセット・カスタム・言語・速度）を追加。
+type EngineKey = TtsEngine;
 
 export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigStore): void {
   const s = getLocaleStrings(getUILanguage());
@@ -36,20 +38,20 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         }
       }));
 
-    // 2. エンジン選択（edge / webspeech / damarcreative の 3 択）
+    // 2. エンジン選択（edge / webspeech / plachta の 3 択）
     new Setting(containerEl)
       .setName(s.ttsEngine)
       .setDesc(s.ttsEngineDesc)
       .addDropdown((d) => {
         d.addOption('edge', s.ttsEngineEdge);
         d.addOption('webspeech', s.ttsEngineWebspeech);
-        d.addOption('damarcreative', s.ttsEngineDamarcreative);
+        // v0.8.0: Task 6 で plachta 専用 UI（プリセット・カスタム・言語・速度・テストボタン）を追加予定。
         d.setValue(cfg.tts.engine).onChange((v) => {
           try {
             const latest = store.load();
             const next = { ...latest, tts: { ...latest.tts, engine: v as EngineKey } };
             store.save(next);
-            draw(); // 音色 / animeTtsDir セクションを再描画
+            draw(); // 音色セクションを再描画
           } catch (e) {
             new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
             draw();
@@ -57,7 +59,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // 3. 言語別音色 + テストボタン（edge / webspeech のみ。damarcreative は音色 UI なし）
+    // 3. 言語別音色 + テストボタン（edge / webspeech のみ。plachta は Task 6 で専用 UI を追加）
     if (cfg.tts.engine === 'edge' || cfg.tts.engine === 'webspeech') {
       const voiceTable = containerEl.createDiv({ cls: 'cb-tts-voices' });
       voiceTable.createEl('p', { text: s.ttsVoicesHint, cls: 'setting-item-description' });
@@ -87,37 +89,6 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
       renderVoiceRow('zh', s.ttsVoiceZh);
       renderVoiceRow('ja', s.ttsVoiceJa);
       renderVoiceRow('en', s.ttsVoiceEn);
-    }
-
-    // 4. damarcreative 選択時のみ: animeTtsDir 入力 + テストボタン
-    if (cfg.tts.engine === 'damarcreative') {
-      const dirBox = containerEl.createDiv({ cls: 'cb-tts-anime' });
-      new Setting(dirBox)
-        .setName(s.ttsAnimeTtsDir)
-        .setDesc(s.ttsAnimeTtsDirDesc)
-        .addText((tx) => tx
-          .setPlaceholder('D:\\tools\\anime-tts')
-          .setValue(cfg.tts.animeTtsDir ?? '')
-          .onChange((v) => {
-            try {
-              const latest = store.load();
-              const next = { ...latest, tts: { ...latest.tts, animeTtsDir: v.trim() } };
-              store.save(next);
-            } catch (e) {
-              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-              draw();
-            }
-          }));
-
-      new Setting(dirBox)
-        .setName(s.ttsAnimeTtsTest)
-        .setDesc(s.ttsAnimeTtsTestDesc)
-        .addButton((b) => b
-          .setButtonText('▶')
-          .onClick(async () => {
-            const latest = store.load();
-            await addTextToTTS(app, SAMPLE_TEXT.ja, latest.tts);
-          }));
     }
 
     // 5. 削除注意文（旧 minimax 設定について）
