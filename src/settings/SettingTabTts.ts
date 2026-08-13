@@ -3,7 +3,15 @@ import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { addTextToTTS, SAMPLE_TEXT } from '../features/tts/core';
-import type { TtsEngine } from '../core/settings';
+import {
+  PLACHTA_PRESETS,
+  PLACHTA_DEFAULT_SPEAKER,
+  PLACHTA_DEFAULT_LANGUAGE,
+  PLACHTA_DEFAULT_SPEED,
+  PLACHTA_SPEED_MIN,
+  PLACHTA_SPEED_MAX,
+} from '../features/tts/plachta-tts';
+import type { TtsEngine, PlachtaLanguage } from '../core/settings';
 
 const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   zh: ['xiaoxiao', 'yunxi', 'yunyang', 'yunjian', 'xiaoyi', 'yunxia'],
@@ -11,7 +19,7 @@ const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   en: ['aria', 'guy', 'jenny'],
 };
 
-// v0.8.0: spawn ベースのローカル VITS を削除し Plachta Cloud に置換。Task 6 で plachta 専用 UI（プリセット・カスタム・言語・速度）を追加。
+// v0.8.0: spawn ベースのローカル VITS を削除し Plachta Cloud に置換。plachta 専用 UI（プリセット・カスタム・言語・速度）を追加。
 type EngineKey = TtsEngine;
 
 export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigStore): void {
@@ -45,7 +53,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
       .addDropdown((d) => {
         d.addOption('edge', s.ttsEngineEdge);
         d.addOption('webspeech', s.ttsEngineWebspeech);
-        // v0.8.0: Task 6 で plachta 専用 UI（プリセット・カスタム・言語・速度・テストボタン）を追加予定。
+        d.addOption('plachta', s.ttsEnginePlachta);
         d.setValue(cfg.tts.engine).onChange((v) => {
           try {
             const latest = store.load();
@@ -59,7 +67,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // 3. 言語別音色 + テストボタン（edge / webspeech のみ。plachta は Task 6 で専用 UI を追加）
+    // 3. 言語別音色 + テストボタン（edge / webspeech のみ）
     if (cfg.tts.engine === 'edge' || cfg.tts.engine === 'webspeech') {
       const voiceTable = containerEl.createDiv({ cls: 'cb-tts-voices' });
       voiceTable.createEl('p', { text: s.ttsVoicesHint, cls: 'setting-item-description' });
@@ -89,6 +97,148 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
       renderVoiceRow('zh', s.ttsVoiceZh);
       renderVoiceRow('ja', s.ttsVoiceJa);
       renderVoiceRow('en', s.ttsVoiceEn);
+    }
+
+    // 4. plachta 専用 UI（プリセット・カスタム speaker・言語・速度・テストボタン）
+    if (cfg.tts.engine === 'plachta') {
+      const plachtaBox = containerEl.createDiv({ cls: 'cb-tts-plachta' });
+      const currentPlachta = cfg.tts.plachta;
+
+      // 4a. クイックプリセット（9 個）— 選ぶと speaker/language が自動セット
+      new Setting(plachtaBox)
+        .setName(s.ttsPlachtaPreset)
+        .addDropdown((d) => {
+          d.addOption('', '—');
+          PLACHTA_PRESETS.forEach((preset, i) => {
+            d.addOption(String(i), preset.label);
+          });
+          // 現在の speaker+language と一致するプリセットがあればその index を選択
+          let matchedIdx = '';
+          if (currentPlachta) {
+            const idx = PLACHTA_PRESETS.findIndex(
+              (p) => p.speaker === currentPlachta.speaker && p.language === currentPlachta.language,
+            );
+            if (idx >= 0) matchedIdx = String(idx);
+          }
+          d.setValue(matchedIdx);
+          d.onChange(async (v) => {
+            const preset = PLACHTA_PRESETS[Number(v)];
+            if (!preset) return;
+            try {
+              const latest = store.load();
+              const prev = latest.tts.plachta;
+              store.save({
+                ...latest,
+                tts: {
+                  ...latest.tts,
+                  plachta: {
+                    speaker: preset.speaker,
+                    language: preset.language,
+                    speed: prev?.speed ?? PLACHTA_DEFAULT_SPEED,
+                  },
+                },
+              });
+              new Notice(s.noticeSaved);
+              draw();
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            }
+          });
+        });
+
+      // 4b. カスタム speaker（自由記述・Plachta API のキャラクター名と完全一致）
+      new Setting(plachtaBox)
+        .setName(s.ttsPlachtaSpeaker)
+        .addText((t) => t
+          .setPlaceholder(PLACHTA_DEFAULT_SPEAKER)
+          .setValue(currentPlachta?.speaker ?? '')
+          .onChange(async (v) => {
+            try {
+              const latest = store.load();
+              const prev = latest.tts.plachta;
+              store.save({
+                ...latest,
+                tts: {
+                  ...latest.tts,
+                  plachta: {
+                    speaker: v.trim() || PLACHTA_DEFAULT_SPEAKER,
+                    language: prev?.language ?? PLACHTA_DEFAULT_LANGUAGE,
+                    speed: prev?.speed ?? PLACHTA_DEFAULT_SPEED,
+                  },
+                },
+              });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            }
+          }),
+        );
+
+      // 4c. 言語 dropdown
+      new Setting(plachtaBox)
+        .setName(s.ttsPlachtaLanguage)
+        .addDropdown((d) => {
+          const langs: PlachtaLanguage[] = ['日本語', '简体中文', 'English', 'Mix'];
+          for (const lg of langs) d.addOption(lg, lg);
+          d.setValue(currentPlachta?.language ?? PLACHTA_DEFAULT_LANGUAGE);
+          d.onChange(async (v) => {
+            try {
+              const latest = store.load();
+              const prev = latest.tts.plachta;
+              store.save({
+                ...latest,
+                tts: {
+                  ...latest.tts,
+                  plachta: {
+                    speaker: prev?.speaker ?? PLACHTA_DEFAULT_SPEAKER,
+                    language: v as PlachtaLanguage,
+                    speed: prev?.speed ?? PLACHTA_DEFAULT_SPEED,
+                  },
+                },
+              });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            }
+          });
+        });
+
+      // 4d. 速度 slider（0.5〜2.0）
+      new Setting(plachtaBox)
+        .setName(s.ttsPlachtaSpeed)
+        .addSlider((sl) => sl
+          .setLimits(PLACHTA_SPEED_MIN, PLACHTA_SPEED_MAX, 0.1)
+          .setValue(currentPlachta?.speed ?? PLACHTA_DEFAULT_SPEED)
+          .setDynamicTooltip()
+          .onChange(async (v) => {
+            try {
+              const latest = store.load();
+              const prev = latest.tts.plachta;
+              store.save({
+                ...latest,
+                tts: {
+                  ...latest.tts,
+                  plachta: {
+                    speaker: prev?.speaker ?? PLACHTA_DEFAULT_SPEAKER,
+                    language: prev?.language ?? PLACHTA_DEFAULT_LANGUAGE,
+                    speed: v,
+                  },
+                },
+              });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            }
+          }),
+        );
+
+      // 4e. テストボタン
+      new Setting(plachtaBox)
+        .setName(s.ttsPlachtaTest)
+        .addButton((b) => b
+          .setButtonText('▶')
+          .onClick(async () => {
+            const latest = store.load();
+            await addTextToTTS(app, SAMPLE_TEXT.ja, latest.tts);
+          }),
+        );
     }
 
     // 5. 削除注意文（旧 minimax 設定について）
