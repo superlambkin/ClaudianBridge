@@ -318,4 +318,27 @@ describe('tts.cli (v0.10.0)', () => {
     };
     expect(validateClaudianBridgeSettings(bad)).toContain('tts.cli.full_text');
   });
+
+  // === v0.11.0: tts.autoRead ===
+  it('normalize: autoRead 欠落時はデフォルト補完（enabled: true, scope: header）', () => {
+    const n = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge' } });
+    expect(n.tts.autoRead).toEqual({ enabled: true, scope: 'header' });
+  });
+
+  it('normalize: scope=full と enabled=false を保持', () => {
+    const n = normalizeClaudianBridgeSettings({ tts: { autoRead: { enabled: false, scope: 'full' } } });
+    expect(n.tts.autoRead).toEqual({ enabled: false, scope: 'full' });
+  });
+
+  it('normalize: scope 不正値は header にフォールバック', () => {
+    const n = normalizeClaudianBridgeSettings({ tts: { autoRead: { enabled: true, scope: 'bogus' } } });
+    expect(n.tts.autoRead?.scope).toBe('header');
+  });
+
+  it('validate: 正規化済み設定は pass、scope 不正値は拒否', () => {
+    const ok = normalizeClaudianBridgeSettings({});
+    expect(validateClaudianBridgeSettings(ok)).toBeNull();
+    const bad = { ...ok, tts: { ...ok.tts, autoRead: { enabled: true, scope: 'bogus' as never } } };
+    expect(validateClaudianBridgeSettings(bad)).toContain('tts.autoRead.scope');
+  });
 });

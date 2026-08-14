@@ -185,6 +185,29 @@ export function normalizeTtsCliSettings(raw: unknown): TtsCliSettings {
   };
 }
 
+// === v0.11.0: タスク終了時の自動読み上げ ===
+export type TtsAutoReadScope = 'header' | 'full';
+
+export interface TtsAutoReadSettings {
+  /** タスク終了報告（📢）の自動読み上げ（デフォルト true） */
+  enabled: boolean;
+  /** header = 📢 blockquote のみ / full = 報告メッセージ全文 */
+  scope: TtsAutoReadScope;
+}
+
+export const DEFAULT_TTS_AUTO_READ_SETTINGS: TtsAutoReadSettings = {
+  enabled: true,
+  scope: 'header',
+};
+
+export function normalizeTtsAutoReadSettings(raw: unknown): TtsAutoReadSettings {
+  const r = (raw ?? {}) as Partial<TtsAutoReadSettings>;
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_TTS_AUTO_READ_SETTINGS.enabled,
+    scope: r.scope === 'full' ? 'full' : DEFAULT_TTS_AUTO_READ_SETTINGS.scope,
+  };
+}
+
 export interface WhitelistSettings {
   enabled: boolean;
   extensions: string[];
@@ -330,6 +353,8 @@ export interface ClaudianBridgeSettings {
     plachta?: PlachtaSettings;
     /** v0.10.0: Claude Code CLI 用 TTS 設定（voice-config.json と同期）。 */
     cli?: TtsCliSettings;
+    /** v0.11.0: タスク終了時の自動読み上げ。 */
+    autoRead?: TtsAutoReadSettings;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -363,6 +388,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     },
     plachta: { ...DEFAULT_PLACHTA_SETTINGS },
     cli: { ...DEFAULT_TTS_CLI_SETTINGS },
+    autoRead: { ...DEFAULT_TTS_AUTO_READ_SETTINGS },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -482,6 +508,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
         return { speaker, language: language as PlachtaLanguage, speed };
       })(),
       cli: normalizeTtsCliSettings(r.tts?.cli),
+      autoRead: normalizeTtsAutoReadSettings(r.tts?.autoRead),
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
@@ -520,6 +547,10 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     for (const k of ['emoji', 'kaomoji', 'ascii_emoticon', 'emoji_shortcode'] as const) {
       if (typeof cfg.tts.cli.speech_filter?.[k] !== 'boolean') return `tts.cli.speech_filter.${k} は boolean である必要があります`;
     }
+  }
+  if (cfg.tts.autoRead !== undefined) {
+    if (typeof cfg.tts.autoRead.enabled !== 'boolean') return 'tts.autoRead.enabled は boolean である必要があります';
+    if (cfg.tts.autoRead.scope !== 'header' && cfg.tts.autoRead.scope !== 'full') return `tts.autoRead.scope が未知です: ${cfg.tts.autoRead.scope}`;
   }
   if (typeof cfg.office.enabled !== 'boolean') return 'office.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.office.enabledExtensions)) return 'office.enabledExtensions は配列である必要があります';
