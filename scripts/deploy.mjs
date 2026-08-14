@@ -11,6 +11,7 @@ const files = [
   { src: 'main.js', dst: 'main.js' },
   { src: 'src/manifest.json', dst: 'manifest.json' },
   { src: 'styles.css', dst: 'styles.css' },
+  { src: 'versions.json', dst: 'versions.json' },
 ];
 for (const { src, dst } of files) {
   copyFileSync(join(process.cwd(), src), join(dest, dst));
