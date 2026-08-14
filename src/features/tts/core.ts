@@ -191,6 +191,19 @@ const ENGINE_CHUNK_LIMITS: Record<TtsEngine, number | null> = {
 export async function addTextToTTS(_app: App | null, text: string, settings: TtsSettings): Promise<boolean> {
   const noticeFn = (m: string): void => { new Notice(m); };
 
+  // 生成中/再生中の進行状況を永続 Notice で表示するヘルパー（null で非表示）
+  let progress: Notice | null = null;
+  const showProgress = (msg: string | null): void => {
+    if (msg === null) {
+      progress?.hide();
+      progress = null;
+    } else if (progress) {
+      progress.setMessage(msg);
+    } else {
+      progress = new Notice(msg, 0);
+    }
+  };
+
   const limit = ENGINE_CHUNK_LIMITS[settings.engine];
   const chunks = limit !== null && text.length > limit ? chunkText(text, limit) : [text];
   if (chunks.length > 1) {
@@ -198,26 +211,19 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   }
 
   // v0.10.0 UAT: plachta はパイプライン再生（次のチャンクを先行合成してギャップ解消）
-  // 生成中/再生中の進行状況を永続 Notice で表示（null で非表示）
   if (settings.engine === 'plachta') {
-    let progress: Notice | null = null;
-    return plachtaSpeakChunksPipelined(chunks, settings, noticeFn, (msg) => {
-      if (msg === null) {
-        progress?.hide();
-        progress = null;
-      } else if (progress) {
-        progress.setMessage(msg);
-      } else {
-        progress = new Notice(msg, 0);
-      }
-    });
+    return plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress);
   }
 
-  return speakChunks(chunks, async (chunk) => {
+  // edge / webspeech: 操作中はプログレス表示（edge は合成+再生を1プロセスで行うため期間中表示）
+  showProgress(settings.engine === 'edge' ? '⏳ 音声生成中…' : '▶ 読み上げ中…');
+  const result = await speakChunks(chunks, async (chunk) => {
     // v0.8.0: edge = claude-tts スクリプト経由、webspeech = ブラウザ API
     if (settings.engine === 'edge') {
       return claudettsHttpSpeak(chunk, settings, noticeFn);
     }
     return webSpeechSpeak(chunk, settings, noticeFn);
   });
+  showProgress(null);
+  return result;
 }

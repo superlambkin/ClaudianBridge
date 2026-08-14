@@ -8,7 +8,13 @@ import { PLACHTA_DEFAULT_SPEAKER } from '../../../src/features/tts/plachta-tts';
 
 // ── mocks ──────────────────────────────────────────────────────────────────
 // Notice: replace with a spy so we can assert toast messages.
-const { noticeMock } = vi.hoisted(() => ({ noticeMock: vi.fn() }));
+// new Notice(msg, dur) は hide/setMessage を持つインスタンスを返す（プログレス表示対応）。
+const { noticeMock } = vi.hoisted(() => ({
+  noticeMock: vi.fn().mockImplementation((_msg: string, _dur?: number) => ({
+    setMessage: vi.fn(),
+    hide: vi.fn(),
+  })),
+}));
 vi.mock('obsidian', () => ({ Notice: noticeMock }));
 
 // child_process.spawn: controllable per test.
@@ -154,14 +160,16 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     expect(child.stdin.end).toHaveBeenCalled();
   });
 
-  it('exit 0 + empty stderr/stdout → true', async () => {
+  it('exit 0 + empty stderr/stdout → true（エラー通知なし・プログレスは表示される）', async () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
 
     const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
     child.emit('close', 0);
     await expect(p).resolves.toBe(true);
-    expect(noticeMock).not.toHaveBeenCalled();
+    // エラー通知（⚠️）は出ない。プログレス（⏳/▶）は出る。
+    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
+    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⏳'))).toBe(true);
   });
 
   it('exit 0 + stderr usage string → false (無音失敗検出)', async () => {
