@@ -16,6 +16,7 @@ import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/D
 import { registerObjectContextMenu } from './features/object';
 import { registerClaudeQuota, unregisterClaudeQuota } from './features/quota/index';
 import { runTtsMigration } from './core/migrator';
+import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS } from './core/settings';
 import * as path from 'path';
 import { initDiagAuto, diag, installGlobalErrorHandlers } from './core/diag';
 
@@ -124,23 +125,29 @@ export default class ClaudianBridgePlugin extends Plugin {
           const imported = await voiceSync.importFromVoiceConfig();
           if (imported) {
             const current = this.store.load();
-            // 既存 tts.enabled がデフォルトのままならインポート値を採用（それ以外は既存優先）
+            // 既存 tts.enabled/engine がデフォルトのままならインポート値を採用（それ以外は既存優先）
+            // cli は既存に無い新設フィールドなのでインポート値を採用
             const merged = {
               ...current,
               tts: {
                 ...current.tts,
-                ...imported.tts,
-                // voices は current を優先（ユーザー設定を壊さない）
+                enabled: current.tts.enabled === DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts.enabled
+                  ? (imported.tts?.enabled ?? current.tts.enabled)
+                  : current.tts.enabled,
+                engine: current.tts.engine === DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts.engine
+                  ? (imported.tts?.engine ?? current.tts.engine)
+                  : current.tts.engine,
+                // voices / plachta は常に既存優先（ユーザー設定を壊さない）
                 voices: current.tts.voices,
+                plachta: current.tts.plachta,
+                cli: imported.tts?.cli ?? current.tts.cli,
               },
             };
-            this.store.save(merged);
-            const cfgAfter = this.store.load();
             this.store.save({
-              ...cfgAfter,
+              ...merged,
               general: {
-                ...cfgAfter.general,
-                migratedFrom: { ...cfgAfter.general.migratedFrom, claudeTtsSettings: true },
+                ...merged.general,
+                migratedFrom: { ...merged.general.migratedFrom, claudeTtsSettings: true },
               },
             });
             console.log('[claudian-bridge] imported voice-config.json → tts settings');
