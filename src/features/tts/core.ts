@@ -127,6 +127,8 @@ export async function webSpeechSpeak(text: string, settings: TtsSettings, notice
     const u = new Ctor(text) as {
       voice?: { name?: string } | null;
       lang?: string;
+      onend?: (() => void) | null;
+      onerror?: ((e: unknown) => void) | null;
     };
     // Priority: 選択中エンジンの voices[lang] → matched voice → lang fallback
     const lang = pickWebSpeechLang(text);
@@ -140,17 +142,27 @@ export async function webSpeechSpeak(text: string, settings: TtsSettings, notice
       u.lang = lang;
     }
     return await new Promise<boolean>((resolve) => {
-      (u as unknown as { onerror: (e: unknown) => void }).onerror = () => {
-        noticeFn('⚠️ Web Speech 再生エラー');
-        resolve(false);
+      let settled = false;
+      let timeout: ReturnType<typeof setTimeout>;
+      const settle = (v: boolean): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        resolve(v);
       };
+      u.onend = () => settle(true);
+      u.onerror = (e) => {
+        console.error('[WebSpeech error]', e);
+        noticeFn('⚠️ Web Speech 再生エラー');
+        settle(false);
+      };
+      // ブラウザによっては onend が発火しない環境があるため 30 秒ガード
+      timeout = setTimeout(() => settle(false), 30_000);
       try {
         synth.speak(u as unknown as SpeechSynthesisUtterance);
-        // Web Speech has no exit event; resolve optimistically after a tick
-        setTimeout(() => resolve(true), 100);
       } catch (e) {
         noticeFn(`⚠️ Web Speech 失敗: ${(e as Error).message}`);
-        resolve(false);
+        settle(false);
       }
     });
   } catch (e) {

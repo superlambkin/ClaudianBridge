@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as path from 'path';
 import * as os from 'os';
-import { addTextToTTS } from '../../../src/features/tts/core';
+import { addTextToTTS, webSpeechSpeak } from '../../../src/features/tts/core';
 import type { TtsSettings } from '../../../src/features/tts/core';
 import { plachtaTtsSpeak } from '../../../src/features/tts/plachta-tts';
 import { PLACHTA_DEFAULT_SPEAKER } from '../../../src/features/tts/plachta-tts';
@@ -194,6 +194,74 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     expect(noticeMock).toHaveBeenCalledWith(
       expect.stringContaining('Web SpeechSynthesis API が利用できません'),
     );
+  });
+});
+
+describe('webSpeechSpeak (v0.10.0 onend fix)', () => {
+  // Node には window が無いため、最小の window モックを作る。
+  // speak() は渡された utterance を保持し、テストから onend を発火できるようにする。
+  function mockWindowWithSpeech() {
+    let lastUtterance: { onend?: (() => void) | null } | null = null;
+    const synth = {
+      cancel: vi.fn(),
+      getVoices: vi.fn(() => []),
+      speak: vi.fn((_u: unknown) => {
+        lastUtterance = _u as typeof lastUtterance;
+      }),
+    };
+    (globalThis as unknown as { window: unknown }).window = {
+      speechSynthesis: synth,
+      SpeechSynthesisUtterance: class {
+        voice: { name?: string } | null = null;
+        lang = '';
+        onend: (() => void) | null = null;
+        onerror: ((e: unknown) => void) | null = null;
+        constructor(_t: string) { /* noop */ }
+      },
+    };
+    return {
+      synth,
+      fireEnd: () => lastUtterance?.onend?.(),
+    };
+  }
+
+  afterEach(() => {
+    delete (globalThis as unknown as { window?: unknown }).window;
+  });
+
+  it('onend 発火後に true を返す（100ms 待たない）', async () => {
+    vi.useFakeTimers();
+    try {
+      const { synth, fireEnd } = mockWindowWithSpeech();
+      const notice = vi.fn();
+      let resolved: boolean | undefined;
+      const p = webSpeechSpeak('こんにちは', makeSettings('webspeech'), notice).then((v) => { resolved = v; });
+      // 旧実装（setTimeout 100ms）はここで resolve してしまうため FAIL する
+      await vi.advanceTimersByTimeAsync(200);
+      expect(resolved).toBeUndefined();
+      fireEnd();
+      await p;
+      expect(resolved).toBe(true);
+      expect(synth.speak).toHaveBeenCalledTimes(1);
+      expect(notice).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('onerror 発火時は false を返す', async () => {
+    const { synth } = mockWindowWithSpeech();
+    const notice = vi.fn();
+    // SpeechSynthesisUtterance の onerror を発火するため、speak を上書き
+    const orig = synth.speak;
+    synth.speak = vi.fn((_u: unknown) => {
+      const u = _u as { onerror?: (e: unknown) => void };
+      u.onerror?.(new Error('boom'));
+    });
+    const result = await webSpeechSpeak('こんにちは', makeSettings('webspeech'), notice);
+    expect(result).toBe(false);
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('Web Speech 再生エラー'));
+    orig.mockClear();
   });
 });
 
