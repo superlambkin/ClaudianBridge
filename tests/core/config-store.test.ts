@@ -130,3 +130,25 @@ describe('ConfigStore', () => {
     }
   }, 10000);
 });
+
+describe('onSave subscriber (v0.10.0)', () => {
+  it('save() 成功時に listener が呼ばれる', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cb-config-'));
+    const file = join(dir, 'data.json');
+    const store = new ConfigStore(file);
+    const listener = vi.fn();
+    store.onSave(listener);
+    store.save({ ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ general: expect.objectContaining({ enabled: true }) }));
+  });
+
+  it('listener が throw しても save は成功する', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cb-config-'));
+    const file = join(dir, 'data.json');
+    const store = new ConfigStore(file);
+    store.onSave(() => { throw new Error('listener boom'); });
+    expect(() => store.save({ ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS })).not.toThrow();
+    expect(fs.existsSync(file)).toBe(true);
+  });
+});

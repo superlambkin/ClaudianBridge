@@ -16,6 +16,7 @@ export class ConfigStore {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSelfWrite = 0;
   private lastMtimeMs: number | null = null;
+  private saveListeners: Array<(cfg: ClaudianBridgeSettings) => void> = [];
 
   constructor(configPath: string = defaultConfigPath()) {
     this.configPath = configPath;
@@ -45,6 +46,13 @@ export class ConfigStore {
     fs.writeFileSync(tmpPath, JSON.stringify(cfg, null, 2) + '\n', 'utf-8');
     fs.renameSync(tmpPath, this.configPath);
     this.lastSelfWrite = Date.now();
+    for (const l of this.saveListeners) {
+      try { l(cfg); } catch { /* listener エラーは保存動作を妨げない */ }
+    }
+  }
+
+  onSave(listener: (cfg: ClaudianBridgeSettings) => void): void {
+    this.saveListeners.push(listener);
   }
 
   watch(onExternalChange: (cfg: ClaudianBridgeSettings) => void): void {
