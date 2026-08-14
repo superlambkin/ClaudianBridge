@@ -131,6 +131,41 @@ describe('setupAutoReadTTS', () => {
     expect(noticeFn.mock.calls[0][0]).toContain('自動読み上げ');
   });
 
+  it('realclaudian 実構造: view.getTabManager().callbacks に hook して発火する', async () => {
+    // realclaudian 本体の実測構造: view 自体には callbacks も onStreamingChanged も無く、
+    // callbacks は view.getTabManager().callbacks にある（v0.11.0 不発火の根因）
+    const view = makeView(REPORT_HTML);
+    delete (view as Record<string, unknown>).callbacks;
+    const tmCallbacks: { onTabStreamingChanged?: (id: string, streaming: boolean) => void } = {};
+    (view as Record<string, unknown>).getTabManager = () => ({ callbacks: tmCallbacks });
+    const { app } = makeApp([view]);
+    const speak = vi.fn(async () => true);
+    setupAutoReadTTS({ app, store: makeStore(), speak });
+    tmCallbacks.onTabStreamingChanged!('t', true);
+    tmCallbacks.onTabStreamingChanged!('t', false);
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    expect(speak.mock.calls[0][0]).toContain('📢 テストタスクを完了しました。');
+  });
+
+  it('同一 view 内の複数 tab は tabId 単位で遷移判定される', async () => {
+    const view = makeView(REPORT_HTML);
+    delete (view as Record<string, unknown>).callbacks;
+    const tmCallbacks: { onTabStreamingChanged?: (id: string, streaming: boolean) => void } = {};
+    (view as Record<string, unknown>).getTabManager = () => ({ callbacks: tmCallbacks });
+    const { app } = makeApp([view]);
+    const speak = vi.fn(async () => true);
+    setupAutoReadTTS({ app, store: makeStore(), speak });
+    tmCallbacks.onTabStreamingChanged!('tabA', true);
+    tmCallbacks.onTabStreamingChanged!('tabB', true);
+    tmCallbacks.onTabStreamingChanged!('tabA', false); // tabA 完了 → 1 回目
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    // タブ切替を模して新規メッセージ DOM を再構築（実運用では tab 切替で再描画される）
+    const messages = view.containerEl.querySelector('.claudian-messages')!;
+    messages.innerHTML = REPORT_HTML;
+    tmCallbacks.onTabStreamingChanged!('tabB', false); // tabB 完了 → 2 回目
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
+  });
+
   it('realclaudian 未インストール → 静かに何もしない', () => {
     const app = {
       plugins: { plugins: {} },

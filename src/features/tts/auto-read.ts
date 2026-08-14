@@ -12,15 +12,24 @@ import type { SpeakFn } from './speak-coordinator';
  *
  * realclaudian 内部構造（main.js 実測、プロパティ名は minify 後も維持）:
  * - app.plugins.plugins['realclaudian'].getAllViews() / getView()
- * - view.callbacks.onTabStreamingChanged(tabId, isStreaming)  ← 第一 hook ポイント
- * - view.onStreamingChanged(conversationId, isStreaming)      ← フォールバック
+ * - view.getTabManager().callbacks.onTabStreamingChanged(tabId, isStreaming)  ← hook ポイント
+ *   ※ view 自体には callbacks も onStreamingChanged も存在しない（v0.11.0 不発火の根因）。
+ *   tabManager は view.onOpen() のたびに再生成されるため、scan を都度実行して
+ *   未 hook の tabManager.callbacks を検出する。
  * ⚠️ realclaudian アップグレード後は上記を grep 复核すること。
  */
 
+interface RealClaudianTabManagerCallbacks {
+  onTabStreamingChanged?: (tabId: string, streaming: boolean) => void;
+}
+
 interface RealClaudianView {
   containerEl?: Element;
-  callbacks?: { onTabStreamingChanged?: (tabId: string, streaming: boolean) => void };
+  /** v0.11.0 以前の想定（実在せず・後方互換のフォールバックとして残す） */
+  callbacks?: RealClaudianTabManagerCallbacks;
   onStreamingChanged?: (conversationId: string, streaming: boolean) => void;
+  /** 実測: callbacks を保持するのは tabManager */
+  getTabManager?: () => { callbacks?: RealClaudianTabManagerCallbacks } | null;
 }
 
 interface RealClaudianPlugin {
@@ -38,8 +47,9 @@ export interface AutoReadDeps {
 export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
   const notice = deps.noticeFn ?? ((m: string) => { new Notice(m); });
   const enqueue = createLatestWinsSpeaker(deps.speak);
-  const hooked = new WeakSet<object>();
-  const prevStreaming = new WeakMap<object, boolean>();
+  const hooked = new WeakSet<RealClaudianTabManagerCallbacks>();
+  /** 遷移判定は view 単位ではなく tabId 単位（同一 view 内の複数 tab で独立 strmeming するため） */
+  const prevStreaming = new Map<string, boolean>();
   const restores: Array<() => void> = [];
   let warned = false;
 
@@ -57,9 +67,9 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
     return [];
   };
 
-  const onStreamState = (view: RealClaudianView, streaming: boolean): void => {
-    const prev = prevStreaming.get(view) ?? false;
-    prevStreaming.set(view, streaming);
+  const onStreamState = (view: RealClaudianView, tabId: string, streaming: boolean): void => {
+    const prev = prevStreaming.get(tabId) ?? false;
+    prevStreaming.set(tabId, streaming);
     if (streaming || prev === streaming) return; // true→false 遷移のみ
     try {
       const cfg = deps.store.load();
@@ -81,28 +91,39 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
     console.warn('[claudian-bridge] auto-read: hook point not found (realclaudian upgraded?)');
   };
 
+  const hookCallbacks = (view: RealClaudianView, cbs: RealClaudianTabManagerCallbacks): void => {
+    if (hooked.has(cbs)) return;
+    const orig = cbs.onTabStreamingChanged;
+    cbs.onTabStreamingChanged = (tabId, streaming) => {
+      orig?.call(cbs, tabId, streaming);
+      onStreamState(view, tabId, streaming);
+    };
+    hooked.add(cbs);
+    restores.push(() => { cbs.onTabStreamingChanged = orig; });
+  };
+
   const hookView = (view: RealClaudianView): void => {
-    if (hooked.has(view)) return;
-    // 第一候補: callbacks.onTabStreamingChanged をチェーン
+    // 第一候補（実測構造）: view.getTabManager().callbacks をチェーン
+    try {
+      const tm = typeof view.getTabManager === 'function' ? view.getTabManager() : null;
+      if (tm?.callbacks && typeof tm.callbacks === 'object') {
+        hookCallbacks(view, tm.callbacks);
+        return;
+      }
+    } catch { /* view 破棄済み等は次の候補へ */ }
+    // 後方互換: view 直下の callbacks（実在しないが旧想定構造）
     if (view.callbacks && typeof view.callbacks === 'object') {
-      const cbs = view.callbacks;
-      const orig = cbs.onTabStreamingChanged;
-      cbs.onTabStreamingChanged = (tabId, streaming) => {
-        orig?.call(cbs, tabId, streaming);
-        onStreamState(view, streaming);
-      };
-      hooked.add(view);
-      restores.push(() => { cbs.onTabStreamingChanged = orig; });
+      hookCallbacks(view, view.callbacks);
       return;
     }
-    // フォールバック: onStreamingChanged メソッドをラップ
+    // フォールバック: view.onStreamingChanged メソッドをラップ（tabId が無いので view 単位）
     if (typeof view.onStreamingChanged === 'function') {
       const orig = view.onStreamingChanged.bind(view);
       view.onStreamingChanged = (conversationId, streaming) => {
         orig(conversationId, streaming);
-        onStreamState(view, streaming);
+        onStreamState(view, conversationId, streaming);
       };
-      hooked.add(view);
+      hooked.add(view as unknown as RealClaudianTabManagerCallbacks);
       restores.push(() => { view.onStreamingChanged = orig; });
       return;
     }
