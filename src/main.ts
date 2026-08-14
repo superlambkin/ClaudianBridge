@@ -5,6 +5,7 @@ import { setupSelectionWatcher } from './features/selection/watcher';
 import { setupCodeCopyFence } from './features/code-copy-fence';
 import { addFolderToClaudian } from './features/selection/core';
 import { addTextToTTS } from './features/tts/core';
+import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { migrateFromLegacy } from './legacy/migration';
 import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
 import { OfficeMenuRegistrar } from './features/office/menu';
@@ -113,6 +114,53 @@ export default class ClaudianBridgePlugin extends Plugin {
         return;
       }
 
+      // ★ v0.10.0: Claude Code CLI 用 voice-config.json 同期
+      const voiceSync = new VoiceConfigSync(this.store);
+
+      // 初回のみ既存 voice-config.json をインポート（その後は Claudian Bridge が SSOT）
+      try {
+        const cfgBefore = this.store.load();
+        if (!cfgBefore.general.migratedFrom.claudeTtsSettings) {
+          const imported = await voiceSync.importFromVoiceConfig();
+          if (imported) {
+            const current = this.store.load();
+            // 既存 tts.enabled がデフォルトのままならインポート値を採用（それ以外は既存優先）
+            const merged = {
+              ...current,
+              tts: {
+                ...current.tts,
+                ...imported.tts,
+                // voices は current を優先（ユーザー設定を壊さない）
+                voices: current.tts.voices,
+              },
+            };
+            this.store.save(merged);
+            const cfgAfter = this.store.load();
+            this.store.save({
+              ...cfgAfter,
+              general: {
+                ...cfgAfter.general,
+                migratedFrom: { ...cfgAfter.general.migratedFrom, claudeTtsSettings: true },
+              },
+            });
+            console.log('[claudian-bridge] imported voice-config.json → tts settings');
+          } else {
+            // voice-config.json が無い場合もフラグだけ立てる（再試行しない）
+            const cfgNo = this.store.load();
+            this.store.save({
+              ...cfgNo,
+              general: {
+                ...cfgNo.general,
+                migratedFrom: { ...cfgNo.general.migratedFrom, claudeTtsSettings: true },
+              },
+            });
+          }
+        }
+      } catch (e) {
+        diag('voiceConfig import ERROR', e);
+        console.warn('[claudian-bridge] voice-config import error:', e);
+      }
+
       // 4. 機能登録
       const cleanupSelection = setupSelectionWatcher(this.app, this.store, async (text) => {
         const cfg = this.store.load();
@@ -122,6 +170,14 @@ export default class ClaudianBridgePlugin extends Plugin {
       });
       this.register(cleanupSelection);
       diag('selection watcher registered');
+
+      // ★ v0.10.0: 保存時に voice-config.json へエクスポート（Claudian Bridge が SSOT）
+      this.store.onSave((cfg) => {
+        void voiceSync.exportToVoiceConfig(cfg).catch((e) => {
+          console.warn('[claudian-bridge] voice-config export error:', e);
+        });
+      });
+      diag('voice-config onSave wired');
 
       // v0.9.0: Claudian チャットのコードコピーにフェンスを付与（設定 OFF 時は無効）
       this.register(setupCodeCopyFence(this.store));
