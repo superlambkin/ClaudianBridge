@@ -80,6 +80,13 @@ export interface LocaleStrings {
   ttsCliFilterKaomoji: string;
   ttsCliFilterAscii: string;
   ttsCliFilterShortcode: string;
+  ttsAutoReadHeading: string;
+  ttsAutoReadEnabled: string;
+  ttsAutoReadEnabledDesc: string;
+  ttsAutoReadScope: string;
+  ttsAutoReadScopeDesc: string;
+  ttsAutoReadScopeHeader: string;
+  ttsAutoReadScopeFull: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -278,6 +285,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsCliFilterKaomoji: '顔文字 (kaomoji)',
     ttsCliFilterAscii: 'ASCII 表情',
     ttsCliFilterShortcode: 'Emoji 短コード',
+    ttsAutoReadHeading: '📢 タスク終了時の自動読み上げ',
+    ttsAutoReadEnabled: '🔊 自動読み上げ',
+    ttsAutoReadEnabledDesc: 'タスク終了報告（📢）を検出して自動で読み上げ',
+    ttsAutoReadScope: '📏 読み上げ範囲',
+    ttsAutoReadScopeDesc: 'ヘッダーのみ: 📢 ブロックのみ / 全文: 報告メッセージ全体',
+    ttsAutoReadScopeHeader: '📢 ヘッダーのみ',
+    ttsAutoReadScopeFull: '📄 メッセージ全文',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -474,6 +488,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsCliFilterKaomoji: 'Kaomoji',
     ttsCliFilterAscii: 'ASCII emoticon',
     ttsCliFilterShortcode: 'Emoji shortcode',
+    ttsAutoReadHeading: '📢 Auto-read task completion',
+    ttsAutoReadEnabled: '🔊 Auto-read',
+    ttsAutoReadEnabledDesc: 'Detect task completion report (📢) and read it aloud',
+    ttsAutoReadScope: '📏 Reading scope',
+    ttsAutoReadScopeDesc: 'Header only: 📢 blockquote / Full: entire report message',
+    ttsAutoReadScopeHeader: '📢 Header only',
+    ttsAutoReadScopeFull: '📄 Full message',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -665,6 +686,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsCliFilterKaomoji: '颜文字 (kaomoji)',
     ttsCliFilterAscii: 'ASCII 表情',
     ttsCliFilterShortcode: 'Emoji 短代码',
+    ttsAutoReadHeading: '📢 任务完成时自动朗读',
+    ttsAutoReadEnabled: '🔊 自动朗读',
+    ttsAutoReadEnabledDesc: '检测到任务完成报告（📢）时自动朗读',
+    ttsAutoReadScope: '📏 朗读范围',
+    ttsAutoReadScopeDesc: '仅标题: 只读 📢 引用块 / 全文: 朗读整个报告消息',
+    ttsAutoReadScopeHeader: '📢 仅标题',
+    ttsAutoReadScopeFull: '📄 全文',
     ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
     ttsVoiceZh: '中文 (zh)',
     ttsVoiceJa: '日语 (ja)',

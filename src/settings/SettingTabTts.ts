@@ -12,7 +12,7 @@ import {
   PLACHTA_SPEED_MAX,
 } from '../features/tts/plachta-tts';
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
-import type { TtsCliSettings } from '../core/settings';
+import type { TtsCliSettings, TtsAutoReadSettings } from '../core/settings';
 
 const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   zh: ['xiaoxiao', 'yunxi', 'yunyang', 'yunjian', 'xiaoyi', 'yunxia'],
@@ -322,6 +322,34 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
           .setName(`🔇 ${label}`)
           .addToggle((t) => t.setValue(sf[key]).onChange((v) => saveCli({ speech_filter: { ...sf, [key]: v } })));
       }
+    }
+
+    // 7. v0.11.0: タスク終了時の自動読み上げ
+    {
+      const arBox = containerEl.createDiv({ cls: 'cb-tts-autoread' });
+      arBox.createEl('h3', { text: s.ttsAutoReadHeading });
+
+      const saveAutoRead = (patch: Partial<TtsAutoReadSettings>): void => {
+        const latest = store.load();
+        const base = latest.tts.autoRead ?? { enabled: true, scope: 'header' as const };
+        store.save({ ...latest, tts: { ...latest.tts, autoRead: { ...base, ...patch } } });
+        draw();
+      };
+
+      new Setting(arBox)
+        .setName(s.ttsAutoReadEnabled)
+        .setDesc(s.ttsAutoReadEnabledDesc)
+        .addToggle((t) => t.setValue(cfg.tts.autoRead?.enabled ?? true).onChange((v) => saveAutoRead({ enabled: v })));
+
+      new Setting(arBox)
+        .setName(s.ttsAutoReadScope)
+        .setDesc(s.ttsAutoReadScopeDesc)
+        .addDropdown((d) => {
+          d.addOption('header', s.ttsAutoReadScopeHeader);
+          d.addOption('full', s.ttsAutoReadScopeFull);
+          d.setValue(cfg.tts.autoRead?.scope ?? 'header');
+          d.onChange((v) => saveAutoRead({ scope: v as 'header' | 'full' }));
+        });
     }
 
     // 5. 削除注意文（旧 minimax 設定について）
