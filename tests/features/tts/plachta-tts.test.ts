@@ -172,12 +172,47 @@ describe('plachta-tts', () => {
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('空'));
   });
 
-  it('TC-P07: text が 1001 文字 → resolve(false) + too-long Notice', async () => {
+  it('TC-P07: text が 151 文字（実測上限150字超）→ resolve(false) + too-long Notice', async () => {
     const notice = vi.fn();
-    const longText = 'あ'.repeat(1001);
+    const longText = 'あ'.repeat(151);
     const result = await plachtaTtsSpeak(longText, makePlachtaSettings(), notice);
     expect(result).toBe(false);
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('長い'));
+  });
+
+  it('TC-P07b: text が 150 文字（実測上限ギリギリ）→ 検証を通過して API 呼び出しに進む', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ event_id: 'abc' }),
+    });
+    mockFetch.mockResolvedValueOnce(
+      makeSseResponse([
+        {
+          msg: 'process_completed',
+          event_id: 'abc',
+          output: { data: ['Success', { url: 'https://example.com/out.wav' }] },
+        },
+      ])
+    );
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(100),
+    });
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      onerror: () => void = () => {};
+      play(): Promise<void> { this.onended(); return Promise.resolve(); }
+    };
+
+    const notice = vi.fn();
+    const okText = 'あ'.repeat(150);
+    const result = await plachtaTtsSpeak(okText, makePlachtaSettings(), notice);
+    expect(result).toBe(true);
+    // POST 本文に 150 字が渡る
+    const postCall = mockFetch.mock.calls[0];
+    const body = JSON.parse(postCall[1].body);
+    expect(body.data[0].length).toBe(150);
   });
 
   it('TC-P08: speaker が空文字 → defaults で補完され resolve(true)', async () => {

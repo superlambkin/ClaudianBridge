@@ -178,12 +178,12 @@ export async function webSpeechSpeak(text: string, settings: TtsSettings, notice
 
 /**
  * エンジン別チャンク上限（文字数）。null = チャンキングしない。
- * - plachta: HF Space の 1000 文字制限に対し余裕を持たせ 900
+ * - plachta: HF Space の実測上限 150 字（2026-08-14 UAT 確認）に対し余裕を持たせ 140
  * - webspeech: Chrome の実効制限 ~250 文字に対し安全側 200
  * - edge: ClaudeTTS HTTP ブリッジ側で処理（制限なし）
  */
 const ENGINE_CHUNK_LIMITS: Record<TtsEngine, number | null> = {
-  plachta: 900,
+  plachta: 140,
   edge: null,
   webspeech: 200,
 };

@@ -10,7 +10,8 @@ export const PLACHTA_DEFAULT_SPEAKER = '特别周 Special Week (Umamusume Pretty
 export const PLACHTA_DEFAULT_LANGUAGE: PlachtaLanguage = '日本語';
 export const PLACHTA_DEFAULT_SPEED = 1.0;
 export const PLACHTA_TIMEOUT_MS = 60_000;
-export const PLACHTA_TEXT_MAX_LENGTH = 1000;
+// 実測 (2026-08-14 UAT): HF Space の実際の上限は 150 字。151 字以上は "Error: Text is too long" を返す。
+export const PLACHTA_TEXT_MAX_LENGTH = 150;
 export const PLACHTA_SPEED_MIN = 0.5;
 export const PLACHTA_SPEED_MAX = 2.0;
 
