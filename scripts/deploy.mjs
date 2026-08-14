@@ -1,20 +1,15 @@
-import { copyFileSync, mkdirSync } from 'fs';
-import { join } from 'path';
+#!/usr/bin/env node
+/**
+ * Deploy Claudian Bridge build artifacts to the Obsidian vault.
+ * Thin wrapper around the shared deploy tool in D:\AI-Agent\_devtools.
+ */
+import { spawnSync } from "child_process";
+import { fileURLToPath } from "url";
 
-const dest = join(
-  'C:', 'Users', 'superlambkin', 'OneDrive', 'Edge', 'Obsidian Vault',
-  '.obsidian', 'plugins', 'claudian-bridge'
+const shared = fileURLToPath(new URL("../../_devtools/obsidian-deploy.mjs", import.meta.url));
+const result = spawnSync(
+  process.execPath,
+  [shared, "claudian-bridge", "--markers", "Claudian Bridge,claudian-bridge"],
+  { stdio: "inherit" }
 );
-
-mkdirSync(dest, { recursive: true });
-const files = [
-  { src: 'main.js', dst: 'main.js' },
-  { src: 'src/manifest.json', dst: 'manifest.json' },
-  { src: 'styles.css', dst: 'styles.css' },
-  { src: 'versions.json', dst: 'versions.json' },
-];
-for (const { src, dst } of files) {
-  copyFileSync(join(process.cwd(), src), join(dest, dst));
-  console.log(`✅ ${src} -> ${dest}/${dst}`);
-}
-console.log('🎉 Deploy complete. Enable "Claudian Bridge" in Obsidian Community Plugins.');
+process.exit(result.status ?? 1);

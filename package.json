@@ -4,7 +4,7 @@
   "description": "Unified Claudian integration: text-to-Claudian, TTS, Office-to-Markdown, extension whitelist",
   "main": "main.js",
   "scripts": {
-    "build": "node esbuild.config.mjs production",
+    "build": "node esbuild.config.mjs production && node scripts/deploy.mjs",
     "dev": "node esbuild.config.mjs",
     "test": "vitest run",
     "deploy": "node scripts/deploy.mjs",
