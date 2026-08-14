@@ -198,8 +198,19 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   }
 
   // v0.10.0 UAT: plachta はパイプライン再生（次のチャンクを先行合成してギャップ解消）
+  // 生成中/再生中の進行状況を永続 Notice で表示（null で非表示）
   if (settings.engine === 'plachta') {
-    return plachtaSpeakChunksPipelined(chunks, settings, noticeFn);
+    let progress: Notice | null = null;
+    return plachtaSpeakChunksPipelined(chunks, settings, noticeFn, (msg) => {
+      if (msg === null) {
+        progress?.hide();
+        progress = null;
+      } else if (progress) {
+        progress.setMessage(msg);
+      } else {
+        progress = new Notice(msg, 0);
+      }
+    });
   }
 
   return speakChunks(chunks, async (chunk) => {

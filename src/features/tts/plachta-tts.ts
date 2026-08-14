@@ -177,24 +177,36 @@ export async function plachtaTtsSpeak(
  * チャンク配列をパイプライン再生する。
  * チャンク N の再生中にチャンク N+1 の合成を先行開始し、チャンク間ギャップを最小化する。
  * v0.10.0 UAT 追加: Plachta の合成遅延（~4-5s）による無音ギャップ解消。
+ *
+ * @param onProgress 進行状況コールバック。null で非表示（完了/失敗時）、文字列で表示更新。
  */
 export async function plachtaSpeakChunksPipelined(
   chunks: string[],
   settings: TtsSettings,
-  noticeFn: (m: string) => void
+  noticeFn: (m: string) => void,
+  onProgress?: (msg: string | null) => void,
 ): Promise<boolean> {
   if (chunks.length === 0) return true;
+  onProgress?.('⏳ 音声生成中…');
   let pending = plachtaSynthesize(chunks[0], settings, noticeFn);
   for (let i = 0; i < chunks.length; i++) {
     const url = await pending;
-    if (url === null) return false;
+    if (url === null) {
+      onProgress?.(null);
+      return false;
+    }
     if (i + 1 < chunks.length) {
       // 現在のチャンクを再生している間に次のチャンクを合成開始
       pending = plachtaSynthesize(chunks[i + 1], settings, noticeFn);
     }
+    if (i === 0) onProgress?.('▶ 読み上げ中…');
     const ok = await playObjectUrl(url, noticeFn);
-    if (!ok) return false;
+    if (!ok) {
+      onProgress?.(null);
+      return false;
+    }
   }
+  onProgress?.(null);
   return true;
 }
 

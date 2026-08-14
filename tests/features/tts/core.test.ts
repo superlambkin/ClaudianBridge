@@ -273,11 +273,12 @@ describe('plachtaSpeakChunksPipelined (via addTextToTTS, v0.10.0)', () => {
     const p = addTextToTTS(null as never, 'こんにちは', makePlachtaSettings());
     await p;
 
-    // plachtaSpeakChunksPipelined がチャンク配列と settings を受け取って呼ばれた
+    // plachtaSpeakChunksPipelined がチャンク配列と settings + noticeFn + onProgress を受け取って呼ばれた
     expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
     expect(plachtaSpeakChunksPipelined).toHaveBeenCalledWith(
       ['こんにちは'],
       expect.objectContaining({ engine: 'plachta' }),
+      expect.any(Function),
       expect.any(Function),
     );
     // spawn (edge 経路) は呼ばれない

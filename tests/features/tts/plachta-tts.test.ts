@@ -389,4 +389,47 @@ describe('plachtaSpeakChunksPipelined (v0.10.0 パイプライン再生)', () =>
     expect(result).toBe(false);
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('再生'));
   });
+
+  it('TC-PL4: onProgress が 生成中→読み上げ中→null の順で呼ばれる', async () => {
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ event_id: 'e0' }) });
+    mockFetch.mockResolvedValueOnce(
+      makeSseResponse([
+        { msg: 'process_completed', event_id: 'e0', output: { data: ['Success', { url: 'https://example.com/0.wav' }] } },
+      ]),
+    );
+    mockFetch.mockResolvedValueOnce({ ok: true, arrayBuffer: async () => new ArrayBuffer(100) });
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      onerror: () => void = () => {};
+      play(): Promise<void> { this.onended(); return Promise.resolve(); }
+    };
+
+    const notice = vi.fn();
+    const progress = vi.fn();
+    const result = await plachtaSpeakChunksPipelined(
+      ['あ'.repeat(140)],
+      makePlachtaSettings(),
+      notice,
+      progress,
+    );
+    expect(result).toBe(true);
+    expect(progress.mock.calls.map((c) => c[0])).toEqual(['⏳ 音声生成中…', '▶ 読み上げ中…', null]);
+  });
+
+  it('TC-PL5: 合成失敗時は onProgress(null) が呼ばれる', async () => {
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+    const notice = vi.fn();
+    const progress = vi.fn();
+    const result = await plachtaSpeakChunksPipelined(
+      ['あ'.repeat(140)],
+      makePlachtaSettings(),
+      notice,
+      progress,
+    );
+    expect(result).toBe(false);
+    expect(progress).toHaveBeenLastCalledWith(null);
+  });
 });
