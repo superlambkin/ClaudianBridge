@@ -96,6 +96,8 @@ export class VoiceConfigSync {
       full_text: cli.full_text,
     };
     await fs.promises.mkdir(path.dirname(this.voiceConfigPath), { recursive: true });
-    await fs.promises.writeFile(this.voiceConfigPath, JSON.stringify(vc, null, 2) + '\n', 'utf-8');
+    const tmp = this.voiceConfigPath + '.tmp';
+    await fs.promises.writeFile(tmp, JSON.stringify(vc, null, 2) + '\n', 'utf-8');
+    await fs.promises.rename(tmp, this.voiceConfigPath);
   }
 }

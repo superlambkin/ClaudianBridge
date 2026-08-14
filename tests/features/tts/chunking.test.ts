@@ -25,6 +25,10 @@ describe('chunkText', () => {
     expect(chunks).toEqual(['あ'.repeat(20), 'あ'.repeat(20), 'あ'.repeat(10)]);
   });
 
+  it('maxChunkSize が 0 以下でもクラッシュしない', () => {
+    expect(chunkText('あいう', 0)).toEqual(['あいう']);
+  });
+
   it('改行も区切りとして扱う', () => {
     // max=4 で各行が独立チャンクになる
     const text = '一行目\n二行目\n三行目';

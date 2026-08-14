@@ -137,8 +137,16 @@ export default class ClaudianBridgePlugin extends Plugin {
                 engine: current.tts.engine === DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts.engine
                   ? (imported.tts?.engine ?? current.tts.engine)
                   : current.tts.engine,
-                // voices / plachta は常に既存優先（ユーザー設定を壊さない）
-                voices: current.tts.voices,
+                // plachta は常に既存優先（voices は edge がデフォルトのままならインポート値を採用）
+                voices: {
+                  ...current.tts.voices,
+                  edge:
+                    current.tts.voices.edge.zh === DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts.voices.edge.zh &&
+                    current.tts.voices.edge.ja === DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts.voices.edge.ja &&
+                    current.tts.voices.edge.en === DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts.voices.edge.en
+                      ? (imported.tts?.voices?.edge ?? current.tts.voices.edge)
+                      : current.tts.voices.edge,
+                },
                 plachta: current.tts.plachta,
                 cli: imported.tts?.cli ?? current.tts.cli,
               },

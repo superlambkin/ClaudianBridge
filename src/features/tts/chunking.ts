@@ -17,6 +17,7 @@ export const DEFAULT_DELIMITERS = ['。', '！', '？', '.', '!', '?', '\n'];
  */
 export function chunkText(text: string, maxChunkSize: number, delimiters: string[] = DEFAULT_DELIMITERS): string[] {
   if (text.length <= maxChunkSize) return [text];
+  if (maxChunkSize <= 0) return [text];
 
   const delimiterSet = new Set(delimiters);
   const chunks: string[] = [];
