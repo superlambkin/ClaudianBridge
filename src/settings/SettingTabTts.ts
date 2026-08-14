@@ -86,6 +86,32 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             // 現在の値が presets にない場合は先頭に挿入
             if (current && !presets.includes(current)) d.addOption(current, `🔧 ${current}`);
             d.setValue(current && (presets.includes(current) || current === '') ? current : '');
+            // ★ v0.10.0 UAT fix: 音色変更を保存（onChange が欠落していた表示専用バグ）
+            d.onChange(async (v) => {
+              try {
+                const latest = store.load();
+                // この行は edge / webspeech エンジンのみ描画されるため型を絞る
+                const engine = latest.tts.engine as 'edge' | 'webspeech';
+                store.save({
+                  ...latest,
+                  tts: {
+                    ...latest.tts,
+                    voices: {
+                      ...latest.tts.voices,
+                      [engine]: {
+                        ...latest.tts.voices[engine],
+                        [langKey]: v,
+                      },
+                    },
+                  },
+                });
+                new Notice(s.noticeSaved);
+                draw();
+              } catch (e) {
+                new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+                draw();
+              }
+            });
           })
           .addButton((b) => b
             .setButtonText(s.ttsTestButton)
