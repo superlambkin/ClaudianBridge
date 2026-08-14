@@ -57,19 +57,23 @@ function resolveSettings(settings: TtsSettings): PlachtaEffectiveSettings {
   return { speaker, language, speed };
 }
 
-export async function plachtaTtsSpeak(
+/**
+ * テキストを音声合成して blob object URL を返す（再生はしない）。
+ * 失敗時は null を返す。v0.10.0 UAT: パイプライン再生（先行合成）用に合成と再生を分離。
+ */
+export async function plachtaSynthesize(
   text: string,
   settings: TtsSettings,
   noticeFn: (m: string) => void
-): Promise<boolean> {
+): Promise<string | null> {
   // Validate text
   if (!text || text.trim() === '') {
     noticeFn('⚠️ テキストが空です');
-    return false;
+    return null;
   }
   if (text.length > PLACHTA_TEXT_MAX_LENGTH) {
     noticeFn(`⚠️ テキストが長いです（${PLACHTA_TEXT_MAX_LENGTH} 文字以下推奨）`);
-    return false;
+    return null;
   }
 
   const { speaker, language, speed } = resolveSettings(settings);
@@ -94,12 +98,12 @@ export async function plachtaTtsSpeak(
     });
     if (!postRes.ok) {
       noticeFn(`⚠️ Plachta API 失敗 (HTTP ${postRes.status})`);
-      return false;
+      return null;
     }
     const postJson = (await postRes.json()) as { event_id?: string };
     if (!postJson.event_id) {
       noticeFn('⚠️ Plachta API: event_id を取得できませんでした');
-      return false;
+      return null;
     }
     eventId = postJson.event_id;
   } catch (e) {
@@ -108,33 +112,39 @@ export async function plachtaTtsSpeak(
     } else {
       noticeFn(`⚠️ Plachta API エラー: ${(e as Error).message}`);
     }
-    return false;
+    return null;
   }
 
   // Step 2: SSE /gradio_api/queue/data で process_completed を待つ
   const wavUrl = await waitForSseResult(eventId, sessionHash, noticeFn);
   if (!wavUrl) {
-    return false;
+    return null;
   }
 
-  // Step 3: Fetch wav
-  let wavBytes: ArrayBuffer;
+  // Step 3: Fetch wav → blob → object URL
   try {
     const wavRes = await fetch(wavUrl);
     if (!wavRes.ok) {
       noticeFn(`⚠️ 音声ファイル取得失敗 (HTTP ${wavRes.status})`);
-      return false;
+      return null;
     }
-    wavBytes = await wavRes.arrayBuffer();
+    const wavBytes = await wavRes.arrayBuffer();
+    const blob = new Blob([wavBytes], { type: 'audio/wav' });
+    return URL.createObjectURL(blob);
   } catch (e) {
     noticeFn(`⚠️ 音声取得エラー: ${(e as Error).message}`);
-    return false;
+    return null;
   }
+}
 
-  // Step 4: Play via Audio
+/**
+ * 合成済み blob object URL を再生する。終了時に URL を revoke する。
+ */
+export async function playObjectUrl(
+  url: string,
+  noticeFn: (m: string) => void
+): Promise<boolean> {
   try {
-    const blob = new Blob([wavBytes], { type: 'audio/wav' });
-    const url = URL.createObjectURL(blob);
     const audio = new Audio();
     audio.src = url;
     return await new Promise<boolean>((resolve) => {
@@ -150,6 +160,42 @@ export async function plachtaTtsSpeak(
     noticeFn(`⚠️ 再生準備失敗: ${(e as Error).message}`);
     return false;
   }
+}
+
+/** 単一チャンク読み上げ（既存互換のための薄いラッパー） */
+export async function plachtaTtsSpeak(
+  text: string,
+  settings: TtsSettings,
+  noticeFn: (m: string) => void
+): Promise<boolean> {
+  const url = await plachtaSynthesize(text, settings, noticeFn);
+  if (url === null) return false;
+  return playObjectUrl(url, noticeFn);
+}
+
+/**
+ * チャンク配列をパイプライン再生する。
+ * チャンク N の再生中にチャンク N+1 の合成を先行開始し、チャンク間ギャップを最小化する。
+ * v0.10.0 UAT 追加: Plachta の合成遅延（~4-5s）による無音ギャップ解消。
+ */
+export async function plachtaSpeakChunksPipelined(
+  chunks: string[],
+  settings: TtsSettings,
+  noticeFn: (m: string) => void
+): Promise<boolean> {
+  if (chunks.length === 0) return true;
+  let pending = plachtaSynthesize(chunks[0], settings, noticeFn);
+  for (let i = 0; i < chunks.length; i++) {
+    const url = await pending;
+    if (url === null) return false;
+    if (i + 1 < chunks.length) {
+      // 現在のチャンクを再生している間に次のチャンクを合成開始
+      pending = plachtaSynthesize(chunks[i + 1], settings, noticeFn);
+    }
+    const ok = await playObjectUrl(url, noticeFn);
+    if (!ok) return false;
+  }
+  return true;
 }
 
 /**

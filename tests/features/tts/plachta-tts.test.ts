@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   plachtaTtsSpeak,
+  plachtaSpeakChunksPipelined,
   PLACHTA_DEFAULT_SPEAKER,
   PLACHTA_PRESETS,
   PLACHTA_SPACE_URL,
@@ -290,5 +291,102 @@ describe('plachta-tts', () => {
       expect(preset.speaker).toBeTruthy();
       expect(['日本語', '简体中文', 'English', 'Mix']).toContain(preset.language);
     }
+  });
+});
+
+describe('plachtaSpeakChunksPipelined (v0.10.0 パイプライン再生)', () => {
+  /** 2 チャンク分の fetch シーケンス（join / SSE / wav × 2）を返す */
+  function makeTwoChunkFetchSequence(): Array<unknown> {
+    return [
+      // chunk0
+      { ok: true, json: async () => ({ event_id: 'e0' }) },
+      makeSseResponse([
+        { msg: 'process_completed', event_id: 'e0', output: { data: ['Success', { url: 'https://example.com/0.wav' }] } },
+      ]),
+      { ok: true, arrayBuffer: async () => new ArrayBuffer(100) },
+      // chunk1
+      { ok: true, json: async () => ({ event_id: 'e1' }) },
+      makeSseResponse([
+        { msg: 'process_completed', event_id: 'e1', output: { data: ['Success', { url: 'https://example.com/1.wav' }] } },
+      ]),
+      { ok: true, arrayBuffer: async () => new ArrayBuffer(100) },
+    ];
+  }
+
+  it('TC-PL1: チャンク0 の再生中に チャンク1 の合成（4回目のfetch）が開始済みである', async () => {
+    makeTwoChunkFetchSequence().forEach((r) => mockFetch.mockResolvedValueOnce(r));
+
+    let playCount = 0;
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      onerror: () => void = () => {};
+      play(): Promise<void> {
+        playCount++;
+        if (playCount === 1) {
+          // 1回目の再生時点で chunk1 の join POST（4回目の fetch）が開始済みのはず
+          expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(4);
+        }
+        this.onended();
+        return Promise.resolve();
+      }
+    };
+
+    const notice = vi.fn();
+    const result = await plachtaSpeakChunksPipelined(
+      ['あ'.repeat(140), 'い'.repeat(140)],
+      makePlachtaSettings(),
+      notice,
+    );
+    expect(result).toBe(true);
+    expect(playCount).toBe(2);
+    expect(mockFetch).toHaveBeenCalledTimes(6);
+  });
+
+  it('TC-PL2: チャンクを順に全再生し、全合成失敗時は false', async () => {
+    makeTwoChunkFetchSequence().forEach((r) => mockFetch.mockResolvedValueOnce(r));
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      onerror: () => void = () => {};
+      play(): Promise<void> { this.onended(); return Promise.resolve(); }
+    };
+
+    const notice = vi.fn();
+    const ok = await plachtaSpeakChunksPipelined(
+      ['あ'.repeat(140), 'い'.repeat(140)],
+      makePlachtaSettings(),
+      notice,
+    );
+    expect(ok).toBe(true);
+
+    // 失敗系: 1チャンク目が合成失敗（join HTTP 500）
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+    const bad = await plachtaSpeakChunksPipelined(
+      ['あ'.repeat(140)],
+      makePlachtaSettings(),
+      notice,
+    );
+    expect(bad).toBe(false);
+  });
+
+  it('TC-PL3: チャンク0 再生失敗（onerror）で中断して false', async () => {
+    makeTwoChunkFetchSequence().forEach((r) => mockFetch.mockResolvedValueOnce(r));
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      onerror: () => void = () => {};
+      play(): Promise<void> { this.onerror(); return Promise.reject(new Error('play rejected')); }
+    };
+
+    const notice = vi.fn();
+    const result = await plachtaSpeakChunksPipelined(
+      ['あ'.repeat(140), 'い'.repeat(140)],
+      makePlachtaSettings(),
+      notice,
+    );
+    expect(result).toBe(false);
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('再生'));
   });
 });

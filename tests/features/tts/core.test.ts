@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { addTextToTTS, webSpeechSpeak } from '../../../src/features/tts/core';
 import type { TtsSettings } from '../../../src/features/tts/core';
-import { plachtaTtsSpeak } from '../../../src/features/tts/plachta-tts';
+import { plachtaSpeakChunksPipelined } from '../../../src/features/tts/plachta-tts';
 import { PLACHTA_DEFAULT_SPEAKER } from '../../../src/features/tts/plachta-tts';
 
 // ── mocks ──────────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ vi.mock('../../../src/features/tts/plachta-tts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/features/tts/plachta-tts')>();
   return {
     ...actual,
-    plachtaTtsSpeak: vi.fn(),
+    plachtaSpeakChunksPipelined: vi.fn(),
   };
 });
 
@@ -98,8 +98,8 @@ function makePlachtaSettings(): TtsSettings {
 beforeEach(() => {
   spawnMock.mockReset();
   noticeMock.mockClear();
-  vi.mocked(plachtaTtsSpeak).mockReset();
-  vi.mocked(plachtaTtsSpeak).mockResolvedValue(true);
+  vi.mocked(plachtaSpeakChunksPipelined).mockReset();
+  vi.mocked(plachtaSpeakChunksPipelined).mockResolvedValue(true);
 });
 
 // ── helper: window モック（webSpeechSpeak / TC-L04 用）──────────────────────
@@ -268,15 +268,15 @@ describe('webSpeechSpeak (v0.10.0 onend fix)', () => {
   });
 });
 
-describe('plachtaTtsSpeak (via addTextToTTS, v0.8.0)', () => {
-  it('TC-N01: engine === "plachta" → plachtaTtsSpeak が呼ばれ spawn されない', async () => {
+describe('plachtaSpeakChunksPipelined (via addTextToTTS, v0.10.0)', () => {
+  it('TC-N01: engine === "plachta" → plachtaSpeakChunksPipelined が呼ばれ spawn されない', async () => {
     const p = addTextToTTS(null as never, 'こんにちは', makePlachtaSettings());
     await p;
 
-    // plachtaTtsSpeak が text と settings を受け取って呼ばれた
-    expect(plachtaTtsSpeak).toHaveBeenCalledTimes(1);
-    expect(plachtaTtsSpeak).toHaveBeenCalledWith(
-      'こんにちは',
+    // plachtaSpeakChunksPipelined がチャンク配列と settings を受け取って呼ばれた
+    expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
+    expect(plachtaSpeakChunksPipelined).toHaveBeenCalledWith(
+      ['こんにちは'],
       expect.objectContaining({ engine: 'plachta' }),
       expect.any(Function),
     );
@@ -284,30 +284,28 @@ describe('plachtaTtsSpeak (via addTextToTTS, v0.8.0)', () => {
     expect(spawnMock).not.toHaveBeenCalled();
   });
 
-  it('TC-N01 続き: plachtaTtsSpeak が false を返したら dispatcher 全体も false を返す', async () => {
-    vi.mocked(plachtaTtsSpeak).mockResolvedValueOnce(false);
+  it('TC-N01 続き: plachtaSpeakChunksPipelined が false を返したら dispatcher 全体も false を返す', async () => {
+    vi.mocked(plachtaSpeakChunksPipelined).mockResolvedValueOnce(false);
     const p = addTextToTTS(null as never, 'こんにちは', makePlachtaSettings());
     await expect(p).resolves.toBe(false);
-    expect(plachtaTtsSpeak).toHaveBeenCalledTimes(1);
+    expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('addTextToTTS chunking (v0.10.0)', () => {
-  it('TC-L01: plachta 1001文字 → 140字チャンクに分割して複数回 plachtaTtsSpeak を呼ぶ（実測制限150字）', async () => {
-    const longText = 'あ'.repeat(1001);
-    const p = addTextToTTS(null as never, longText, makePlachtaSettings());
-    await p;
-    // 1001 = 140×7 + 21 → 8 チャンク
-    expect(plachtaTtsSpeak).toHaveBeenCalledTimes(8);
-    const calls = vi.mocked(plachtaTtsSpeak).mock.calls.map((c) => c[0] as string);
-    expect(calls.slice(0, 7).every((c) => c.length === 140)).toBe(true);
-    expect(calls[7].length).toBe(21);
+  it('TC-L01: plachta 1001文字 → 140字×7+21 = 8チャンクを plachtaSpeakChunksPipelined に渡す（実測制限150字）', async () => {
+    await addTextToTTS(null as never, 'あ'.repeat(1001), makePlachtaSettings());
+    expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
+    const chunks = vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0];
+    expect(chunks.length).toBe(8);
+    expect(chunks.slice(0, 7).every((c) => c.length === 140)).toBe(true);
+    expect(chunks[7].length).toBe(21);
   });
 
-  it('TC-L02: plachta 140文字以下は分割しない（1回だけ）', async () => {
-    const shortText = 'あ'.repeat(140);
-    await addTextToTTS(null as never, shortText, makePlachtaSettings());
-    expect(plachtaTtsSpeak).toHaveBeenCalledTimes(1);
+  it('TC-L02: plachta 140文字以下は分割しない（1チャンク）', async () => {
+    await addTextToTTS(null as never, 'あ'.repeat(140), makePlachtaSettings());
+    expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0].length).toBe(1);
   });
 
   it('TC-L03: edge はチャンキングしない（制限 null）', async () => {

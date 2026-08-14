@@ -4,7 +4,7 @@ import { spawn } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
 import type { PlachtaSettings, TtsEngine } from '../../core/settings';
-import { plachtaTtsSpeak } from './plachta-tts';
+import { plachtaSpeakChunksPipelined } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
 
 type NoticeFn = (m: string) => void;
@@ -197,11 +197,13 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
     console.log(`[claudian-bridge TTS] chunking: ${text.length} chars → ${chunks.length} chunks (engine: ${settings.engine})`);
   }
 
+  // v0.10.0 UAT: plachta はパイプライン再生（次のチャンクを先行合成してギャップ解消）
+  if (settings.engine === 'plachta') {
+    return plachtaSpeakChunksPipelined(chunks, settings, noticeFn);
+  }
+
   return speakChunks(chunks, async (chunk) => {
-    // v0.8.0: edge = claude-tts スクリプト経由、webspeech = ブラウザ API、plachta = HF Space HTTP API
-    if (settings.engine === 'plachta') {
-      return plachtaTtsSpeak(chunk, settings, noticeFn);
-    }
+    // v0.8.0: edge = claude-tts スクリプト経由、webspeech = ブラウザ API
     if (settings.engine === 'edge') {
       return claudettsHttpSpeak(chunk, settings, noticeFn);
     }
