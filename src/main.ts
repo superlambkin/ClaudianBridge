@@ -5,6 +5,7 @@ import { setupSelectionWatcher } from './features/selection/watcher';
 import { setupCodeCopyFence } from './features/code-copy-fence';
 import { addFolderToClaudian } from './features/selection/core';
 import { addTextToTTS } from './features/tts/core';
+import { setupAutoReadTTS } from './features/tts/auto-read';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { migrateFromLegacy } from './legacy/migration';
 import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
@@ -185,6 +186,19 @@ export default class ClaudianBridgePlugin extends Plugin {
       });
       this.register(cleanupSelection);
       diag('selection watcher registered');
+
+      // ★ v0.11.0: タスク終了時の自動読み上げ（📢 報告検出）
+      const cleanupAutoRead = setupAutoReadTTS({
+        app: this.app,
+        store: this.store,
+        speak: async (text) => {
+          const cfg = this.store.load();
+          if (!cfg.tts.enabled || cfg.tts.autoRead?.enabled === false) return false;
+          return addTextToTTS(this.app, text, cfg.tts);
+        },
+      });
+      this.register(cleanupAutoRead);
+      diag('auto-read registered');
 
       // ★ v0.10.0: 保存時に voice-config.json へエクスポート（Claudian Bridge が SSOT）
       this.store.onSave((cfg) => {
