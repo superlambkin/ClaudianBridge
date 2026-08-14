@@ -26,9 +26,17 @@ describe('chunkText', () => {
   });
 
   it('改行も区切りとして扱う', () => {
+    // max=4 で各行が独立チャンクになる
     const text = '一行目\n二行目\n三行目';
-    const chunks = chunkText(text, 10);
+    const chunks = chunkText(text, 4);
     expect(chunks).toEqual(['一行目\n', '二行目\n', '三行目']);
+  });
+
+  it('短い文は max まで詰める（パッキング）', () => {
+    const chunks = chunkText('あ。'.repeat(30), 20);
+    expect(chunks.length).toBe(3); // 10 units per chunk = 20 chars
+    expect(chunks.every((c) => c.length <= 20)).toBe(true);
+    expect(chunks.every((c) => c.endsWith('。'))).toBe(true);
   });
 });
 

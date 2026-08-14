@@ -3,6 +3,8 @@
  *
  * エンジン別の文字数制限（Plachta 1000 / WebSpeech ~250）に対応するため、
  * テキストを自然な区切り（句読点・改行）で分割する。
+ * 「区切りまでの自然単位（atomic unit）」を max までパッキングすることで、
+ * 長文でも API 呼び出し回数を最小化する。
  */
 
 /** デフォルト区切り文字（日本語・英語の句読点 + 改行） */
@@ -10,43 +12,48 @@ export const DEFAULT_DELIMITERS = ['。', '！', '？', '.', '!', '?', '\n'];
 
 /**
  * テキストを maxChunkSize 以下にチャンキングする。
- * 句読点・改行を優先し、それでも超える場合は強制分割する。
+ * 句読点・改行で区切った自然単位（unit = text + 後続 delimiter）を
+ * maxChunkSize までパッキングし、それでも超える単位はハード分割する。
  */
 export function chunkText(text: string, maxChunkSize: number, delimiters: string[] = DEFAULT_DELIMITERS): string[] {
   if (text.length <= maxChunkSize) return [text];
 
+  const delimiterSet = new Set(delimiters);
   const chunks: string[] = [];
   let current = '';
-  // 文字クラス内では . ? ! 等はリテラル扱いのためエスケープ不要
+  let unit = ''; // text + 後続 delimiter の自然な区切り単位
+
+  // split-with-captures: text / delimiter が交互に並ぶ
   const segments = text.split(new RegExp(`([${delimiters.join('')}])`, 'g'));
 
-  for (const seg of segments) {
-    if (seg.length === 0) continue;
-
-    if (current.length + seg.length > maxChunkSize) {
-      if (current.length > 0) {
-        chunks.push(current);
-        current = '';
-      }
-      // セグメント自体が max 超ならハード分割
-      let rest = seg;
+  const flushUnit = (): void => {
+    // 単位自体が max 超ならハード分割
+    if (unit.length > maxChunkSize) {
+      if (current.length > 0) { chunks.push(current); current = ''; }
+      let rest = unit;
       while (rest.length > maxChunkSize) {
         chunks.push(rest.slice(0, maxChunkSize));
         rest = rest.slice(maxChunkSize);
       }
-      current = rest;
-    } else {
-      current += seg;
+      unit = rest;
     }
-
-    // 区切り文字で終わったらその場でチャンクを確定する
-    if (delimiters.includes(current[current.length - 1])) {
+    // current に足すと max 超なら current を確定
+    if (current.length > 0 && current.length + unit.length > maxChunkSize) {
       chunks.push(current);
       current = '';
     }
-  }
+    current += unit;
+    unit = '';
+  };
 
+  for (const seg of segments) {
+    if (seg.length === 0) continue;
+    unit += seg;
+    if (delimiterSet.has(seg)) flushUnit();
+  }
+  if (unit.length > 0) flushUnit();
   if (current.length > 0) chunks.push(current);
+
   return chunks;
 }
 
