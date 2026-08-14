@@ -68,6 +68,18 @@ export interface LocaleStrings {
   ttsPlachtaOffline: string;
   ttsPlachtaTimeout: string;
   ttsPlachtaTooLong: string;
+  ttsCliHeading: string;
+  ttsCliFullText: string;
+  ttsCliFullTextDesc: string;
+  ttsCliMaxChars: string;
+  ttsCliMaxCharsDesc: string;
+  ttsCliDebounceMs: string;
+  ttsCliDebounceMsDesc: string;
+  ttsCliFilterHeading: string;
+  ttsCliFilterEmoji: string;
+  ttsCliFilterKaomoji: string;
+  ttsCliFilterAscii: string;
+  ttsCliFilterShortcode: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -254,6 +266,18 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsPlachtaOffline: '⚠️ ネット接続を確認してください',
     ttsPlachtaTimeout: '⚠️ タイムアウト（60秒）',
     ttsPlachtaTooLong: '⚠️ テキストが長いです',
+    ttsCliHeading: '🖥️ Claude Code CLI 用設定',
+    ttsCliFullText: '📖 全文読み上げ',
+    ttsCliFullTextDesc: 'ON で最大文字数制限なし（voice-config.json に同期）',
+    ttsCliMaxChars: '📏 最大文字数',
+    ttsCliMaxCharsDesc: 'これを超えるテキストは CLI 側で読み上げない',
+    ttsCliDebounceMs: '⏱️ 防抖窓 (ms)',
+    ttsCliDebounceMsDesc: 'CLI 連続応答時の読み上げ抑制時間',
+    ttsCliFilterHeading: '🔇 朗读文案优化',
+    ttsCliFilterEmoji: 'Emoji 絵文字',
+    ttsCliFilterKaomoji: '颜文字 (kaomoji)',
+    ttsCliFilterAscii: 'ASCII 表情',
+    ttsCliFilterShortcode: 'Emoji 短碼',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -438,6 +462,18 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsPlachtaOffline: '⚠️ Check network',
     ttsPlachtaTimeout: '⚠️ Timeout (60s)',
     ttsPlachtaTooLong: '⚠️ Text too long',
+    ttsCliHeading: '🖥️ Claude Code CLI Settings',
+    ttsCliFullText: '📖 Full-text reading',
+    ttsCliFullTextDesc: 'Read full text ignoring max_chars (synced to voice-config.json)',
+    ttsCliMaxChars: '📏 Max chars',
+    ttsCliMaxCharsDesc: 'Texts longer than this are not read by CLI',
+    ttsCliDebounceMs: '⏱️ Debounce (ms)',
+    ttsCliDebounceMsDesc: 'Debounce window for consecutive CLI responses',
+    ttsCliFilterHeading: '🔇 Speech text optimization',
+    ttsCliFilterEmoji: 'Emoji',
+    ttsCliFilterKaomoji: 'Kaomoji',
+    ttsCliFilterAscii: 'ASCII emoticon',
+    ttsCliFilterShortcode: 'Emoji shortcode',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -617,6 +653,18 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsPlachtaOffline: '⚠️ 请检查网络连接',
     ttsPlachtaTimeout: '⚠️ 超时（60秒）',
     ttsPlachtaTooLong: '⚠️ 文本过长',
+    ttsCliHeading: '🖥️ Claude Code CLI 用设置',
+    ttsCliFullText: '📖 全文朗读',
+    ttsCliFullTextDesc: '开启后无最大字数限制（同步到 voice-config.json）',
+    ttsCliMaxChars: '📏 最大字数',
+    ttsCliMaxCharsDesc: '超过该字数的文本 CLI 端不朗读',
+    ttsCliDebounceMs: '⏱️ 防抖窗口 (ms)',
+    ttsCliDebounceMsDesc: 'CLI 连续响应的朗读抑制时间',
+    ttsCliFilterHeading: '🔇 朗读文案优化',
+    ttsCliFilterEmoji: 'Emoji 表情',
+    ttsCliFilterKaomoji: '颜文字 (kaomoji)',
+    ttsCliFilterAscii: 'ASCII 表情',
+    ttsCliFilterShortcode: 'Emoji 短代码',
     ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
     ttsVoiceZh: '中文 (zh)',
     ttsVoiceJa: '日语 (ja)',

@@ -12,6 +12,7 @@ import {
   PLACHTA_SPEED_MAX,
 } from '../features/tts/plachta-tts';
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
+import type { TtsCliSettings } from '../core/settings';
 
 const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   zh: ['xiaoxiao', 'yunxi', 'yunyang', 'yunjian', 'xiaoyi', 'yunxia'],
@@ -239,6 +240,62 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             await addTextToTTS(app, SAMPLE_TEXT.ja, latest.tts);
           }),
         );
+    }
+
+    // 6. v0.10.0: Claude Code CLI 用設定（voice-config.json と同期）
+    {
+      const cliBox = containerEl.createDiv({ cls: 'cb-tts-cli' });
+      cliBox.createEl('h3', { text: s.ttsCliHeading });
+
+      const saveCli = (patch: Partial<TtsCliSettings>): void => {
+        const latest = store.load();
+        const base = latest.tts.cli ?? { full_text: false, max_chars: 300, debounce_ms: 2000, speech_filter: { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true } };
+        store.save({ ...latest, tts: { ...latest.tts, cli: { ...base, ...patch } } });
+        draw();
+      };
+
+      new Setting(cliBox)
+        .setName(s.ttsCliFullText)
+        .setDesc(s.ttsCliFullTextDesc)
+        .addToggle((t) => t.setValue(cfg.tts.cli?.full_text ?? false).onChange((v) => saveCli({ full_text: v })));
+
+      new Setting(cliBox)
+        .setName(s.ttsCliMaxChars)
+        .setDesc(s.ttsCliMaxCharsDesc)
+        .addText((t) => t
+          .setValue(String(cfg.tts.cli?.max_chars ?? 300))
+          .onChange((v) => {
+            const n = Number(v);
+            if (!Number.isInteger(n) || n <= 0) return;
+            saveCli({ max_chars: n });
+          }),
+        );
+
+      new Setting(cliBox)
+        .setName(s.ttsCliDebounceMs)
+        .setDesc(s.ttsCliDebounceMsDesc)
+        .addText((t) => t
+          .setValue(String(cfg.tts.cli?.debounce_ms ?? 2000))
+          .onChange((v) => {
+            const n = Number(v);
+            if (!Number.isInteger(n) || n < 0) return;
+            saveCli({ debounce_ms: n });
+          }),
+        );
+
+      const sf = cfg.tts.cli?.speech_filter ?? { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true };
+      cliBox.createEl('h4', { text: s.ttsCliFilterHeading });
+      const filterItems: Array<[keyof typeof sf, string]> = [
+        ['emoji', s.ttsCliFilterEmoji],
+        ['kaomoji', s.ttsCliFilterKaomoji],
+        ['ascii_emoticon', s.ttsCliFilterAscii],
+        ['emoji_shortcode', s.ttsCliFilterShortcode],
+      ];
+      for (const [key, label] of filterItems) {
+        new Setting(cliBox)
+          .setName(`🔇 ${label}`)
+          .addToggle((t) => t.setValue(sf[key]).onChange((v) => saveCli({ speech_filter: { ...sf, [key]: v } })));
+      }
     }
 
     // 5. 削除注意文（旧 minimax 設定について）
