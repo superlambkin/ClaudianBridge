@@ -288,3 +288,39 @@ describe('plachtaTtsSpeak (via addTextToTTS, v0.8.0)', () => {
     expect(plachtaTtsSpeak).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('addTextToTTS chunking (v0.10.0)', () => {
+  it('TC-L01: plachta 1001文字 → 900字チャンクに分割して複数回 plachtaTtsSpeak を呼ぶ', async () => {
+    const longText = 'あ'.repeat(1001);
+    const p = addTextToTTS(null as never, longText, makePlachtaSettings());
+    await p;
+    expect(plachtaTtsSpeak).toHaveBeenCalledTimes(2);
+    const first = vi.mocked(plachtaTtsSpeak).mock.calls[0][0];
+    const second = vi.mocked(plachtaTtsSpeak).mock.calls[1][0];
+    expect(first.length).toBe(900);
+    expect(second.length).toBe(101);
+  });
+
+  it('TC-L02: plachta 500文字以下は分割しない（1回だけ）', async () => {
+    const shortText = 'あ'.repeat(500);
+    await addTextToTTS(null as never, shortText, makePlachtaSettings());
+    expect(plachtaTtsSpeak).toHaveBeenCalledTimes(1);
+  });
+
+  it('TC-L03: edge はチャンキングしない（制限 null）', async () => {
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const longText = 'a'.repeat(5000);
+    const p = addTextToTTS(null as never, longText, makeSettings('edge'));
+    child.emit('close', 0);
+    await p;
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    expect(child.stdin.write).toHaveBeenCalledWith(longText);
+  });
+
+  it('TC-L04: webspeech は 201文字以上を 200字チャンクに分割する（Node では false で終わる）', async () => {
+    // Node 環境では webSpeechSpeak が false を返すため、2 チャンク目で false になる
+    const longText = 'こ'.repeat(450);
+    await expect(addTextToTTS(null as never, longText, makeSettings('webspeech'))).resolves.toBe(false);
+  });
+});

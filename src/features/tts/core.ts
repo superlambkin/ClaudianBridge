@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as os from 'os';
 import type { PlachtaSettings, TtsEngine } from '../../core/settings';
 import { plachtaTtsSpeak } from './plachta-tts';
+import { chunkText, speakChunks } from './chunking';
 
 type NoticeFn = (m: string) => void;
 
@@ -175,14 +176,35 @@ export async function webSpeechSpeak(text: string, settings: TtsSettings, notice
  * Dispatcher
  * ========================================================================== */
 
+/**
+ * エンジン別チャンク上限（文字数）。null = チャンキングしない。
+ * - plachta: HF Space の 1000 文字制限に対し余裕を持たせ 900
+ * - webspeech: Chrome の実効制限 ~250 文字に対し安全側 200
+ * - edge: ClaudeTTS HTTP ブリッジ側で処理（制限なし）
+ */
+const ENGINE_CHUNK_LIMITS: Record<TtsEngine, number | null> = {
+  plachta: 900,
+  edge: null,
+  webspeech: 200,
+};
+
 export async function addTextToTTS(_app: App | null, text: string, settings: TtsSettings): Promise<boolean> {
   const noticeFn = (m: string): void => { new Notice(m); };
-  // v0.8.0: edge = claude-tts スクリプト経由、webspeech = ブラウザ API、plachta = HF Space HTTP API
-  if (settings.engine === 'plachta') {
-    return plachtaTtsSpeak(text, settings, noticeFn);
+
+  const limit = ENGINE_CHUNK_LIMITS[settings.engine];
+  const chunks = limit !== null && text.length > limit ? chunkText(text, limit) : [text];
+  if (chunks.length > 1) {
+    console.log(`[claudian-bridge TTS] chunking: ${text.length} chars → ${chunks.length} chunks (engine: ${settings.engine})`);
   }
-  if (settings.engine === 'edge') {
-    return claudettsHttpSpeak(text, settings, noticeFn);
-  }
-  return webSpeechSpeak(text, settings, noticeFn);
+
+  return speakChunks(chunks, async (chunk) => {
+    // v0.8.0: edge = claude-tts スクリプト経由、webspeech = ブラウザ API、plachta = HF Space HTTP API
+    if (settings.engine === 'plachta') {
+      return plachtaTtsSpeak(chunk, settings, noticeFn);
+    }
+    if (settings.engine === 'edge') {
+      return claudettsHttpSpeak(chunk, settings, noticeFn);
+    }
+    return webSpeechSpeak(chunk, settings, noticeFn);
+  });
 }
