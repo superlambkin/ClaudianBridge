@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const LEGACY_PLUGIN_IDS = ['claudian-selection-bridge', 'vault-office-bridge', 'extension-whitelist', 'chroma-inspector'];
+const LEGACY_PLUGIN_IDS = ['claudian-selection-bridge', 'vault-office-bridge', 'extension-whitelist', 'chroma-inspector', 'claude-tts-settings'];
 
 export interface DisableResult {
   disabled: string[];
