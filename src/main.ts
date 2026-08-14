@@ -2,6 +2,7 @@ import { Plugin, Notice, TFolder } from 'obsidian';
 import { ConfigStore } from './core/config-store';
 import { ClaudianBridgeSettingTab } from './settings/ClaudianBridgeSettingTab';
 import { setupSelectionWatcher } from './features/selection/watcher';
+import { setupCodeCopyFence } from './features/code-copy-fence';
 import { addFolderToClaudian } from './features/selection/core';
 import { addTextToTTS } from './features/tts/core';
 import { migrateFromLegacy } from './legacy/migration';
@@ -121,6 +122,10 @@ export default class ClaudianBridgePlugin extends Plugin {
       });
       this.register(cleanupSelection);
       diag('selection watcher registered');
+
+      // v0.9.0: Claudian チャットのコードコピーにフェンスを付与（設定 OFF 時は無効）
+      this.register(setupCodeCopyFence(this.store));
+      diag('code-copy-fence registered');
 
       // === v0.2.0: Object context menu ===
       registerObjectContextMenu(this, this.store);

@@ -257,6 +257,8 @@ export interface ClaudianBridgeSettings {
     quotaEnabled: boolean;
     quotaRefreshSec: number;
     quotaSwitchSec: number;  // v0.4.0: provider rotation interval
+    // v0.9.0: Claudian チャットのコードブロックコピー時に ``` フェンスを付与
+    codeCopyFence: boolean;
   };
   quota: QuotaSettings;
   selection: {
@@ -286,7 +288,7 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5 },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
@@ -338,6 +340,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       quotaEnabled: typeof r.general?.quotaEnabled === 'boolean' ? r.general.quotaEnabled : false,
       quotaRefreshSec: clampRefreshSec(r.general?.quotaRefreshSec),
       quotaSwitchSec: clampSwitchSec(r.general?.quotaSwitchSec),
+      codeCopyFence: typeof r.general?.codeCopyFence === 'boolean' ? r.general.codeCopyFence : true,
     },
     quota: {
       claudeSettingsPath: typeof r.quota?.claudeSettingsPath === 'string' && r.quota.claudeSettingsPath.trim() !== ''
@@ -436,6 +439,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
 
 export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): string | null {
   if (typeof cfg.general.enabled !== 'boolean') return 'general.enabled は boolean である必要があります';
+  if (typeof cfg.general.codeCopyFence !== 'boolean') return 'general.codeCopyFence は boolean である必要があります';
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';

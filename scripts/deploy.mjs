@@ -2,7 +2,7 @@ import { copyFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
 const dest = join(
-  'Z:', 'Obsidian Vault',
+  'C:', 'Users', 'superlambkin', 'OneDrive', 'Edge', 'Obsidian Vault',
   '.obsidian', 'plugins', 'claudian-bridge'
 );
 
