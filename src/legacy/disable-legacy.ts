@@ -11,7 +11,11 @@ export interface DisableResult {
 export function disableLegacyPluginsOnce(obsidianDir: string): DisableResult {
   const result: DisableResult = { disabled: [], renamed: [] };
   const flag = path.join(obsidianDir, '.obsidian', '.claudian-bridge.legacy-disabled');
-  if (fs.existsSync(flag)) return result;
+  // v0.11.1: claude-tts-settings を対象に追加したため、旧フラグでは新対象が未処理のまま残る。
+  // 対象プラグインが全て消えるまで再実行する（冪等: community-plugins.json の除去と rename は存在時のみ作用）
+  const flagV2 = path.join(obsidianDir, '.obsidian', '.claudian-bridge.legacy-disabled-v2');
+  const allGone = LEGACY_PLUGIN_IDS.every((id) => !fs.existsSync(path.join(obsidianDir, '.obsidian', 'plugins', id)));
+  if (fs.existsSync(flagV2) || (fs.existsSync(flag) && allGone)) return result;
 
   // 1. community-plugins.json 更新
   const cpPath = path.join(obsidianDir, '.obsidian', 'community-plugins.json');
@@ -30,7 +34,7 @@ export function disableLegacyPluginsOnce(obsidianDir: string): DisableResult {
   }
 
   // 2. フォルダを _disabled__ 接頭辞でリネーム（既に _disabled__ のものはスキップ）
-  for (const id of ['claudian-selection-bridge', 'vault-office-bridge', 'chroma-inspector']) {
+  for (const id of ['claudian-selection-bridge', 'vault-office-bridge', 'chroma-inspector', 'claude-tts-settings']) {
     const from = path.join(obsidianDir, '.obsidian', 'plugins', id);
     const to = path.join(obsidianDir, '.obsidian', 'plugins', '_disabled__' + id);
     if (fs.existsSync(from)) {
@@ -45,6 +49,7 @@ export function disableLegacyPluginsOnce(obsidianDir: string): DisableResult {
 
   // 3. フラグ作成
   fs.writeFileSync(flag, new Date().toISOString());
+  fs.writeFileSync(flagV2, new Date().toISOString());
 
   return result;
 }

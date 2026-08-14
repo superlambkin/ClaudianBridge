@@ -48,6 +48,21 @@ describe('disableLegacyPluginsOnce', () => {
     expect(result.renamed).toEqual([]);
   });
 
+  it('旧フラグのみで claude-tts-settings が残っている場合は再実行する (v0.11.1)', () => {
+    mkdirSync(join(dir, '.obsidian', 'plugins', 'claude-tts-settings'), { recursive: true });
+    writeFileSync(join(dir, '.obsidian', '.claudian-bridge.legacy-disabled'), '2026-08-10');
+    writeFileSync(
+      join(dir, '.obsidian', 'community-plugins.json'),
+      JSON.stringify({ plugins: ['claude-tts-settings', 'claudian-bridge'] })
+    );
+    const result = disableLegacyPluginsOnce(dir);
+    expect(result.disabled).toContain('claude-tts-settings');
+    expect(result.renamed).toContain('claude-tts-settings');
+    const cp = JSON.parse(readFileSync(join(dir, '.obsidian', 'community-plugins.json'), 'utf-8'));
+    expect(cp.plugins).toEqual(['claudian-bridge']);
+    expect(existsSync(join(dir, '.obsidian', 'plugins', '_disabled__claude-tts-settings'))).toBe(true);
+  });
+
   it('フラグファイルを作成する', () => {
     mkdirSync(join(dir, '.obsidian', 'plugins', 'claudian-selection-bridge'), { recursive: true });
     writeFileSync(
