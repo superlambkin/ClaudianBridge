@@ -3,6 +3,7 @@ import {
   plachtaTtsSpeak,
   PLACHTA_DEFAULT_SPEAKER,
   PLACHTA_PRESETS,
+  PLACHTA_SPACE_URL,
   type PlachtaSettings,
 } from '../../../src/features/tts/plachta-tts';
 import type { TtsSettings } from '../../../src/features/tts/core';
@@ -10,6 +11,23 @@ import type { TtsSettings } from '../../../src/features/tts/core';
 // グローバル fetch のモック
 const mockFetch = vi.fn();
 (globalThis as unknown as { fetch: typeof fetch }).fetch = mockFetch as unknown as typeof fetch;
+
+// SSE ストリームモック用ヘルパ（process_completed 等のイベント列を返す）
+function makeSseResponse(events: unknown[]): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      for (const ev of events) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(ev)}\n\n`));
+      }
+      controller.close();
+    },
+  });
+  return {
+    ok: true,
+    body: stream,
+  } as unknown as Response;
+}
 
 function makePlachtaSettings(overrides: Partial<PlachtaSettings> = {}): TtsSettings {
   return {
@@ -32,23 +50,31 @@ describe('plachta-tts', () => {
     mockFetch.mockReset();
   });
 
-  it('TC-P01: fetch 成功: event_id 取得 → poll → wav URL → fetch → resolve(true)', async () => {
-    // POST /call/tts_fn → event_id
+  it('TC-P01: Gradio 5.x 正常系: POST /gradio_api/queue/join → SSE process_completed → fetch wav → resolve(true)', async () => {
+    // Step 1: POST /gradio_api/queue/join → event_id
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ event_id: 'abc123' }),
     });
-    // GET /results (1回目: 処理中)
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: [null, null] }),
-    });
-    // GET /results (2回目: 完了)
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: ['ok', 'https://example.com/out.wav'] }),
-    });
-    // GET wav URL
+    // Step 2: GET SSE /gradio_api/queue/data (process_completed を含むストリーム)
+    mockFetch.mockResolvedValueOnce(
+      makeSseResponse([
+        { msg: 'estimation', event_id: 'abc123', rank: 0, queue_size: 1, rank_eta: 5.0 },
+        { msg: 'process_starts', event_id: 'abc123', eta: 5.0 },
+        {
+          msg: 'process_completed',
+          event_id: 'abc123',
+          output: {
+            data: [
+              'Success',
+              { path: '/tmp/gradio/abc/out.wav', url: 'https://example.com/out.wav', size: 12345 },
+            ],
+          },
+        },
+        { msg: 'close_stream', event_id: null },
+      ])
+    );
+    // Step 3: GET wav URL
     mockFetch.mockResolvedValueOnce({
       ok: true,
       arrayBuffer: async () => new ArrayBuffer(100),
@@ -70,28 +96,36 @@ describe('plachta-tts', () => {
     );
     expect(result).toBe(true);
     expect(notice).not.toHaveBeenCalled();
+
+    // POST が /gradio_api/queue/join に対するもの
+    const postCall = mockFetch.mock.calls[0];
+    expect(postCall[0]).toBe(`${PLACHTA_SPACE_URL}/gradio_api/queue/join`);
+    const postBody = JSON.parse(postCall[1].body);
+    expect(postBody.data).toEqual(['こんにちは', PLACHTA_DEFAULT_SPEAKER, '日本語', 1.0, false]);
+    expect(postBody.fn_index).toBeDefined();
+    expect(postBody.session_hash).toBeTypeOf('string');
+    expect(postBody.request_id).toBeTypeOf('string');
   });
 
-  it('TC-P03: poll 60 回タイムアウトで resolve(false) + Timeout Notice', async () => {
-    // 60 秒の setTimeout ループを高速化するため fake timers を使用
-    // （vitest デフォルト 5s timeout で現実時間待たないため）
+  it('TC-P03: SSE 60 秒タイムアウトで resolve(false) + Timeout Notice', async () => {
+    // fake timers で 60 秒待機を短縮
     vi.useFakeTimers();
     try {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ event_id: 'abc' }),
       });
-      // poll は毎回 [null, null]
-      for (let i = 0; i < 60; i++) {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: [null, null] }),
-        });
-      }
+      // SSE は close_stream 以外のイベントだけ送って完了しないストリーム
+      mockFetch.mockResolvedValueOnce(
+        makeSseResponse([
+          { msg: 'estimation', event_id: 'abc', rank: 0, queue_size: 1, rank_eta: 60.0 },
+          // process_completed を意図的に送らない
+        ])
+      );
 
       const notice = vi.fn();
       const promise = plachtaTtsSpeak('こんにちは', makePlachtaSettings(), notice);
-      // 60 秒 + 余裕で 65_000ms 進める（全 setTimeout を発火させる）
+      // 60 秒 + 余裕で 65_000ms 進める
       await vi.advanceTimersByTimeAsync(65_000);
       const result = await promise;
       expect(result).toBe(false);
@@ -101,7 +135,7 @@ describe('plachta-tts', () => {
     }
   });
 
-  it('TC-P04: POST /call/tts_fn が HTTP 500 → resolve(false) + HTTP 500 Notice', async () => {
+  it('TC-P04: POST /gradio_api/queue/join が HTTP 500 → resolve(false) + HTTP 500 Notice', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -151,10 +185,15 @@ describe('plachta-tts', () => {
       ok: true,
       json: async () => ({ event_id: 'abc' }),
     });
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: ['ok', 'https://example.com/out.wav'] }),
-    });
+    mockFetch.mockResolvedValueOnce(
+      makeSseResponse([
+        {
+          msg: 'process_completed',
+          event_id: 'abc',
+          output: { data: ['Success', { url: 'https://example.com/out.wav' }] },
+        },
+      ])
+    );
     mockFetch.mockResolvedValueOnce({
       ok: true,
       arrayBuffer: async () => new ArrayBuffer(100),
@@ -177,10 +216,15 @@ describe('plachta-tts', () => {
       ok: true,
       json: async () => ({ event_id: 'abc' }),
     });
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: ['ok', 'https://example.com/out.wav'] }),
-    });
+    mockFetch.mockResolvedValueOnce(
+      makeSseResponse([
+        {
+          msg: 'process_completed',
+          event_id: 'abc',
+          output: { data: ['Success', { url: 'https://example.com/out.wav' }] },
+        },
+      ])
+    );
     mockFetch.mockResolvedValueOnce({
       ok: true,
       arrayBuffer: async () => new ArrayBuffer(100),

@@ -9,11 +9,14 @@ export const PLACHTA_SPACE_URL = 'https://plachta-vits-umamusume-voice-synthesiz
 export const PLACHTA_DEFAULT_SPEAKER = '特别周 Special Week (Umamusume Pretty Derby)';
 export const PLACHTA_DEFAULT_LANGUAGE: PlachtaLanguage = '日本語';
 export const PLACHTA_DEFAULT_SPEED = 1.0;
-export const PLACHTA_POLL_INTERVAL_MS = 1000;
-export const PLACHTA_POLL_MAX_TIMES = 60;
+export const PLACHTA_TIMEOUT_MS = 60_000;
 export const PLACHTA_TEXT_MAX_LENGTH = 1000;
 export const PLACHTA_SPEED_MIN = 0.5;
 export const PLACHTA_SPEED_MAX = 2.0;
+
+// Gradio 5.x queue API: tts_fn は dependencies[2]、trigger は button id 24
+export const PLACHTA_FN_INDEX = 2;
+export const PLACHTA_TRIGGER_ID = 24;
 
 export interface PlachtaPreset {
   label: string;
@@ -70,19 +73,33 @@ export async function plachtaTtsSpeak(
 
   const { speaker, language, speed } = resolveSettings(settings);
 
-  // Step 1: POST /call/tts_fn
+  // Gradio 5.x の queue API では session_hash と request_id が必要（ランダム生成）
+  const sessionHash = generateHash();
+  const requestId = generateHash();
+
+  // Step 1: POST /gradio_api/queue/join → event_id
   let eventId: string;
   try {
-    const postRes = await fetch(`${PLACHTA_SPACE_URL}/call/tts_fn`, {
+    const postRes = await fetch(`${PLACHTA_SPACE_URL}/gradio_api/queue/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: [text, speaker, language, speed, false] }),
+      body: JSON.stringify({
+        data: [text, speaker, language, speed, false],
+        fn_index: PLACHTA_FN_INDEX,
+        trigger_id: PLACHTA_TRIGGER_ID,
+        session_hash: sessionHash,
+        request_id: requestId,
+      }),
     });
     if (!postRes.ok) {
       noticeFn(`⚠️ Plachta API 失敗 (HTTP ${postRes.status})`);
       return false;
     }
-    const postJson = await postRes.json() as { event_id: string };
+    const postJson = (await postRes.json()) as { event_id?: string };
+    if (!postJson.event_id) {
+      noticeFn('⚠️ Plachta API: event_id を取得できませんでした');
+      return false;
+    }
     eventId = postJson.event_id;
   } catch (e) {
     if (e instanceof TypeError) {
@@ -93,34 +110,9 @@ export async function plachtaTtsSpeak(
     return false;
   }
 
-  // Step 2: Poll /results
-  let wavUrl: string | null = null;
-  for (let i = 0; i < PLACHTA_POLL_MAX_TIMES; i++) {
-    await new Promise((r) => setTimeout(r, PLACHTA_POLL_INTERVAL_MS));
-    try {
-      const pollRes = await fetch(`${PLACHTA_SPACE_URL}/call/tts_fn/${eventId}/results`);
-      if (!pollRes.ok) {
-        noticeFn(`⚠️ Plachta API poll 失敗 (HTTP ${pollRes.status})`);
-        return false;
-      }
-      const pollJson = await pollRes.json() as { data: [string | null, string | null] };
-      const [status, url] = pollJson.data;
-      if (status === 'ok' && url) {
-        wavUrl = url;
-        break;
-      }
-      if (typeof status === 'string' && status.startsWith('error')) {
-        noticeFn(`⚠️ Plachta API エラー: ${status}`);
-        return false;
-      }
-    } catch (e) {
-      noticeFn(`⚠️ Poll 中ネットエラー: ${(e as Error).message}`);
-      return false;
-    }
-  }
-
+  // Step 2: SSE /gradio_api/queue/data で process_completed を待つ
+  const wavUrl = await waitForSseResult(eventId, sessionHash, noticeFn);
   if (!wavUrl) {
-    noticeFn('⚠️ タイムアウト（60秒）。HuggingFace Space がスリープ中の可能性があります');
     return false;
   }
 
@@ -157,4 +149,107 @@ export async function plachtaTtsSpeak(
     noticeFn(`⚠️ 再生準備失敗: ${(e as Error).message}`);
     return false;
   }
+}
+
+/**
+ * SSE ストリームを読み、event_id に一致する process_completed イベントから
+ * wav URL を抽出して返す。60 秒タイムアウト。
+ */
+async function waitForSseResult(
+  eventId: string,
+  sessionHash: string,
+  noticeFn: (m: string) => void
+): Promise<string | null> {
+  let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+  try {
+    const sseRes = await fetch(
+      `${PLACHTA_SPACE_URL}/gradio_api/queue/data?session_hash=${encodeURIComponent(sessionHash)}`
+    );
+    if (!sseRes.ok || !sseRes.body) {
+      noticeFn(`⚠️ Plachta SSE 接続失敗 (HTTP ${sseRes.status})`);
+      return null;
+    }
+
+    reader = sseRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < PLACHTA_TIMEOUT_MS) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE メッセージは行区切り `data: ...\n\n` で届く
+      const messages = buffer.split('\n\n');
+      buffer = messages.pop() ?? '';
+
+      for (const msg of messages) {
+        const dataLine = msg
+          .split('\n')
+          .filter((l) => l.startsWith('data:'))
+          .map((l) => l.slice(5).trim())
+          .join('');
+        if (!dataLine) continue;
+        try {
+          const evt = JSON.parse(dataLine) as {
+            msg?: string;
+            event_id?: string;
+            output?: { data?: Array<string | { path?: string; url?: string } | null> };
+          };
+
+          // 該当 event_id が完了したら URL 抽出
+          if (evt.msg === 'process_completed' && evt.event_id === eventId) {
+            const audio = evt.output?.data?.[1];
+            if (audio && typeof audio === 'object') {
+              if (audio.url) return audio.url;
+              if (audio.path) return `${PLACHTA_SPACE_URL}/gradio_api/file=${audio.path}`;
+            }
+            noticeFn('⚠️ Plachta API: 音声 URL を取得できませんでした');
+            return null;
+          }
+          // 該当 event_id がエラー終了した場合
+          if (evt.msg === 'process_completed' && evt.event_id === eventId) {
+            // 上記で処理済み（fall-through 防止）
+          }
+          if (typeof evt.msg === 'string' && evt.msg.startsWith('error') && evt.event_id === eventId) {
+            noticeFn(`⚠️ Plachta API エラー: ${evt.msg}`);
+            return null;
+          }
+        } catch {
+          /* JSON parse 失敗は無視して次の行へ */
+        }
+      }
+    }
+
+    noticeFn('⚠️ タイムアウト（60秒）。HuggingFace Space がスリープ中の可能性があります');
+    return null;
+  } catch (e) {
+    if (e instanceof TypeError) {
+      noticeFn('⚠️ ネット接続を確認してください');
+    } else {
+      noticeFn(`⚠️ SSE エラー: ${(e as Error).message}`);
+    }
+    return null;
+  } finally {
+    if (reader) {
+      try { await reader.cancel(); } catch { /* ignore */ }
+    }
+  }
+}
+
+/**
+ * ランダムな英数字ハッシュを生成（session_hash / request_id 用）。
+ * crypto.randomUUID を使い、文字列化して返却。
+ */
+function generateHash(): string {
+  // crypto は Electron/renderer 環境で利用可能
+  try {
+    const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+    if (c?.randomUUID) return c.randomUUID().replace(/-/g, '');
+  } catch {
+    /* fall through */
+  }
+  // フォールバック: Math.random ベース（テスト用）
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
