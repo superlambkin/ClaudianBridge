@@ -26,7 +26,7 @@ describe('migrateFromLegacy', () => {
     const result = migrateFromLegacy(store, dir);
     expect(result.migrated).toEqual([]);
     expect(store.load().general.migratedFrom).toEqual({
-      claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false,
+      claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false,
     });
   });
 

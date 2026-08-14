@@ -98,7 +98,7 @@ export default class ClaudianBridgePlugin extends Plugin {
           ...cfg,
           general: {
             ...cfg.general,
-            migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false },
+            migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false },
             migrationResetAvailable: true,
           },
         });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, normalizeClaudianBridgeSettings, validateClaudianBridgeSettings } from '../../src/core/settings';
+import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, normalizeClaudianBridgeSettings, validateClaudianBridgeSettings } from '../../src/core/settings';
 
 describe('settings', () => {
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS は全フィールドを持つ', () => {
@@ -279,5 +279,43 @@ describe('tts (v0.8.0: Plachta engine, anime-tts removed)', () => {
   it('TC-A02 続き: validate が未知の engine を拒否する', () => {
     const cfg = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, tts: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts, engine: 'unknown' as unknown as 'edge' } };
     expect(validateClaudianBridgeSettings(cfg)).toContain('tts.engine');
+  });
+});
+
+describe('tts.cli (v0.10.0)', () => {
+  it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts.cli はデフォルト値を持つ', () => {
+    const cfg = DEFAULT_CLAUDIAN_BRIDGE_SETTINGS;
+    expect(cfg.tts.cli).toEqual({
+      full_text: false,
+      max_chars: 300,
+      debounce_ms: 2000,
+      speech_filter: { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true },
+    });
+  });
+
+  it('normalize は tts.cli の欠落キーをデフォルトで埋める', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { cli: { max_chars: 500 } } });
+    expect(cfg.tts.cli?.max_chars).toBe(500);
+    expect(cfg.tts.cli?.full_text).toBe(false);
+    expect(cfg.tts.cli?.debounce_ms).toBe(2000);
+    expect(cfg.tts.cli?.speech_filter?.emoji).toBe(true);
+  });
+
+  it('normalize は tts.cli.max_chars を正の整数にクランプする', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { cli: { max_chars: -5 } } });
+    expect(cfg.tts.cli?.max_chars).toBe(300);
+  });
+
+  it('migratedFrom.claudeTtsSettings はデフォルト false', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.general.migratedFrom.claudeTtsSettings).toBe(false);
+  });
+
+  it('validate は tts.cli 型違反を返す（full_text が boolean でない）', () => {
+    const bad = {
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      tts: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts, cli: { ...DEFAULT_TTS_CLI_SETTINGS, full_text: 'yes' as unknown as boolean } },
+    };
+    expect(validateClaudianBridgeSettings(bad)).toContain('tts.cli.full_text');
   });
 });

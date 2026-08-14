@@ -138,6 +138,53 @@ export const PLACHTA_LANGUAGES: readonly PlachtaLanguage[] = ['日本語', '简�
 export const PLACHTA_SPEED_MIN = 0.5;
 export const PLACHTA_SPEED_MAX = 2.0;
 
+// === v0.10.0: Claude Code CLI 用 TTS 設定（voice-config.json と同期） ===
+export interface TtsCliSpeechFilter {
+  emoji: boolean;
+  kaomoji: boolean;
+  ascii_emoticon: boolean;
+  emoji_shortcode: boolean;
+}
+
+export interface TtsCliSettings {
+  full_text: boolean;
+  max_chars: number;
+  debounce_ms: number;
+  speech_filter: TtsCliSpeechFilter;
+}
+
+export const DEFAULT_TTS_CLI_SPEECH_FILTER: TtsCliSpeechFilter = {
+  emoji: true,
+  kaomoji: true,
+  ascii_emoticon: true,
+  emoji_shortcode: true,
+};
+
+export const DEFAULT_TTS_CLI_SETTINGS: TtsCliSettings = {
+  full_text: false,
+  max_chars: 300,
+  debounce_ms: 2000,
+  speech_filter: { ...DEFAULT_TTS_CLI_SPEECH_FILTER },
+};
+
+export function normalizeTtsCliSettings(raw: unknown): TtsCliSettings {
+  const r = (raw ?? {}) as Partial<TtsCliSettings>;
+  const maxChars = Number(r.max_chars);
+  const debounceMs = Number(r.debounce_ms);
+  const sf = (r.speech_filter ?? {}) as Partial<TtsCliSpeechFilter>;
+  return {
+    full_text: typeof r.full_text === 'boolean' ? r.full_text : DEFAULT_TTS_CLI_SETTINGS.full_text,
+    max_chars: Number.isInteger(maxChars) && maxChars > 0 ? maxChars : DEFAULT_TTS_CLI_SETTINGS.max_chars,
+    debounce_ms: Number.isInteger(debounceMs) && debounceMs >= 0 ? debounceMs : DEFAULT_TTS_CLI_SETTINGS.debounce_ms,
+    speech_filter: {
+      emoji: typeof sf.emoji === 'boolean' ? sf.emoji : DEFAULT_TTS_CLI_SETTINGS.speech_filter.emoji,
+      kaomoji: typeof sf.kaomoji === 'boolean' ? sf.kaomoji : DEFAULT_TTS_CLI_SETTINGS.speech_filter.kaomoji,
+      ascii_emoticon: typeof sf.ascii_emoticon === 'boolean' ? sf.ascii_emoticon : DEFAULT_TTS_CLI_SETTINGS.speech_filter.ascii_emoticon,
+      emoji_shortcode: typeof sf.emoji_shortcode === 'boolean' ? sf.emoji_shortcode : DEFAULT_TTS_CLI_SETTINGS.speech_filter.emoji_shortcode,
+    },
+  };
+}
+
 export interface WhitelistSettings {
   enabled: boolean;
   extensions: string[];
@@ -252,7 +299,7 @@ export const DEFAULT_QUOTA_DISPLAY_MODELS: QuotaDisplayFlags = {
 export interface ClaudianBridgeSettings {
   general: {
     enabled: boolean;
-    migratedFrom: { claudianSelectionBridge: boolean; extensionWhitelist: boolean; vaultOfficeBridge: boolean; chromaInspector: boolean };
+    migratedFrom: { claudianSelectionBridge: boolean; extensionWhitelist: boolean; vaultOfficeBridge: boolean; chromaInspector: boolean; claudeTtsSettings: boolean };
     migrationResetAvailable: boolean;
     quotaEnabled: boolean;
     quotaRefreshSec: number;
@@ -281,6 +328,8 @@ export interface ClaudianBridgeSettings {
     };
     /** v0.8.0: Plachta Cloud TTS の設定。engine === 'plachta' のとき使用。 */
     plachta?: PlachtaSettings;
+    /** v0.10.0: Claude Code CLI 用 TTS 設定（voice-config.json と同期）。 */
+    cli?: TtsCliSettings;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -288,7 +337,7 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
@@ -313,6 +362,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
       webspeech: { zh: '',         ja: '',       en: '' },
     },
     plachta: { ...DEFAULT_PLACHTA_SETTINGS },
+    cli: { ...DEFAULT_TTS_CLI_SETTINGS },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -335,6 +385,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
         extensionWhitelist: r.general?.migratedFrom?.extensionWhitelist ?? false,
         vaultOfficeBridge: r.general?.migratedFrom?.vaultOfficeBridge ?? false,
         chromaInspector: r.general?.migratedFrom?.chromaInspector ?? false,
+        claudeTtsSettings: r.general?.migratedFrom?.claudeTtsSettings ?? false,
       },
       migrationResetAvailable: r.general?.migrationResetAvailable ?? true,
       quotaEnabled: typeof r.general?.quotaEnabled === 'boolean' ? r.general.quotaEnabled : false,
@@ -430,6 +481,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
           : DEFAULT_PLACHTA_SETTINGS.speed;
         return { speaker, language: language as PlachtaLanguage, speed };
       })(),
+      cli: normalizeTtsCliSettings(r.tts?.cli),
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
@@ -460,6 +512,14 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     if (typeof cfg.tts.plachta.speaker !== 'string') return 'tts.plachta.speaker は文字列である必要があります';
     if (!PLACHTA_LANGUAGES.includes(cfg.tts.plachta.language)) return `tts.plachta.language が未知です: ${cfg.tts.plachta.language}`;
     if (typeof cfg.tts.plachta.speed !== 'number' || !Number.isFinite(cfg.tts.plachta.speed)) return 'tts.plachta.speed は数値である必要があります';
+  }
+  if (cfg.tts.cli !== undefined) {
+    if (typeof cfg.tts.cli.full_text !== 'boolean') return 'tts.cli.full_text は boolean である必要があります';
+    if (!Number.isInteger(cfg.tts.cli.max_chars) || cfg.tts.cli.max_chars <= 0) return 'tts.cli.max_chars は正の整数である必要があります';
+    if (!Number.isInteger(cfg.tts.cli.debounce_ms) || cfg.tts.cli.debounce_ms < 0) return 'tts.cli.debounce_ms は 0 以上の整数である必要があります';
+    for (const k of ['emoji', 'kaomoji', 'ascii_emoticon', 'emoji_shortcode'] as const) {
+      if (typeof cfg.tts.cli.speech_filter?.[k] !== 'boolean') return `tts.cli.speech_filter.${k} は boolean である必要があります`;
+    }
   }
   if (typeof cfg.office.enabled !== 'boolean') return 'office.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.office.enabledExtensions)) return 'office.enabledExtensions は配列である必要があります';
