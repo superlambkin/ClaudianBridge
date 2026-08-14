@@ -102,6 +102,40 @@ beforeEach(() => {
   vi.mocked(plachtaTtsSpeak).mockResolvedValue(true);
 });
 
+// ── helper: window モック（webSpeechSpeak / TC-L04 用）──────────────────────
+// Node には window が無いため、最小の window モックを作る。
+// speak() は渡された utterance を保持し、テストから onend を発火できるようにする。
+// SpeechSynthesisUtterance はコンストラクタのテキストを this.text に保持する。
+function mockWindowWithSpeech() {
+  let lastUtterance: { onend?: (() => void) | null } | null = null;
+  const synth = {
+    cancel: vi.fn(),
+    getVoices: vi.fn(() => []),
+    speak: vi.fn((_u: unknown) => {
+      lastUtterance = _u as typeof lastUtterance;
+    }),
+  };
+  (globalThis as unknown as { window: unknown }).window = {
+    speechSynthesis: synth,
+    SpeechSynthesisUtterance: class {
+      voice: { name?: string } | null = null;
+      lang = '';
+      onend: (() => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      text: string;
+      constructor(t: string) { this.text = t; }
+    },
+  };
+  return {
+    synth,
+    fireEnd: () => lastUtterance?.onend?.(),
+  };
+}
+
+afterEach(() => {
+  delete (globalThis as unknown as { window?: unknown }).window;
+});
+
 // ── tests ──────────────────────────────────────────────────────────────────
 describe('claudettsHttpSpeak (via addTextToTTS)', () => {
   it('spawns `python <commands.py> speak` and pipes text to stdin', async () => {
@@ -198,37 +232,6 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
 });
 
 describe('webSpeechSpeak (v0.10.0 onend fix)', () => {
-  // Node には window が無いため、最小の window モックを作る。
-  // speak() は渡された utterance を保持し、テストから onend を発火できるようにする。
-  function mockWindowWithSpeech() {
-    let lastUtterance: { onend?: (() => void) | null } | null = null;
-    const synth = {
-      cancel: vi.fn(),
-      getVoices: vi.fn(() => []),
-      speak: vi.fn((_u: unknown) => {
-        lastUtterance = _u as typeof lastUtterance;
-      }),
-    };
-    (globalThis as unknown as { window: unknown }).window = {
-      speechSynthesis: synth,
-      SpeechSynthesisUtterance: class {
-        voice: { name?: string } | null = null;
-        lang = '';
-        onend: (() => void) | null = null;
-        onerror: ((e: unknown) => void) | null = null;
-        constructor(_t: string) { /* noop */ }
-      },
-    };
-    return {
-      synth,
-      fireEnd: () => lastUtterance?.onend?.(),
-    };
-  }
-
-  afterEach(() => {
-    delete (globalThis as unknown as { window?: unknown }).window;
-  });
-
   it('onend 発火後に true を返す（100ms 待たない）', async () => {
     vi.useFakeTimers();
     try {
@@ -318,9 +321,20 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     expect(child.stdin.write).toHaveBeenCalledWith(longText);
   });
 
-  it('TC-L04: webspeech は 201文字以上を 200字チャンクに分割する（Node では false で終わる）', async () => {
-    // Node 環境では webSpeechSpeak が false を返すため、2 チャンク目で false になる
-    const longText = 'こ'.repeat(450);
-    await expect(addTextToTTS(null as never, longText, makeSettings('webspeech'))).resolves.toBe(false);
+  it('TC-L04: webspeech 450字 → 3チャンク(200/200/50)で連続再生', async () => {
+    const { synth, fireEnd } = mockWindowWithSpeech();
+    const notice = vi.fn();
+    const p = addTextToTTS(null as never, 'こ'.repeat(450), makeSettings('webspeech'));
+    await vi.waitFor(() => expect(synth.speak).toHaveBeenCalledTimes(1));
+    fireEnd();
+    await vi.waitFor(() => expect(synth.speak).toHaveBeenCalledTimes(2));
+    fireEnd();
+    await vi.waitFor(() => expect(synth.speak).toHaveBeenCalledTimes(3));
+    fireEnd();
+    await expect(p).resolves.toBe(true);
+    expect(synth.speak).toHaveBeenCalledTimes(3);
+    const lengths = (synth.speak.mock.calls as unknown[][]).map((c) => (c[0] as { text: string }).text.length);
+    expect(lengths).toEqual([200, 200, 50]);
+    expect(notice).not.toHaveBeenCalled();
   });
 });
