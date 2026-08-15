@@ -111,7 +111,7 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
           const timer = setTimeout(() => tryExtract(attempt + 1), 400);
           pendingTimers.add(timer);
         } else {
-          console.debug('[cb-auto-read] give up: 📢 報告ブロックを検出できませんでした');
+          console.debug('[cb-auto-read] give up: 読み上げテキストを抽出できませんでした');
         }
       };
       tryExtract(0);

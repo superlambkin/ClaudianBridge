@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.0] - 2026-08-15
+### Added
+- 自動読み上げの全応答対応: `autoRead.scope=full` で **📢 有無に関わらず**最後の応答を全文読み上げ
+  - `extractReportText()` を scope=full 時は 📢 非依存に変更
+  - ミュートボタン（点滅・停止）が全読み上げを反映
+### Removed
+- Claude Code CLI Stop hook 由来の読み上げを廃止（`~/.claude/settings.json` の `hooks.Stop` を無効化）
+  - 読み上げ経路を Claudian Bridge プラグインに一元化し、二重読み上げ・ミュート非連動を解消
+
 ## [0.12.6] - 2026-08-15
 ### Fixed
 - 読み上げ中にミュートボタンで音声が停止しない問題をさらに強化

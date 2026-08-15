@@ -15,10 +15,11 @@ function readVisibleText(el: Element): string {
 }
 
 /**
- * messagesEl（.claudian-messages）内の最後の assistant メッセージから報告テキストを抽出。
- * - header: 📢 で始まる blockquote のテキスト
- * - full:   メッセージ全文（.claudian-message-content）
- * 抽出済み・📢 なし・assistant なしの場合は null。
+ * messagesEl（.claudian-messages）内の最後の assistant メッセージから読み上げテキストを抽出。
+ * - header: 📢 で始まる blockquote のテキスト（📢 なしは null）
+ * - full:   メッセージ全文（.claudian-message-content）。v0.13.0 以降は 📢 有無に関わらず
+ *           最後の応答を全文読み上げる（CLI Stop hook に代わるプラグイン一元化）。
+ * 抽出済み・assistant なしの場合は null。
  */
 export function extractReportText(messagesEl: Element, scope: AutoReadScope): string | null {
   const assistants = messagesEl.querySelectorAll('.claudian-message-assistant');
@@ -27,13 +28,20 @@ export function extractReportText(messagesEl: Element, scope: AutoReadScope): st
 
   const report = Array.from(last.querySelectorAll('blockquote'))
     .find((b) => (b.textContent ?? '').trim().startsWith('📢'));
+
+  // v0.13.0: full scope は 📢 有無に関わらず最後の応答を全文読み上げ（全応答統一）
+  if (scope === 'full') {
+    if (last.hasAttribute(AUTO_READ_MARK)) return null;
+    last.setAttribute(AUTO_READ_MARK, '1');
+    const source = last.querySelector('.claudian-message-content') ?? last;
+    const text = readVisibleText(source);
+    return text === '' ? null : text;
+  }
+
+  // header scope: 📢 報告のみ（現行仕様）
   if (!report) return null;
-
-  const markTarget = scope === 'header' ? report : last;
-  if (markTarget.hasAttribute(AUTO_READ_MARK)) return null;
-  markTarget.setAttribute(AUTO_READ_MARK, '1');
-
-  const source = scope === 'header' ? report : (last.querySelector('.claudian-message-content') ?? last);
-  const text = readVisibleText(source);
+  if (report.hasAttribute(AUTO_READ_MARK)) return null;
+  report.setAttribute(AUTO_READ_MARK, '1');
+  const text = readVisibleText(report);
   return text === '' ? null : text;
 }

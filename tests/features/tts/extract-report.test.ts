@@ -36,6 +36,20 @@ describe('extractReportText', () => {
     expect(text).toContain('詳細セクション');
   });
 
+  it('full scope: 📢 が無くても最後の応答全文を返す（v0.13.0 全応答統一）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常の応答</p><p>詳細も含む</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'full');
+    expect(text).toContain('通常の応答');
+    expect(text).toContain('詳細も含む');
+  });
+
+  it('full scope: 📢 なし全文抽出も dedup マークで 2 回目は null', () => {
+    const el = makeMessages(`<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常応答</p></div></div>`);
+    expect(extractReportText(el, 'full')).not.toBeNull();
+    expect(extractReportText(el, 'full')).toBeNull();
+    expect(el.querySelector('.claudian-message-assistant')!.hasAttribute(AUTO_READ_MARK)).toBe(true);
+  });
+
   it('📢 blockquote が無いメッセージ → null', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常の応答</p></div></div>`;
     expect(extractReportText(makeMessages(html), 'header')).toBeNull();
