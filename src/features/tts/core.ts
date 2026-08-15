@@ -161,21 +161,34 @@ export async function webSpeechSpeak(text: string, settings: TtsSettings, notice
     }
     return await new Promise<boolean>((resolve) => {
       let settled = false;
+      let intentionalStop = false;
       let timeout: ReturnType<typeof setTimeout>;
+      let unregister: () => void = () => {};
       const settle = (v: boolean): void => {
         if (settled) return;
         settled = true;
+        unregister();
         clearTimeout(timeout);
         resolve(v);
       };
-      u.onend = () => settle(true);
+      u.onend = () => settle(intentionalStop ? false : true);
       u.onerror = (e) => {
-        console.error('[WebSpeech error]', e);
-        noticeFn('⚠️ Web Speech 再生エラー');
+        if (!intentionalStop) {
+          console.error('[WebSpeech error]', e);
+          noticeFn('⚠️ Web Speech 再生エラー');
+        }
         settle(false);
       };
       // ブラウザによっては onend が発火しない環境があるため 30 秒ガード
       timeout = setTimeout(() => settle(false), 30_000);
+      // v0.12.0: 再生レジストリへ登録（ミュートボタンの停止ハンドル）
+      unregister = registerPlayback({
+        engine: 'webspeech',
+        stop: () => {
+          intentionalStop = true;
+          try { synth.cancel(); } catch { /* ignore */ }
+        },
+      });
       try {
         synth.speak(u as unknown as SpeechSynthesisUtterance);
       } catch (e) {

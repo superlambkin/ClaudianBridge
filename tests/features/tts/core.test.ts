@@ -293,6 +293,25 @@ describe('webSpeechSpeak (v0.10.0 onend fix)', () => {
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('Web Speech 再生エラー'));
     orig.mockClear();
   });
+
+  it('stopAllPlayback で synth.cancel されると false を返しエラー Notice を出さない', async () => {
+    const { synth } = mockWindowWithSpeech();
+    const notice = vi.fn();
+    let resolved: boolean | undefined;
+    const p = webSpeechSpeak('こんにちは', makeSettings('webspeech'), notice).then((v) => { resolved = v; });
+
+    expect(isTtsPlaying()).toBe(true);
+    stopAllPlayback();
+    expect(synth.cancel).toHaveBeenCalled();
+
+    // Chrome 挙動: cancel 後に onerror(canceled/interrupted) が発火
+    const u = synth.speak.mock.calls[0][0] as { onerror?: (e: unknown) => void };
+    u.onerror?.(new Error('canceled'));
+
+    await p;
+    expect(resolved).toBe(false);
+    expect(notice).not.toHaveBeenCalled();
+  });
 });
 
 describe('plachtaSpeakChunksPipelined (via addTextToTTS, v0.10.0)', () => {
