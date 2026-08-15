@@ -13,6 +13,7 @@ import { Notice } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import { isTtsPlaying, stopAllPlayback, onPlaybackChange } from './playback-registry';
+import { withFullTextState, isFullTextState } from '../../core/settings';
 
 const TOOLBAR_SELECTOR = '.claudian-input-toolbar';
 const MUTE_MARK = 'data-cb-mute';
@@ -40,6 +41,48 @@ function renderMute(btn: HTMLButtonElement, state: MuteState): void {
     btn.textContent = s.ttsMuteBtnIdle;
     btn.title = s.ttsMuteBtnIdle;
   }
+}
+
+function renderFullText(btn: HTMLButtonElement, on: boolean): void {
+  const s = getLocaleStrings(getUILanguage());
+  if (on) {
+    btn.textContent = s.ttsFullTextBtnOn;
+    btn.title = s.ttsFullTextBtnOn;
+    btn.classList.add('is-fulltext');
+  } else {
+    btn.textContent = s.ttsFullTextBtnOff;
+    btn.title = s.ttsFullTextBtnOff;
+    btn.classList.remove('is-fulltext');
+  }
+}
+
+function makeFullTextButton(store: ConfigStore, _refreshAll: () => void): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.classList.add('claude-tts-fulltext-btn', 'claudian-action-btn');
+  btn.setAttribute('aria-label', 'Full-text');
+  btn.setAttribute(FULLTEXT_MARK, 'true');
+  let busy = false;
+
+  btn.addEventListener('click', () => {
+    if (busy) return;
+    busy = true;
+    btn.disabled = true;
+    try {
+      const cfg = store.load();
+      const next = !isFullTextState(cfg);
+      store.save(withFullTextState(cfg, next));
+      renderFullText(btn, next);
+      new Notice(next ? '📖 全文読み上げ ON（全文を読み上げます）' : '📄 ヘッダーのみ読み上げ');
+    } catch (e) {
+      renderFullText(btn, isFullTextState(store.load()));
+      new Notice(`⚠️ 保存失敗: ${(e as Error).message}`);
+    } finally {
+      busy = false;
+      btn.disabled = false;
+    }
+  });
+
+  return btn;
 }
 
 function makeMuteButton(store: ConfigStore, refreshAll: () => void): HTMLButtonElement {
@@ -88,6 +131,11 @@ export function setupToolbarButtons(store: ConfigStore): () => void {
       if (b.disabled) return;
       renderMute(b, computeMuteState(cfg.tts.enabled, playing));
     });
+    document.querySelectorAll(`[${FULLTEXT_MARK}]`).forEach((el) => {
+      const b = el as HTMLButtonElement;
+      if (b.disabled) return;
+      renderFullText(b, isFullTextState(cfg));
+    });
   };
 
   // アプリ内の設定変更を即時反映（設定タブ・CLI 同期等の全 save を捕捉）
@@ -99,6 +147,11 @@ export function setupToolbarButtons(store: ConfigStore): () => void {
     if (!toolbar.querySelector(`[${MUTE_MARK}]`)) {
       const btn = makeMuteButton(store, refreshAll);
       renderMute(btn, computeMuteState(store.load().tts.enabled, isTtsPlaying()));
+      toolbar.appendChild(btn);
+    }
+    if (!toolbar.querySelector(`[${FULLTEXT_MARK}]`)) {
+      const btn = makeFullTextButton(store, refreshAll);
+      renderFullText(btn, isFullTextState(store.load()));
       toolbar.appendChild(btn);
     }
   };

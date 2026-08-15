@@ -121,3 +121,54 @@ describe('setupToolbarButtons (mute)', () => {
     expect(toolbar.querySelector('[data-cb-mute]')).toBeNull();
   });
 });
+
+describe('setupToolbarButtons (fulltext)', () => {
+  let cleanup: (() => void) | undefined;
+  beforeEach(() => { document.body.innerHTML = ''; resetPlaybackRegistry(); });
+  afterEach(() => { cleanup?.(); cleanup = undefined; vi.restoreAllMocks(); });
+
+  it('scope=header → 📄 ヘッダー 表示', async () => {
+    const { store } = makeStore({ scope: 'header', fullText: false });
+    cleanup = setupToolbarButtons(store);
+    const toolbar = addToolbar();
+    const btn = await waitForBtn(toolbar, '[data-cb-fulltext]');
+    expect(btn.textContent).toContain('ヘッダー');
+    expect(btn.classList.contains('is-fulltext')).toBe(false);
+  });
+
+  it('クリックで autoRead.scope と cli.full_text が同時トグル保存される', async () => {
+    const { store, saves } = makeStore({ scope: 'header', fullText: false });
+    cleanup = setupToolbarButtons(store);
+    const toolbar = addToolbar();
+    const btn = await waitForBtn(toolbar, '[data-cb-fulltext]');
+    btn.click();
+    expect(saves).toHaveLength(1);
+    const saved = saves[0] as { tts: { autoRead: { scope: string }; cli: { full_text: boolean } } };
+    expect(saved.tts.autoRead.scope).toBe('full');
+    expect(saved.tts.cli.full_text).toBe(true);
+    expect(btn.textContent).toContain('全文');
+    expect(btn.classList.contains('is-fulltext')).toBe(true);
+  });
+
+  it('再クリックで OFF（scope=header / full_text=false）に戻る', async () => {
+    const { store } = makeStore({ scope: 'full', fullText: true });
+    cleanup = setupToolbarButtons(store);
+    const toolbar = addToolbar();
+    const btn = await waitForBtn(toolbar, '[data-cb-fulltext]');
+    btn.click();
+    const tts = (store.load() as unknown as { tts: { autoRead: { scope: string }; cli: { full_text: boolean } } }).tts;
+    expect(tts.autoRead.scope).toBe('header');
+    expect(tts.cli.full_text).toBe(false);
+  });
+
+  it('両ボタンが順に注入される（ミュート → 全文）', async () => {
+    const { store } = makeStore();
+    cleanup = setupToolbarButtons(store);
+    const toolbar = addToolbar();
+    const mute = await waitForBtn(toolbar, '[data-cb-mute]');
+    const full = await waitForBtn(toolbar, '[data-cb-fulltext]');
+    expect(toolbar.querySelectorAll('[data-cb-mute]')).toHaveLength(1);
+    expect(toolbar.querySelectorAll('[data-cb-fulltext]')).toHaveLength(1);
+    expect(Array.from(toolbar.children).indexOf(mute)).toBeLessThan(Array.from(toolbar.children).indexOf(full));
+  });
+});

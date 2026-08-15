@@ -6,7 +6,7 @@ import { setupCodeCopyFence } from './features/code-copy-fence';
 import { addFolderToClaudian } from './features/selection/core';
 import { addTextToTTS } from './features/tts/core';
 import { setupAutoReadTTS } from './features/tts/auto-read';
-import { setupToolbarFullTextButton } from './features/tts/toolbar-fulltext-button';
+import { setupToolbarButtons } from './features/tts/toolbar-buttons';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { migrateFromLegacy } from './legacy/migration';
 import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
@@ -201,9 +201,10 @@ export default class ClaudianBridgePlugin extends Plugin {
       this.register(cleanupAutoRead);
       diag('auto-read registered');
 
-      // ★ v0.11.1: チャット入力ツールバーの「📖 全文読み上げ」トグルボタン
-      // （旧 claude-tts-settings の同名ボタンの後継。tts.cli.full_text をトグル）
-      this.register(setupToolbarFullTextButton(this.store));
+      // ★ v0.12.0: チャット入力ツールバーの操作ボタン（ミュート + 📖 全文読み上げ）
+      // （旧 claude-tts-settings の claudianMuteButton / claudianFullTextButton の後継。
+      //   📖 ボタンは tts.autoRead.scope と tts.cli.full_text を統一同期）
+      this.register(setupToolbarButtons(this.store));
       diag('toolbar fulltext button registered');
 
       // ★ v0.10.0: 保存時に voice-config.json へエクスポート（Claudian Bridge が SSOT）
