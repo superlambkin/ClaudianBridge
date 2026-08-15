@@ -303,6 +303,22 @@ export interface QuotaDisplayFlags {
   zhipu: boolean;
 }
 
+/** クォータ表示窓。'5h' = 5時間窓、'week' = 週間窓（Claude は sevenDay に対応） */
+export type QuotaWindow = '5h' | 'week';
+
+/** プロバイダ毎の表示窓設定（Kimi は 5h 固定・DeepSeek は残金表示のため対象外） */
+export interface QuotaWindowSettings {
+  zhipu: QuotaWindow;
+  claude: QuotaWindow;
+  minimax: QuotaWindow;
+}
+
+export const DEFAULT_QUOTA_WINDOWS: QuotaWindowSettings = {
+  zhipu: '5h',
+  claude: '5h',
+  minimax: '5h',
+};
+
 export interface QuotaSettings {
   /** Claude Code の設定ファイル（LLM 情報の読み取り元） */
   claudeSettingsPath: string;
@@ -318,6 +334,8 @@ export interface QuotaSettings {
   zhipuPythonPath: string;
   /** 表示モデル個別ON/OFF（v0.5.0） */
   displayModels: QuotaDisplayFlags;
+  /** 表示窓（5時間 / 週間） */
+  windows: QuotaWindowSettings;
 }
 
 export const DEFAULT_QUOTA_DISPLAY_MODELS: QuotaDisplayFlags = {
@@ -382,6 +400,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     zhipuApiKey: '',
     zhipuPythonPath: DEFAULT_PYTHON_PATH,
     displayModels: { ...DEFAULT_QUOTA_DISPLAY_MODELS },
+    windows: { ...DEFAULT_QUOTA_WINDOWS },
   },
   selection: {
     enabled: true,
@@ -457,6 +476,11 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
         kimi: typeof r.quota?.displayModels?.kimi === 'boolean' ? r.quota.displayModels.kimi : true,
         minimax: typeof r.quota?.displayModels?.minimax === 'boolean' ? r.quota.displayModels.minimax : true,
         zhipu: typeof r.quota?.displayModels?.zhipu === 'boolean' ? r.quota.displayModels.zhipu : true,
+      },
+      windows: {
+        zhipu: r.quota?.windows?.zhipu === 'week' ? 'week' : '5h',
+        claude: r.quota?.windows?.claude === 'week' ? 'week' : '5h',
+        minimax: r.quota?.windows?.minimax === 'week' ? 'week' : '5h',
       },
     },
     selection: {
@@ -602,6 +626,9 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.quota?.zhipuPythonPath !== 'string') return 'quota.zhipuPythonPath は文字列である必要があります';
   for (const k of ['claude', 'deepseek', 'kimi', 'minimax', 'zhipu'] as const) {
     if (typeof cfg.quota?.displayModels?.[k] !== 'boolean') return `quota.displayModels.${k} は boolean である必要があります`;
+  }
+  for (const k of ['zhipu', 'claude', 'minimax'] as const) {
+    if (cfg.quota?.windows?.[k] !== '5h' && cfg.quota?.windows?.[k] !== 'week') return `quota.windows.${k} は 5h または week である必要があります`;
   }
   return null;
 }

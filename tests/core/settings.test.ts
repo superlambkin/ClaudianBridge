@@ -216,6 +216,7 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
       zhipuApiKey: '',
       zhipuPythonPath: expect.any(String),
       displayModels: { claude: true, deepseek: true, kimi: true, minimax: true, zhipu: true },
+      windows: { zhipu: '5h', claude: '5h', minimax: '5h' },
     });
   });
 
@@ -249,6 +250,28 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
       quota: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota, displayModels: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.displayModels, claude: 'x' as unknown as boolean } },
     };
     expect(validateClaudianBridgeSettings(bad)).toContain('quota.displayModels.claude');
+  });
+
+  it('quota.windows は既定で全て 5h', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.quota.windows).toEqual({ zhipu: '5h', claude: '5h', minimax: '5h' });
+  });
+
+  it('normalize は quota.windows の week を保持し不正値は 5h', () => {
+    const s = normalizeClaudianBridgeSettings({
+      quota: { windows: { zhipu: 'week', claude: 'bogus' as unknown as '5h', minimax: 'week' } },
+    });
+    expect(s.quota.windows.zhipu).toBe('week');
+    expect(s.quota.windows.claude).toBe('5h');
+    expect(s.quota.windows.minimax).toBe('week');
+  });
+
+  it('validate は quota.windows.zhipu の不正値をエラーにする', () => {
+    const bad = {
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      quota: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota, windows: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.windows, zhipu: 'bogus' as unknown as '5h' } },
+    };
+    expect(validateClaudianBridgeSettings(bad)).toContain('quota.windows.zhipu');
   });
 
   it('objectMenuTypeFlags / objectMenuContextFlags はデフォルト全ON', () => {

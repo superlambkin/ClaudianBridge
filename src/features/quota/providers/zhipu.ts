@@ -1,11 +1,14 @@
 import * as path from 'path';
 import type { ProviderQuota, QuotaProvider } from '../types';
 import { runPython, parseJsonOutput } from '../python';
+import type { QuotaWindow } from '../../../core/settings';
 
 export interface ZhipuProviderOptions {
   getKey: () => string | undefined;
   getPythonPath: () => string;
   getVaultRoot: () => string;
+  /** 表示窓（5h / week）。week は unit 6（週間）を優先 */
+  getWindow: () => QuotaWindow;
 }
 
 /** Vault 内のヘルパースクリプト相対パス */
@@ -37,7 +40,7 @@ export function createZhipuProvider(opts: ZhipuProviderOptions): QuotaProvider {
         args: [],
         cwd: path.dirname(scriptPath),
         timeoutMs: 30_000,
-        env: { ZHIPU_API_KEY: key },
+        env: { ZHIPU_API_KEY: key, ZHIPU_WINDOW: opts.getWindow() },
       });
       if (run.exitCode !== 0) {
         return {

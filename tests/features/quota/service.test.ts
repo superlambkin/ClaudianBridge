@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from 'vitest';
-import { MultiQuotaService, resolveApiKey, resolveVaultRoot, testProviderConnection } from '../../../src/features/quota/service';
+import { MultiQuotaService, claudeSnapshotToProviderQuota, resolveApiKey, resolveVaultRoot, testProviderConnection } from '../../../src/features/quota/service';
 import { createDeepSeekProvider } from '../../../src/features/quota/providers/deepseek';
+import type { QuotaSnapshot } from '../../../src/features/quota/types';
 
 function makeService(opts?: Partial<{
   quotaEnabled: boolean;
@@ -215,5 +216,28 @@ describe('testProviderConnection', () => {
 describe('resolveVaultRoot', () => {
   it('app 未指定 → process.cwd() を返す', () => {
     expect(resolveVaultRoot(undefined)).toBe(process.cwd());
+  });
+});
+
+describe('claudeSnapshotToProviderQuota', () => {
+  const snap = {
+    status: 'success',
+    windows: {
+      fiveHour: { utilization: 10, resetsAt: null },
+      sevenDay: { utilization: 80, resetsAt: null },
+    },
+    extraUsage: null,
+    fetchedAt: 1,
+    tokenSource: 'none',
+  } as QuotaSnapshot;
+
+  it('既定（5h）は fiveHour を使用', () => {
+    const q = claudeSnapshotToProviderQuota(snap);
+    expect(q.value).toBe('10%');
+  });
+
+  it('window=week は sevenDay を使用', () => {
+    const q = claudeSnapshotToProviderQuota(snap, 'week');
+    expect(q.value).toBe('80%');
   });
 });

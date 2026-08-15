@@ -22,6 +22,7 @@ function makeProvider() {
     getKey: () => 'sk-zhipu',
     getPythonPath: () => 'py',
     getVaultRoot: () => 'C:\\vault',
+    getWindow: () => '5h',
   });
 }
 
@@ -35,6 +36,7 @@ describe('createZhipuProvider', () => {
       getKey: () => undefined,
       getPythonPath: () => 'py',
       getVaultRoot: () => '',
+      getWindow: () => '5h',
     });
     expect(p.isConfigured()).toBe(false);
   });
@@ -107,6 +109,23 @@ describe('createZhipuProvider', () => {
     const opts = runPythonMock.mock.calls[0][0];
     expect(opts.env.ZHIPU_API_KEY).toBe('sk-zhipu');
     expect(opts.args).not.toContain('sk-zhipu');
+  });
+
+  it('window=week で env.ZHIPU_WINDOW=week が渡される', async () => {
+    const p = createZhipuProvider({
+      getKey: () => 'sk-zhipu',
+      getPythonPath: () => 'py',
+      getVaultRoot: () => 'C:\\vault',
+      getWindow: () => 'week',
+    });
+    runPythonMock.mockResolvedValue({
+      exitCode: 0,
+      stdout: JSON.stringify({ ok: true, pct: 45, unit: 6 }),
+      stderr: '',
+    });
+    await p.fetch();
+    const opts = runPythonMock.mock.calls[0][0];
+    expect(opts.env.ZHIPU_WINDOW).toBe('week');
   });
 
   it('ok=true で pct 欠落/null → status success, value --, pct null', async () => {

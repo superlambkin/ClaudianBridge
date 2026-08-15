@@ -217,6 +217,13 @@ export interface LocaleStrings {
   quotaZhipuApiKey: string;
   quotaZhipuPythonPath: string;
   quotaZhipuPythonPathPlaceholder: string;
+  // v0.16.0: 表示窓（5時間 / 週間）
+  quotaWindowsHeading: string;
+  quotaWindowsDesc: string;
+  quotaWindowWeek: string;
+  quotaWindowClaude: string;
+  quotaWindowZhipu: string;
+  quotaWindowMinimax: string;
   quotaZhipuValue: string;
   quotaDisplayZhipu: string;
 }
@@ -434,6 +441,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaZhipuApiKey: 'ZHIPU API キー',
     quotaZhipuPythonPath: 'ZHIPU Python パス',
     quotaZhipuPythonPathPlaceholder: 'py / python3 / フルパス',
+    quotaWindowsHeading: '🪟 表示窓',
+    quotaWindowsDesc: '使用率を表示する期間。Kimi は 5時間固定、DeepSeek は残金表示です',
+    quotaWindowWeek: '週間',
+    quotaWindowClaude: 'Claude の表示窓',
+    quotaWindowZhipu: 'Zhipu の表示窓',
+    quotaWindowMinimax: 'MiniMax の表示窓',
     quotaZhipuValue: '5時間使用量',
     quotaDisplayZhipu: '智谱を表示',
   },
@@ -649,6 +662,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaZhipuApiKey: 'ZHIPU API key',
     quotaZhipuPythonPath: 'ZHIPU Python path',
     quotaZhipuPythonPathPlaceholder: 'py / python3 / full path',
+    quotaWindowsHeading: '🪟 Display window',
+    quotaWindowsDesc: 'Period for usage display. Kimi is fixed at 5h; DeepSeek shows balance.',
+    quotaWindowWeek: 'Weekly',
+    quotaWindowClaude: 'Claude display window',
+    quotaWindowZhipu: 'Zhipu display window',
+    quotaWindowMinimax: 'MiniMax display window',
     quotaZhipuValue: '5h usage',
     quotaDisplayZhipu: 'Show Zhipu',
   },
@@ -864,6 +883,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaZhipuApiKey: 'ZHIPU API 密钥',
     quotaZhipuPythonPath: 'ZHIPU Python 路径',
     quotaZhipuPythonPathPlaceholder: 'py / python3 / 完整路径',
+    quotaWindowsHeading: '🪟 显示窗口',
+    quotaWindowsDesc: '显示使用率的周期。Kimi 固定 5 小时，DeepSeek 显示余额。',
+    quotaWindowWeek: '每周',
+    quotaWindowClaude: 'Claude 显示窗口',
+    quotaWindowZhipu: 'Zhipu 显示窗口',
+    quotaWindowMinimax: 'MiniMax 显示窗口',
     quotaZhipuValue: '5小时用量',
     quotaDisplayZhipu: '显示智谱',
   },

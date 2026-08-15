@@ -46,6 +46,23 @@ describe('createMiniMaxProvider', () => {
     restore();
   });
 
+  it('window=week → current_weekly_remaining_percent から使用量を算出', async () => {
+    const restore = mockFetchOnce(async () => new Response(JSON.stringify({
+      model_remains: [
+        { model_name: 'general', current_interval_remaining_percent: 38, current_weekly_remaining_percent: 55 },
+      ],
+      base_resp: { status_code: 0 },
+    }), { status: 200 }));
+    const p = createMiniMaxProvider(() => 'sk-mm', { getWindow: () => 'week' });
+    const q = await p.fetch();
+    expect(q.status).toBe('success');
+    // 使用量% = 100 - 週間残量% = 100 - 55 = 45
+    expect(q.pct).toBe(45);
+    expect(q.value).toBe('45%');
+    expect(q.detail).toBe('week');
+    restore();
+  });
+
   it('base_resp.status_code != 0 → error', async () => {
     const restore = mockFetchOnce(async () => new Response(JSON.stringify({
       base_resp: { status_code: 1004 },

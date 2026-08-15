@@ -1,5 +1,6 @@
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
+import type { QuotaWindow } from '../../core/settings';
 import { ClaudeQuotaService } from './core';
 import type { ProviderId, ProviderQuota, QuotaProvider, QuotaSnapshot } from './types';
 import { createDeepSeekProvider } from './providers/deepseek';
@@ -67,9 +68,9 @@ export async function testProviderConnection(
   }
 }
 
-/** Claude snapshot → 汎用 ProviderQuota 変換 */
-export function claudeSnapshotToProviderQuota(snap: QuotaSnapshot): ProviderQuota {
-  const five = snap.windows.fiveHour;
+/** Claude snapshot → 汎用 ProviderQuota 変換。window='week' で 7 日間窓を使用 */
+export function claudeSnapshotToProviderQuota(snap: QuotaSnapshot, window: QuotaWindow = '5h'): ProviderQuota {
+  const w = window === 'week' ? snap.windows.sevenDay : snap.windows.fiveHour;
   let status: ProviderQuota['status'];
   if (snap.status === 'success') status = 'success';
   else if (snap.status === 'expired') status = 'expired';
@@ -79,8 +80,8 @@ export function claudeSnapshotToProviderQuota(snap: QuotaSnapshot): ProviderQuot
     status,
     providerId: 'claude',
     label: 'Claude',
-    value: five.utilization !== null ? `${five.utilization}%` : '--',
-    pct: five.utilization,
+    value: w.utilization !== null ? `${w.utilization}%` : '--',
+    pct: w.utilization,
     detail: snap.error,
   };
 }
@@ -107,11 +108,15 @@ export class MultiQuotaService {
     this.providers = [
       createDeepSeekProvider(() => resolveApiKey(cfg.quota?.deepseekApiKey, getEnv, ['DEEPSEEK_API_KEY'])),
       createKimiProvider(() => resolveApiKey(cfg.quota?.kimiApiKey, getEnv, ['KIMI_CODING_API_KEY', 'KIMI_API_KEY'])),
-      createMiniMaxProvider(() => resolveApiKey(cfg.quota?.minimaxApiKey, getEnv, ['MINIMAX_CN_API_KEY', 'MINIMAX_API_KEY'])),
+      createMiniMaxProvider(
+        () => resolveApiKey(cfg.quota?.minimaxApiKey, getEnv, ['MINIMAX_CN_API_KEY', 'MINIMAX_API_KEY']),
+        { getWindow: () => cfg.quota?.windows?.minimax ?? '5h' },
+      ),
       createZhipuProvider({
         getKey: () => resolveApiKey(cfg.quota?.zhipuApiKey, getEnv, ['ZHIPU_API_KEY', 'ZAI_API_KEY']),
         getPythonPath: () => (cfg.quota?.zhipuPythonPath && cfg.quota.zhipuPythonPath.trim() !== '' ? cfg.quota.zhipuPythonPath : defaultPython),
         getVaultRoot: () => vaultRoot,
+        getWindow: () => cfg.quota?.windows?.zhipu ?? '5h',
       }),
     ].filter((p) => p.isConfigured());
   }
@@ -137,7 +142,10 @@ export class MultiQuotaService {
     const ids = this.getAvailableIds();
     if (ids.length === 0) return null;
     const id = ids[this.activeIdx % ids.length];
-    if (id === 'claude') return claudeSnapshotToProviderQuota(this.claudeService.getSnapshot());
+    if (id === 'claude') {
+      const window = this.opts.store.load().quota?.windows?.claude ?? '5h';
+      return claudeSnapshotToProviderQuota(this.claudeService.getSnapshot(), window);
+    }
     return (
       this.quotas.get(id) ?? {
         status: 'fetching',

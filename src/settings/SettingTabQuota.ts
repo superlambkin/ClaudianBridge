@@ -125,6 +125,42 @@ export function renderQuotaTab(app: App, containerEl: HTMLElement, store: Config
         }));
     }
 
+    // ───── 表示窓（v0.16.0: 5時間 / 週間） ─────
+    containerEl.createEl('h3', { text: s.quotaWindowsHeading });
+    containerEl.createEl('p', { text: s.quotaWindowsDesc, cls: 'setting-item-description' });
+
+    const windowEntries: Array<[keyof typeof cfg.quota.windows, string]> = [
+      ['zhipu', s.quotaWindowZhipu],
+      ['claude', s.quotaWindowClaude],
+      ['minimax', s.quotaWindowMinimax],
+    ];
+    for (const [key, label] of windowEntries) {
+      new Setting(containerEl)
+        .setName(label)
+        .addDropdown((dd) =>
+          dd
+            .addOption('5h', s.quotaWindow5h)
+            .addOption('week', s.quotaWindowWeek)
+            .setValue(cfg.quota.windows[key])
+            .onChange((v) => {
+              try {
+                const latest = store.load();
+                store.save({
+                  ...latest,
+                  quota: {
+                    ...latest.quota,
+                    windows: { ...latest.quota.windows, [key]: v as '5h' | 'week' },
+                  },
+                });
+                new Notice(s.noticeSaved);
+              } catch (e) {
+                new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+                draw();
+              }
+            })
+        );
+    }
+
     // ───── データ収集周期（60s 可変） ─────
     new Setting(containerEl)
       .setName(s.quotaRefreshSec)
@@ -264,6 +300,7 @@ export function renderQuotaTab(app: App, containerEl: HTMLElement, store: Config
             return p && p.trim() !== '' ? p.trim() : defaultPython;
           },
           getVaultRoot: () => resolveVaultRoot(app),
+          getWindow: () => store.load().quota.windows.zhipu,
         }),
         valueLabel: s.quotaZhipuValue,
       },
