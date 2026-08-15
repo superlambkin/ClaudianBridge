@@ -1,6 +1,6 @@
 import type { App } from 'obsidian';
 import { Notice } from 'obsidian';
-import { spawn } from 'child_process';
+import { spawn, execFileSync } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
 import type { PlachtaSettings, TtsCliSpeechFilter, TtsEngine } from '../../core/settings';
@@ -70,10 +70,14 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
       return;
     }
     // v0.12.0: 再生レジストリへ登録（ミュートボタンの停止ハンドル）
+    // v0.12.2: PowerShell プレイヤー（子プロセス）を止めるためプロセスツリーごと kill
     const unregister = registerPlayback({
       engine: 'edge',
       stop: () => {
         intentionalStop = true;
+        if (child.pid && process.platform === 'win32') {
+          try { execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* 既に終了済み */ }
+        }
         try { child.kill(); } catch { /* ignore */ }
       },
     });

@@ -69,7 +69,7 @@ describe('setupToolbarButtons (mute)', () => {
     btn.click();
     expect(saves).toHaveLength(1);
     expect((saves[0] as { tts: { enabled: boolean } }).tts.enabled).toBe(false);
-    expect(btn.textContent).toContain('ミュート解除');
+    expect(btn.textContent).toContain('ミュート'); // v0.12.2: ミュート状態も「ミュート」表示
     expect(btn.classList.contains('is-muted')).toBe(true);
   });
 
@@ -93,7 +93,7 @@ describe('setupToolbarButtons (mute)', () => {
     const btn = await waitForBtn(toolbar, '[data-cb-mute]');
     const unregister = registerPlayback({ engine: 'edge', stop: vi.fn() });
     await vi.waitFor(() => expect(btn.classList.contains('is-playing')).toBe(true));
-    expect(btn.textContent).toContain('停止');
+    expect(btn.textContent).toContain('ミュート'); // v0.12.2: 全状態で「ミュート」表示
     btn.click();
     expect(saves).toHaveLength(0); // enabled は変更されない
     unregister();
