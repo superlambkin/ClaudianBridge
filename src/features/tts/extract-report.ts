@@ -21,7 +21,7 @@ function readVisibleText(el: Element): string {
  * - innerText 環境（実ブラウザ）: display:none にしてから innerText を読む（レイアウト反映）。
  * - textContent 環境（jsdom）: clone から除外サブツリーを除去して textContent を読む。
  */
-function readVisibleTextExcluding(el: Element, excludeSel: string): string {
+export function readVisibleTextExcluding(el: Element, excludeSel: string): string {
   const targets = Array.from(el.querySelectorAll(excludeSel));
   const prevDisplay = targets.map((t) => ({ t, d: (t as HTMLElement).style.display }));
   // 1) innerText 系（実ブラウザ）
@@ -41,7 +41,7 @@ function readVisibleTextExcluding(el: Element, excludeSel: string): string {
 }
 
 /** 読み上げから除外する realclaudian 要素（Extended thinking ブロック） */
-const EXCLUDED_FROM_SPEECH = '.claudian-thinking-block';
+export const EXCLUDED_FROM_SPEECH = '.claudian-thinking-block';
 
 /**
  * messagesEl（.claudian-messages）内の最後の assistant メッセージから読み上げテキストを抽出。
