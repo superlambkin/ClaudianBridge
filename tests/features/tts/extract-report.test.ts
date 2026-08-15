@@ -30,6 +30,13 @@ describe('extractReportText', () => {
     expect(text).not.toContain('詳細セクション');
   });
 
+  it('header scope: ✅ blockquote もまとめとして読む（v0.14.3）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><blockquote><p>✅ ビルド・コミット状況</p></blockquote><p>詳細の内容</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).toContain('✅ ビルド・コミット状況');
+    expect(text).not.toContain('詳細の内容');
+  });
+
   it('full scope: メッセージ全文を抽出（詳細を含む）', () => {
     const text = extractReportText(makeMessages(REPORT_HTML), 'full');
     expect(text).toContain('📢 テストタスクを完了しました。');

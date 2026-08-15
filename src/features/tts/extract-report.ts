@@ -52,6 +52,12 @@ const HEADER_SPEECH_EXCLUDE = `${HEADER_EXCLUDE}, table`;
 /** 見出し要素（markdown 見出し） */
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
 
+/** ヘッダースコープの「結果全体まとめ」マーカー（✅・📢 で始まる） */
+function isSummaryMarker(text: string): boolean {
+  const t = text.trim();
+  return t.startsWith('📢') || t.startsWith('✅');
+}
+
 /**
  * 指定要素に一時マークを付け、readVisibleTextExcluding で除外して読む。
  * @param el 読み取り元
@@ -106,7 +112,7 @@ export function extractReportText(messagesEl: Element, scope: AutoReadScope): st
   if (!last) return null;
 
   const report = Array.from(last.querySelectorAll('blockquote'))
-    .find((b) => (b.textContent ?? '').trim().startsWith('📢'));
+    .find((b) => isSummaryMarker((b.textContent ?? '').trim()));
 
   // v0.13.0: full scope は 📢 有無に関わらず最後の応答を全文読み上げ（全応答統一）
   if (scope === 'full') {
