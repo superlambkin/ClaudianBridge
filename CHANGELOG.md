@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.14.0] - 2026-08-15
+### Added
+- メッセージ読上げボタン: ClaudianChat 結果欄の各テキストブロックの**コピーボタン左隣**に読上げボタンを追加
+  - クリックで該当ブロックの可視テキストを `addTextToTTS` 経由で読み上げ（speech_filter・ミュート連動は既存踏襲）
+  - 範囲はコピーボタンと同じ（当該テキストブロック）
+
 ## [0.13.1] - 2026-08-15
 ### Fixed
 - `full` 読み上げ時に realclaudian の**思考ブロック（`Thought for Xs` / `.claudian-thinking-block`）を発話から除外**
