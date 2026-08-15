@@ -1,6 +1,15 @@
 import type { ProviderQuota } from './types';
+import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 
 export type QuotaColor = 'green' | 'orange' | 'red' | 'gray';
+
+/** リセット時刻（ISO 文字列 or epoch ms）→ "M/D HH:mm" 表示 */
+function formatResetTime(t: string | number): string {
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) return String(t);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 /** 使用率 → 信号色。null / 非有限値はグレー（データ無し） */
 export function colorFor(pct: number | null): QuotaColor {
@@ -90,7 +99,12 @@ export class QuotaBarView {
       return;
     }
     this.el.setAttribute('data-status', q.status);
-    if (q.detail) this.el.title = q.detail;
+    // ツールチップ: プロバイダ + 値 / 残量 / リセット時刻
+    const s = getLocaleStrings(getUILanguage());
+    const lines = [`${q.label}: ${q.status === 'success' ? q.value : q.status}`];
+    if (q.remaining) lines.push(`${s.quotaTooltipRemaining}: ${q.remaining}`);
+    if (q.resetAt) lines.push(`${s.quotaTooltipReset}: ${formatResetTime(q.resetAt)}`);
+    this.el.title = lines.join('\n');
 
     const label = this.el.ownerDocument.createElement('span');
     label.className = 'cb-quota-indicator__label';

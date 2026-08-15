@@ -60,6 +60,8 @@ export function createKimiProvider(
         used = usedRaw > 0 ? usedRaw : limit - Number(json.usage?.remaining ?? 0);
       }
       const pct = limit > 0 ? Math.round((used / limit) * 100) : null;
+      const remainingRaw = fiveHour?.remaining ?? json.usage?.remaining ?? null;
+      const resetTime = fiveHour?.resetTime ?? json.usage?.resetTime ?? null;
       return {
         status: 'success',
         providerId: 'kimi',
@@ -67,6 +69,8 @@ export function createKimiProvider(
         value: pct !== null ? `${pct}%` : '--',
         pct,
         detail: '5h',
+        remaining: remainingRaw !== null ? String(remainingRaw) : null,
+        resetAt: resetTime ?? null,
       };
     },
   };

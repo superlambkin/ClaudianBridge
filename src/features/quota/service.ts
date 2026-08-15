@@ -83,6 +83,8 @@ export function claudeSnapshotToProviderQuota(snap: QuotaSnapshot, window: Quota
     value: w.utilization !== null ? `${w.utilization}%` : '--',
     pct: w.utilization,
     detail: snap.error,
+    remaining: w.utilization !== null ? `${100 - w.utilization}%` : null,
+    resetAt: w.resetsAt ?? null,
   };
 }
 

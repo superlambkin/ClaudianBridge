@@ -224,6 +224,9 @@ export interface LocaleStrings {
   quotaWindowClaude: string;
   quotaWindowZhipu: string;
   quotaWindowMinimax: string;
+  // ツールチップ（マウスオン）
+  quotaTooltipRemaining: string;
+  quotaTooltipReset: string;
   quotaZhipuValue: string;
   quotaDisplayZhipu: string;
 }
@@ -447,6 +450,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaWindowClaude: 'Claude の表示窓',
     quotaWindowZhipu: 'Zhipu の表示窓',
     quotaWindowMinimax: 'MiniMax の表示窓',
+    quotaTooltipRemaining: '残り',
+    quotaTooltipReset: 'リセット',
     quotaZhipuValue: '5時間使用量',
     quotaDisplayZhipu: '智谱を表示',
   },
@@ -668,6 +673,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaWindowClaude: 'Claude display window',
     quotaWindowZhipu: 'Zhipu display window',
     quotaWindowMinimax: 'MiniMax display window',
+    quotaTooltipRemaining: 'Remaining',
+    quotaTooltipReset: 'Reset',
     quotaZhipuValue: '5h usage',
     quotaDisplayZhipu: 'Show Zhipu',
   },
@@ -889,6 +896,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaWindowClaude: 'Claude 显示窗口',
     quotaWindowZhipu: 'Zhipu 显示窗口',
     quotaWindowMinimax: 'MiniMax 显示窗口',
+    quotaTooltipRemaining: '剩余',
+    quotaTooltipReset: '重置',
     quotaZhipuValue: '5小时用量',
     quotaDisplayZhipu: '显示智谱',
   },

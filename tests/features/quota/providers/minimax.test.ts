@@ -49,7 +49,14 @@ describe('createMiniMaxProvider', () => {
   it('window=week → current_weekly_remaining_percent から使用量を算出', async () => {
     const restore = mockFetchOnce(async () => new Response(JSON.stringify({
       model_remains: [
-        { model_name: 'general', current_interval_remaining_percent: 38, current_weekly_remaining_percent: 55 },
+        {
+          model_name: 'general',
+          current_interval_remaining_percent: 38,
+          current_weekly_remaining_percent: 55,
+          current_weekly_total_count: 1000,
+          current_weekly_usage_count: 400,
+          weekly_end_time: 1786896000000,
+        },
       ],
       base_resp: { status_code: 0 },
     }), { status: 200 }));
@@ -60,6 +67,8 @@ describe('createMiniMaxProvider', () => {
     expect(q.pct).toBe(45);
     expect(q.value).toBe('45%');
     expect(q.detail).toBe('week');
+    expect(q.remaining).toBe('600');
+    expect(q.resetAt).toBe(1786896000000);
     restore();
   });
 

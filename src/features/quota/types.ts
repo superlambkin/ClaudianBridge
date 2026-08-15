@@ -81,6 +81,10 @@ export interface ProviderQuota {
   zeroBalance?: boolean;
   /** 残金（DeepSeek の CNY 数値、色判定用） */
   balance?: number | null;
+  /** ツールチップ用: 残量の表示文字列（例: "5,444"・"¥110.00"・"55%"） */
+  remaining?: string | null;
+  /** ツールチップ用: リセット時刻（ISO 文字列 or epoch ms） */
+  resetAt?: string | number | null;
 }
 
 /** 残量取得プロバイダ抽象 */

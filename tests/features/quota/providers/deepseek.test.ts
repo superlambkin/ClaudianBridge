@@ -23,6 +23,7 @@ describe('createDeepSeekProvider', () => {
     const q = await p.fetch();
     expect(q.status).toBe('success');
     expect(q.value).toBe('¥110.00');
+    expect(q.remaining).toBe('¥110.00');
     restore();
   });
 

@@ -49,6 +49,7 @@ export function createDeepSeekProvider(
         detail: '余额',
         zeroBalance,
         balance: total !== undefined ? Number(total) : null,
+        remaining: total !== undefined ? `¥${total}` : null,
       };
     },
   };

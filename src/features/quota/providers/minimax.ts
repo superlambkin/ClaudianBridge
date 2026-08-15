@@ -43,10 +43,12 @@ export function createMiniMaxProvider(
       const json = (await res.json()) as {
         model_remains?: Array<{
           model_name?: string;
+          end_time?: number;
           current_interval_usage_count?: number;
           current_interval_total_count?: number;
           current_interval_remaining_count?: number;
           current_interval_remaining_percent?: number;
+          weekly_end_time?: number;
           current_weekly_usage_count?: number;
           current_weekly_total_count?: number;
           current_weekly_remaining_percent?: number;
@@ -64,6 +66,8 @@ export function createMiniMaxProvider(
       const weekly = windowOf() === 'week';
       // 残量% → 使用量% = 100 - 残量%（week は current_weekly_remaining_percent）
       let pct: number | null = null;
+      let remainingText: string | null = null;
+      let resetAt: string | number | null = null;
       if (chat) {
         const remainingPct = weekly ? chat.current_weekly_remaining_percent : chat.current_interval_remaining_percent;
         if (typeof remainingPct === 'number' && Number.isFinite(remainingPct)) {
@@ -72,6 +76,10 @@ export function createMiniMaxProvider(
           const total = chat.current_interval_total_count as number;
           pct = Math.round((chat.current_interval_usage_count ?? 0) / total * 100);
         }
+        const total = weekly ? chat.current_weekly_total_count ?? 0 : chat.current_interval_total_count ?? 0;
+        const usage = weekly ? chat.current_weekly_usage_count ?? 0 : chat.current_interval_usage_count ?? 0;
+        if (total > 0) remainingText = (total - usage).toLocaleString();
+        resetAt = weekly ? (chat.weekly_end_time ?? null) : (chat.end_time ?? null);
       }
       return {
         status: 'success',
@@ -80,6 +88,8 @@ export function createMiniMaxProvider(
         value: pct !== null ? `${pct}%` : '--',
         pct,
         detail: weekly ? 'week' : 'chat',
+        remaining: remainingText,
+        resetAt,
       };
     },
   };

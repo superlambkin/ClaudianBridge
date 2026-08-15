@@ -27,6 +27,8 @@ describe('createKimiProvider', () => {
     expect(q.status).toBe('success');
     expect(q.value).toBe('42%');
     expect(q.pct).toBe(42);
+    expect(q.remaining).toBe('58');
+    expect(q.resetAt).toBe('2099-01-01T00:00:00Z');
     restore();
   });
 

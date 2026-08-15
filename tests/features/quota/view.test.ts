@@ -71,6 +71,22 @@ describe('QuotaBarView', () => {
     expect(el.querySelector('.cb-quota-indicator__value')?.textContent).toBe('¥110.00');
   });
 
+  it('ツールチップに 値・残量・リセット時刻 を表示', () => {
+    const { view } = mount();
+    view.render(makeQuota({ remaining: '5,444', resetAt: 1787194106998 }));
+    const el = document.querySelector('.cb-quota-indicator')!;
+    expect(el.title).toContain('DeepSeek: ¥110.00');
+    expect(el.title).toContain('Remaining: 5,444');
+    expect(el.title).toContain('Reset:');
+  });
+
+  it('残量/リセット無しなら ツールチップは 値のみ', () => {
+    const { view } = mount();
+    view.render(makeQuota());
+    const el = document.querySelector('.cb-quota-indicator')!;
+    expect(el.title).toBe('DeepSeek: ¥110.00');
+  });
+
   it('ドットは描画されない', () => {
     const { view } = mount();
     view.render(makeQuota());

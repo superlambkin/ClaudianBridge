@@ -223,8 +223,8 @@ describe('claudeSnapshotToProviderQuota', () => {
   const snap = {
     status: 'success',
     windows: {
-      fiveHour: { utilization: 10, resetsAt: null },
-      sevenDay: { utilization: 80, resetsAt: null },
+      fiveHour: { utilization: 10, resetsAt: 'A' },
+      sevenDay: { utilization: 80, resetsAt: 'B' },
     },
     extraUsage: null,
     fetchedAt: 1,
@@ -234,10 +234,14 @@ describe('claudeSnapshotToProviderQuota', () => {
   it('既定（5h）は fiveHour を使用', () => {
     const q = claudeSnapshotToProviderQuota(snap);
     expect(q.value).toBe('10%');
+    expect(q.remaining).toBe('90%');
+    expect(q.resetAt).toBe('A');
   });
 
   it('window=week は sevenDay を使用', () => {
     const q = claudeSnapshotToProviderQuota(snap, 'week');
     expect(q.value).toBe('80%');
+    expect(q.remaining).toBe('20%');
+    expect(q.resetAt).toBe('B');
   });
 });
