@@ -213,7 +213,9 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
       deepseekApiKey: '',
       kimiApiKey: '',
       minimaxApiKey: '',
-      displayModels: { claude: true, deepseek: true, kimi: true, minimax: true },
+      zhipuApiKey: '',
+      zhipuPythonPath: expect.any(String),
+      displayModels: { claude: true, deepseek: true, kimi: true, minimax: true, zhipu: true },
     });
   });
 
@@ -238,7 +240,7 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
     const s = normalizeClaudianBridgeSettings({
       quota: { displayModels: { claude: false, deepseek: true, kimi: false, minimax: true } },
     });
-    expect(s.quota.displayModels).toEqual({ claude: false, deepseek: true, kimi: false, minimax: true });
+    expect(s.quota.displayModels).toEqual({ claude: false, deepseek: true, kimi: false, minimax: true, zhipu: true });
   });
 
   it('validate は quota.displayModels.claude が boolean でない場合エラーを返す', () => {
@@ -272,6 +274,30 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
       },
     };
     expect(validateClaudianBridgeSettings(bad)).toContain('objectMenuTypeFlags.button');
+  });
+});
+
+describe('normalizeClaudianBridgeSettings - quota zhipu (Task 3)', () => {
+  it('quota.zhipuApiKey / zhipuPythonPath が正規化される', () => {
+    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuApiKey: 'sk-zhipu', zhipuPythonPath: 'python3' } });
+    expect(norm.quota.zhipuApiKey).toBe('sk-zhipu');
+    expect(norm.quota.zhipuPythonPath).toBe('python3');
+  });
+
+  it('DEFAULT: zhipuApiKey は空・zhipuPythonPath は非空・displayModels.zhipu は true', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.zhipuApiKey).toBe('');
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.zhipuPythonPath).toBeTruthy();
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.displayModels.zhipu).toBe(true);
+  });
+
+  it('normalize: displayModels 欠落の zhipu は true になる', () => {
+    const norm = normalizeClaudianBridgeSettings({});
+    expect(norm.quota.displayModels.zhipu).toBe(true);
+  });
+
+  it('validate: quota.zhipuApiKey 型違反を返す', () => {
+    const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, quota: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota, zhipuApiKey: 123 as unknown as string } };
+    expect(validateClaudianBridgeSettings(bad)).toContain('quota.zhipuApiKey');
   });
 });
 

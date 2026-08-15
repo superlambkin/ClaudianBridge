@@ -258,6 +258,9 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
   scriptPath: '',
 };
 
+/** 既定の Python インタプリタ（office / chroma と同じ導出） */
+const DEFAULT_PYTHON_PATH = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
+
 /** Claude Code の設定ファイル既定パス（ホームディレクトリ解決） */
 export function defaultClaudeSettingsPath(): string {
   try {
@@ -297,6 +300,7 @@ export interface QuotaDisplayFlags {
   deepseek: boolean;
   kimi: boolean;
   minimax: boolean;
+  zhipu: boolean;
 }
 
 export interface QuotaSettings {
@@ -308,6 +312,10 @@ export interface QuotaSettings {
   kimiApiKey: string;
   /** MINIMAX API キー */
   minimaxApiKey: string;
+  /** 智譜（Zhipu）API キー */
+  zhipuApiKey: string;
+  /** 智譜クォータ取得用 Python インタプリタ */
+  zhipuPythonPath: string;
   /** 表示モデル個別ON/OFF（v0.5.0） */
   displayModels: QuotaDisplayFlags;
 }
@@ -317,6 +325,7 @@ export const DEFAULT_QUOTA_DISPLAY_MODELS: QuotaDisplayFlags = {
   deepseek: true,
   kimi: true,
   minimax: true,
+  zhipu: true,
 };
 
 export interface ClaudianBridgeSettings {
@@ -370,6 +379,8 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     deepseekApiKey: '',
     kimiApiKey: '',
     minimaxApiKey: '',
+    zhipuApiKey: '',
+    zhipuPythonPath: DEFAULT_PYTHON_PATH,
     displayModels: { ...DEFAULT_QUOTA_DISPLAY_MODELS },
   },
   selection: {
@@ -436,11 +447,16 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       deepseekApiKey: typeof r.quota?.deepseekApiKey === 'string' ? r.quota.deepseekApiKey : '',
       kimiApiKey: typeof r.quota?.kimiApiKey === 'string' ? r.quota.kimiApiKey : '',
       minimaxApiKey: typeof r.quota?.minimaxApiKey === 'string' ? r.quota.minimaxApiKey : '',
+      zhipuApiKey: typeof r.quota?.zhipuApiKey === 'string' ? r.quota.zhipuApiKey : '',
+      zhipuPythonPath: typeof r.quota?.zhipuPythonPath === 'string' && r.quota.zhipuPythonPath.trim() !== ''
+        ? r.quota.zhipuPythonPath
+        : DEFAULT_PYTHON_PATH,
       displayModels: {
         claude: typeof r.quota?.displayModels?.claude === 'boolean' ? r.quota.displayModels.claude : true,
         deepseek: typeof r.quota?.displayModels?.deepseek === 'boolean' ? r.quota.displayModels.deepseek : true,
         kimi: typeof r.quota?.displayModels?.kimi === 'boolean' ? r.quota.displayModels.kimi : true,
         minimax: typeof r.quota?.displayModels?.minimax === 'boolean' ? r.quota.displayModels.minimax : true,
+        zhipu: typeof r.quota?.displayModels?.zhipu === 'boolean' ? r.quota.displayModels.zhipu : true,
       },
     },
     selection: {
@@ -582,7 +598,9 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.quota?.deepseekApiKey !== 'string') return 'quota.deepseekApiKey は文字列である必要があります';
   if (typeof cfg.quota?.kimiApiKey !== 'string') return 'quota.kimiApiKey は文字列である必要があります';
   if (typeof cfg.quota?.minimaxApiKey !== 'string') return 'quota.minimaxApiKey は文字列である必要があります';
-  for (const k of ['claude', 'deepseek', 'kimi', 'minimax'] as const) {
+  if (typeof cfg.quota?.zhipuApiKey !== 'string') return 'quota.zhipuApiKey は文字列である必要があります';
+  if (typeof cfg.quota?.zhipuPythonPath !== 'string') return 'quota.zhipuPythonPath は文字列である必要があります';
+  for (const k of ['claude', 'deepseek', 'kimi', 'minimax', 'zhipu'] as const) {
     if (typeof cfg.quota?.displayModels?.[k] !== 'boolean') return `quota.displayModels.${k} は boolean である必要があります`;
   }
   return null;
