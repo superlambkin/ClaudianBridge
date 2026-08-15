@@ -576,3 +576,24 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   }
   return null;
 }
+
+// === v0.12.0: 全文読み上げ状態の統一同期ヘルパー ===
+/**
+ * 全文読み上げ状態を autoRead.scope と cli.full_text に同時反映する。
+ * 不変条件: scope === 'full' ⟺ full_text === true
+ */
+export function withFullTextState(cfg: ClaudianBridgeSettings, fullText: boolean): ClaudianBridgeSettings {
+  return {
+    ...cfg,
+    tts: {
+      ...cfg.tts,
+      autoRead: { ...(cfg.tts.autoRead ?? DEFAULT_TTS_AUTO_READ_SETTINGS), scope: fullText ? 'full' : 'header' },
+      cli: { ...(cfg.tts.cli ?? DEFAULT_TTS_CLI_SETTINGS), full_text: fullText },
+    },
+  };
+}
+
+/** 現在の全文読み上げ状態を autoRead.scope から判定 */
+export function isFullTextState(cfg: ClaudianBridgeSettings): boolean {
+  return (cfg.tts.autoRead?.scope ?? DEFAULT_TTS_AUTO_READ_SETTINGS.scope) === 'full';
+}

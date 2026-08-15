@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, normalizeClaudianBridgeSettings, validateClaudianBridgeSettings } from '../../src/core/settings';
+import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, normalizeClaudianBridgeSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState } from '../../src/core/settings';
 
 describe('settings', () => {
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS は全フィールドを持つ', () => {
@@ -340,5 +340,31 @@ describe('tts.cli (v0.10.0)', () => {
     expect(validateClaudianBridgeSettings(ok)).toBeNull();
     const bad = { ...ok, tts: { ...ok.tts, autoRead: { enabled: true, scope: 'bogus' as never } } };
     expect(validateClaudianBridgeSettings(bad)).toContain('tts.autoRead.scope');
+  });
+});
+
+describe('withFullTextState / isFullTextState (v0.12.0)', () => {
+  it('fullText=true → scope=full かつ cli.full_text=true', () => {
+    const next = withFullTextState(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, true);
+    expect(next.tts.autoRead?.scope).toBe('full');
+    expect(next.tts.cli?.full_text).toBe(true);
+  });
+
+  it('fullText=false → scope=header かつ cli.full_text=false', () => {
+    const next = withFullTextState(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, false);
+    expect(next.tts.autoRead?.scope).toBe('header');
+    expect(next.tts.cli?.full_text).toBe(false);
+  });
+
+  it('isFullTextState は autoRead.scope から判定する', () => {
+    expect(isFullTextState(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS)).toBe(false);
+    expect(isFullTextState(withFullTextState(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, true))).toBe(true);
+  });
+
+  it('元オブジェクトを変更しない（イミュータブル）', () => {
+    const cfg = DEFAULT_CLAUDIAN_BRIDGE_SETTINGS;
+    withFullTextState(cfg, true);
+    expect(cfg.tts.autoRead?.scope).toBe('header');
+    expect(cfg.tts.cli?.full_text).toBe(false);
   });
 });
