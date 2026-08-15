@@ -24,6 +24,12 @@ describe('detectProviderFromBaseUrl', () => {
   it('minimax URL → minimax', () => {
     expect(detectProviderFromBaseUrl('https://api.minimaxi.com')).toBe('minimax');
   });
+  it('zhipu bigmodel URL → zhipu', () => {
+    expect(detectProviderFromBaseUrl('https://open.bigmodel.cn/api/paas/v4')).toBe('zhipu');
+  });
+  it('zhipu z.ai URL → zhipu', () => {
+    expect(detectProviderFromBaseUrl('https://api.z.ai/api/paas/v4')).toBe('zhipu');
+  });
   it('anthropic URL → claude', () => {
     expect(detectProviderFromBaseUrl('https://api.anthropic.com')).toBe('claude');
   });

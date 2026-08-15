@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-export type LlmProviderId = 'claude' | 'deepseek' | 'kimi' | 'minimax' | 'unknown';
+export type LlmProviderId = 'claude' | 'deepseek' | 'kimi' | 'minimax' | 'zhipu' | 'unknown';
 
 export interface LlmInfo {
   provider: LlmProviderId;
@@ -26,6 +26,8 @@ export function detectProviderFromBaseUrl(baseUrl: string | null): LlmProviderId
   if (u.includes('deepseek')) return 'deepseek';
   if (u.includes('kimi')) return 'kimi';
   if (u.includes('minimax')) return 'minimax';
+  if (u.includes('bigmodel')) return 'zhipu';
+  if (u.includes('z.ai')) return 'zhipu';
   return 'claude';
 }
 

@@ -66,7 +66,7 @@ export function createIdleSnapshot(): QuotaSnapshot {
 // ===== マルチプロバイダ残量検知 (v0.4.0) =====
 
 /** サポート対象プロバイダ ID */
-export type ProviderId = 'claude' | 'deepseek' | 'kimi' | 'minimax';
+export type ProviderId = 'claude' | 'deepseek' | 'kimi' | 'minimax' | 'zhipu';
 
 /** 汎用プロバイダ残量（表示用） */
 export interface ProviderQuota {
