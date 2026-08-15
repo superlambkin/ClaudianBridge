@@ -77,6 +77,14 @@ describe('extractReportText', () => {
     expect(text).not.toContain('詳細の内容');
   });
 
+  it('ヘッダー: 一項目のみ（導入文なし・見出し1つ）→ その節を読む（テーブルは除外・v0.14.2）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>ビルド・コミット状況</h2><table><tr><td>テーブルデータ</td></tr></table><p>最新の v0.14.2 が反映されています。</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).toContain('ビルド・コミット状況');
+    expect(text).toContain('最新の v0.14.2 が反映されています。');
+    expect(text).not.toContain('テーブルデータ');
+  });
+
   it('assistant メッセージが無い → null', () => {
     expect(extractReportText(makeMessages('<p>空</p>'), 'header')).toBeNull();
   });

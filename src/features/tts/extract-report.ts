@@ -46,8 +46,27 @@ export const EXCLUDED_FROM_SPEECH = '.claudian-thinking-block';
 /** ヘッダースコープの抽出で除外する UI 要素（思考ブロック・コピー/読上げボタン） */
 const HEADER_EXCLUDE = `${EXCLUDED_FROM_SPEECH}, .claudian-text-copy-btn, [data-cb-msg-read]`;
 
+/** ヘッダースコープで読み上げない要素（UI に加え、データ表 table も除外） */
+const HEADER_SPEECH_EXCLUDE = `${HEADER_EXCLUDE}, table`;
+
 /** 見出し要素（markdown 見出し） */
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+
+/**
+ * 指定要素に一時マークを付け、readVisibleTextExcluding で除外して読む。
+ * @param el 読み取り元
+ * @param hide 除外対象（一時マークを付与する要素）
+ * @param excludeSel 静的な除外セレクタ
+ */
+function readTextWithHidden(el: Element, hide: Element[], excludeSel: string): string {
+  const mark = 'data-cb-temp-hide';
+  hide.forEach((t) => t.setAttribute(mark, '1'));
+  try {
+    return readVisibleTextExcluding(el, `${excludeSel}, [${mark}]`);
+  } finally {
+    hide.forEach((t) => t.removeAttribute(mark));
+  }
+}
 
 /**
  * v0.14.1: 最初の見出しより前の「導入文」を取得する（ヘッダースコープの「結果全体まとめ」）。
@@ -56,22 +75,21 @@ const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
  */
 function readIntroText(el: Element): string {
   const firstHeading = el.querySelector(HEADING_SELECTOR)!;
-  // 最初の見出し以降に一時マークを付け、readVisibleTextExcluding で除外して読む
-  const mark = 'data-cb-intro-cut';
+  const after: Element[] = [];
   let sib: Element | null = firstHeading;
-  while (sib) {
-    sib.setAttribute(mark, '1');
-    sib = sib.nextElementSibling;
-  }
-  try {
-    return readVisibleTextExcluding(el, `${HEADER_EXCLUDE}, [${mark}]`);
-  } finally {
-    let sib2: Element | null = firstHeading;
-    while (sib2) {
-      sib2.removeAttribute(mark);
-      sib2 = sib2.nextElementSibling;
-    }
-  }
+  while (sib) { after.push(sib); sib = sib.nextElementSibling; }
+  return readTextWithHidden(el, after, HEADER_SPEECH_EXCLUDE);
+}
+
+/**
+ * v0.14.2: 一項目のみの応答（見出しが1つ・導入文なし）で、その節（見出し以降）を読む。
+ * データ表・思考ブロック・ボタンは除外（まとめとして読み上げる）。
+ */
+function readSectionText(el: Element, heading: Element): string {
+  const before: Element[] = [];
+  let prev: Element | null = heading.previousElementSibling;
+  while (prev) { before.push(prev); prev = prev.previousElementSibling; }
+  return readTextWithHidden(el, before, HEADER_SPEECH_EXCLUDE);
 }
 
 /**
@@ -107,10 +125,18 @@ export function extractReportText(messagesEl: Element, scope: AutoReadScope): st
     const text = readVisibleText(report);
     return text === '' ? null : text;
   }
-  // 📢 が無い場合: 最初の見出しまでの導入文を「まとめ」として読む（見出しが無ければ null）
-  if (!source.querySelector(HEADING_SELECTOR)) return null;
+
+  // 📢 が無い場合: 導入文（最初の見出しまで）→ 一項目のみ（見出し1つ）の順でフォールバック
+  const headings = Array.from(source.querySelectorAll(HEADING_SELECTOR));
+  let text = '';
+  if (headings.length >= 1) {
+    text = readIntroText(source); // 見出し前の導入文（空なら ''）
+  }
+  if (!text && headings.length === 1) {
+    text = readSectionText(source, headings[0]); // 一項目のみ → その節を読む
+  }
+  if (!text) return null;
   if (last.hasAttribute(AUTO_READ_MARK)) return null;
   last.setAttribute(AUTO_READ_MARK, '1');
-  const text = readIntroText(source);
-  return text === '' ? null : text;
+  return text;
 }
