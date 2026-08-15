@@ -3,7 +3,7 @@ import { Notice } from 'obsidian';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
-import type { PlachtaSettings, TtsEngine } from '../../core/settings';
+import type { PlachtaSettings, TtsCliSpeechFilter, TtsEngine } from '../../core/settings';
 import { plachtaSpeakChunksPipelined } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
 import { registerPlayback } from './playback-registry';
@@ -17,6 +17,7 @@ type NoticeFn = (m: string) => void;
  * the engine implementations need.
  *
  * v0.8.0: spawn ベースのローカル VITS を完全削除し Plachta Cloud に置換。
+ * v0.12.1: 読み上げ文最適化（speech_filter）を全読み上げ経路に適用。
  */
 export interface TtsSettings {
   engine: TtsEngine;
@@ -27,6 +28,8 @@ export interface TtsSettings {
   };
   /** v0.8.0: Plachta Cloud TTS の設定。engine === 'plachta' のとき使用。 */
   plachta?: PlachtaSettings;
+  /** v0.12.1: 読み上げ文最適化スイッチ（cli.speech_filter を全経路で適用）。 */
+  cli?: { speech_filter?: TtsCliSpeechFilter };
 }
 
 /** 選択中エンジンに対応する言語別 voices を取得 */
@@ -208,6 +211,58 @@ export async function webSpeechSpeak(text: string, settings: TtsSettings, notice
 }
 
 /* ============================================================================
+ * 読み上げ文最適化（speech_filter）
+ * v0.12.1: POC_015 の朗读文案优化実装を TS へ移植。
+ * emoji / 顔文字 / ASCII 表情 / emoji 短コード を除去して読み上げ品質を改善する。
+ * ========================================================================== */
+
+/** Emoji 主要 Unicode ブロック（絵文字・記号・変体セレクタ・ZWJ・キーキャップ） */
+const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}️‍⃣]+/gu;
+
+/** 顔文字特徴文字（括弧内に 2 文字以上あれば顔文字とみなす） */
+const KAOMOJI_CHARS = new Set('^_*;Tω∀ﾟД≧≦´`･・艸皿><▽'.split(''));
+
+/** ASCII 表情（単語境界で一致） */
+const ASCII_EMOTICON_RE = /(?<![\w])(?::-?[)DdPp]+|;-?[)DdPp]|X-?[Dd]|<3+|>:\(?)(?![\w])/g;
+
+/** Emoji 短コード :smile: */
+const SHORTCODE_RE = /:[a-z0-9_+\-]{2,}:/g;
+
+/** 空になった括弧対を除去 */
+const EMPTY_PAREN_RE = /[(（]\s*[)）]/g;
+
+/** デフォルトの speech_filter（全最適化 ON） */
+const DEFAULT_SPEECH_FILTER: Required<TtsCliSpeechFilter> = {
+  emoji: true,
+  kaomoji: true,
+  ascii_emoticon: true,
+  emoji_shortcode: true,
+};
+
+/** 括弧内に顔文字特徴文字が 2 つ以上あれば括弧ごと除去 */
+function stripKaomoji(text: string): string {
+  return text.replace(/[(（]([^()（）]*)[)）]/g, (m, inner: string) => {
+    const count = [...inner].filter((ch) => KAOMOJI_CHARS.has(ch)).length;
+    return count >= 2 ? ' ' : m;
+  });
+}
+
+/**
+ * speech_filter 設定に応じて読み上げ文を最適化する。
+ * 未指定キーはデフォルト（ON）として扱う。sf 自体が undefined なら全最適化 ON。
+ */
+export function filterSpeechText(text: string, sf?: Partial<TtsCliSpeechFilter> | null): string {
+  const opt: Required<TtsCliSpeechFilter> = { ...DEFAULT_SPEECH_FILTER, ...(sf ?? {}) };
+  let t = text;
+  if (opt.emoji) t = t.replace(EMOJI_RE, ' ');
+  if (opt.kaomoji) t = stripKaomoji(t);
+  if (opt.ascii_emoticon) t = t.replace(ASCII_EMOTICON_RE, ' ');
+  if (opt.emoji_shortcode) t = t.replace(SHORTCODE_RE, ' ');
+  t = t.replace(EMPTY_PAREN_RE, '');
+  return t;
+}
+
+/* ============================================================================
  * Dispatcher
  * ========================================================================== */
 
@@ -226,6 +281,10 @@ const ENGINE_CHUNK_LIMITS: Record<TtsEngine, number | null> = {
 export async function addTextToTTS(_app: App | null, text: string, settings: TtsSettings): Promise<boolean> {
   const noticeFn = (m: string): void => { new Notice(m); };
 
+  // v0.12.1: 読み上げ文最適化（emoji/顔文字/ASCII表情/短コード除去）を全経路に適用
+  const optimized = filterSpeechText(text, settings.cli?.speech_filter);
+  if (!optimized.trim()) return true; // 最適化後空なら読まない（エラー扱いしない）
+
   // 生成中/再生中の進行状況を永続 Notice で表示するヘルパー（null で非表示）
   let progress: Notice | null = null;
   const showProgress = (msg: string | null): void => {
@@ -240,9 +299,9 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   };
 
   const limit = ENGINE_CHUNK_LIMITS[settings.engine];
-  const chunks = limit !== null && text.length > limit ? chunkText(text, limit) : [text];
+  const chunks = limit !== null && optimized.length > limit ? chunkText(optimized, limit) : [optimized];
   if (chunks.length > 1) {
-    console.log(`[claudian-bridge TTS] chunking: ${text.length} chars → ${chunks.length} chunks (engine: ${settings.engine})`);
+    console.log(`[claudian-bridge TTS] chunking: ${optimized.length} chars → ${chunks.length} chunks (engine: ${settings.engine})`);
   }
 
   // v0.10.0 UAT: plachta はパイプライン再生（次のチャンクを先行合成してギャップ解消）

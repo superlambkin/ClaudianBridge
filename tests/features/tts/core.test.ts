@@ -164,6 +164,37 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     expect(child.stdin.end).toHaveBeenCalled();
   });
 
+  it('speech_filter が有効なら emoji を除去してから speak に渡す（v0.12.1）', async () => {
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const settings = makeSettings('edge');
+    settings.cli = { speech_filter: { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true } };
+
+    const p = addTextToTTS(null as never, '📢 タスク完了しました :tada:', settings);
+    child.emit('close', 0);
+    await p;
+
+    const written = child.stdin.write.mock.calls[0][0] as string;
+    expect(written).not.toContain('📢');
+    expect(written).not.toContain(':tada:');
+    expect(written).toContain('タスク完了しました');
+  });
+
+  it('speech_filter が OFF ならテキストをそのまま渡す（v0.12.1）', async () => {
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const settings = makeSettings('edge');
+    settings.cli = { speech_filter: { emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false } };
+
+    const p = addTextToTTS(null as never, '📢 タスク完了しました :tada:', settings);
+    child.emit('close', 0);
+    await p;
+
+    const written = child.stdin.write.mock.calls[0][0] as string;
+    expect(written).toContain('📢');
+    expect(written).toContain(':tada:');
+  });
+
   it('exit 0 + empty stderr/stdout → true（エラー通知なし・プログレスは表示される）', async () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);

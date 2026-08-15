@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.2] - 2026-08-15
+### Added
+- 読み上げ文最適化（speech_filter）を全読み上げ経路に適用: emoji / 顔文字 / ASCII 表情 / emoji 短コード を除去して読み上げ品質を改善
+  - チャット自動読み上げ・手動「Add to TTS」は `tts.cli.speech_filter` を参照
+  - CLI stop_hook（claude-tts スキル）にも POC_015 由来の speech_filter 実装を復元
+### Fixed
+- speech_filter 設定が定義・UI 表示・CLI 同期されているだけで、実際の読み上げに適用されていなかった問題
+- claude-tts スキルの extractor に speech_filter が移行時に欠落していた問題を復元
+
 ## [0.12.1] - 2026-08-15
 ### Fixed
 - タスク終了時自動読み上げ: 📢 報告の無い通常応答でも「⚠️ 📢 検出不可」通知が毎回表示される問題（通知を削除し静かにスキップ）
