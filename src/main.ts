@@ -6,6 +6,7 @@ import { setupCodeCopyFence } from './features/code-copy-fence';
 import { addFolderToClaudian } from './features/selection/core';
 import { addTextToTTS } from './features/tts/core';
 import { setupAutoReadTTS } from './features/tts/auto-read';
+import { setupMessageReadButtons } from './features/tts/message-read-button';
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { migrateFromLegacy } from './legacy/migration';
@@ -206,6 +207,18 @@ export default class ClaudianBridgePlugin extends Plugin {
       //   📖 ボタンは tts.autoRead.scope と tts.cli.full_text を統一同期）
       this.register(setupToolbarButtons(this.store));
       diag('toolbar fulltext button registered');
+
+      // ★ v0.14.0: メッセージ結果欄の読上げボタン（コピーボタン左隣）
+      this.register(setupMessageReadButtons({
+        app: this.app,
+        store: this.store,
+        speak: async (text) => {
+          const cfg = this.store.load();
+          if (!cfg.tts.enabled) return false;
+          return addTextToTTS(this.app, text, cfg.tts);
+        },
+      }));
+      diag('message read button registered');
 
       // ★ v0.10.0: 保存時に voice-config.json へエクスポート（Claudian Bridge が SSOT）
       this.store.onSave((cfg) => {

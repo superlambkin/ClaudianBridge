@@ -343,3 +343,29 @@
   padding: 0 0.35em;
   justify-content: center;
 }
+
+/* v0.14.0: メッセージ結果欄の読上げボタン（コピーボタン左隣） */
+.claudian-text-tts-btn {
+  position: absolute;
+  bottom: 0;
+  inset-inline-end: 22px;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.claudian-text-tts-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.claudian-text-block:hover .claudian-text-tts-btn {
+  opacity: 1;
+}
+.claudian-text-tts-btn:hover {
+  color: var(--text-normal);
+}
