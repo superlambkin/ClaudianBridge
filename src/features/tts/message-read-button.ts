@@ -47,7 +47,7 @@ export function setupMessageReadButtons(deps: MessageReadDeps): () => void {
         );
         if (!text) return;
         await deps.speak(text);
-      })();
+      })().catch((e) => console.warn('[cb-msg-read] speak failed:', e));
     });
     copyBtn.before(btn);
   };
@@ -64,7 +64,8 @@ export function setupMessageReadButtons(deps: MessageReadDeps): () => void {
     for (const m of mutations) {
       if (m.type !== 'childList') continue;
       for (const node of Array.from(m.addedNodes)) {
-        if (node instanceof HTMLElement && (node.matches(TEXT_BLOCK_SELECTOR) || node.querySelector(TEXT_BLOCK_SELECTOR))) {
+        if (node instanceof HTMLElement &&
+            (node.matches(TEXT_BLOCK_SELECTOR) || node.querySelector(TEXT_BLOCK_SELECTOR) || node.closest(TEXT_BLOCK_SELECTOR))) {
           shouldScan = true;
           break;
         }
