@@ -7,9 +7,10 @@ import { readLlmInfoFromSettings } from '../features/quota/llm-info';
 import { createDeepSeekProvider } from '../features/quota/providers/deepseek';
 import { createKimiProvider } from '../features/quota/providers/kimi';
 import { createMiniMaxProvider } from '../features/quota/providers/minimax';
-import { testProviderConnection } from '../features/quota/service';
+import { createZhipuProvider } from '../features/quota/providers/zhipu';
+import { resolveVaultRoot, testProviderConnection } from '../features/quota/service';
 import { getClaudeQuotaHandle, registerClaudeQuota } from '../features/quota/index';
-import type { ProviderId, ProviderQuota } from '../features/quota/types';
+import type { ProviderId, ProviderQuota, QuotaProvider } from '../features/quota/types';
 
 type QuotaLevel = 'safe' | 'caution' | 'danger' | 'unknown';
 
@@ -98,6 +99,7 @@ export function renderQuotaTab(app: App, containerEl: HTMLElement, store: Config
       ['deepseek', s.quotaDisplayDeepseek],
       ['kimi', s.quotaDisplayKimi],
       ['minimax', s.quotaDisplayMinimax],
+      ['zhipu', s.quotaDisplayZhipu],
     ];
     for (const [key, label] of displayEntries) {
       new Setting(containerEl)
@@ -213,43 +215,62 @@ export function renderQuotaTab(app: App, containerEl: HTMLElement, store: Config
       }
     };
 
+    type QuotaApiKeyField = 'deepseekApiKey' | 'kimiApiKey' | 'minimaxApiKey' | 'zhipuApiKey';
+
     const providerBuilders: Array<{
       id: ProviderId;
       apiKey: string;
-      build: (k: string) => ReturnType<typeof createDeepSeekProvider> | ReturnType<typeof createKimiProvider> | ReturnType<typeof createMiniMaxProvider>;
+      apiKeyField: QuotaApiKeyField;
+      label: string;
       valueLabel: string;
+      build: (k: string) => QuotaProvider;
     }> = [
       {
         id: 'deepseek',
         apiKey: quota.deepseekApiKey,
+        apiKeyField: 'deepseekApiKey',
+        label: s.quotaDeepseekApiKey,
         build: (k) => createDeepSeekProvider(() => k),
         valueLabel: s.quotaDeepseekValue,
       },
       {
         id: 'kimi',
         apiKey: quota.kimiApiKey,
+        apiKeyField: 'kimiApiKey',
+        label: s.quotaKimiApiKey,
         build: (k) => createKimiProvider(() => k),
         valueLabel: s.quotaKimiValue,
       },
       {
         id: 'minimax',
         apiKey: quota.minimaxApiKey,
+        apiKeyField: 'minimaxApiKey',
+        label: s.quotaMinimaxApiKey,
         build: (k) => createMiniMaxProvider(() => k),
         valueLabel: s.quotaMinimaxValue,
       },
+      {
+        id: 'zhipu',
+        apiKey: quota.zhipuApiKey,
+        apiKeyField: 'zhipuApiKey',
+        label: s.quotaZhipuApiKey,
+        build: (k) => createZhipuProvider({
+          getKey: () => k,
+          getPythonPath: () => quota.zhipuPythonPath,
+          getVaultRoot: () => resolveVaultRoot(app),
+        }),
+        valueLabel: s.quotaZhipuValue,
+      },
     ];
-
-    const labelByKey = (id: ProviderId): string =>
-      id === 'deepseek' ? s.quotaDeepseekApiKey : id === 'kimi' ? s.quotaKimiApiKey : s.quotaMinimaxApiKey;
 
     for (const p of providerBuilders) {
       new Setting(containerEl)
-        .setName(labelByKey(p.id))
+        .setName(p.label)
         .addText((t) => {
           t.setPlaceholder(s.quotaApiKeyPlaceholder);
           t.setValue(p.apiKey);
           t.inputEl.type = 'password';
-          t.onChange((v) => saveKey(p.id === 'deepseek' ? 'deepseekApiKey' : p.id === 'kimi' ? 'kimiApiKey' : 'minimaxApiKey', v));
+          t.onChange((v) => saveKey(p.apiKeyField, v));
         })
         .addButton((b) =>
           b.setButtonText(s.quotaTestConnection).onClick(async () => {
@@ -257,9 +278,7 @@ export function renderQuotaTab(app: App, containerEl: HTMLElement, store: Config
             b.setButtonText(s.quotaFetching);
             try {
               const latest = store.load();
-              const key = p.id === 'deepseek'
-                ? latest.quota.deepseekApiKey
-                : p.id === 'kimi' ? latest.quota.kimiApiKey : latest.quota.minimaxApiKey;
+              const key = latest.quota[p.apiKeyField];
               const provider = p.build(key);
               const result = await testProviderConnection(provider);
               const resultRow = containerEl.createDiv({ cls: 'cb-llm-result' });

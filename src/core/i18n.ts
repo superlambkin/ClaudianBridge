@@ -214,6 +214,9 @@ export interface LocaleStrings {
   quotaDisplayDeepseek: string;
   quotaDisplayKimi: string;
   quotaDisplayMinimax: string;
+  quotaZhipuApiKey: string;
+  quotaZhipuValue: string;
+  quotaDisplayZhipu: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -426,6 +429,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayDeepseek: 'DeepSeek を表示',
     quotaDisplayKimi: 'KIMI CODE を表示',
     quotaDisplayMinimax: 'MINIMAX を表示',
+    quotaZhipuApiKey: 'ZHIPU API キー',
+    quotaZhipuValue: '5時間使用量',
+    quotaDisplayZhipu: '智谱を表示',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -636,6 +642,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayDeepseek: 'Show DeepSeek',
     quotaDisplayKimi: 'Show KIMI CODE',
     quotaDisplayMinimax: 'Show MINIMAX',
+    quotaZhipuApiKey: 'ZHIPU API key',
+    quotaZhipuValue: '5h usage',
+    quotaDisplayZhipu: 'Show Zhipu',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -846,6 +855,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayDeepseek: '显示 DeepSeek',
     quotaDisplayKimi: '显示 KIMI CODE',
     quotaDisplayMinimax: '显示 MINIMAX',
+    quotaZhipuApiKey: 'ZHIPU API 密钥',
+    quotaZhipuValue: '5小时用量',
+    quotaDisplayZhipu: '显示智谱',
   },
 };
 
