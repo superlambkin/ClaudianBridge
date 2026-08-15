@@ -50,6 +50,14 @@ describe('extractReportText', () => {
     expect(el.querySelector('.claudian-message-assistant')!.hasAttribute(AUTO_READ_MARK)).toBe(true);
   });
 
+  it('full scope: 思考ブロック（Thought for）を読み上げに含めない', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><div class="claudian-thinking-block"><div class="claudian-thinking-header">Thought for 1s</div><div class="claudian-thinking-content">内部思考の内容</div></div><p>本体の応答テキスト</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'full');
+    expect(text).toContain('本体の応答テキスト');
+    expect(text).not.toContain('Thought for');
+    expect(text).not.toContain('内部思考の内容');
+  });
+
   it('📢 blockquote が無いメッセージ → null', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常の応答</p></div></div>`;
     expect(extractReportText(makeMessages(html), 'header')).toBeNull();

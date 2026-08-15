@@ -15,6 +15,35 @@ function readVisibleText(el: Element): string {
 }
 
 /**
+ * v0.13.1: 実ブラウザの realclaudian 思考ブロック（Extended thinking）は
+ * `.claudian-thinking-block` 配下に「Thought for Xs」ラベルと思考内容を持つ。
+ * full 読み上げ時にこれを発話に含めないよう、指定セレクタのサブツリーを除外してテキストを取得する。
+ * - innerText 環境（実ブラウザ）: display:none にしてから innerText を読む（レイアウト反映）。
+ * - textContent 環境（jsdom）: clone から除外サブツリーを除去して textContent を読む。
+ */
+function readVisibleTextExcluding(el: Element, excludeSel: string): string {
+  const targets = Array.from(el.querySelectorAll(excludeSel));
+  const prevDisplay = targets.map((t) => ({ t, d: (t as HTMLElement).style.display }));
+  // 1) innerText 系（実ブラウザ）
+  targets.forEach((t) => ((t as HTMLElement).style.display = 'none'));
+  let inner = '';
+  try {
+    const withInner = el as Element & { innerText?: string };
+    if (typeof withInner.innerText === 'string') inner = withInner.innerText.trim();
+  } finally {
+    prevDisplay.forEach(({ t, d }) => ((t as HTMLElement).style.display = d));
+  }
+  if (inner !== '') return inner;
+  // 2) textContent 系（jsdom 等 innerText 非対応）
+  const clone = el.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll(excludeSel).forEach((n) => n.remove());
+  return (clone.textContent ?? '').trim();
+}
+
+/** 読み上げから除外する realclaudian 要素（Extended thinking ブロック） */
+const EXCLUDED_FROM_SPEECH = '.claudian-thinking-block';
+
+/**
  * messagesEl（.claudian-messages）内の最後の assistant メッセージから読み上げテキストを抽出。
  * - header: 📢 で始まる blockquote のテキスト（📢 なしは null）
  * - full:   メッセージ全文（.claudian-message-content）。v0.13.0 以降は 📢 有無に関わらず
@@ -34,7 +63,7 @@ export function extractReportText(messagesEl: Element, scope: AutoReadScope): st
     if (last.hasAttribute(AUTO_READ_MARK)) return null;
     last.setAttribute(AUTO_READ_MARK, '1');
     const source = last.querySelector('.claudian-message-content') ?? last;
-    const text = readVisibleText(source);
+    const text = readVisibleTextExcluding(source, EXCLUDED_FROM_SPEECH);
     return text === '' ? null : text;
   }
 

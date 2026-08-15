@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.13.1] - 2026-08-15
+### Fixed
+- `full` 読み上げ時に realclaudian の**思考ブロック（`Thought for Xs` / `.claudian-thinking-block`）を発話から除外**
+  - `extractReportText()` に除外対象サブツリーを非表示/除去してテキストを組み立てる `readVisibleTextExcluding()` を追加
+  - 思考ラベル「Thought for 1s」や思考本文を読み上げないように（実ブラウザ = innerText + display:none / jsdom = clone 除去）
+
 ## [0.13.0] - 2026-08-15
 ### Added
 - 自動読み上げの全応答対応: `autoRead.scope=full` で **📢 有無に関わらず**最後の応答を全文読み上げ
