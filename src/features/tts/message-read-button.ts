@@ -11,7 +11,7 @@
 import { Notice, setIcon } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
-import { readVisibleTextExcluding, EXCLUDED_FROM_SPEECH } from './extract-report';
+import { readVisibleTextExcluding, buildSpeechExclude } from './extract-report';
 
 const TEXT_BLOCK_SELECTOR = '.claudian-text-block';
 const COPY_BTN_SELECTOR = '.claudian-text-copy-btn';
@@ -43,7 +43,7 @@ export function setupMessageReadButtons(deps: MessageReadDeps): () => void {
         if (!cfg.tts.enabled) { notice('🔇 ミュート中です'); return; }
         const text = readVisibleTextExcluding(
           block,
-          `${COPY_BTN_SELECTOR}, [${READ_MARK}], ${EXCLUDED_FROM_SPEECH}`,
+          `${COPY_BTN_SELECTOR}, [${READ_MARK}], ${buildSpeechExclude(cfg.tts.excludeCallouts ?? true)}`,
         );
         if (!text) return;
         await deps.speak(text);

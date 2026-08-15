@@ -369,6 +369,15 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             }
           });
         });
+
+      new Setting(arBox)
+        .setName(s.ttsExcludeCallouts)
+        .setDesc(s.ttsExcludeCalloutsDesc)
+        .addToggle((t) => t.setValue(cfg.tts.excludeCallouts ?? true).onChange((v) => {
+          const latest = store.load();
+          store.save({ ...latest, tts: { ...latest.tts, excludeCallouts: v } });
+          draw();
+        }));
     }
 
     // 5. 削除注意文（旧 minimax 設定について）

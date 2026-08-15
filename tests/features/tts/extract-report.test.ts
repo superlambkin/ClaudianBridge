@@ -73,6 +73,19 @@ describe('extractReportText', () => {
     expect(text).not.toContain('echo hello');
   });
 
+  it('full scope: コールアウトを読み上げに含めない（既定 true）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>本文</p><div class="callout" data-callout="success"><div class="callout-title">成功</div><div class="callout-content"><p>コールアウトの内容</p></div></div></div></div>`;
+    const text = extractReportText(makeMessages(html), 'full');
+    expect(text).toContain('本文');
+    expect(text).not.toContain('コールアウトの内容');
+  });
+
+  it('full scope: excludeCallouts=false ならコールアウトも読む', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>本文</p><div class="callout" data-callout="success"><div class="callout-title">成功</div><div class="callout-content"><p>コールアウトの内容</p></div></div></div></div>`;
+    const text = extractReportText(makeMessages(html), 'full', { excludeCallouts: false });
+    expect(text).toContain('コールアウトの内容');
+  });
+
   it('ヘッダー: 📢・見出しが無い → null（v0.14.1）', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常の応答</p></div></div>`;
     expect(extractReportText(makeMessages(html), 'header')).toBeNull();

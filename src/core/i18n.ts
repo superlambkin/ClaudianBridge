@@ -87,6 +87,9 @@ export interface LocaleStrings {
   ttsAutoReadScopeDesc: string;
   ttsAutoReadScopeHeader: string;
   ttsAutoReadScopeFull: string;
+  // v0.15.0: コールアウト除外
+  ttsExcludeCallouts: string;
+  ttsExcludeCalloutsDesc: string;
   // v0.12.0: ツールバーボタン
   ttsMuteBtnIdle: string;
   ttsMuteBtnPlaying: string;
@@ -298,6 +301,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsAutoReadScopeDesc: 'ヘッダーのみ: 📢 ブロックのみ / 全文: 報告メッセージ全体',
     ttsAutoReadScopeHeader: '📢 ヘッダーのみ',
     ttsAutoReadScopeFull: '📄 メッセージ全文',
+    ttsExcludeCallouts: 'コールアウトを読み上げ対象から除外',
+    ttsExcludeCalloutsDesc: '「> [!type]」形式のコールアウト（成功・注意等）を読み上げません',
     ttsMuteBtnIdle: '🔊 ミュート',
     ttsMuteBtnPlaying: '⏹ ミュート',
     ttsMuteBtnMuted: '🔇 ミュート',
@@ -506,6 +511,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsAutoReadScopeDesc: 'Header only: 📢 blockquote / Full: entire report message',
     ttsAutoReadScopeHeader: '📢 Header only',
     ttsAutoReadScopeFull: '📄 Full message',
+    ttsExcludeCallouts: 'Exclude callouts from reading',
+    ttsExcludeCalloutsDesc: 'Skip "> [!type]" callouts (success, note, etc.) when reading',
     ttsMuteBtnIdle: '🔊 Mute',
     ttsMuteBtnPlaying: '⏹ Mute',
     ttsMuteBtnMuted: '🔇 Mute',
@@ -709,6 +716,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsAutoReadScopeDesc: '仅标题: 只读 📢 引用块 / 全文: 朗读整个报告消息',
     ttsAutoReadScopeHeader: '📢 仅标题',
     ttsAutoReadScopeFull: '📄 全文',
+    ttsExcludeCallouts: '朗读时排除 Callout',
+    ttsExcludeCalloutsDesc: '不朗读「> [!type]」形式的 Callout（成功、注意等）',
     ttsMuteBtnIdle: '🔊 静音',
     ttsMuteBtnPlaying: '⏹ 静音',
     ttsMuteBtnMuted: '🔇 静音',

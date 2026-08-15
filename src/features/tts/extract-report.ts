@@ -43,11 +43,26 @@ export function readVisibleTextExcluding(el: Element, excludeSel: string): strin
 /** 読み上げから除外する realclaudian 要素（Extended thinking ブロック・コードブロック） */
 export const EXCLUDED_FROM_SPEECH = '.claudian-thinking-block, .claudian-code-wrapper';
 
-/** ヘッダースコープの抽出で除外する UI 要素（思考ブロック・コピー/読上げボタン） */
-const HEADER_EXCLUDE = `${EXCLUDED_FROM_SPEECH}, .claudian-text-copy-btn, [data-cb-msg-read]`;
+/** コールアウト（> [!type]）セレクタ */
+const CALLOUT_SELECTOR = '.callout';
+
+/** ヘッダースコープの抽出で除外する UI 要素（コピー/読上げボタン） */
+const HEADER_UI_EXCLUDE = '.claudian-text-copy-btn, [data-cb-msg-read]';
+
+/** 読み上げ除外セレクタを組み立てる（コールアウト除外は設定に応じて） */
+export function buildSpeechExclude(excludeCallouts: boolean): string {
+  return excludeCallouts ? `${EXCLUDED_FROM_SPEECH}, ${CALLOUT_SELECTOR}` : EXCLUDED_FROM_SPEECH;
+}
+
+/** ヘッダースコープの除外セレクタ（UI ボタンも除外） */
+function buildHeaderExclude(excludeCallouts: boolean): string {
+  return `${buildSpeechExclude(excludeCallouts)}, ${HEADER_UI_EXCLUDE}`;
+}
 
 /** ヘッダースコープで読み上げない要素（UI に加え、データ表 table も除外） */
-const HEADER_SPEECH_EXCLUDE = `${HEADER_EXCLUDE}, table`;
+function buildHeaderSpeechExclude(excludeCallouts: boolean): string {
+  return `${buildHeaderExclude(excludeCallouts)}, table`;
+}
 
 /** 見出し要素（markdown 見出し） */
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
@@ -79,23 +94,23 @@ function readTextWithHidden(el: Element, hide: Element[], excludeSel: string): s
  * 📢 が無い応答では、見出し以降（詳細・次のアクション）はヘッダーで読まない。
  * 呼び出し側で見出しの存在を確認済み。
  */
-function readIntroText(el: Element): string {
+function readIntroText(el: Element, excludeSel: string): string {
   const firstHeading = el.querySelector(HEADING_SELECTOR)!;
   const after: Element[] = [];
   let sib: Element | null = firstHeading;
   while (sib) { after.push(sib); sib = sib.nextElementSibling; }
-  return readTextWithHidden(el, after, HEADER_SPEECH_EXCLUDE);
+  return readTextWithHidden(el, after, excludeSel);
 }
 
 /**
  * v0.14.2: 一項目のみの応答（見出しが1つ・導入文なし）で、その節（見出し以降）を読む。
  * データ表・思考ブロック・ボタンは除外（まとめとして読み上げる）。
  */
-function readSectionText(el: Element, heading: Element): string {
+function readSectionText(el: Element, heading: Element, excludeSel: string): string {
   const before: Element[] = [];
   let prev: Element | null = heading.previousElementSibling;
   while (prev) { before.push(prev); prev = prev.previousElementSibling; }
-  return readTextWithHidden(el, before, HEADER_SPEECH_EXCLUDE);
+  return readTextWithHidden(el, before, excludeSel);
 }
 
 /**
@@ -104,9 +119,17 @@ function readSectionText(el: Element, heading: Element): string {
  *   v0.14.1 より 📢 が無くても導入文は読む（詳細・次のアクションは読まない）。
  * - full:   メッセージ全文（.claudian-message-content）。v0.13.0 以降は 📢 有無に関わらず
  *           最後の応答を全文読み上げる（CLI Stop hook に代わるプラグイン一元化）。
+ * @param opts.excludeCallouts コールアウト（> [!type]）を除外するか（既定 true）
  * 抽出済み・assistant なしの場合は null。
  */
-export function extractReportText(messagesEl: Element, scope: AutoReadScope): string | null {
+export function extractReportText(
+  messagesEl: Element,
+  scope: AutoReadScope,
+  opts?: { excludeCallouts?: boolean },
+): string | null {
+  const excludeCallouts = opts?.excludeCallouts ?? true;
+  const speechExclude = buildSpeechExclude(excludeCallouts);
+  const headerSpeechExclude = buildHeaderSpeechExclude(excludeCallouts);
   const assistants = messagesEl.querySelectorAll('.claudian-message-assistant');
   const last = assistants[assistants.length - 1];
   if (!last) return null;
@@ -119,7 +142,7 @@ export function extractReportText(messagesEl: Element, scope: AutoReadScope): st
     if (last.hasAttribute(AUTO_READ_MARK)) return null;
     last.setAttribute(AUTO_READ_MARK, '1');
     const source = last.querySelector('.claudian-message-content') ?? last;
-    const text = readVisibleTextExcluding(source, EXCLUDED_FROM_SPEECH);
+    const text = readVisibleTextExcluding(source, speechExclude);
     return text === '' ? null : text;
   }
 
@@ -136,10 +159,10 @@ export function extractReportText(messagesEl: Element, scope: AutoReadScope): st
   const headings = Array.from(source.querySelectorAll(HEADING_SELECTOR));
   let text = '';
   if (headings.length >= 1) {
-    text = readIntroText(source); // 見出し前の導入文（空なら ''）
+    text = readIntroText(source, headerSpeechExclude); // 見出し前の導入文（空なら ''）
   }
   if (!text && headings.length === 1) {
-    text = readSectionText(source, headings[0]); // 一項目のみ → その節を読む
+    text = readSectionText(source, headings[0], headerSpeechExclude); // 一項目のみ → その節を読む
   }
   if (!text) return null;
   if (last.hasAttribute(AUTO_READ_MARK)) return null;

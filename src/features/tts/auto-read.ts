@@ -100,7 +100,7 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
       // 抽出を 400ms 間隔で最大5回（計 ~1.6s）リトライする。
       const scope = cfg.tts.autoRead?.scope ?? 'header';
       const tryExtract = (attempt: number): void => {
-        const text = extractReportText(messages, scope);
+        const text = extractReportText(messages, scope, { excludeCallouts: cfg.tts.excludeCallouts ?? true });
         if (text) {
           notice(`🔊 自動読み上げ: ${text.length} 文字を読み上げます`);
           enqueue(text);

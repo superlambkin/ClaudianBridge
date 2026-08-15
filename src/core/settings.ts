@@ -355,6 +355,8 @@ export interface ClaudianBridgeSettings {
     cli?: TtsCliSettings;
     /** v0.11.0: タスク終了時の自動読み上げ。 */
     autoRead?: TtsAutoReadSettings;
+    /** v0.15.0: コールアウト（> [!type]）を読み上げ対象から除外するか。 */
+    excludeCallouts?: boolean;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -389,6 +391,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     plachta: { ...DEFAULT_PLACHTA_SETTINGS },
     cli: { ...DEFAULT_TTS_CLI_SETTINGS },
     autoRead: { ...DEFAULT_TTS_AUTO_READ_SETTINGS },
+    excludeCallouts: true,
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -516,6 +519,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       })(),
       cli,
       autoRead,
+      excludeCallouts: typeof r.tts?.excludeCallouts === 'boolean' ? r.tts.excludeCallouts : true,
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
