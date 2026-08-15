@@ -83,6 +83,11 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
       if (settled) return;
       settled = true;
       unregister();
+      if (intentionalStop) {
+        // v0.12.0: 意図的停止中のエラーはユーザー操作由来 → エラー扱いしない
+        resolve(false);
+        return;
+      }
       noticeFn(`⚠️ ClaudeTTS 失敗: ${e.message}`);
       resolve(false);
     });

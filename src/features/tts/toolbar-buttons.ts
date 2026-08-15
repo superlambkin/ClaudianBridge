@@ -59,7 +59,6 @@ function renderFullText(btn: HTMLButtonElement, on: boolean): void {
 function makeFullTextButton(store: ConfigStore, _refreshAll: () => void): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.classList.add('claude-tts-fulltext-btn', 'claudian-action-btn');
-  btn.setAttribute('aria-label', 'Full-text');
   btn.setAttribute(FULLTEXT_MARK, 'true');
   let busy = false;
 
@@ -88,7 +87,6 @@ function makeFullTextButton(store: ConfigStore, _refreshAll: () => void): HTMLBu
 function makeMuteButton(store: ConfigStore, refreshAll: () => void): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.classList.add('claude-tts-mute-btn', 'claudian-action-btn');
-  btn.setAttribute('aria-label', 'Mute');
   btn.setAttribute(MUTE_MARK, 'true');
   let busy = false;
 

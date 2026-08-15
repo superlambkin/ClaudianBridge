@@ -403,6 +403,13 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
   // (This is a no-op for already-normalized data, but keeps the legacy migration contract intact.)
   chroma.defaultNResults = Math.max(MIN_QUERY_RESULTS, Math.min(MAX_QUERY_RESULTS, Math.round(chroma.defaultNResults)));
   chroma.recordPreviewLength = Math.max(MIN_PREVIEW_LENGTH, Math.min(MAX_PREVIEW_LENGTH, Math.round(chroma.recordPreviewLength)));
+  const cli = normalizeTtsCliSettings(r.tts?.cli);
+  const autoRead = normalizeTtsAutoReadSettings(r.tts?.autoRead);
+  // v0.12.0: 旧 v0.11.1 からの整合化 — autoRead 未設定（旧構成）で full_text=true なら
+  // scope=full に引き継ぐ（旧📖ボタンが ON だったユーザーの意図を尊重）。
+  if (r.tts?.autoRead === undefined && cli.full_text && autoRead.scope !== 'full') {
+    autoRead.scope = 'full';
+  }
   return {
     general: {
       enabled: r.general?.enabled ?? true,
@@ -507,8 +514,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
           : DEFAULT_PLACHTA_SETTINGS.speed;
         return { speaker, language: language as PlachtaLanguage, speed };
       })(),
-      cli: normalizeTtsCliSettings(r.tts?.cli),
-      autoRead: normalizeTtsAutoReadSettings(r.tts?.autoRead),
+      cli,
+      autoRead,
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),

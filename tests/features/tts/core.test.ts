@@ -247,6 +247,19 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     );
   });
 
+  it('意図的停止後に error イベントが来てもエラー Notice を出さず false を返す', async () => {
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+
+    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
+    expect(isTtsPlaying()).toBe(true);
+
+    stopAllPlayback(); // intentionalStop=true + child.kill
+    child.emit('error', new Error('ESRCH')); // kill 後の error イベント
+    await expect(p).resolves.toBe(false);
+    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
+  });
+
   it('webspeech engine: Node 環境では API がなく false を返す', async () => {
     // engine=webspeech: Node 環境では window.speechSynthesis が無い → false
     const p = addTextToTTS(null as never, 'hello', makeSettings('webspeech'));

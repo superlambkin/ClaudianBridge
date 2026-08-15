@@ -343,6 +343,36 @@ describe('tts.cli (v0.10.0)', () => {
   });
 });
 
+describe('normalizeClaudianBridgeSettings - v0.12.0 legacy reconcile', () => {
+  it('autoRead 未設定 + cli.full_text=true（旧v0.11.1）→ scope=full に引き継ぐ', () => {
+    const raw = {
+      tts: {
+        enabled: true,
+        engine: 'edge',
+        voices: { edge: { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' }, webspeech: { zh: '', ja: '', en: '' } },
+        cli: { full_text: true, max_chars: 300, debounce_ms: 2000, speech_filter: { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true } },
+      },
+    };
+    const cfg = normalizeClaudianBridgeSettings(raw);
+    expect(cfg.tts.autoRead?.scope).toBe('full');
+    expect(cfg.tts.cli?.full_text).toBe(true);
+  });
+
+  it('autoRead 未設定 + cli.full_text=false → scope=header のまま', () => {
+    const raw = {
+      tts: {
+        enabled: true,
+        engine: 'edge',
+        voices: { edge: { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' }, webspeech: { zh: '', ja: '', en: '' } },
+        cli: { full_text: false, max_chars: 300, debounce_ms: 2000, speech_filter: { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true } },
+      },
+    };
+    const cfg = normalizeClaudianBridgeSettings(raw);
+    expect(cfg.tts.autoRead?.scope).toBe('header');
+    expect(cfg.tts.cli?.full_text).toBe(false);
+  });
+});
+
 describe('withFullTextState / isFullTextState (v0.12.0)', () => {
   it('fullText=true → scope=full かつ cli.full_text=true', () => {
     const next = withFullTextState(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, true);
