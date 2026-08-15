@@ -51,20 +51,40 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
   /** 遷移判定は view 単位ではなく tabId 単位（同一 view 内の複数 tab で独立 strmeming するため） */
   const prevStreaming = new Map<string, boolean>();
   const restores: Array<() => void> = [];
+  /** 抽出リトライ用タイマー（cleanup で破棄） */
+  const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
   let warned = false;
 
   const getViews = (): RealClaudianView[] => {
     const p = (deps.app as unknown as { plugins?: { plugins?: Record<string, RealClaudianPlugin | undefined> } })
       ?.plugins?.plugins?.['realclaudian'];
-    if (!p) return [];
+    if (!p) {
+      console.debug('[cb-auto-read] realclaudian plugin not found');
+      return [];
+    }
     try {
-      if (typeof p.getAllViews === 'function') return p.getAllViews();
+      if (typeof p.getAllViews === 'function') {
+        const vs = p.getAllViews();
+        console.debug('[cb-auto-read] getAllViews ->', vs.length);
+        return vs;
+      }
       if (typeof p.getView === 'function') {
         const v = p.getView();
         return v ? [v] : [];
       }
-    } catch { /* best-effort */ }
+    } catch (e) { console.warn('[cb-auto-read] getViews error', e); }
     return [];
+  };
+
+  /**
+   * 対象 view のアクティブタブのメッセージ領域を取得。
+   * 複数タブ時は view.containerEl.querySelector が最初のタブの領域を返してしまうため、
+   * アクティブタブ（.claudian-hidden なし）の .claudian-messages を優先する。
+   */
+  const findMessagesEl = (root: Element | undefined): Element | null => {
+    return root?.querySelector('.claudian-tab-content:not(.claudian-hidden) .claudian-messages')
+      ?? root?.querySelector('.claudian-messages')
+      ?? null;
   };
 
   const onStreamState = (view: RealClaudianView, tabId: string, streaming: boolean): void => {
@@ -74,11 +94,27 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
     try {
       const cfg = deps.store.load();
       if (!cfg.tts.enabled || cfg.tts.autoRead?.enabled === false) return;
-      const root = view.containerEl;
-      const messages = root?.querySelector('.claudian-messages');
-      if (!messages) return;
-      const text = extractReportText(messages, cfg.tts.autoRead?.scope ?? 'header');
-      if (text) enqueue(text);
+      const messages = findMessagesEl(view.containerEl);
+      if (!messages) return; // メッセージ領域が見つからないアノマリは静かにスキップ
+      // v0.12.1: stream-end 直後は markdown レンダリングが未完了のことがあるため、
+      // 抽出を 400ms 間隔で最大5回（計 ~1.6s）リトライする。
+      const scope = cfg.tts.autoRead?.scope ?? 'header';
+      const tryExtract = (attempt: number): void => {
+        const text = extractReportText(messages, scope);
+        if (text) {
+          notice(`🔊 自動読み上げ: ${text.length} 文字を読み上げます`);
+          enqueue(text);
+          return;
+        }
+        // 📢 報告の無い通常応答は静かにスキップ（リトライはレンダリング遅延対策のみ）
+        if (attempt < 4) {
+          const timer = setTimeout(() => tryExtract(attempt + 1), 400);
+          pendingTimers.add(timer);
+        } else {
+          console.debug('[cb-auto-read] give up: 📢 報告ブロックを検出できませんでした');
+        }
+      };
+      tryExtract(0);
     } catch (e) {
       console.error('[claudian-bridge] auto-read error:', e);
     }
@@ -100,6 +136,7 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
     };
     hooked.add(cbs);
     restores.push(() => { cbs.onTabStreamingChanged = orig; });
+    console.debug('[cb-auto-read] hook attached (tabManager.callbacks)');
   };
 
   const hookView = (view: RealClaudianView): void => {
@@ -107,10 +144,12 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
     try {
       const tm = typeof view.getTabManager === 'function' ? view.getTabManager() : null;
       if (tm?.callbacks && typeof tm.callbacks === 'object') {
+        console.debug('[cb-auto-read] found tabManager.callbacks (getTabManager)');
         hookCallbacks(view, tm.callbacks);
         return;
       }
-    } catch { /* view 破棄済み等は次の候補へ */ }
+      console.debug('[cb-auto-read] getTabManager returned null or no callbacks:', !!tm, tm && Object.keys(tm).slice(0,5));
+    } catch (e) { console.warn('[cb-auto-read] getTabManager error', e); }
     // 後方互換: view 直下の callbacks（実在しないが旧想定構造）
     if (view.callbacks && typeof view.callbacks === 'object') {
       hookCallbacks(view, view.callbacks);
@@ -142,5 +181,7 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
     for (const r of restores) {
       try { r(); } catch { /* view 破棄済み等は無視 */ }
     }
+    for (const t of pendingTimers) clearTimeout(t);
+    pendingTimers.clear();
   };
 }

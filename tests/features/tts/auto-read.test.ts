@@ -166,6 +166,67 @@ describe('setupAutoReadTTS', () => {
     await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
   });
 
+  it('複数タブ時はアクティブタブ（.claudian-hidden なし）のメッセージ領域から抽出する', async () => {
+    // 実 realclaudian 構造: view 直下に複数の .claudian-tab-content があり、
+    // 各タブが個別の .claudian-messages を持つ。非アクティブタブは claudian-hidden。
+    const containerEl = document.createElement('div');
+    const tab1 = document.createElement('div');
+    tab1.className = 'claudian-tab-content claudian-hidden';
+    const msgs1 = document.createElement('div');
+    msgs1.className = 'claudian-messages';
+    msgs1.innerHTML = '<div class="claudian-message-assistant"><div class="claudian-message-content"><p>タブ1の通常応答（📢 なし）</p></div></div>';
+    tab1.appendChild(msgs1);
+    const tab2 = document.createElement('div');
+    tab2.className = 'claudian-tab-content'; // アクティブタブ
+    const msgs2 = document.createElement('div');
+    msgs2.className = 'claudian-messages';
+    msgs2.innerHTML = REPORT_HTML;
+    tab2.appendChild(msgs2);
+    containerEl.appendChild(tab1);
+    containerEl.appendChild(tab2);
+
+    const view = { containerEl, callbacks: {} } as Record<string, unknown> & {
+      containerEl: HTMLElement;
+      callbacks: { onTabStreamingChanged?: (id: string, streaming: boolean) => void };
+    };
+    const { app } = makeApp([view]);
+    const speak = vi.fn(async () => true);
+    setupAutoReadTTS({ app, store: makeStore(), speak });
+    view.callbacks.onTabStreamingChanged!('t', true);
+    view.callbacks.onTabStreamingChanged!('t', false);
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    expect(speak.mock.calls[0][0]).toContain('📢 テストタスクを完了しました。');
+  });
+
+  it('stream-end 時に blockquote 未レンダリングでも、遅延後に現れたら読み上げる（v0.12.1 リトライ）', async () => {
+    vi.useFakeTimers();
+    try {
+      // 初期 DOM には blockquote が無い（markdown レンダリング中）状態
+      const view = makeView('<div class="claudian-message-assistant"><div class="claudian-message-content"><p>レンダリング中…</p></div></div>');
+      delete (view as Record<string, unknown>).callbacks;
+      const tmCallbacks: { onTabStreamingChanged?: (id: string, streaming: boolean) => void } = {};
+      (view as Record<string, unknown>).getTabManager = () => ({ callbacks: tmCallbacks });
+      const { app } = makeApp([view]);
+      const speak = vi.fn(async () => true);
+      setupAutoReadTTS({ app, store: makeStore(), speak });
+
+      tmCallbacks.onTabStreamingChanged!('t', true);
+      tmCallbacks.onTabStreamingChanged!('t', false); // stream-end → 抽出 null → リトライ開始
+
+      // 400ms 経過: attempt 1 はまだ null。この後 markdown レンダリング完了を模擬
+      vi.advanceTimersByTime(400);
+      const messages = view.containerEl.querySelector('.claudian-messages')!;
+      messages.innerHTML = REPORT_HTML; // blockquote がここで出現
+
+      // attempt 2(800ms) で抽出成功 → speak
+      await vi.advanceTimersByTimeAsync(400);
+      expect(speak).toHaveBeenCalledTimes(1);
+      expect(speak.mock.calls[0][0]).toContain('📢 テストタスクを完了しました。');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('realclaudian 未インストール → 静かに何もしない', () => {
     const app = {
       plugins: { plugins: {} },
