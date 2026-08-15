@@ -14,6 +14,7 @@
  */
 import { Notice } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
+import { DEFAULT_TTS_CLI_SETTINGS } from '../../core/settings';
 
 const TOOLBAR_SELECTOR = '.claudian-input-toolbar';
 const MARK_ATTR = 'data-cb-fulltext';
@@ -37,19 +38,19 @@ export function setupToolbarFullTextButton(store: ConfigStore): () => void {
     btn.classList.add('claudian-action-btn', 'claude-tts-fulltext-btn');
     btn.setAttribute(MARK_ATTR, 'true');
     btn.setAttribute('aria-label', '全文読み上げ');
-    setButtonState(btn, store.load().tts.cli.full_text);
+    setButtonState(btn, store.load().tts.cli?.full_text ?? false);
     btn.addEventListener('click', () => {
       try {
         const cfg = store.load();
-        const next = !cfg.tts.cli.full_text;
+        const next = !(cfg.tts.cli?.full_text ?? false);
         store.save({
           ...cfg,
-          tts: { ...cfg.tts, cli: { ...cfg.tts.cli, full_text: next } },
+          tts: { ...cfg.tts, cli: { ...(cfg.tts.cli ?? DEFAULT_TTS_CLI_SETTINGS), full_text: next } },
         });
         setButtonState(btn, next);
         new Notice(next ? '📖 全文読み上げ ON（全文を読み上げます）' : '📄 全文読み上げ OFF（最大文字数で読み上げます）');
       } catch (e) {
-        setButtonState(btn, store.load().tts.cli.full_text);
+        setButtonState(btn, store.load().tts.cli?.full_text ?? false);
         new Notice(`⚠️ 保存失敗: ${(e as Error).message}`);
       }
     });
@@ -65,7 +66,7 @@ export function setupToolbarFullTextButton(store: ConfigStore): () => void {
     let shouldScan = false;
     for (const m of mutations) {
       if (m.type !== 'childList') continue;
-      for (const node of m.addedNodes) {
+      for (const node of Array.from(m.addedNodes)) {
         if (node instanceof HTMLElement && (node.matches(TOOLBAR_SELECTOR) || node.querySelector(TOOLBAR_SELECTOR))) {
           shouldScan = true;
           break;
