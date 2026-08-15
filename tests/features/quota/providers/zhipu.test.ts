@@ -42,7 +42,7 @@ describe('createZhipuProvider', () => {
   it('成功 → 5h 使用率 % を返す', async () => {
     runPythonMock.mockResolvedValue({
       exitCode: 0,
-      stdout: JSON.stringify({ ok: true, pct: 45, nextResetTime: '2099-01-01T00:00:00Z' }),
+      stdout: JSON.stringify({ ok: true, pct: 45, nextResetTime: '2099-01-01T00:00:00Z', unit: 3 }),
       stderr: '',
     });
     const q = await makeProvider().fetch();
@@ -50,6 +50,18 @@ describe('createZhipuProvider', () => {
     expect(q.value).toBe('45%');
     expect(q.pct).toBe(45);
     expect(q.detail).toBe('5h');
+  });
+
+  it('成功（unit=6 週間）→ detail=week', async () => {
+    runPythonMock.mockResolvedValue({
+      exitCode: 0,
+      stdout: JSON.stringify({ ok: true, pct: 45, nextResetTime: 1787194106998, unit: 6 }),
+      stderr: '',
+    });
+    const q = await makeProvider().fetch();
+    expect(q.status).toBe('success');
+    expect(q.value).toBe('45%');
+    expect(q.detail).toBe('week');
   });
 
   it('expired（401/403）→ status expired', async () => {

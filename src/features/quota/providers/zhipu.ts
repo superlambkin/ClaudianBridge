@@ -49,7 +49,7 @@ export function createZhipuProvider(opts: ZhipuProviderOptions): QuotaProvider {
           error: run.stderr.trim() || `exit ${run.exitCode}`,
         };
       }
-      const parsed = parseJsonOutput<{ ok: boolean; pct?: number; nextResetTime?: string | null; error?: string }>(run.stdout);
+      const parsed = parseJsonOutput<{ ok: boolean; pct?: number; nextResetTime?: string | null; unit?: number; error?: string }>(run.stdout);
       if (!parsed.ok) {
         return { status: 'error', providerId: 'zhipu', label: 'Zhipu', value: '', pct: null, error: `python: ${parsed.error}` };
       }
@@ -71,7 +71,7 @@ export function createZhipuProvider(opts: ZhipuProviderOptions): QuotaProvider {
         label: 'Zhipu',
         value: pct !== null ? `${pct}%` : '--',
         pct,
-        detail: '5h',
+        detail: d.unit === 6 ? 'week' : '5h',
       };
     },
   };
