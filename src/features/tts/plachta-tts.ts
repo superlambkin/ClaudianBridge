@@ -146,33 +146,38 @@ export async function playObjectUrl(
   url: string,
   noticeFn: (m: string) => void
 ): Promise<boolean> {
-  const audio = new Audio();
-  audio.src = url;
-  return await new Promise<boolean>((resolve) => {
-    let settled = false;
-    let unregister: () => void = () => {};
-    const finish = (ok: boolean): void => {
-      if (settled) return;
-      settled = true;
-      unregister();
-      try { URL.revokeObjectURL(url); } catch { /* ignore */ }
-      resolve(ok);
-    };
-    // v0.12.0: 再生レジストリへ登録（ミュートボタンの停止ハンドル）
-    unregister = registerPlayback({
-      engine: 'plachta',
-      stop: () => {
-        try { audio.pause(); } catch { /* ignore */ }
+  try {
+    const audio = new Audio();
+    audio.src = url;
+    return await new Promise<boolean>((resolve) => {
+      let settled = false;
+      let unregister: () => void = () => {};
+      const finish = (ok: boolean): void => {
+        if (settled) return;
+        settled = true;
+        unregister();
+        try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+        resolve(ok);
+      };
+      // v0.12.0: 再生レジストリへ登録（ミュートボタンの停止ハンドル）
+      unregister = registerPlayback({
+        engine: 'plachta',
+        stop: () => {
+          try { audio.pause(); } catch { /* ignore */ }
+          finish(false);
+        },
+      });
+      audio.onended = () => finish(true);
+      audio.onerror = () => { noticeFn('⚠️ 再生失敗'); finish(false); };
+      audio.play().catch((e) => {
+        noticeFn(`⚠️ 再生失敗: ${e.message}`);
         finish(false);
-      },
+      });
     });
-    audio.onended = () => finish(true);
-    audio.onerror = () => { noticeFn('⚠️ 再生失敗'); finish(false); };
-    audio.play().catch((e) => {
-      noticeFn(`⚠️ 再生失敗: ${e.message}`);
-      finish(false);
-    });
-  });
+  } catch (e) {
+    noticeFn(`⚠️ 再生準備失敗: ${(e as Error).message}`);
+    return false;
+  }
 }
 
 /** 単一チャンク読み上げ（既存互換のための薄いラッパー） */

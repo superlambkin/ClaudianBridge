@@ -315,6 +315,16 @@ describe('plachta-tts', () => {
     expect(resolved).toBe(false);
     expect(notice).not.toHaveBeenCalled();
   });
+
+  it('new Audio() が失敗すると 再生準備失敗 Notice + false を返す', async () => {
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      constructor() { throw new Error('Audio unavailable'); }
+    };
+    const notice = vi.fn();
+    const result = await playObjectUrl('blob:mock', notice);
+    expect(result).toBe(false);
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('再生準備失敗'));
+  });
 });
 
 describe('plachtaSpeakChunksPipelined (v0.10.0 パイプライン再生)', () => {
