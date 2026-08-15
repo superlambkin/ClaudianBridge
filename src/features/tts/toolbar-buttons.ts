@@ -26,34 +26,34 @@ export function computeMuteState(enabled: boolean, playing: boolean): MuteState 
   return playing ? 'enabled-playing' : 'enabled-idle';
 }
 
+/** アイコンのみ表示（サイズ最小化）。説明は tooltip(title) に載せる */
+const MUTE_ICONS: Record<MuteState, string> = {
+  'enabled-idle': '🔊',
+  'enabled-playing': '⏹',
+  'disabled': '🔇',
+};
+
 function renderMute(btn: HTMLButtonElement, state: MuteState): void {
   const s = getLocaleStrings(getUILanguage());
   btn.classList.remove('is-muted', 'is-playing');
+  const title = state === 'disabled'
+    ? s.ttsMuteBtnMuted
+    : state === 'enabled-playing' ? s.ttsMuteBtnPlaying : s.ttsMuteBtnIdle;
+  btn.textContent = MUTE_ICONS[state];
+  btn.title = title;
   if (state === 'disabled') {
-    btn.textContent = s.ttsMuteBtnMuted;
-    btn.title = s.ttsMuteBtnMuted;
     btn.classList.add('is-muted');
   } else if (state === 'enabled-playing') {
-    btn.textContent = s.ttsMuteBtnPlaying;
-    btn.title = s.ttsMuteBtnPlaying;
     btn.classList.add('is-playing');
-  } else {
-    btn.textContent = s.ttsMuteBtnIdle;
-    btn.title = s.ttsMuteBtnIdle;
   }
 }
 
 function renderFullText(btn: HTMLButtonElement, on: boolean): void {
   const s = getLocaleStrings(getUILanguage());
-  if (on) {
-    btn.textContent = s.ttsFullTextBtnOn;
-    btn.title = s.ttsFullTextBtnOn;
-    btn.classList.add('is-fulltext');
-  } else {
-    btn.textContent = s.ttsFullTextBtnOff;
-    btn.title = s.ttsFullTextBtnOff;
-    btn.classList.remove('is-fulltext');
-  }
+  btn.textContent = on ? '📖' : '📄';
+  btn.title = on ? s.ttsFullTextBtnOn : s.ttsFullTextBtnOff;
+  if (on) btn.classList.add('is-fulltext');
+  else btn.classList.remove('is-fulltext');
 }
 
 function makeFullTextButton(store: ConfigStore, _refreshAll: () => void): HTMLButtonElement {

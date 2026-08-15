@@ -56,7 +56,7 @@ describe('setupToolbarButtons (mute)', () => {
     cleanup = setupToolbarButtons(store);
     const toolbar = addToolbar();
     const btn = await waitForBtn(toolbar, '[data-cb-mute]');
-    expect(btn.textContent).toContain('ミュート');
+    expect(btn.textContent).toBe('🔊'); // v0.12.4: アイコンのみ表示
     expect(btn.classList.contains('is-muted')).toBe(false);
     expect(btn.classList.contains('is-playing')).toBe(false);
   });
@@ -69,7 +69,7 @@ describe('setupToolbarButtons (mute)', () => {
     btn.click();
     expect(saves).toHaveLength(1);
     expect((saves[0] as { tts: { enabled: boolean } }).tts.enabled).toBe(false);
-    expect(btn.textContent).toContain('ミュート'); // v0.12.2: ミュート状態も「ミュート」表示
+    expect(btn.textContent).toBe('🔇'); // v0.12.4: アイコンのみ表示
     expect(btn.classList.contains('is-muted')).toBe(true);
   });
 
@@ -82,7 +82,7 @@ describe('setupToolbarButtons (mute)', () => {
     btn.click();
     expect(saves).toHaveLength(1);
     expect((saves[0] as { tts: { enabled: boolean } }).tts.enabled).toBe(true);
-    expect(btn.textContent).toContain('ミュート');
+    expect(btn.textContent).toBe('🔊'); // v0.12.4: アイコンのみ表示
     expect(btn.classList.contains('is-muted')).toBe(false);
   });
 
@@ -93,7 +93,7 @@ describe('setupToolbarButtons (mute)', () => {
     const btn = await waitForBtn(toolbar, '[data-cb-mute]');
     const unregister = registerPlayback({ engine: 'edge', stop: vi.fn() });
     await vi.waitFor(() => expect(btn.classList.contains('is-playing')).toBe(true));
-    expect(btn.textContent).toContain('ミュート'); // v0.12.2: 全状態で「ミュート」表示
+    expect(btn.textContent).toBe('⏹'); // v0.12.4: アイコンのみ表示
     btn.click();
     expect(saves).toHaveLength(0); // enabled は変更されない
     unregister();
@@ -132,7 +132,7 @@ describe('setupToolbarButtons (fulltext)', () => {
     cleanup = setupToolbarButtons(store);
     const toolbar = addToolbar();
     const btn = await waitForBtn(toolbar, '[data-cb-fulltext]');
-    expect(btn.textContent).toContain('ヘッダー');
+    expect(btn.textContent).toBe('📄'); // v0.12.4: アイコンのみ表示
     expect(btn.classList.contains('is-fulltext')).toBe(false);
   });
 
@@ -146,7 +146,7 @@ describe('setupToolbarButtons (fulltext)', () => {
     const saved = saves[0] as { tts: { autoRead: { scope: string }; cli: { full_text: boolean } } };
     expect(saved.tts.autoRead.scope).toBe('full');
     expect(saved.tts.cli.full_text).toBe(true);
-    expect(btn.textContent).toContain('全文');
+    expect(btn.textContent).toBe('📖'); // v0.12.4: アイコンのみ表示
     expect(btn.classList.contains('is-fulltext')).toBe(true);
   });
 
