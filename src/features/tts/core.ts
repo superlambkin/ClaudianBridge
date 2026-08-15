@@ -6,6 +6,7 @@ import * as os from 'os';
 import type { PlachtaSettings, TtsEngine } from '../../core/settings';
 import { plachtaSpeakChunksPipelined } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
+import { registerPlayback } from './playback-registry';
 
 type NoticeFn = (m: string) => void;
 
@@ -53,6 +54,7 @@ export const SAMPLE_TEXT: Record<'zh' | 'ja' | 'en', string> = {
 export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
   return new Promise((resolve) => {
     let settled = false;
+    let intentionalStop = false;
     const cmd = path.join(os.homedir(), '.claude', 'skills', 'claude-tts', 'scripts', 'commands.py');
     let child: ReturnType<typeof spawn>;
     console.log('[claudian-bridge TTS] spawning:', { cmd, textLen: text.length, textPreview: text.slice(0, 40) });
@@ -64,6 +66,14 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
       resolve(false);
       return;
     }
+    // v0.12.0: 再生レジストリへ登録（ミュートボタンの停止ハンドル）
+    const unregister = registerPlayback({
+      engine: 'edge',
+      stop: () => {
+        intentionalStop = true;
+        try { child.kill(); } catch { /* ignore */ }
+      },
+    });
     let err = '';
     let out = '';
     child.stderr?.on('data', (d) => (err += d.toString()));
@@ -72,6 +82,7 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
       console.error('[claudian-bridge TTS] spawn error event:', e.message);
       if (settled) return;
       settled = true;
+      unregister();
       noticeFn(`⚠️ ClaudeTTS 失敗: ${e.message}`);
       resolve(false);
     });
@@ -79,6 +90,12 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
       console.log('[claudian-bridge TTS] child close:', { code, stderr: err.slice(0, 300), stdout: out.slice(0, 100) });
       if (settled) return;
       settled = true;
+      unregister();
+      if (intentionalStop) {
+        // v0.12.0: ユーザー操作による停止 → エラー扱いしない
+        resolve(false);
+        return;
+      }
       if (code === 0) {
         if (/使い方|usage/i.test(err) || /使い方|usage/i.test(out)) {
           noticeFn('⚠️ ClaudeTTS speak サブコマンド未定義。~/.claude/skills/claude-tts/scripts/commands.py を更新してください');

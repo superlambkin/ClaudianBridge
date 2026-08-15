@@ -5,6 +5,7 @@ import { addTextToTTS, webSpeechSpeak } from '../../../src/features/tts/core';
 import type { TtsSettings } from '../../../src/features/tts/core';
 import { plachtaSpeakChunksPipelined } from '../../../src/features/tts/plachta-tts';
 import { PLACHTA_DEFAULT_SPEAKER } from '../../../src/features/tts/plachta-tts';
+import { isTtsPlaying, stopAllPlayback, resetPlaybackRegistry } from '../../../src/features/tts/playback-registry';
 
 // ── mocks ──────────────────────────────────────────────────────────────────
 // Notice: replace with a spy so we can assert toast messages.
@@ -41,6 +42,7 @@ interface ChildHandle {
   stdout: StreamHandle;
   on: ReturnType<typeof vi.fn>;
   emit: (ev: string, ...args: unknown[]) => void;
+  kill: ReturnType<typeof vi.fn>;
 }
 
 function makeEmitter(): StreamHandle {
@@ -68,6 +70,7 @@ function makeChild(): ChildHandle {
     emit(ev: string, ...args: unknown[]) {
       (listeners[ev] ?? []).forEach((fn) => fn(...args));
     },
+    kill: vi.fn(),
   } as ChildHandle;
   return child;
 }
@@ -104,6 +107,7 @@ function makePlachtaSettings(): TtsSettings {
 beforeEach(() => {
   spawnMock.mockReset();
   noticeMock.mockClear();
+  resetPlaybackRegistry();
   vi.mocked(plachtaSpeakChunksPipelined).mockReset();
   vi.mocked(plachtaSpeakChunksPipelined).mockResolvedValue(true);
 });
@@ -212,6 +216,21 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     expect(noticeMock).toHaveBeenCalledWith(
       expect.stringContaining('ClaudeTTS 失敗 (exit 1)'),
     );
+  });
+
+  it('stopAllPlayback で child.kill されると false を返しエラー Notice を出さない', async () => {
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+
+    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
+    expect(isTtsPlaying()).toBe(true);
+
+    stopAllPlayback();
+    expect(child.kill).toHaveBeenCalled();
+
+    child.emit('close', 1); // kill による close（非0 exit）
+    await expect(p).resolves.toBe(false);
+    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
   });
 
   it('spawn error event → false + Notice', async () => {
