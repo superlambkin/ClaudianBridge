@@ -299,6 +299,18 @@ describe('normalizeClaudianBridgeSettings - quota zhipu (Task 3)', () => {
     const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, quota: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota, zhipuApiKey: 123 as unknown as string } };
     expect(validateClaudianBridgeSettings(bad)).toContain('quota.zhipuApiKey');
   });
+
+  it('normalize: zhipuPythonPath 空文字 → デフォルト', () => {
+    const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
+    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuPythonPath: '   ' } });
+    expect(norm.quota.zhipuPythonPath).toBe(defaultPython);
+  });
+
+  it('normalize: zhipuPythonPath 非文字列 → デフォルト', () => {
+    const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
+    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuPythonPath: 42 as unknown as string } });
+    expect(norm.quota.zhipuPythonPath).toBe(defaultPython);
+  });
 });
 
 describe('tts (v0.8.0: Plachta engine, anime-tts removed)', () => {

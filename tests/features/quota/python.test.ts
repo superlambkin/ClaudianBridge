@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { parseJsonOutput } from '../../../src/features/quota/python';
+import { parseJsonOutput, runPython } from '../../../src/features/quota/python';
 
 describe('parseJsonOutput', () => {
   it('有効 JSON → ok=true, data を返す', () => {
@@ -18,5 +18,20 @@ describe('parseJsonOutput', () => {
     const r = parseJsonOutput('not json');
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain('JSON');
+  });
+});
+
+describe('runPython', () => {
+  it('存在しない python パス → exitCode -1 / stderr 非空 で resolve（reject しない）', async () => {
+    const r = await runPython({
+      pythonPath: 'definitely-not-a-real-python-xyz',
+      scriptPath: 'does-not-exist.py',
+      args: [],
+      cwd: process.cwd(),
+      timeoutMs: 5000,
+    });
+    expect(r.exitCode).toBe(-1);
+    expect(r.stdout).toBe('');
+    expect(r.stderr).not.toBe('');
   });
 });

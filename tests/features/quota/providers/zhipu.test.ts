@@ -84,4 +84,30 @@ describe('createZhipuProvider', () => {
     const q = await makeProvider().fetch();
     expect(q.status).toBe('error');
   });
+
+  it('API キーを args ではなく env で渡す', async () => {
+    runPythonMock.mockResolvedValue({
+      exitCode: 0,
+      stdout: JSON.stringify({ ok: true, pct: 10 }),
+      stderr: '',
+    });
+    await makeProvider().fetch();
+    const opts = runPythonMock.mock.calls[0][0];
+    expect(opts.env.ZHIPU_API_KEY).toBe('sk-zhipu');
+    expect(opts.args).not.toContain('sk-zhipu');
+  });
+
+  it('ok=true で pct 欠落/null → status success, value --, pct null', async () => {
+    for (const payload of [{ ok: true }, { ok: true, pct: null }]) {
+      runPythonMock.mockResolvedValue({
+        exitCode: 0,
+        stdout: JSON.stringify(payload),
+        stderr: '',
+      });
+      const q = await makeProvider().fetch();
+      expect(q.status).toBe('success');
+      expect(q.value).toBe('--');
+      expect(q.pct).toBeNull();
+    }
+  });
 });

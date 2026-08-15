@@ -12,6 +12,9 @@ import { resolveVaultRoot, testProviderConnection } from '../features/quota/serv
 import { getClaudeQuotaHandle, registerClaudeQuota } from '../features/quota/index';
 import type { ProviderId, ProviderQuota, QuotaProvider } from '../features/quota/types';
 
+/** 既定の Python インタプリタ（service.ts と同じ導出） */
+const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
+
 type QuotaLevel = 'safe' | 'caution' | 'danger' | 'unknown';
 
 /** 使用率 % → 安全/注意/危険（70/90 閾値） */
@@ -256,7 +259,10 @@ export function renderQuotaTab(app: App, containerEl: HTMLElement, store: Config
         label: s.quotaZhipuApiKey,
         build: (k) => createZhipuProvider({
           getKey: () => k,
-          getPythonPath: () => quota.zhipuPythonPath,
+          getPythonPath: () => {
+            const p = store.load().quota.zhipuPythonPath;
+            return p && p.trim() !== '' ? p.trim() : defaultPython;
+          },
           getVaultRoot: () => resolveVaultRoot(app),
         }),
         valueLabel: s.quotaZhipuValue,
@@ -304,6 +310,16 @@ export function renderQuotaTab(app: App, containerEl: HTMLElement, store: Config
           })
         );
     }
+
+    // ───── ZHIPU Python パス ─────
+    new Setting(containerEl)
+      .setName(s.quotaZhipuPythonPath)
+      .addText((t) =>
+        t
+          .setPlaceholder(s.quotaZhipuPythonPathPlaceholder)
+          .setValue(quota.zhipuPythonPath)
+          .onChange((v) => saveKey('zhipuPythonPath', v))
+      );
   };
 
   draw();

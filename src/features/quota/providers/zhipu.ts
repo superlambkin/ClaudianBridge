@@ -34,9 +34,10 @@ export function createZhipuProvider(opts: ZhipuProviderOptions): QuotaProvider {
       const run = await runPython({
         pythonPath: opts.getPythonPath(),
         scriptPath,
-        args: [key],
+        args: [],
         cwd: path.dirname(scriptPath),
         timeoutMs: 30_000,
+        env: { ZHIPU_API_KEY: key },
       });
       if (run.exitCode !== 0) {
         return {

@@ -215,6 +215,8 @@ export interface LocaleStrings {
   quotaDisplayKimi: string;
   quotaDisplayMinimax: string;
   quotaZhipuApiKey: string;
+  quotaZhipuPythonPath: string;
+  quotaZhipuPythonPathPlaceholder: string;
   quotaZhipuValue: string;
   quotaDisplayZhipu: string;
 }
@@ -430,6 +432,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayKimi: 'KIMI CODE を表示',
     quotaDisplayMinimax: 'MINIMAX を表示',
     quotaZhipuApiKey: 'ZHIPU API キー',
+    quotaZhipuPythonPath: 'ZHIPU Python パス',
+    quotaZhipuPythonPathPlaceholder: 'py / python3 / フルパス',
     quotaZhipuValue: '5時間使用量',
     quotaDisplayZhipu: '智谱を表示',
   },
@@ -643,6 +647,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayKimi: 'Show KIMI CODE',
     quotaDisplayMinimax: 'Show MINIMAX',
     quotaZhipuApiKey: 'ZHIPU API key',
+    quotaZhipuPythonPath: 'ZHIPU Python path',
+    quotaZhipuPythonPathPlaceholder: 'py / python3 / full path',
     quotaZhipuValue: '5h usage',
     quotaDisplayZhipu: 'Show Zhipu',
   },
@@ -856,6 +862,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayKimi: '显示 KIMI CODE',
     quotaDisplayMinimax: '显示 MINIMAX',
     quotaZhipuApiKey: 'ZHIPU API 密钥',
+    quotaZhipuPythonPath: 'ZHIPU Python 路径',
+    quotaZhipuPythonPathPlaceholder: 'py / python3 / 完整路径',
     quotaZhipuValue: '5小时用量',
     quotaDisplayZhipu: '显示智谱',
   },

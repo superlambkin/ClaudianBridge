@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from 'vitest';
-import { MultiQuotaService, resolveApiKey, testProviderConnection } from '../../../src/features/quota/service';
+import { MultiQuotaService, resolveApiKey, resolveVaultRoot, testProviderConnection } from '../../../src/features/quota/service';
 import { createDeepSeekProvider } from '../../../src/features/quota/providers/deepseek';
 
 function makeService(opts?: Partial<{
@@ -96,6 +96,11 @@ describe('MultiQuotaService', () => {
 
   it('ZHIPU_API_KEY 設定時のみ Zhipu が available', () => {
     const svc = makeService({ quotaEnabled: false, providers: ['ZHIPU_API_KEY'] });
+    expect(svc.getAvailableIds()).toEqual(['zhipu']);
+  });
+
+  it('ZAI_API_KEY 環境変数フォールバックで Zhipu が available', () => {
+    const svc = makeService({ quotaEnabled: false, providers: ['ZAI_API_KEY'] });
     expect(svc.getAvailableIds()).toEqual(['zhipu']);
   });
 
@@ -204,5 +209,11 @@ describe('testProviderConnection', () => {
     } finally {
       globalThis.fetch = orig;
     }
+  });
+});
+
+describe('resolveVaultRoot', () => {
+  it('app 未指定 → process.cwd() を返す', () => {
+    expect(resolveVaultRoot(undefined)).toBe(process.cwd());
   });
 });
