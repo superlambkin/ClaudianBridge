@@ -65,6 +65,14 @@ describe('extractReportText', () => {
     expect(text).not.toContain('内部思考の内容');
   });
 
+  it('full scope: コードブロック（言語ラベル含む）を読み上げに含めない', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>本文のテキスト</p><div class="claudian-code-wrapper"><span class="claudian-code-lang-label">bash</span><pre><code>echo hello</code></pre></div></div></div>`;
+    const text = extractReportText(makeMessages(html), 'full');
+    expect(text).toContain('本文のテキスト');
+    expect(text).not.toContain('bash');
+    expect(text).not.toContain('echo hello');
+  });
+
   it('ヘッダー: 📢・見出しが無い → null（v0.14.1）', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常の応答</p></div></div>`;
     expect(extractReportText(makeMessages(html), 'header')).toBeNull();

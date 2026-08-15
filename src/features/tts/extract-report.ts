@@ -40,8 +40,8 @@ export function readVisibleTextExcluding(el: Element, excludeSel: string): strin
   return (clone.textContent ?? '').trim();
 }
 
-/** 読み上げから除外する realclaudian 要素（Extended thinking ブロック） */
-export const EXCLUDED_FROM_SPEECH = '.claudian-thinking-block';
+/** 読み上げから除外する realclaudian 要素（Extended thinking ブロック・コードブロック） */
+export const EXCLUDED_FROM_SPEECH = '.claudian-thinking-block, .claudian-code-wrapper';
 
 /** ヘッダースコープの抽出で除外する UI 要素（思考ブロック・コピー/読上げボタン） */
 const HEADER_EXCLUDE = `${EXCLUDED_FROM_SPEECH}, .claudian-text-copy-btn, [data-cb-msg-read]`;
