@@ -5,6 +5,7 @@ import type { ProviderId, ProviderQuota, QuotaProvider, QuotaSnapshot } from './
 import { createDeepSeekProvider } from './providers/deepseek';
 import { createKimiProvider } from './providers/kimi';
 import { createMiniMaxProvider } from './providers/minimax';
+import { createZhipuProvider } from './providers/zhipu';
 
 export interface MultiQuotaServiceOptions {
   app: App;
@@ -35,6 +36,17 @@ export interface ConnectionTestResult {
   ok: boolean;
   quota?: ProviderQuota;
   error?: string;
+}
+
+/** Vault ルートを安全に解決（app.vault.adapter.getBasePath → basePath → cwd） */
+export function resolveVaultRoot(app: App | undefined): string {
+  if (!app) return process.cwd();
+  try {
+    const adapter = (app.vault?.adapter as { getBasePath?: () => string; basePath?: string } | undefined);
+    if (adapter?.getBasePath) return adapter.getBasePath();
+    if (adapter?.basePath) return adapter.basePath;
+  } catch { /* ignore */ }
+  return process.cwd();
 }
 
 /** プロバイダに一時 API キーを渡して接続テスト（fetch を 1 回実行） */
@@ -90,17 +102,24 @@ export class MultiQuotaService {
     });
     const getEnv = opts.getEnv ?? ((k: string) => process.env[k]);
     const cfg = opts.store.load();
+    const vaultRoot = resolveVaultRoot(opts.app);
+    const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
     this.providers = [
       createDeepSeekProvider(() => resolveApiKey(cfg.quota?.deepseekApiKey, getEnv, ['DEEPSEEK_API_KEY'])),
       createKimiProvider(() => resolveApiKey(cfg.quota?.kimiApiKey, getEnv, ['KIMI_CODING_API_KEY', 'KIMI_API_KEY'])),
       createMiniMaxProvider(() => resolveApiKey(cfg.quota?.minimaxApiKey, getEnv, ['MINIMAX_CN_API_KEY', 'MINIMAX_API_KEY'])),
+      createZhipuProvider({
+        getKey: () => resolveApiKey(cfg.quota?.zhipuApiKey, getEnv, ['ZHIPU_API_KEY', 'ZAI_API_KEY']),
+        getPythonPath: () => (cfg.quota?.zhipuPythonPath && cfg.quota.zhipuPythonPath.trim() !== '' ? cfg.quota.zhipuPythonPath : defaultPython),
+        getVaultRoot: () => vaultRoot,
+      }),
     ].filter((p) => p.isConfigured());
   }
 
   /** 表示対象プロバイダ ID のリスト（Claude は quotaEnabled 設定に依存、表示フラグ/接続成功のみ） */
   getAvailableIds(): ProviderId[] {
     const cfg = this.opts.store.load();
-    const flags = cfg.quota?.displayModels ?? { claude: true, deepseek: true, kimi: true, minimax: true };
+    const flags = cfg.quota?.displayModels ?? { claude: true, deepseek: true, kimi: true, minimax: true, zhipu: true };
     const ids: ProviderId[] = [];
     if (cfg.general.quotaEnabled && flags.claude) ids.push('claude');
     for (const p of this.providers) {

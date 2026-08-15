@@ -6,8 +6,8 @@ import { createDeepSeekProvider } from '../../../src/features/quota/providers/de
 function makeService(opts?: Partial<{
   quotaEnabled: boolean;
   providers: string[];
-  apiKeys?: Record<string, string>;
-  displayModels?: { claude?: boolean; deepseek?: boolean; kimi?: boolean; minimax?: boolean };
+  apiKeys?: { deepseek?: string; zhipu?: string };
+  displayModels?: { claude?: boolean; deepseek?: boolean; kimi?: boolean; minimax?: boolean; zhipu?: boolean };
   onCollect?: () => void;
 }>) {
   const store = {
@@ -17,11 +17,14 @@ function makeService(opts?: Partial<{
         deepseekApiKey: opts?.apiKeys?.deepseek ?? '',
         kimiApiKey: '',
         minimaxApiKey: '',
+        zhipuApiKey: opts?.apiKeys?.zhipu ?? '',
+        zhipuPythonPath: 'py',
         displayModels: {
           claude: opts?.displayModels?.claude ?? true,
           deepseek: opts?.displayModels?.deepseek ?? true,
           kimi: opts?.displayModels?.kimi ?? true,
           minimax: opts?.displayModels?.minimax ?? true,
+          zhipu: opts?.displayModels?.zhipu ?? true,
         },
       },
     }),
@@ -88,6 +91,21 @@ describe('MultiQuotaService', () => {
 
   it('表示OFFのプロバイダは available に含まれない', () => {
     const svc = makeService({ quotaEnabled: false, apiKeys: { deepseek: 'sk-from-settings' }, displayModels: { deepseek: false } });
+    expect(svc.getAvailableIds()).toEqual([]);
+  });
+
+  it('ZHIPU_API_KEY 設定時のみ Zhipu が available', () => {
+    const svc = makeService({ quotaEnabled: false, providers: ['ZHIPU_API_KEY'] });
+    expect(svc.getAvailableIds()).toEqual(['zhipu']);
+  });
+
+  it('settings の zhipu API キー設定時は available になる', () => {
+    const svc = makeService({ quotaEnabled: false, apiKeys: { zhipu: 'sk-zhipu' } });
+    expect(svc.getAvailableIds()).toEqual(['zhipu']);
+  });
+
+  it('表示OFFの zhipu は available に含まれない', () => {
+    const svc = makeService({ quotaEnabled: false, apiKeys: { zhipu: 'sk-zhipu' }, displayModels: { zhipu: false } });
     expect(svc.getAvailableIds()).toEqual([]);
   });
 
