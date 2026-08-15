@@ -43,9 +43,41 @@ export function readVisibleTextExcluding(el: Element, excludeSel: string): strin
 /** 読み上げから除外する realclaudian 要素（Extended thinking ブロック） */
 export const EXCLUDED_FROM_SPEECH = '.claudian-thinking-block';
 
+/** ヘッダースコープの抽出で除外する UI 要素（思考ブロック・コピー/読上げボタン） */
+const HEADER_EXCLUDE = `${EXCLUDED_FROM_SPEECH}, .claudian-text-copy-btn, [data-cb-msg-read]`;
+
+/** 見出し要素（markdown 見出し） */
+const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+
+/**
+ * v0.14.1: 最初の見出しより前の「導入文」を取得する（ヘッダースコープの「結果全体まとめ」）。
+ * 📢 が無い応答では、見出し以降（詳細・次のアクション）はヘッダーで読まない。
+ * 呼び出し側で見出しの存在を確認済み。
+ */
+function readIntroText(el: Element): string {
+  const firstHeading = el.querySelector(HEADING_SELECTOR)!;
+  // 最初の見出し以降に一時マークを付け、readVisibleTextExcluding で除外して読む
+  const mark = 'data-cb-intro-cut';
+  let sib: Element | null = firstHeading;
+  while (sib) {
+    sib.setAttribute(mark, '1');
+    sib = sib.nextElementSibling;
+  }
+  try {
+    return readVisibleTextExcluding(el, `${HEADER_EXCLUDE}, [${mark}]`);
+  } finally {
+    let sib2: Element | null = firstHeading;
+    while (sib2) {
+      sib2.removeAttribute(mark);
+      sib2 = sib2.nextElementSibling;
+    }
+  }
+}
+
 /**
  * messagesEl（.claudian-messages）内の最後の assistant メッセージから読み上げテキストを抽出。
- * - header: 📢 で始まる blockquote のテキスト（📢 なしは null）
+ * - header: 結果全体まとめのみ。📢 blockquote → 導入文（最初の見出しより前）の順でフォールバック。
+ *   v0.14.1 より 📢 が無くても導入文は読む（詳細・次のアクションは読まない）。
  * - full:   メッセージ全文（.claudian-message-content）。v0.13.0 以降は 📢 有無に関わらず
  *           最後の応答を全文読み上げる（CLI Stop hook に代わるプラグイン一元化）。
  * 抽出済み・assistant なしの場合は null。
@@ -67,10 +99,18 @@ export function extractReportText(messagesEl: Element, scope: AutoReadScope): st
     return text === '' ? null : text;
   }
 
-  // header scope: 📢 報告のみ（現行仕様）
-  if (!report) return null;
-  if (report.hasAttribute(AUTO_READ_MARK)) return null;
-  report.setAttribute(AUTO_READ_MARK, '1');
-  const text = readVisibleText(report);
+  // header scope: 結果全体まとめのみ
+  const source = last.querySelector('.claudian-message-content') ?? last;
+  if (report) {
+    if (report.hasAttribute(AUTO_READ_MARK)) return null;
+    report.setAttribute(AUTO_READ_MARK, '1');
+    const text = readVisibleText(report);
+    return text === '' ? null : text;
+  }
+  // 📢 が無い場合: 最初の見出しまでの導入文を「まとめ」として読む（見出しが無ければ null）
+  if (!source.querySelector(HEADING_SELECTOR)) return null;
+  if (last.hasAttribute(AUTO_READ_MARK)) return null;
+  last.setAttribute(AUTO_READ_MARK, '1');
+  const text = readIntroText(source);
   return text === '' ? null : text;
 }

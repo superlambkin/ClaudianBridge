@@ -58,14 +58,23 @@ describe('extractReportText', () => {
     expect(text).not.toContain('内部思考の内容');
   });
 
-  it('📢 blockquote が無いメッセージ → null', () => {
+  it('ヘッダー: 📢・見出しが無い → null（v0.14.1）', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常の応答</p></div></div>`;
     expect(extractReportText(makeMessages(html), 'header')).toBeNull();
   });
 
-  it('📢 で始まらない blockquote は無視 → null', () => {
-    const html = `<div class="claudian-message-assistant"><blockquote><p>引用です 📢 途中は対象外</p></blockquote></div>`;
-    expect(extractReportText(makeMessages(html), 'header')).toBeNull();
+  it('ヘッダー: 📢 が無く見出しがある → 見出しより前の導入文だけを読む（v0.14.1）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>これは導入のまとめです。</p><h2>詳細</h2><p>詳細の内容は読まない。</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).toContain('これは導入のまとめです。');
+    expect(text).not.toContain('詳細の内容は読まない。');
+  });
+
+  it('ヘッダー: 📢 で始まらない blockquote は対象外 → 見出し前の導入文を読む', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>まとめの文章</p><blockquote><p>引用です</p></blockquote><h2>詳細</h2><p>詳細の内容</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).toContain('まとめの文章');
+    expect(text).not.toContain('詳細の内容');
   });
 
   it('assistant メッセージが無い → null', () => {
@@ -89,6 +98,7 @@ describe('extractReportText', () => {
   it('最後の assistant メッセージのみ対象（手前の 📢 は読まない）', () => {
     const older = REPORT_HTML;
     const latest = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>補足コメント</p></div></div>`;
+    // 最後のメッセージに 📢・見出しが無い → header は null（手前の 📢 は対象外）
     expect(extractReportText(makeMessages(older + latest), 'header')).toBeNull();
   });
 });

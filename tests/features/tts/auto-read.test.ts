@@ -88,7 +88,7 @@ describe('setupAutoReadTTS', () => {
     expect(speak).not.toHaveBeenCalled();
   });
 
-  it('📢 なしの応答では発火しない（header scope）', () => {
+  it('ヘッダー: 📢・見出しが無い応答では発火しない（v0.14.1）', () => {
     const view = makeView('<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常応答</p></div></div>');
     const { app } = makeApp([view]);
     const speak = vi.fn(async () => true);
@@ -96,6 +96,18 @@ describe('setupAutoReadTTS', () => {
     view.callbacks.onTabStreamingChanged!('t', true);
     view.callbacks.onTabStreamingChanged!('t', false);
     expect(speak).not.toHaveBeenCalled();
+  });
+
+  it('ヘッダー: 📢 なしでも見出し前の導入文を speak に渡す（v0.14.1）', async () => {
+    const view = makeView('<div class="claudian-message-assistant"><div class="claudian-message-content"><p>導入のまとめ</p><h2>詳細</h2><p>詳細は読まない</p></div></div>');
+    const { app } = makeApp([view]);
+    const speak = vi.fn(async () => true);
+    setupAutoReadTTS({ app, store: makeStore(), speak });
+    view.callbacks.onTabStreamingChanged!('t', true);
+    view.callbacks.onTabStreamingChanged!('t', false);
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    expect(speak.mock.calls[0][0]).toContain('導入のまとめ');
+    expect(speak.mock.calls[0][0]).not.toContain('詳細は読まない');
   });
 
   it('full scope: 📢 なしの応答でも全文を speak に渡す（v0.13.0 全応答統一）', async () => {
