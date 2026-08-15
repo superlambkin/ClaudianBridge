@@ -13,6 +13,7 @@ import {
 } from '../features/tts/plachta-tts';
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
 import type { TtsCliSettings, TtsAutoReadSettings } from '../core/settings';
+import { withFullTextState } from '../core/settings';
 
 const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   zh: ['xiaoxiao', 'yunxi', 'yunyang', 'yunjian', 'xiaoyi', 'yunxia'],
@@ -283,7 +284,16 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
       new Setting(cliBox)
         .setName(s.ttsCliFullText)
         .setDesc(s.ttsCliFullTextDesc)
-        .addToggle((t) => t.setValue(cfg.tts.cli?.full_text ?? false).onChange((v) => saveCli({ full_text: v })));
+        .addToggle((t) => t.setValue(cfg.tts.cli?.full_text ?? false).onChange((v) => {
+          try {
+            // v0.12.0: autoRead.scope と統一同期（full_text ⟺ scope）
+            store.save(withFullTextState(store.load(), v));
+            draw();
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        }));
 
       new Setting(cliBox)
         .setName(s.ttsCliMaxChars)
@@ -348,7 +358,16 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
           d.addOption('header', s.ttsAutoReadScopeHeader);
           d.addOption('full', s.ttsAutoReadScopeFull);
           d.setValue(cfg.tts.autoRead?.scope ?? 'header');
-          d.onChange((v) => saveAutoRead({ scope: v as 'header' | 'full' }));
+          d.onChange((v) => {
+            try {
+              // v0.12.0: cli.full_text と統一同期（scope ⟺ full_text）
+              store.save(withFullTextState(store.load(), (v as 'header' | 'full') === 'full'));
+              draw();
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          });
         });
     }
 
