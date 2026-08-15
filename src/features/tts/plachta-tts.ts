@@ -1,5 +1,6 @@
 import type { TtsSettings } from './core';
 import type { PlachtaSettings, PlachtaLanguage } from '../../core/settings';
+import { registerPlayback } from './playback-registry';
 
 // Re-export PlachtaSettings / PlachtaLanguage from canonical location (settings.ts).
 // これにより既存テスト (`tests/features/tts/plachta-tts.test.ts`) の `import type { PlachtaSettings } from 'plachta-tts'` を壊さない。
@@ -139,27 +140,39 @@ export async function plachtaSynthesize(
 
 /**
  * 合成済み blob object URL を再生する。終了時に URL を revoke する。
+ * v0.12.0: 再生レジストリへ登録し、stop() で audio.pause + resolve(false) できるようにする。
  */
 export async function playObjectUrl(
   url: string,
   noticeFn: (m: string) => void
 ): Promise<boolean> {
-  try {
-    const audio = new Audio();
-    audio.src = url;
-    return await new Promise<boolean>((resolve) => {
-      audio.onended = () => { try { URL.revokeObjectURL(url); } catch { /* ignore */ } resolve(true); };
-      audio.onerror = () => { try { URL.revokeObjectURL(url); } catch { /* ignore */ } noticeFn('⚠️ 再生失敗'); resolve(false); };
-      audio.play().catch((e) => {
-        try { URL.revokeObjectURL(url); } catch { /* ignore */ }
-        noticeFn(`⚠️ 再生失敗: ${e.message}`);
-        resolve(false);
-      });
+  const audio = new Audio();
+  audio.src = url;
+  return await new Promise<boolean>((resolve) => {
+    let settled = false;
+    let unregister: () => void = () => {};
+    const finish = (ok: boolean): void => {
+      if (settled) return;
+      settled = true;
+      unregister();
+      try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+      resolve(ok);
+    };
+    // v0.12.0: 再生レジストリへ登録（ミュートボタンの停止ハンドル）
+    unregister = registerPlayback({
+      engine: 'plachta',
+      stop: () => {
+        try { audio.pause(); } catch { /* ignore */ }
+        finish(false);
+      },
     });
-  } catch (e) {
-    noticeFn(`⚠️ 再生準備失敗: ${(e as Error).message}`);
-    return false;
-  }
+    audio.onended = () => finish(true);
+    audio.onerror = () => { noticeFn('⚠️ 再生失敗'); finish(false); };
+    audio.play().catch((e) => {
+      noticeFn(`⚠️ 再生失敗: ${e.message}`);
+      finish(false);
+    });
+  });
 }
 
 /** 単一チャンク読み上げ（既存互換のための薄いラッパー） */

@@ -8,6 +8,8 @@ import {
   type PlachtaSettings,
 } from '../../../src/features/tts/plachta-tts';
 import type { TtsSettings } from '../../../src/features/tts/core';
+import { playObjectUrl } from '../../../src/features/tts/plachta-tts';
+import { isTtsPlaying, stopAllPlayback, resetPlaybackRegistry } from '../../../src/features/tts/playback-registry';
 
 // グローバル fetch のモック
 const mockFetch = vi.fn();
@@ -49,6 +51,7 @@ function makePlachtaSettings(overrides: Partial<PlachtaSettings> = {}): TtsSetti
 describe('plachta-tts', () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    resetPlaybackRegistry();
   });
 
   it('TC-P01: Gradio 5.x 正常系: POST /gradio_api/queue/join → SSE process_completed → fetch wav → resolve(true)', async () => {
@@ -291,6 +294,26 @@ describe('plachta-tts', () => {
       expect(preset.speaker).toBeTruthy();
       expect(['日本語', '简体中文', 'English', 'Mix']).toContain(preset.language);
     }
+  });
+
+  it('stopAllPlayback で audio.pause + resolve(false)（エラー Notice なし）', async () => {
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      onerror: () => void = () => {};
+      pause = vi.fn();
+      play(): Promise<void> { return Promise.resolve(); } // 再生継続中（onended しない）
+    };
+    const notice = vi.fn();
+    let resolved: boolean | undefined;
+    const p = playObjectUrl('blob:mock', notice).then((v) => { resolved = v; });
+
+    expect(isTtsPlaying()).toBe(true);
+    stopAllPlayback();
+
+    await p;
+    expect(resolved).toBe(false);
+    expect(notice).not.toHaveBeenCalled();
   });
 });
 
