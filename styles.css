@@ -325,3 +325,19 @@
 .cb-llm-caution { color: #ff9800; }
 .cb-llm-danger  { color: #f44336; }
 .cb-llm-unknown { color: var(--text-muted); }
+
+/* v0.12.0: ツールバーボタン（ミュート/全文） */
+.claude-tts-mute-btn.is-playing {
+  animation: cb-tts-blink 1s ease-in-out infinite;
+}
+
+@keyframes cb-tts-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.claude-tts-mute-btn,
+.claude-tts-fulltext-btn {
+  min-width: 5em;
+  justify-content: center;
+}

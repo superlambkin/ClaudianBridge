@@ -87,6 +87,12 @@ export interface LocaleStrings {
   ttsAutoReadScopeDesc: string;
   ttsAutoReadScopeHeader: string;
   ttsAutoReadScopeFull: string;
+  // v0.12.0: ツールバーボタン
+  ttsMuteBtnIdle: string;
+  ttsMuteBtnPlaying: string;
+  ttsMuteBtnMuted: string;
+  ttsFullTextBtnOn: string;
+  ttsFullTextBtnOff: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -292,6 +298,11 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsAutoReadScopeDesc: 'ヘッダーのみ: 📢 ブロックのみ / 全文: 報告メッセージ全体',
     ttsAutoReadScopeHeader: '📢 ヘッダーのみ',
     ttsAutoReadScopeFull: '📄 メッセージ全文',
+    ttsMuteBtnIdle: '🔊 ミュート',
+    ttsMuteBtnPlaying: '🔊 停止',
+    ttsMuteBtnMuted: '🔇 ミュート解除',
+    ttsFullTextBtnOn: '📖 全文',
+    ttsFullTextBtnOff: '📄 ヘッダー',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -495,6 +506,11 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsAutoReadScopeDesc: 'Header only: 📢 blockquote / Full: entire report message',
     ttsAutoReadScopeHeader: '📢 Header only',
     ttsAutoReadScopeFull: '📄 Full message',
+    ttsMuteBtnIdle: '🔊 Mute',
+    ttsMuteBtnPlaying: '🔊 Stop',
+    ttsMuteBtnMuted: '🔇 Unmute',
+    ttsFullTextBtnOn: '📖 Full',
+    ttsFullTextBtnOff: '📄 Header',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -693,6 +709,11 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsAutoReadScopeDesc: '仅标题: 只读 📢 引用块 / 全文: 朗读整个报告消息',
     ttsAutoReadScopeHeader: '📢 仅标题',
     ttsAutoReadScopeFull: '📄 全文',
+    ttsMuteBtnIdle: '🔊 静音',
+    ttsMuteBtnPlaying: '🔊 停止',
+    ttsMuteBtnMuted: '🔇 取消静音',
+    ttsFullTextBtnOn: '📖 全文',
+    ttsFullTextBtnOff: '📄 摘要',
     ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
     ttsVoiceZh: '中文 (zh)',
     ttsVoiceJa: '日语 (ja)',
