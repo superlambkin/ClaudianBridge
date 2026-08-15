@@ -3,6 +3,8 @@ import type { ConfigStore } from '../../core/config-store';
 import type { QuotaWindow } from '../../core/settings';
 import { ClaudeQuotaService } from './core';
 import type { ProviderId, ProviderQuota, QuotaProvider, QuotaSnapshot } from './types';
+import type { LlmProviderId } from './llm-info';
+import { readLlmInfoFromSettings } from './llm-info';
 import { createDeepSeekProvider } from './providers/deepseek';
 import { createKimiProvider } from './providers/kimi';
 import { createMiniMaxProvider } from './providers/minimax';
@@ -206,6 +208,28 @@ export class MultiQuotaService {
     try {
       this.opts.onCollect?.();
     } catch { /* best-effort: フック失敗で収集周期を止めない */ }
+  }
+
+  /** 現在使っている LLM プロバイダ（settings.json の base_url から検出） */
+  getCurrentLlmProvider(): LlmProviderId {
+    try {
+      const path = this.opts.store.load().quota?.claudeSettingsPath;
+      return readLlmInfoFromSettings(path).provider;
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  /** 指定プロバイダの最新 Quota（現在 LLM のツールチップ用）。未取得・unknown は null */
+  getQuotaFor(id: LlmProviderId): ProviderQuota | null {
+    if (id === 'claude') {
+      const window = this.opts.store.load().quota?.windows?.claude ?? '5h';
+      return claudeSnapshotToProviderQuota(this.claudeService.getSnapshot(), window);
+    }
+    if (id === 'deepseek' || id === 'kimi' || id === 'minimax' || id === 'zhipu') {
+      return this.quotas.get(id) ?? null;
+    }
+    return null;
   }
 
   /** 表示プロバイダを次のものに進める（循環） */

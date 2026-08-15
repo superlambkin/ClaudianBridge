@@ -4,6 +4,11 @@ import { MultiQuotaService, claudeSnapshotToProviderQuota, resolveApiKey, resolv
 import { createDeepSeekProvider } from '../../../src/features/quota/providers/deepseek';
 import type { QuotaSnapshot } from '../../../src/features/quota/types';
 
+// settings.json 読み取りを隔離（環境依存を排除）
+vi.mock('../../../src/features/quota/llm-info', () => ({
+  readLlmInfoFromSettings: vi.fn(() => ({ provider: 'unknown', model: null, baseUrl: null, authTokenPresent: false })),
+}));
+
 function makeService(opts?: Partial<{
   quotaEnabled: boolean;
   providers: string[];
@@ -216,6 +221,31 @@ describe('testProviderConnection', () => {
 describe('resolveVaultRoot', () => {
   it('app 未指定 → process.cwd() を返す', () => {
     expect(resolveVaultRoot(undefined)).toBe(process.cwd());
+  });
+});
+
+describe('getCurrentLlmProvider / getQuotaFor', () => {
+  it('llm-info が unknown → getCurrentLlmProvider=unknown, getQuotaFor=null', () => {
+    const svc = makeService({ quotaEnabled: false });
+    expect(svc.getCurrentLlmProvider()).toBe('unknown');
+    expect(svc.getQuotaFor('unknown')).toBeNull();
+    expect(svc.getQuotaFor('deepseek')).toBeNull();
+  });
+
+  it('fetch 後 getQuotaFor で取得済み Quota を返す', async () => {
+    const svc = makeService({ quotaEnabled: false, apiKeys: { deepseek: 'sk' } });
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(JSON.stringify({
+      is_available: true,
+      balance_infos: [{ currency: 'CNY', total_balance: '100.00' }],
+    }), { status: 200 })) as typeof fetch;
+    try {
+      await svc.refreshAll();
+    } finally {
+      globalThis.fetch = orig;
+    }
+    const q = svc.getQuotaFor('deepseek');
+    expect(q?.value).toBe('¥100.00');
   });
 });
 

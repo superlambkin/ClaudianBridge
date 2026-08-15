@@ -89,6 +89,13 @@ export class QuotaBarView {
   }
 
   private lastQuota: ProviderQuota | null = null;
+  private currentLlmQuota: ProviderQuota | null = null;
+
+  /** 現在使っている LLM の Quota を設定（ツールチップ用）。表示プロバイダと異なっていてもホバーはこれを使う */
+  setCurrentLlmQuota(q: ProviderQuota | null): void {
+    this.currentLlmQuota = q;
+    this.renderCurrent();
+  }
 
   render(q: ProviderQuota | null): void {
     this.lastQuota = q;
@@ -99,11 +106,12 @@ export class QuotaBarView {
       return;
     }
     this.el.setAttribute('data-status', q.status);
-    // ツールチップ: プロバイダ + 値 / 残量 / リセット時刻
+    // ツールチップ: 現在使っている LLM のデータを優先（無ければ表示中プロバイダ）
+    const tip = this.currentLlmQuota ?? q;
     const s = getLocaleStrings(getUILanguage());
-    const lines = [`${q.label}: ${q.status === 'success' ? q.value : q.status}`];
-    if (q.remaining) lines.push(`${s.quotaTooltipRemaining}: ${q.remaining}`);
-    if (q.resetAt) lines.push(`${s.quotaTooltipReset}: ${formatResetTime(q.resetAt)}`);
+    const lines = [`${tip.label}: ${tip.status === 'success' ? tip.value : tip.status}`];
+    if (tip.remaining) lines.push(`${s.quotaTooltipRemaining}: ${tip.remaining}`);
+    if (tip.resetAt) lines.push(`${s.quotaTooltipReset}: ${formatResetTime(tip.resetAt)}`);
     this.el.title = lines.join('\n');
 
     const label = this.el.ownerDocument.createElement('span');

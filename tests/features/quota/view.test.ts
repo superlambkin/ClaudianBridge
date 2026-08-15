@@ -87,6 +87,24 @@ describe('QuotaBarView', () => {
     expect(el.title).toBe('DeepSeek: ¥110.00');
   });
 
+  it('ツールチップは 現在 LLM の Quota を優先する（表示プロバイダと別でも）', () => {
+    const { view } = mount();
+    view.render(makeQuota({ providerId: 'kimi', label: 'Kimi', value: '42%', pct: 42 }));
+    view.setCurrentLlmQuota(makeQuota({ providerId: 'zhipu', label: 'Zhipu', value: '45%', pct: 45, remaining: '5,444', resetAt: 1787194106998 }));
+    const el = document.querySelector('.cb-quota-indicator')!;
+    expect(el.title).toContain('Zhipu: 45%');
+    expect(el.title).not.toContain('Kimi');
+    expect(el.title).toContain('Remaining: 5,444');
+  });
+
+  it('現在 LLM 未設定なら 表示中プロバイダのデータを表示', () => {
+    const { view } = mount();
+    view.render(makeQuota({ providerId: 'kimi', label: 'Kimi', value: '42%', pct: 42 }));
+    view.setCurrentLlmQuota(null);
+    const el = document.querySelector('.cb-quota-indicator')!;
+    expect(el.title).toContain('Kimi: 42%');
+  });
+
   it('ドットは描画されない', () => {
     const { view } = mount();
     view.render(makeQuota());

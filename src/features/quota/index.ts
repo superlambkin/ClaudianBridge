@@ -92,14 +92,14 @@ export async function registerClaudeQuota(
   const getEnv = (store as unknown as { getEnv?: (k: string) => string | undefined }).getEnv
     ?? ((k: string) => process.env[k]);
   const view = new QuotaBarView();
-  // 現在使用中モデルを settings.json から読み取り、インジケータに設定（データ収集周期ごとに再読込）
+  // 現在使用中モデル + 現在 LLM の Quota を settings.json から読み取り、インジケータに設定（データ収集周期ごとに再読込）
   const refreshModel = (): void => {
     try {
       const llm = readLlmInfoFromSettings(store.load().quota?.claudeSettingsPath);
       view.setModel(llm.model);
+      view.setCurrentLlmQuota(service.getQuotaFor(llm.provider));
     } catch { /* best-effort */ }
   };
-  refreshModel();
 
   const service = new MultiQuotaService({
     app,
@@ -109,6 +109,7 @@ export async function registerClaudeQuota(
     getEnv,
     onCollect: refreshModel,
   });
+  refreshModel();
   let layoutRef: EventRef | null = null;
 
   const tryMount = (): boolean => {
