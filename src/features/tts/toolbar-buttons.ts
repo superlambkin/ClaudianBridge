@@ -96,11 +96,12 @@ function makeMuteButton(store: ConfigStore, refreshAll: () => void): HTMLButtonE
     btn.disabled = true;
     try {
       const cfg = store.load();
-      const playing = isTtsPlaying();
+      // v0.12.5: 常に停止を試みる（再生検知が不確実でも確実に音声を止める）
+      const stopped = stopAllPlayback();
+      const playing = isTtsPlaying() || stopped > 0;
       if (cfg.tts.enabled && playing) {
         // 再生中 → 停止のみ（enabled は変更しない）
-        const n = stopAllPlayback();
-        new Notice(n > 0 ? `🔇 再生停止 (${n})` : '🔇 再生停止');
+        new Notice(stopped > 0 ? `🔇 再生停止 (${stopped})` : '🔇 再生停止');
       } else {
         const next = !cfg.tts.enabled;
         store.save({ ...cfg, tts: { ...cfg.tts, enabled: next } });
@@ -124,12 +125,15 @@ export function setupToolbarButtons(store: ConfigStore): () => void {
   const refreshAll = (): void => {
     const cfg = store.load();
     const playing = isTtsPlaying();
-    document.querySelectorAll(`[${MUTE_MARK}]`).forEach((el) => {
+    const muteBtns = document.querySelectorAll(`[${MUTE_MARK}]`);
+    const fullBtns = document.querySelectorAll(`[${FULLTEXT_MARK}]`);
+    console.log('[cb-tts] refreshAll playing=', playing, 'muteBtns=', muteBtns.length, 'fullBtns=', fullBtns.length);
+    muteBtns.forEach((el) => {
       const b = el as HTMLButtonElement;
       if (b.disabled) return;
       renderMute(b, computeMuteState(cfg.tts.enabled, playing));
     });
-    document.querySelectorAll(`[${FULLTEXT_MARK}]`).forEach((el) => {
+    fullBtns.forEach((el) => {
       const b = el as HTMLButtonElement;
       if (b.disabled) return;
       renderFullText(b, isFullTextState(cfg));

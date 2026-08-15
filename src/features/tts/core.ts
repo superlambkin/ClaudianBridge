@@ -6,7 +6,7 @@ import * as os from 'os';
 import type { PlachtaSettings, TtsCliSpeechFilter, TtsEngine } from '../../core/settings';
 import { plachtaSpeakChunksPipelined } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
-import { registerPlayback } from './playback-registry';
+import { registerPlayback, setEdgeChildPid } from './playback-registry';
 
 type NoticeFn = (m: string) => void;
 
@@ -69,6 +69,8 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
       resolve(false);
       return;
     }
+    // v0.12.5: レジストリ追跡が外れても停止できるよう PID を直接保持
+    setEdgeChildPid(child.pid ?? null);
     // v0.12.0: 再生レジストリへ登録（ミュートボタンの停止ハンドル）
     // v0.12.2: PowerShell プレイヤー（子プロセス）を止めるためプロセスツリーごと kill
     const unregister = registerPlayback({
@@ -102,6 +104,7 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
       console.log('[claudian-bridge TTS] child close:', { code, stderr: err.slice(0, 300), stdout: out.slice(0, 100) });
       if (settled) return;
       settled = true;
+      setEdgeChildPid(null);
       unregister();
       if (intentionalStop) {
         // v0.12.0: ユーザー操作による停止 → エラー扱いしない
@@ -314,7 +317,9 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   }
 
   // edge / webspeech: 操作中はプログレス表示（edge は合成+再生を1プロセスで行うため期間中表示）
-  showProgress(settings.engine === 'edge' ? '⏳ 音声生成中…' : '▶ 読み上げ中…');
+  const progressMsg = settings.engine === 'edge' ? '⏳ 音声生成中…（読み上げ）' : '▶ 読み上げ中…';
+  console.log('[cb-tts] 読み上げ開始 progress:', progressMsg, 'chars=', optimized.length);
+  showProgress(progressMsg);
   const result = await speakChunks(chunks, async (chunk) => {
     // v0.8.0: edge = claude-tts スクリプト経由、webspeech = ブラウザ API
     if (settings.engine === 'edge') {
@@ -322,6 +327,7 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
     }
     return webSpeechSpeak(chunk, settings, noticeFn);
   });
+  console.log('[cb-tts] 読み上げ終了 result=', result);
   showProgress(null);
   return result;
 }
