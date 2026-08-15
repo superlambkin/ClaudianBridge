@@ -338,6 +338,8 @@
 
 .claude-tts-mute-btn,
 .claude-tts-fulltext-btn {
-  min-width: 5em;
+  /* v0.12.4: アイコンのみ表示に合わせてコンパクト化 */
+  min-width: 2em;
+  padding: 0 0.35em;
   justify-content: center;
 }
