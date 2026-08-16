@@ -31,9 +31,10 @@ const resolvePythonMock = vi.mocked(MarkItDownRunner.resolvePython);
 beforeEach(() => { spawnMock.mockReset(); resolvePythonMock.mockReset(); });
 
 describe('SplitterRunner', () => {
+  const pluginDir = 'C:/vault/.obsidian/plugins/claudian-bridge';
   it('未対応拡張子は exitCode 1', async () => {
     resolvePythonMock.mockResolvedValue({ cmd: 'py', useShell: false });
-    const r = await SplitterRunner.split('xyz', 'C:/a.md', 'C:/a.xyz', 'C:/out', { pythonPath: 'py' }, 'C:/vault');
+    const r = await SplitterRunner.split('xyz', 'C:/a.md', 'C:/a.xyz', 'C:/out', { pythonPath: 'py' }, 'C:/vault', pluginDir);
     expect(r.exitCode).toBe(1);
   });
   it('stdout を行に分割して outputs を返す', async () => {
@@ -41,7 +42,7 @@ describe('SplitterRunner', () => {
     const child = makeChild();
     setImmediate(() => { child.emitStdout('C:/out/1.md\nC:/out/2.md\n'); child.emit('exit', 0); });
     spawnMock.mockReturnValue(child as never);
-    const r = await SplitterRunner.split('docx', 'C:/a.md', 'C:/a.docx', 'C:/out', { pythonPath: 'py' }, 'C:/vault');
+    const r = await SplitterRunner.split('docx', 'C:/a.md', 'C:/a.docx', 'C:/out', { pythonPath: 'py' }, 'C:/vault', pluginDir);
     expect(r.exitCode).toBe(0);
     expect(r.outputs).toEqual(['C:/out/1.md', 'C:/out/2.md']);
   });

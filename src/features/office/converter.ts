@@ -34,7 +34,8 @@ export class OfficeConverter {
     file: TFile,
     opts: OfficeConverterOptions,
     settings: OfficeSettings,
-    modal: ProgressModal
+    modal: ProgressModal,
+    pluginDir?: string
   ): Promise<ConversionItemResult> {
     const adapter = app.vault.adapter as { getBasePath?: () => string; basePath?: string };
     const vaultRoot = adapter.getBasePath ? adapter.getBasePath() : (adapter.basePath ?? process.cwd());
@@ -54,7 +55,7 @@ export class OfficeConverter {
 
     modal.setStage('Invoking markitdown', 'running');
     modal.setProgress(20);
-    const md = await MarkItDownRunner.run(srcAbs, settings, vaultRoot);
+    const md = await MarkItDownRunner.run(srcAbs, settings, vaultRoot, pluginDir);
     if (md.exitCode !== 0) {
       modal.setStage('Invoking markitdown', 'fail');
       modal.appendLog(md.stderr || `exitCode=${md.exitCode}`);
@@ -106,7 +107,7 @@ export class OfficeConverter {
       modal.setStage('Splitting (optional)', 'running');
       const splitDirAbs = path.join(outputDirAbs, `${mainName}_split`);
       const splitDirRel = path.posix.join(outputDirRel, `${mainName}_split`);
-      const r = await SplitterRunner.split(ext, mainAbs, srcAbs, splitDirAbs, settings, vaultRoot);
+      const r = await SplitterRunner.split(ext, mainAbs, srcAbs, splitDirAbs, settings, vaultRoot, pluginDir);
       if (r.exitCode !== 0) {
         modal.setStage('Splitting (optional)', 'fail');
         modal.appendLog(`[WARN] splitter exitCode=${r.exitCode}: ${r.stderr}`);
@@ -129,7 +130,8 @@ export class OfficeConverter {
     files: TFile[],
     opts: OfficeConverterOptions,
     settings: OfficeSettings,
-    modal: ProgressModal
+    modal: ProgressModal,
+    pluginDir?: string
   ): Promise<ConversionItemResult[]> {
     const results: ConversionItemResult[] = [];
     for (let i = 0; i < files.length; i++) {
@@ -137,7 +139,7 @@ export class OfficeConverter {
       modal.setProgress(Math.round((i / files.length) * 100));
       modal.appendLog(`--- ${i + 1}/${files.length} ${f.path} ---`);
       try {
-        results.push(await OfficeConverter.convertItem(app, f, opts, settings, modal));
+        results.push(await OfficeConverter.convertItem(app, f, opts, settings, modal, pluginDir));
       } catch (e) {
         results.push({ path: f.path, ok: false, message: String(e), outputs: [] });
       }

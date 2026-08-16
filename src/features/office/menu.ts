@@ -26,6 +26,7 @@ async function runConvert(opts: {
   settings: OfficeSettings;
   title: string;
   onOpenSettings: () => void;
+  pluginDir?: string;
 }): Promise<void> {
   let outputs: string[] = [];
   const modal = new ProgressModal(opts.app, {
@@ -42,7 +43,7 @@ async function runConvert(opts: {
   });
   modal.open();
   try {
-    const r = await OfficeConverter.convertItem(opts.app as AppWithBasePath, opts.file, { split: opts.split }, opts.settings, modal);
+    const r = await OfficeConverter.convertItem(opts.app as AppWithBasePath, opts.file, { split: opts.split }, opts.settings, modal, opts.pluginDir);
     outputs = r.outputs;
     if (r.ok && opts.split === 'single') {
       modal.setButtonsEnabled({ copy: true, open: true, retry: true, settings: true, split: true });
@@ -60,6 +61,7 @@ async function runConvertMany(opts: {
   settings: OfficeSettings;
   title: string;
   onOpenSettings: () => void;
+  pluginDir?: string;
 }): Promise<void> {
   let outputs: string[] = [];
   const modal = new ProgressModal(opts.app, {
@@ -71,7 +73,7 @@ async function runConvertMany(opts: {
   });
   modal.open();
   try {
-    const results: ConversionItemResult[] = await OfficeConverter.convertMany(opts.app as AppWithBasePath, opts.files, { split: 'single' }, opts.settings, modal);
+    const results: ConversionItemResult[] = await OfficeConverter.convertMany(opts.app as AppWithBasePath, opts.files, { split: 'single' }, opts.settings, modal, opts.pluginDir);
     outputs = results.filter((r) => r.ok).flatMap((r) => r.outputs);
     modal.appendLog('\n' + ConversionSummary.toMarkdown(results));
   } catch (e) {
@@ -82,7 +84,7 @@ async function runConvertMany(opts: {
 }
 
 export class OfficeMenuRegistrar {
-  static registerFileMenu(plugin: PluginHost, app: App, settingsRef: () => OfficeSettings, onOpenSettings: () => void): void {
+  static registerFileMenu(plugin: PluginHost, app: App, settingsRef: () => OfficeSettings, onOpenSettings: () => void, pluginDir?: string): void {
     const workspace = app.workspace as Workspace;
     const handler = (menu: Menu, file: TFile | string): void => {
       if (!(file instanceof TFile)) return;
@@ -92,20 +94,20 @@ export class OfficeMenuRegistrar {
       menu.addItem((item: MenuItem) => {
         item.setTitle('Convert to Markdown').setIcon('file-text');
         item.onClick(() => {
-          void runConvert({ app, file, split: 'single', settings: settingsRef(), title: `📄 Convert: ${file.basename}.${ext}`, onOpenSettings });
+          void runConvert({ app, file, split: 'single', settings: settingsRef(), title: `📄 Convert: ${file.basename}.${ext}`, onOpenSettings, pluginDir });
         });
       });
       menu.addItem((item: MenuItem) => {
         item.setTitle('Convert & Split').setIcon('split');
         item.onClick(() => {
-          void runConvert({ app, file, split: 'split', settings: settingsRef(), title: `📄 Convert & Split: ${file.basename}.${ext}`, onOpenSettings });
+          void runConvert({ app, file, split: 'split', settings: settingsRef(), title: `📄 Convert & Split: ${file.basename}.${ext}`, onOpenSettings, pluginDir });
         });
       });
     };
     plugin.registerEvent((workspace as unknown as { on: OnFn }).on('file-menu', handler as (...a: unknown[]) => void));
   }
 
-  static registerMultiSelect(plugin: PluginHost, app: App, settingsRef: () => OfficeSettings, onOpenSettings: () => void): void {
+  static registerMultiSelect(plugin: PluginHost, app: App, settingsRef: () => OfficeSettings, onOpenSettings: () => void, pluginDir?: string): void {
     const workspace = app.workspace as Workspace;
     const handler = (menu: Menu, files: TFile[] | TFile): void => {
       if (!settingsRef().enabled) return;
@@ -116,7 +118,7 @@ export class OfficeMenuRegistrar {
       menu.addItem((item: MenuItem) => {
         item.setTitle(`Convert all (${targets.length}) to Markdown`).setIcon('file-stack');
         item.onClick(() => {
-          void runConvertMany({ app, files: targets, settings: settingsRef(), title: `📄 Convert all (${targets.length} files)`, onOpenSettings });
+          void runConvertMany({ app, files: targets, settings: settingsRef(), title: `📄 Convert all (${targets.length} files)`, onOpenSettings, pluginDir });
         });
       });
     };

@@ -13,7 +13,7 @@ export interface ResolvedPython {
   useShell: boolean;
 }
 
-const SCRIPT_VAULT_REL = '00_Vault管理/_設定ファイル/_scripts/_run_markitdown.py';
+const SCRIPT_FILENAME = '_run_markitdown.py';
 
 const PY_UTF8_ENV = {
   ...process.env,
@@ -83,13 +83,13 @@ export class MarkItDownRunner {
     return null;
   }
 
-  static async run(srcAbs: string, settings: { pythonPath: string }, vaultRoot: string): Promise<MarkItDownResult> {
-    const scriptAbs = path.join(vaultRoot, SCRIPT_VAULT_REL);
+  static async run(srcAbs: string, settings: { pythonPath: string }, vaultRoot: string, pluginDir?: string): Promise<MarkItDownResult> {
+    const scriptAbs = path.join(pluginDir ?? vaultRoot, SCRIPT_FILENAME);
     if (!fs.existsSync(scriptAbs)) {
       return {
         exitCode: 127,
         stdout: '',
-        stderr: `[claudian-bridge] helper script not found:\n  ${scriptAbs}\nExpected at: <vault>/${SCRIPT_VAULT_REL}`,
+        stderr: `[claudian-bridge] helper script not found:\n  ${scriptAbs}\nExpected at: <plugin>/${SCRIPT_FILENAME}`,
       };
     }
     const resolved = await MarkItDownRunner.resolvePython(settings.pythonPath);

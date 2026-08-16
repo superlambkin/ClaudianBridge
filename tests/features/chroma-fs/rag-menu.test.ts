@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isChromaFsTarget } from '../../../src/features/chroma-fs/rag-menu';
+import { isChromaFsTarget, resolveRagPaths } from '../../../src/features/chroma-fs/rag-menu';
 
 describe('chroma-fs rag-menu isChromaFsTarget', () => {
   it('chroma_db/PDF/ 配下の .pdf を対象にする', () => {
@@ -25,5 +25,35 @@ describe('chroma-fs rag-menu isChromaFsTarget', () => {
 
   it('拡張子が pdf/docx 以外は対象外', () => {
     expect(isChromaFsTarget('chroma_db/PDF/note.txt', 'chroma_db')).toBe(false);
+  });
+});
+
+describe('chroma-fs rag-menu resolveRagPaths', () => {
+  const pluginDir = 'C:/vault/.obsidian/plugins/claudian-bridge';
+
+  it('空欄 + pluginDir → プラグインフォルダの query.py / config.yaml を参照', () => {
+    const r = resolveRagPaths('', '', pluginDir);
+    expect(r.ok).toBe(true);
+    expect(r.scriptPath.replace(/\\/g, '/')).toBe(`${pluginDir}/query.py`);
+    expect(r.configPath.replace(/\\/g, '/')).toBe(`${pluginDir}/config.yaml`);
+  });
+
+  it('明示パスがあればそのまま使う', () => {
+    const r = resolveRagPaths('D:/rag/query.py', 'D:/rag/config.yaml', pluginDir);
+    expect(r.ok).toBe(true);
+    expect(r.scriptPath).toBe('D:/rag/query.py');
+    expect(r.configPath).toBe('D:/rag/config.yaml');
+  });
+
+  it('片方だけ設定 → 片方は pluginDir フォールバック', () => {
+    const r = resolveRagPaths('D:/rag/query.py', '', pluginDir);
+    expect(r.ok).toBe(true);
+    expect(r.scriptPath).toBe('D:/rag/query.py');
+    expect(r.configPath.replace(/\\/g, '/')).toBe(`${pluginDir}/config.yaml`);
+  });
+
+  it('空欄 + pluginDir なし → ok:false', () => {
+    const r = resolveRagPaths('', '', undefined);
+    expect(r.ok).toBe(false);
   });
 });

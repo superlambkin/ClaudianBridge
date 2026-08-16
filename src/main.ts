@@ -29,6 +29,7 @@ import { runTtsMigration } from './core/migrator';
 import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS } from './core/settings';
 import * as path from 'path';
 import { initDiagAuto, diag, installGlobalErrorHandlers } from './core/diag';
+import { getPluginDir } from './core/plugin-dir';
 
 // モジュールロード時に診断ログを初期化（ロード失敗の原因特定用）
 console.log('[claudian-bridge] module loading (main.ts top)');
@@ -52,7 +53,8 @@ export default class ClaudianBridgePlugin extends Plugin {
       const adapter = this.app.vault.adapter as { getBasePath?: () => string };
       const vaultRoot = adapter.getBasePath ? adapter.getBasePath() : process.cwd();
       diag('vaultRoot', { vaultRoot, configDir: this.app.vault.configDir });
-      const pluginDataDir = path.join(vaultRoot, this.app.vault.configDir, 'plugins', 'claudian-bridge');
+      const pluginDir = getPluginDir(this.app, this.manifest);
+      const pluginDataDir = path.join(pluginDir, 'data.json');
       this.store = new ConfigStore(path.join(pluginDataDir, 'data.json'));
       diag('ConfigStore created', { configPath: path.join(pluginDataDir, 'data.json') });
 
@@ -267,8 +269,8 @@ export default class ClaudianBridgePlugin extends Plugin {
         setting.open?.();
         try { setting.openTabById?.(this.manifest.id); } catch { /* best-effort */ }
       };
-      OfficeMenuRegistrar.registerFileMenu(this, this.app, officeSettingsRef, openSettings);
-      OfficeMenuRegistrar.registerMultiSelect(this, this.app, officeSettingsRef, openSettings);
+      OfficeMenuRegistrar.registerFileMenu(this, this.app, officeSettingsRef, openSettings, pluginDir);
+      OfficeMenuRegistrar.registerMultiSelect(this, this.app, officeSettingsRef, openSettings, pluginDir);
       diag('office menu registered');
 
       // 5.5 フォルダ右クリック「Add to Claudian」（selection.folderEnabled が true の時のみ）
@@ -299,6 +301,7 @@ export default class ClaudianBridgePlugin extends Plugin {
             new DatabaseBrowserView(leaf, {
               // Pass a live accessor so the view always sees the latest settings.
               getSettings: () => this.cbSettings,
+              pluginDir,
             })
         );
         ChromaMenuRegistrar.register(this);
@@ -312,7 +315,7 @@ export default class ClaudianBridgePlugin extends Plugin {
 
       // ★ v0.20.0: chroma-fs — 右クリック RAG検索
       if (this.store.load().chroma.ragEnabled) {
-        this.register(registerRagMenu(this.app, this.store));
+        this.register(registerRagMenu(this.app, this.store, pluginDir));
         diag('chroma-fs rag menu registered');
       }
         diag('chroma registered');

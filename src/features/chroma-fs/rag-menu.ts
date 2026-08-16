@@ -1,5 +1,6 @@
 // src/features/chroma-fs/rag-menu.ts — Right-click "🔎 RAG検索" on PDF/DOCX under chroma_db.
 
+import * as path from 'path';
 import { App, Menu, TFile, Notice } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { RagQuestionModal } from './question-modal';
@@ -21,8 +22,28 @@ export function isChromaFsTarget(filePath: string, chromaPath: string): boolean 
   );
 }
 
+/**
+ * Resolve the RAG script/config paths. Empty settings fall back to the plugin
+ * folder (query.py / config.yaml), so the plugin is self-contained.
+ */
+export function resolveRagPaths(
+  ragScriptPath: string,
+  ragConfigPath: string,
+  pluginDir?: string
+): { ok: boolean; scriptPath: string; configPath: string } {
+  const script = (ragScriptPath ?? '').trim();
+  const config = (ragConfigPath ?? '').trim();
+  if (!script && !pluginDir) return { ok: false, scriptPath: '', configPath: '' };
+  if (!config && !pluginDir) return { ok: false, scriptPath: '', configPath: '' };
+  return {
+    ok: true,
+    scriptPath: script || path.join(pluginDir as string, 'query.py'),
+    configPath: config || path.join(pluginDir as string, 'config.yaml'),
+  };
+}
+
 /** Register the file-menu handler. Returns an unregister function. */
-export function registerRagMenu(app: App, store: ConfigStore): () => void {
+export function registerRagMenu(app: App, store: ConfigStore, pluginDir?: string): () => void {
   const handler = (menu: Menu, file: TFile): void => {
     if (!(file instanceof TFile)) return;
     const cfg = store.load();
@@ -35,7 +56,7 @@ export function registerRagMenu(app: App, store: ConfigStore): () => void {
         .setIcon('search')
         .onClick(() => {
           new RagQuestionModal(app, (question) => {
-            void runAndInsert(app, store, file, question);
+            void runAndInsert(app, store, file, question, pluginDir);
           }).open();
         })
     );
@@ -49,10 +70,16 @@ async function runAndInsert(
   app: App,
   store: ConfigStore,
   file: TFile,
-  question: string
+  question: string,
+  pluginDir?: string
 ): Promise<void> {
   const cfg = store.load();
-  if (!cfg.chroma.ragScriptPath || !cfg.chroma.ragConfigPath) {
+  const rag = resolveRagPaths(
+    cfg.chroma.ragScriptPath,
+    cfg.chroma.ragConfigPath,
+    pluginDir
+  );
+  if (!rag.ok) {
     new Notice('[chroma-fs] 設定で query.py / config.yaml のパスを指定してください', 8000);
     return;
   }
@@ -60,8 +87,8 @@ async function runAndInsert(
   try {
     const result = await runRagQuery({
       pythonPath: cfg.chroma.pythonPath,
-      scriptPath: cfg.chroma.ragScriptPath,
-      configPath: cfg.chroma.ragConfigPath,
+      scriptPath: rag.scriptPath,
+      configPath: rag.configPath,
       source: file.name,
       question,
     });
