@@ -232,6 +232,16 @@ export interface LocaleStrings {
   quotaTooltipReset: string;
   quotaZhipuValue: string;
   quotaDisplayZhipu: string;
+  // Memory (v0.17.0: MD 保存ボタン)
+  tabMemory: string;
+  memoryEnabled: string;
+  memoryEnabledDesc: string;
+  memoryScope: string;
+  memoryScopeDesc: string;
+  memoryScopePair: string;
+  memoryScopeConversation: string;
+  memoryFolder: string;
+  memoryFolderDesc: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -459,6 +469,16 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaTooltipReset: 'リセット',
     quotaZhipuValue: '5時間使用量',
     quotaDisplayZhipu: '智谱を表示',
+    // Memory (v0.17.0: MD 保存ボタン)
+    tabMemory: 'Memory',
+    memoryEnabled: 'MD保存ボタン',
+    memoryEnabledDesc: 'Chat結果をメモリフォルダに保存するボタンをツールバーと回答ブロックに表示します',
+    memoryScope: '保存範囲（ツールバー）',
+    memoryScopeDesc: 'ツールバーボタンの保存範囲。回答ブロックのボタンは常にブロックのみです',
+    memoryScopePair: '質問＋応答',
+    memoryScopeConversation: 'チャット全体',
+    memoryFolder: 'メモリフォルダ',
+    memoryFolderDesc: '相対パスは Vault 内、絶対パスはそのまま。既定 Memory/',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -684,6 +704,16 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaTooltipReset: 'Reset',
     quotaZhipuValue: '5h usage',
     quotaDisplayZhipu: 'Show Zhipu',
+    // Memory (v0.17.0: MD save button)
+    tabMemory: 'Memory',
+    memoryEnabled: 'MD save button',
+    memoryEnabledDesc: 'Show buttons in the toolbar and answer blocks to save chat results to the memory folder',
+    memoryScope: 'Save scope (toolbar)',
+    memoryScopeDesc: 'Scope of the toolbar button. Block buttons always save only the block',
+    memoryScopePair: 'Question + answer',
+    memoryScopeConversation: 'Whole chat',
+    memoryFolder: 'Memory folder',
+    memoryFolderDesc: 'Relative path resolves inside the vault, absolute path is used as-is. Default Memory/',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -909,6 +939,16 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaTooltipReset: '重置',
     quotaZhipuValue: '5小时用量',
     quotaDisplayZhipu: '显示智谱',
+    // Memory (v0.17.0: MD 保存按钮)
+    tabMemory: 'Memory',
+    memoryEnabled: 'MD存储按钮',
+    memoryEnabledDesc: '在工具栏和回答区块显示按钮，将聊天结果存储到记忆文件夹',
+    memoryScope: '存储范围（工具栏）',
+    memoryScopeDesc: '工具栏按钮的存储范围。回答区块按钮始终只存储该区块',
+    memoryScopePair: '提问＋回答',
+    memoryScopeConversation: '整个聊天',
+    memoryFolder: '记忆文件夹',
+    memoryFolderDesc: '相对路径解析为库内，绝对路径原样使用。默认为 Memory/',
   },
 };
 

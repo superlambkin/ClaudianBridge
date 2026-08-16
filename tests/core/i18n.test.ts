@@ -148,4 +148,17 @@ describe('i18n', () => {
       expect(v.ttsPlachtaTooLong.length, `${lang}.ttsPlachtaTooLong empty`).toBeGreaterThan(0);
     }
   });
+  it('memory 関連キーが全ロケールに存在する', () => {
+    const required = [
+      'tabMemory', 'memoryEnabled', 'memoryEnabledDesc',
+      'memoryScope', 'memoryScopeDesc', 'memoryScopePair', 'memoryScopeConversation',
+      'memoryFolder', 'memoryFolderDesc',
+    ];
+    for (const lang of ['ja', 'en', 'zh'] as const) {
+      const s = getLocaleStrings(lang);
+      for (const k of required) {
+        expect(typeof s[k as keyof typeof s], `${lang}.${k}`).toBe('string');
+      }
+    }
+  });
 });

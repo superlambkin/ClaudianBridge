@@ -8,12 +8,13 @@ import { renderOfficeTab } from './SettingTabOffice';
 import { renderWhitelistTab } from './SettingTabWhitelist';
 import { renderQuotaTab } from './SettingTabQuota';
 import { renderChromaTab } from '../features/chroma/settings/ChromaSettingsTab';
+import { renderMemoryTab } from './SettingTabMemory';
 
 type RenderFn = (app: App, el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string) => void;
 
 interface TabDef {
   id: string;
-  labelKey: 'tabGeneral' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabQuota' | 'tabChroma';
+  labelKey: 'tabGeneral' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabQuota' | 'tabChroma' | 'tabMemory';
   render: RenderFn;
 }
 
@@ -25,6 +26,7 @@ const TABS: TabDef[] = [
   { id: 'whitelist', labelKey: 'tabWhitelist', render: renderWhitelistTab },
   { id: 'quota', labelKey: 'tabQuota', render: renderQuotaTab },
   { id: 'chroma', labelKey: 'tabChroma', render: renderChromaTab },
+  { id: 'memory', labelKey: 'tabMemory', render: renderMemoryTab },
 ];
 
 export class ClaudianBridgeSettingTab extends PluginSettingTab {
