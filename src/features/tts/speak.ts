@@ -36,6 +36,7 @@ function toTtsSettings(cfg: ClaudianBridgeSettings): TtsSettings {
     plachta: cfg.tts.plachta,
     cli: cfg.tts.cli,
     chunkMaxChars: cfg.tts.chunkMaxChars,
+    edgeTtsModulePath: cfg.tts.edgeTtsModulePath,
   };
 }
 

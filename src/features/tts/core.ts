@@ -8,6 +8,7 @@ import { DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../../cor
 import { plachtaSpeakChunksPipelined } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
 import { registerPlayback, setEdgeChildPid, stopAllPlayback, getStopEpoch } from './playback-registry';
+import { localEdgeTtsSpeak } from './edge-tts-local';
 
 type NoticeFn = (m: string) => void;
 
@@ -275,15 +276,18 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
     edge: 'Edge-TTS',
     webspeech: 'WebSpeech',
     plachta: 'Plachta',
-    'edge-local': 'Edge-TTS',
+    'edge-local': 'ローカル EdgeTTS',
   };
-  const progressMsg = settings.engine === 'edge'
+  const progressMsg = (settings.engine === 'edge' || settings.engine === 'edge-local')
     ? `⏳ [${engineLabels[settings.engine]}] 音声生成中…（読み上げ）`
     : `▶ [${engineLabels[settings.engine]}] 読み上げ中…`;
   showProgress(progressMsg);
   const result = await speakChunks(chunks, async (chunk) => {
     if (settings.engine === 'edge') {
       return claudettsHttpSpeak(chunk, settings, noticeFn);
+    }
+    if (settings.engine === 'edge-local') {
+      return localEdgeTtsSpeak(chunk, settings, noticeFn);
     }
     return webSpeechSpeak(chunk, settings, noticeFn);
   });
