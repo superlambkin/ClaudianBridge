@@ -194,6 +194,14 @@ export interface LocaleStrings {
   chromaTestOk: string; // {n}
   chromaResolvedPath: string; // {path}
   chromaScriptInfo: string; // {script}
+  chromaHideInternal: string;
+  chromaHideInternalDesc: string;
+  chromaRagEnabled: string;
+  chromaRagEnabledDesc: string;
+  chromaRagScriptPath: string;
+  chromaRagScriptPathDesc: string;
+  chromaRagConfigPath: string;
+  chromaRagConfigPathDesc: string;
   quotaEnabled: string;
   quotaEnabledDesc: string;
   quotaRefreshSec: string;
@@ -457,6 +465,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     chromaTestOk: '✅ OK — {n} 件のコレクション',
     chromaResolvedPath: '解決済み ChromaDB: {path}',
     chromaScriptInfo: 'Python スクリプト: {script}',
+    chromaHideInternal: '🔒 chroma_db 内部を非表示',
+    chromaHideInternalDesc: 'ファイルエクスプローラで chroma_db を展開したとき、ハッシュフォルダ・sqlite・.base を隠し PDF/DOCX のみ表示',
+    chromaRagEnabled: '🔎 右クリック RAG検索を有効化',
+    chromaRagEnabledDesc: 'chroma_db/PDF・DOCX 配下のファイル右クリックメニューに「RAG検索」を追加',
+    chromaRagScriptPath: 'query.py のパス',
+    chromaRagScriptPathDesc: 'word-pdf-rag の query.py の絶対パス（例: D:/AI-Agent/word-pdf-rag/query.py）',
+    chromaRagConfigPath: 'config.yaml のパス',
+    chromaRagConfigPathDesc: 'word-pdf-rag の config.yaml の絶対パス',
     quotaEnabled: 'LLM 残量検出',
     quotaEnabledDesc: 'Claude Code および各 LLM プロバイダの利用状況を表示します（デスクトップのみ）',
     quotaRefreshSec: 'データ収集周期（秒）',
@@ -715,6 +731,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     chromaTestOk: '✅ OK — {n} collection(s)',
     chromaResolvedPath: 'Resolved ChromaDB: {path}',
     chromaScriptInfo: 'Python script: {script}',
+    chromaHideInternal: '🔒 Hide chroma_db internals',
+    chromaHideInternalDesc: 'When expanding chroma_db in the file explorer, hide the hash folder / sqlite / .base and show only PDF/DOCX',
+    chromaRagEnabled: '🔎 Enable right-click RAG search',
+    chromaRagEnabledDesc: 'Add "RAG search" to the context menu of files under chroma_db/PDF and chroma_db/DOCX',
+    chromaRagScriptPath: 'query.py path',
+    chromaRagScriptPathDesc: 'Absolute path to word-pdf-rag query.py (e.g. D:/AI-Agent/word-pdf-rag/query.py)',
+    chromaRagConfigPath: 'config.yaml path',
+    chromaRagConfigPathDesc: 'Absolute path to word-pdf-rag config.yaml',
     quotaEnabled: 'LLM quota detection',
     quotaEnabledDesc: 'Show usage for Claude Code and each LLM provider (desktop only)',
     quotaRefreshSec: 'Data collection interval (sec)',
@@ -973,6 +997,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     chromaTestOk: '✅ OK — {n} 个集合',
     chromaResolvedPath: '已解析 ChromaDB: {path}',
     chromaScriptInfo: 'Python 脚本: {script}',
+    chromaHideInternal: '🔒 隐藏 chroma_db 内部文件',
+    chromaHideInternalDesc: '在文件资源管理器中展开 chroma_db 时,隐藏哈希文件夹/sqlite/.base,仅显示 PDF/DOCX',
+    chromaRagEnabled: '🔎 启用右键 RAG 搜索',
+    chromaRagEnabledDesc: '在 chroma_db/PDF・DOCX 下的文件右键菜单中添加「RAG搜索」',
+    chromaRagScriptPath: 'query.py 路径',
+    chromaRagScriptPathDesc: 'word-pdf-rag 的 query.py 绝对路径（例: D:/AI-Agent/word-pdf-rag/query.py）',
+    chromaRagConfigPath: 'config.yaml 路径',
+    chromaRagConfigPathDesc: 'word-pdf-rag 的 config.yaml 绝对路径',
     quotaEnabled: 'LLM 额度检测',
     quotaEnabledDesc: '显示 Claude Code 及各个 LLM 提供商的使用情况（仅桌面端）',
     quotaRefreshSec: '数据采集周期（秒）',

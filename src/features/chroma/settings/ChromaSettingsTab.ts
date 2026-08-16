@@ -204,6 +204,80 @@ export function renderChromaTab(app: App, containerEl: HTMLElement, store: Confi
           })
       );
 
+    // ───── chroma-fs: hideInternal ─────
+    new Setting(containerEl)
+      .setName(s.chromaHideInternal)
+      .setDesc(s.chromaHideInternalDesc)
+      .addToggle((tg) =>
+        tg
+          .setValue(cfg.chroma.hideInternal)
+          .onChange((v) => {
+            try {
+              const latest = store.load();
+              store.save({ ...latest, chroma: { ...latest.chroma, hideInternal: v } });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          })
+      );
+
+    // ───── chroma-fs: ragEnabled ─────
+    new Setting(containerEl)
+      .setName(s.chromaRagEnabled)
+      .setDesc(s.chromaRagEnabledDesc)
+      .addToggle((tg) =>
+        tg
+          .setValue(cfg.chroma.ragEnabled)
+          .onChange((v) => {
+            try {
+              const latest = store.load();
+              store.save({ ...latest, chroma: { ...latest.chroma, ragEnabled: v } });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          })
+      );
+
+    // ───── chroma-fs: ragScriptPath ─────
+    new Setting(containerEl)
+      .setName(s.chromaRagScriptPath)
+      .setDesc(s.chromaRagScriptPathDesc)
+      .addText((t) =>
+        t
+          .setPlaceholder("D:/AI-Agent/word-pdf-rag/query.py")
+          .setValue(cfg.chroma.ragScriptPath)
+          .onChange((v) => {
+            try {
+              const latest = store.load();
+              store.save({ ...latest, chroma: { ...latest.chroma, ragScriptPath: v.trim() } });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          })
+      );
+
+    // ───── chroma-fs: ragConfigPath ─────
+    new Setting(containerEl)
+      .setName(s.chromaRagConfigPath)
+      .setDesc(s.chromaRagConfigPathDesc)
+      .addText((t) =>
+        t
+          .setPlaceholder("D:/AI-Agent/word-pdf-rag/config.yaml")
+          .setValue(cfg.chroma.ragConfigPath)
+          .onChange((v) => {
+            try {
+              const latest = store.load();
+              store.save({ ...latest, chroma: { ...latest.chroma, ragConfigPath: v.trim() } });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          })
+      );
+
     // ───── Resolved info ─────
     const info = containerEl.createDiv({ cls: "ci-info" });
     const abs = resolveChromaPath(cfg.chroma.chromaPath, vaultRoot);

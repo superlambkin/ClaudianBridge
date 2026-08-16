@@ -21,6 +21,8 @@ import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
+import { installChromaFsHideCss, removeChromaFsHideCss } from './features/chroma-fs/hide-internal';
+import { registerRagMenu } from './features/chroma-fs/rag-menu';
 import { registerObjectContextMenu } from './features/object';
 import { registerClaudeQuota, unregisterClaudeQuota } from './features/quota/index';
 import { runTtsMigration } from './core/migrator';
@@ -300,6 +302,19 @@ export default class ClaudianBridgePlugin extends Plugin {
             })
         );
         ChromaMenuRegistrar.register(this);
+
+      // ★ v0.20.0: chroma-fs — 内部非表示 CSS（onunload で除去）
+      if (this.store.load().chroma.hideInternal) {
+        installChromaFsHideCss();
+        this.register(() => removeChromaFsHideCss());
+        diag('chroma-fs hideInternal css installed');
+      }
+
+      // ★ v0.20.0: chroma-fs — 右クリック RAG検索
+      if (this.store.load().chroma.ragEnabled) {
+        this.register(registerRagMenu(this.app, this.store));
+        diag('chroma-fs rag menu registered');
+      }
         diag('chroma registered');
       }
 
