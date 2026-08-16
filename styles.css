@@ -330,6 +330,11 @@
 .claude-tts-mute-btn.is-playing {
   animation: cb-tts-blink 1s ease-in-out infinite;
 }
+/* v0.18.1: ミュート中の背景色を赤にする（ユーザー改良要望） */
+.claude-tts-mute-btn.is-muted {
+  background: var(--color-red) !important;
+  border-color: var(--color-red) !important;
+}
 
 @keyframes cb-tts-blink {
   0%, 100% { opacity: 1; }

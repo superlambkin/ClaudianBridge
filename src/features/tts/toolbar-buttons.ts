@@ -33,9 +33,9 @@ const MUTE_ICONS: Record<MuteState, string> = {
   'disabled': '🔇',
 };
 
-function renderMute(btn: HTMLButtonElement, state: MuteState): void {
+function renderMute(btn: HTMLButtonElement, state: MuteState, engine: string): void {
   const s = getLocaleStrings(getUILanguage());
-  btn.classList.remove('is-muted', 'is-playing');
+  btn.classList.remove('is-muted', 'is-playing', 'is-edge-engine');
   const title = state === 'disabled'
     ? s.ttsMuteBtnMuted
     : state === 'enabled-playing' ? s.ttsMuteBtnPlaying : s.ttsMuteBtnIdle;
@@ -45,6 +45,10 @@ function renderMute(btn: HTMLButtonElement, state: MuteState): void {
     btn.classList.add('is-muted');
   } else if (state === 'enabled-playing') {
     btn.classList.add('is-playing');
+  }
+  // v0.18.1: Edge-TTS 選択時に追加マーク（ユーザー改良要望：サーバー停止中を視覚化）
+  if (engine === 'edge') {
+    btn.classList.add('is-edge-engine');
   }
 }
 
@@ -125,13 +129,14 @@ export function setupToolbarButtons(store: ConfigStore): () => void {
   const refreshAll = (): void => {
     const cfg = store.load();
     const playing = isTtsPlaying();
+    const engine = cfg.tts.engine;
     const muteBtns = document.querySelectorAll(`[${MUTE_MARK}]`);
     const fullBtns = document.querySelectorAll(`[${FULLTEXT_MARK}]`);
     console.log('[cb-tts] refreshAll playing=', playing, 'muteBtns=', muteBtns.length, 'fullBtns=', fullBtns.length);
     muteBtns.forEach((el) => {
       const b = el as HTMLButtonElement;
       if (b.disabled) return;
-      renderMute(b, computeMuteState(cfg.tts.enabled, playing));
+      renderMute(b, computeMuteState(cfg.tts.enabled, playing), engine);
     });
     fullBtns.forEach((el) => {
       const b = el as HTMLButtonElement;
@@ -148,7 +153,8 @@ export function setupToolbarButtons(store: ConfigStore): () => void {
   const inject = (toolbar: Element): void => {
     if (!toolbar.querySelector(`[${MUTE_MARK}]`)) {
       const btn = makeMuteButton(store, refreshAll);
-      renderMute(btn, computeMuteState(store.load().tts.enabled, isTtsPlaying()));
+      const cfg = store.load();
+      renderMute(btn, computeMuteState(cfg.tts.enabled, isTtsPlaying()), cfg.tts.engine);
       toolbar.appendChild(btn);
     }
     if (!toolbar.querySelector(`[${FULLTEXT_MARK}]`)) {

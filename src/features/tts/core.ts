@@ -264,7 +264,15 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
     return plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress);
   }
 
-  const progressMsg = settings.engine === 'edge' ? '⏳ 音声生成中…（読み上げ）' : '▶ 読み上げ中…';
+  // v0.18.1: エンジン名を表示（ユーザー改良要望）
+  const engineLabels: Record<TtsEngine, string> = {
+    edge: 'Edge-TTS',
+    webspeech: 'WebSpeech',
+    plachta: 'Plachta',
+  };
+  const progressMsg = settings.engine === 'edge'
+    ? `⏳ [${engineLabels[settings.engine]}] 音声生成中…（読み上げ）`
+    : `▶ [${engineLabels[settings.engine]}] 読み上げ中…`;
   showProgress(progressMsg);
   const result = await speakChunks(chunks, async (chunk) => {
     if (settings.engine === 'edge') {
