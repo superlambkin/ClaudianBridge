@@ -294,4 +294,29 @@ describe('setupAutoReadTTS', () => {
     expect(() => setupAutoReadTTS({ app, store: makeStore(), speak: vi.fn(async () => true), noticeFn })).not.toThrow();
     expect(noticeFn).not.toHaveBeenCalled();
   });
+
+  it('複数ターン: 途中ターン（📢＋ツール終端）では発火せず、最終回答ターンのみ読み上げる（v0.19.0）', async () => {
+    const view = makeView(`<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-text-block"><blockquote><p>📢 途中経過の報告</p></blockquote></div>
+      <div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div><div class="claudian-tool-summary">git status</div></div>
+    </div></div>`);
+    const { app } = makeApp([view]);
+    const speak = vi.fn(async () => true);
+    setupAutoReadTTS({ app, store: makeStore(), speak });
+
+    // ターン1 終了（途中ターン: 📢 はあるがツール終端）→ 発火しない
+    view.callbacks.onTabStreamingChanged!('t', true);
+    view.callbacks.onTabStreamingChanged!('t', false);
+    expect(speak).not.toHaveBeenCalled();
+
+    // ターン2: 最終回答（テキスト終端）
+    const messages = view.containerEl.querySelector('.claudian-messages')!;
+    messages.innerHTML = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-text-block"><blockquote><p>📢 タスクを完了しました。</p></blockquote></div>
+    </div></div>`;
+    view.callbacks.onTabStreamingChanged!('t', true);
+    view.callbacks.onTabStreamingChanged!('t', false);
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    expect(speak.mock.calls[0][0]).toContain('📢 タスクを完了しました。');
+  });
 });

@@ -1,7 +1,7 @@
 import { Notice } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
-import { extractReportText } from './extract-report';
+import { extractReportText, detectFinalAnswerState } from './extract-report';
 import { resolveSpeechFilter } from './speak';
 import { createLatestWinsSpeaker } from './speak-coordinator';
 import type { SpeakFn } from './speak-coordinator';
@@ -102,6 +102,24 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
       // 抽出を 400ms 間隔で最大5回（計 ~1.6s）リトライする。
       const scope = cfg.tts.autoRead?.scope ?? 'header';
       const tryExtract = (attempt: number): void => {
+        const state = detectFinalAnswerState(messages);
+        if (state === 'intermediate') {
+          // 途中ターン（ツール/思考終端・中断）→ 即スキップ。dedup マークも付けない。
+          // 次回の streaming false で再評価される。
+          console.debug('[cb-auto-read] 途中ターン終了（ツール/思考終端・中断）— スキップ');
+          return;
+        }
+        if (state === 'pending') {
+          // 描画遅延: レンダリング完了までリトライ
+          if (attempt < 4) {
+            const timer = setTimeout(() => tryExtract(attempt + 1), 400);
+            pendingTimers.add(timer);
+          } else {
+            console.debug('[cb-auto-read] give up: 最終回答テキストを抽出できませんでした');
+          }
+          return;
+        }
+        // state === 'ready': 従来どおり抽出 → 読み上げ
         const text = extractReportText(messages, scope, {
           excludeCallouts: cfg.tts.excludeCallouts ?? true,
           filter: resolveSpeechFilter(cfg, 'autoRead'),
@@ -111,7 +129,7 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
           enqueue(text);
           return;
         }
-        // 📢 報告の無い通常応答は静かにスキップ（リトライはレンダリング遅延対策のみ）
+        // 抽出できなかった（📢 未レンダリング等）: 描画遅延対策のリトライ
         if (attempt < 4) {
           const timer = setTimeout(() => tryExtract(attempt + 1), 400);
           pendingTimers.add(timer);
