@@ -14,6 +14,7 @@ import { setupMessageMdSaveButtons } from './features/memory/message-md-save-but
 import { polishInstruction } from './features/llm/claude-cli';
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
+import { initEdgeTtsLocal } from './features/tts/edge-tts-local';
 import { migrateFromLegacy } from './legacy/migration';
 import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
 import { OfficeMenuRegistrar } from './features/office/menu';
@@ -55,8 +56,9 @@ export default class ClaudianBridgePlugin extends Plugin {
       diag('vaultRoot', { vaultRoot, configDir: this.app.vault.configDir });
       const pluginDir = getPluginDir(this.app, this.manifest);
       const pluginDataDir = path.join(pluginDir, 'data.json');
-      this.store = new ConfigStore(path.join(pluginDataDir, 'data.json'));
-      diag('ConfigStore created', { configPath: path.join(pluginDataDir, 'data.json') });
+      initEdgeTtsLocal(pluginDir);
+      this.store = new ConfigStore(pluginDataDir);
+      diag('ConfigStore created', { configPath: pluginDataDir });
 
       // 1. 旧 data.json → 新形式 自動取り込み（旧プラグインのリネームより先に実施）
       try {

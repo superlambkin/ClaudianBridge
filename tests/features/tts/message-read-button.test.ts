@@ -33,6 +33,7 @@ function makeStore(enabled = true) {
       tts: {
         enabled,
         engine: 'edge',
+        edgeTtsModulePath: '',
         voices: { edge: { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' } },
         chunkMaxChars: { edge: 500, webspeech: 140, plachta: 140 },
         speechFilter: {

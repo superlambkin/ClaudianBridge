@@ -13,6 +13,7 @@ function makeStore(tts: Partial<{ enabled: boolean; scope: 'header' | 'full'; fu
   const state = {
     tts: {
       enabled: tts.enabled ?? true,
+      edgeTtsModulePath: '',
       cli: { full_text: tts.fullText ?? false, max_chars: 100, debounce_ms: 2000, speech_filter: {} },
       autoRead: { enabled: true, scope: tts.scope ?? 'header' as const },
     },

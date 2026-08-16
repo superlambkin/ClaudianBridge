@@ -47,7 +47,7 @@ function renderMute(btn: HTMLButtonElement, state: MuteState, engine: string): v
     btn.classList.add('is-playing');
   }
   // v0.18.1: Edge-TTS 選択時に追加マーク（ユーザー改良要望：サーバー停止中を視覚化）
-  if (engine === 'edge') {
+  if (engine === 'edge' || engine === 'edge-local') {
     btn.classList.add('is-edge-engine');
   }
 }

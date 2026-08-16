@@ -23,6 +23,7 @@ const ENGINE_PRIORITY: Record<TtsEngine, string[]> = {
   edge: ['edge-tts', 'pyttsx3', 'system'],
   webspeech: ['pyttsx3', 'system'],
   plachta: ['edge-tts', 'pyttsx3', 'system'],
+  'edge-local': ['edge-tts', 'pyttsx3', 'system'],
 };
 
 /**
@@ -60,6 +61,7 @@ export class VoiceConfigSync {
         tts: {
           enabled: raw.enabled ?? true,
           engine,
+          edgeTtsModulePath: '',
           voices: {
             edge: {
               zh: overrides['zh-CN'] ?? raw.voice ?? 'xiaoxiao',

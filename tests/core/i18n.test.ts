@@ -161,4 +161,13 @@ describe('i18n', () => {
       }
     }
   });
+  it('ttsEngineEdgeLocal / ttsEdgeTtsModulePath* キーが 3 言語で非空（v0.20.0）', () => {
+    for (const lang of SUPPORTED_LOCALES) {
+      const v = getLocaleStrings(lang);
+      expect(v.ttsEngineEdgeLocal.length, `${lang}.ttsEngineEdgeLocal empty`).toBeGreaterThan(0);
+      expect(v.ttsEdgeTtsModulePath.length, `${lang}.ttsEdgeTtsModulePath empty`).toBeGreaterThan(0);
+      expect(v.ttsEdgeTtsModulePathDesc.length, `${lang}.ttsEdgeTtsModulePathDesc empty`).toBeGreaterThan(0);
+      expect(v.ttsEdgeTtsModulePathPlaceholder.length, `${lang}.ttsEdgeTtsModulePathPlaceholder empty`).toBeGreaterThan(0);
+    }
+  });
 });

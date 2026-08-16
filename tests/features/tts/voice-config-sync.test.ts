@@ -85,6 +85,7 @@ describe('VoiceConfigSync', () => {
         tts: {
           enabled: true,
           engine: 'edge',
+          edgeTtsModulePath: '',
           voices: { edge: { zh: 'xiaoxiao', ja: 'keita', en: 'guy' }, webspeech: { zh: '', ja: '', en: '' } },
           cli: { full_text: true, max_chars: 500, debounce_ms: 1000, speech_filter: { emoji: false, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true } },
         },
@@ -107,12 +108,25 @@ describe('VoiceConfigSync', () => {
       store.save({ ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS });
       const cfg: ClaudianBridgeSettings = {
         ...store.load(),
-        tts: { ...store.load().tts, engine: 'plachta' },
+        tts: { ...store.load().tts, edgeTtsModulePath: '', engine: 'plachta' },
       };
       const sync = new VoiceConfigSync(store, vcPath);
       await sync.exportToVoiceConfig(cfg);
       const written = JSON.parse(fs.readFileSync(vcPath, 'utf-8'));
       expect(written.engine_priority[0]).toBe('edge-tts');
+    });
+
+    it('engine=edge-local は edge-tts 優先で出力する（v0.20.0）', async () => {
+      const store = makeStore(tmp);
+      store.save({ ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS });
+      const cfg: ClaudianBridgeSettings = {
+        ...store.load(),
+        tts: { ...store.load().tts, engine: 'edge-local' },
+      };
+      const sync = new VoiceConfigSync(store, vcPath);
+      await sync.exportToVoiceConfig(cfg);
+      const written = JSON.parse(fs.readFileSync(vcPath, 'utf-8'));
+      expect(written.engine_priority).toEqual(['edge-tts', 'pyttsx3', 'system']);
     });
   });
 });

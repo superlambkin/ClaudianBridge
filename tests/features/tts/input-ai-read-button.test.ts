@@ -35,6 +35,7 @@ function makeStore(opts?: { enabled?: boolean; inputAi?: boolean }) {
     tts: {
       enabled: opts?.enabled ?? true,
       engine: 'edge',
+      edgeTtsModulePath: '',
       voices: { edge: { zh: 'x', ja: 'n', en: 'a' } },
       inputAi: { enabled: opts?.inputAi ?? true },
       chunkMaxChars: { edge: 500, webspeech: 140, plachta: 140 },

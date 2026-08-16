@@ -1,5 +1,5 @@
 import type { TtsSettings } from './core';
-import type { PlachtaSettings, PlachtaLanguage } from '../../core/settings';
+import type { PlachtaSettings, PlachtaLanguage, TtsEngine } from '../../core/settings';
 import { registerPlayback } from './playback-registry';
 
 // Re-export PlachtaSettings / PlachtaLanguage from canonical location (settings.ts).
@@ -144,7 +144,8 @@ export async function plachtaSynthesize(
  */
 export async function playObjectUrl(
   url: string,
-  noticeFn: (m: string) => void
+  noticeFn: (m: string) => void,
+  engine: TtsEngine = 'plachta',
 ): Promise<boolean> {
   try {
     const audio = new Audio();
@@ -161,7 +162,7 @@ export async function playObjectUrl(
       };
       // v0.12.0: 再生レジストリへ登録（ミュートボタンの停止ハンドル）
       unregister = registerPlayback({
-        engine: 'plachta',
+        engine,
         stop: () => {
           try { audio.pause(); } catch { /* ignore */ }
           finish(false);
