@@ -7,3 +7,6 @@ main.js
 
 # runtime plugin data
 data.json
+
+# git worktrees (SDD isolated workspaces)
+.worktrees/
