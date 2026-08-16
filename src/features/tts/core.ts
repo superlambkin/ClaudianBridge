@@ -33,6 +33,8 @@ export interface TtsSettings {
   cli?: { speech_filter?: TtsCliSpeechFilter };
   /** v0.18.0: エンジン別チャンク上限（edge: 100〜2000 既定500 / webspeech・plachta: 50〜140 既定140） */
   chunkMaxChars?: Partial<TtsChunkMaxChars>;
+  /** v0.20.0: ローカル EdgeTTS の edge_tts モジュール場所（空=自動: プラグイン内 edge_tts → site-packages）。 */
+  edgeTtsModulePath?: string;
 }
 
 /** 選択中エンジンに対応する言語別 voices を取得 */
