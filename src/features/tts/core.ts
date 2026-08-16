@@ -40,6 +40,8 @@ export function voicesFor(settings: TtsSettings, lang: 'zh' | 'ja' | 'en'): stri
   // plachta は voices マップを持たない（音声モデルはクラウド側 (HF Space) で speaker 文字列で指定する）。
   // dispatcher 側で処理するため、voicesFor は edge / webspeech のみを返す。
   if (settings.engine === 'plachta') return '';
+  // v0.20.0: edge-local はローカル実行の edge_tts で同じ音声マップを使う
+  if (settings.engine === 'edge-local') return settings.voices.edge[lang];
   return settings.voices[settings.engine][lang];
 }
 
@@ -258,8 +260,10 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   };
 
   // v0.18.0: エンジン別のチャンク上限（edge は既定 500・他は 140）
-  const engineDefault = settings.engine === 'edge' ? DEFAULT_EDGE_CHUNK_MAX_CHARS : DEFAULT_CHUNK_MAX_CHARS;
-  const limit = settings.chunkMaxChars?.[settings.engine] ?? engineDefault;
+  // v0.20.0: edge-local は edge と同じチャンク上限・音声を使う
+  const engineForChunk = settings.engine === 'edge-local' ? 'edge' : settings.engine;
+  const engineDefault = engineForChunk === 'edge' ? DEFAULT_EDGE_CHUNK_MAX_CHARS : DEFAULT_CHUNK_MAX_CHARS;
+  const limit = settings.chunkMaxChars?.[engineForChunk] ?? engineDefault;
   const chunks = limit > 0 && trimmed.length > limit ? chunkText(trimmed, limit) : [trimmed];
   if (chunks.length > 1) {
     console.log(`[claudian-bridge TTS] chunking: ${trimmed.length} chars → ${chunks.length} chunks (engine: ${settings.engine})`);
@@ -278,6 +282,7 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
     edge: 'Edge-TTS',
     webspeech: 'WebSpeech',
     plachta: 'Plachta',
+    'edge-local': 'Edge-TTS',
   };
   const progressMsg = settings.engine === 'edge'
     ? `⏳ [${engineLabels[settings.engine]}] 音声生成中…（読み上げ）`

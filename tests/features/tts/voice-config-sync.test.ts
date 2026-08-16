@@ -85,6 +85,7 @@ describe('VoiceConfigSync', () => {
         tts: {
           enabled: true,
           engine: 'edge',
+          edgeTtsModulePath: '',
           voices: { edge: { zh: 'xiaoxiao', ja: 'keita', en: 'guy' }, webspeech: { zh: '', ja: '', en: '' } },
           cli: { full_text: true, max_chars: 500, debounce_ms: 1000, speech_filter: { emoji: false, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true } },
         },
@@ -107,7 +108,7 @@ describe('VoiceConfigSync', () => {
       store.save({ ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS });
       const cfg: ClaudianBridgeSettings = {
         ...store.load(),
-        tts: { ...store.load().tts, engine: 'plachta' },
+        tts: { ...store.load().tts, edgeTtsModulePath: '', engine: 'plachta' },
       };
       const sync = new VoiceConfigSync(store, vcPath);
       await sync.exportToVoiceConfig(cfg);

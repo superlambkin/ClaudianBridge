@@ -21,6 +21,7 @@ function makeCfg(overrides?: Partial<ClaudianBridgeSettings['tts']>): ClaudianBr
     tts: {
       enabled: true,
       engine: 'edge',
+      edgeTtsModulePath: '',
       voices: { edge: { zh: 'x', ja: 'n', en: 'a' }, webspeech: { zh: '', ja: '', en: '' } },
       chunkMaxChars: { edge: 500, webspeech: 140, plachta: 140 },
       speechFilter: {
