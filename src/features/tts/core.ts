@@ -8,6 +8,7 @@ import { DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../../cor
 import { plachtaSpeakChunksPipelined } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
 import { registerPlayback, setEdgeChildPid, stopAllPlayback, getStopEpoch } from './playback-registry';
+import { localEdgeTtsSpeak } from './edge-tts-local';
 
 type NoticeFn = (m: string) => void;
 
@@ -33,6 +34,8 @@ export interface TtsSettings {
   cli?: { speech_filter?: TtsCliSpeechFilter };
   /** v0.18.0: エンジン別チャンク上限（edge: 100〜2000 既定500 / webspeech・plachta: 50〜140 既定140） */
   chunkMaxChars?: Partial<TtsChunkMaxChars>;
+  /** v0.20.0: ローカル EdgeTTS の edge_tts モジュール場所（空=自動: プラグイン内 edge_tts → site-packages）。 */
+  edgeTtsModulePath?: string;
 }
 
 /** 選択中エンジンに対応する言語別 voices を取得 */
@@ -40,6 +43,8 @@ export function voicesFor(settings: TtsSettings, lang: 'zh' | 'ja' | 'en'): stri
   // plachta は voices マップを持たない（音声モデルはクラウド側 (HF Space) で speaker 文字列で指定する）。
   // dispatcher 側で処理するため、voicesFor は edge / webspeech のみを返す。
   if (settings.engine === 'plachta') return '';
+  // v0.20.0: edge-local はローカル実行の edge_tts で同じ音声マップを使う
+  if (settings.engine === 'edge-local') return settings.voices.edge[lang];
   return settings.voices[settings.engine][lang];
 }
 
@@ -135,19 +140,10 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
  * Engine: Web SpeechSynthesis API (browser)
  * ========================================================================== */
 
-/** Detect a likely IETF language code for the given text (best-effort). */
-export function pickWebSpeechLang(text: string): string {
-  const counts = { kana: 0, cjk: 0, latin: 0 };
-  for (const ch of text) {
-    const cp = ch.codePointAt(0) ?? 0;
-    if (cp >= 0x3040 && cp <= 0x309f) counts.kana++; // hiragana
-    else if (cp >= 0x30a0 && cp <= 0x30ff) counts.kana++; // katakana
-    else if (cp >= 0x4e00 && cp <= 0x9fff) counts.cjk++; // CJK ideographs
-    else if ((cp >= 0x41 && cp <= 0x5a) || (cp >= 0x61 && cp <= 0x7a)) counts.latin++;
-  }
-  if (counts.kana > 0 || counts.cjk > counts.latin) return counts.kana > counts.cjk ? 'ja' : 'zh';
-  return 'en';
-}
+// v0.20.0: pickWebSpeechLang は lang.ts へ分離（edge-tts-local と共用）。
+// re-export で既存 import を維持しつつ、webSpeechSpeak 内部でも使うため import も行う。
+import { pickWebSpeechLang } from './lang';
+export { pickWebSpeechLang } from './lang';
 
 export async function webSpeechSpeak(text: string, settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
   if (typeof window === 'undefined' || !window || !('speechSynthesis' in window)) {
@@ -258,8 +254,10 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   };
 
   // v0.18.0: エンジン別のチャンク上限（edge は既定 500・他は 140）
-  const engineDefault = settings.engine === 'edge' ? DEFAULT_EDGE_CHUNK_MAX_CHARS : DEFAULT_CHUNK_MAX_CHARS;
-  const limit = settings.chunkMaxChars?.[settings.engine] ?? engineDefault;
+  // v0.20.0: edge-local は edge と同じチャンク上限・音声を使う
+  const engineForChunk = settings.engine === 'edge-local' ? 'edge' : settings.engine;
+  const engineDefault = engineForChunk === 'edge' ? DEFAULT_EDGE_CHUNK_MAX_CHARS : DEFAULT_CHUNK_MAX_CHARS;
+  const limit = settings.chunkMaxChars?.[engineForChunk] ?? engineDefault;
   const chunks = limit > 0 && trimmed.length > limit ? chunkText(trimmed, limit) : [trimmed];
   if (chunks.length > 1) {
     console.log(`[claudian-bridge TTS] chunking: ${trimmed.length} chars → ${chunks.length} chunks (engine: ${settings.engine})`);
@@ -278,14 +276,18 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
     edge: 'Edge-TTS',
     webspeech: 'WebSpeech',
     plachta: 'Plachta',
+    'edge-local': 'ローカル EdgeTTS',
   };
-  const progressMsg = settings.engine === 'edge'
+  const progressMsg = (settings.engine === 'edge' || settings.engine === 'edge-local')
     ? `⏳ [${engineLabels[settings.engine]}] 音声生成中…（読み上げ）`
     : `▶ [${engineLabels[settings.engine]}] 読み上げ中…`;
   showProgress(progressMsg);
   const result = await speakChunks(chunks, async (chunk) => {
     if (settings.engine === 'edge') {
       return claudettsHttpSpeak(chunk, settings, noticeFn);
+    }
+    if (settings.engine === 'edge-local') {
+      return localEdgeTtsSpeak(chunk, settings, noticeFn);
     }
     return webSpeechSpeak(chunk, settings, noticeFn);
   });

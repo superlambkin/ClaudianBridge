@@ -42,6 +42,7 @@ function makeStore(autoRead?: { enabled: boolean; scope: 'header' | 'full' }, tt
     load: () => ({
       tts: {
         enabled: ttsEnabled,
+        edgeTtsModulePath: '',
         autoRead: autoRead ?? { enabled: true, scope: 'header' },
         // 本番デフォルト（DEFAULT_SPEECH_FILTER_OPTIONS・table=true）を反映
         speechFilter: {

@@ -122,7 +122,7 @@ export interface PlachtaSettings {
 }
 
 /** TTS エンジン識別子。v0.8.0: spawn ベースのローカル VITS を完全削除しクラウド Plachta に置換。 */
-export type TtsEngine = 'edge' | 'webspeech' | 'plachta';
+export type TtsEngine = 'edge' | 'webspeech' | 'plachta' | 'edge-local';
 
 export const PLACHTA_DEFAULT_SPEAKER = '特别周 Special Week (Umamusume Pretty Derby)';
 export const PLACHTA_DEFAULT_LANGUAGE: PlachtaLanguage = '日本語';
@@ -458,6 +458,8 @@ export interface ClaudianBridgeSettings {
   tts: {
     enabled: boolean;
     engine: TtsEngine;
+    /** 次期バージョン: ローカル EdgeTTS の edge_tts モジュール場所（空=自動: プラグイン内 edge_tts → site-packages） */
+    edgeTtsModulePath: string;
     voices: {
       edge:      { zh: string; ja: string; en: string };
       webspeech: { zh: string; ja: string; en: string };
@@ -507,6 +509,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   tts: {
     enabled: true,
     engine: 'edge',
+    edgeTtsModulePath: '',
     voices: {
       edge:      { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' },
       webspeech: { zh: '',         ja: '',       en: '' },
@@ -612,7 +615,9 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       enabled: r.tts?.enabled ?? true,
       engine: r.tts?.engine === 'webspeech' ? 'webspeech'
             : r.tts?.engine === 'plachta' ? 'plachta'
+            : r.tts?.engine === 'edge-local' ? 'edge-local'
             : 'edge',
+      edgeTtsModulePath: typeof r.tts?.edgeTtsModulePath === 'string' ? r.tts.edgeTtsModulePath : '',
       voices: (() => {
         // v0.6.0 migration: 旧平型 { voices: { zh, ja, en } } → ネスト型 { voices: { edge, webspeech } }
         const rawVoices = (r.tts?.voices ?? {}) as Record<string, unknown>;
@@ -754,8 +759,9 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     if (typeof cfg.selection.objectMenuContextFlags[k] !== 'boolean') return `selection.objectMenuContextFlags.${k} は boolean である必要があります`;
   }
   if (typeof cfg.tts.enabled !== 'boolean') return 'tts.enabled は boolean である必要があります';
-  const engines: readonly TtsEngine[] = ['edge', 'webspeech', 'plachta'];
+  const engines: readonly TtsEngine[] = ['edge', 'webspeech', 'plachta', 'edge-local'];
   if (!engines.includes(cfg.tts.engine)) return `tts.engine が未知です: ${cfg.tts.engine}`;
+  if (typeof cfg.tts.edgeTtsModulePath !== 'string') return 'tts.edgeTtsModulePath は文字列である必要があります';
   if (cfg.tts.plachta !== undefined) {
     if (typeof cfg.tts.plachta.speaker !== 'string') return 'tts.plachta.speaker は文字列である必要があります';
     if (!PLACHTA_LANGUAGES.includes(cfg.tts.plachta.language)) return `tts.plachta.language が未知です: ${cfg.tts.plachta.language}`;

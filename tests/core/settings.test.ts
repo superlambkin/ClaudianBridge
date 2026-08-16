@@ -660,3 +660,30 @@ describe('chroma-fs settings', () => {
     expect(validateClaudianBridgeSettings(bad)).toContain('ragScriptPath');
   });
 });
+
+describe('tts.edgeTtsModulePath (ローカル EdgeTTS, v0.20.0)', () => {
+  it('DEFAULT: edgeTtsModulePath は空文字', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts.edgeTtsModulePath).toBe('');
+  });
+  it('normalize: 文字列を保持する', () => {
+    const n = normalizeClaudianBridgeSettings({ tts: { edgeTtsModulePath: 'C:\\MyEdgeTts' } });
+    expect(n.tts.edgeTtsModulePath).toBe('C:\\MyEdgeTts');
+  });
+  it('normalize: 欠落・非文字列は空文字', () => {
+    expect(normalizeClaudianBridgeSettings({}).tts.edgeTtsModulePath).toBe('');
+    expect(normalizeClaudianBridgeSettings({ tts: { edgeTtsModulePath: 42 as unknown as string } }).tts.edgeTtsModulePath).toBe('');
+  });
+  it('normalize: engine edge-local を許可', () => {
+    const n = normalizeClaudianBridgeSettings({ tts: { engine: 'edge-local' } });
+    expect(n.tts.engine).toBe('edge-local');
+  });
+  it('validate: edgeTtsModulePath 非文字列は拒否', () => {
+    const ok = normalizeClaudianBridgeSettings({});
+    const bad = { ...ok, tts: { ...ok.tts, edgeTtsModulePath: 42 as unknown as string } };
+    expect(validateClaudianBridgeSettings(bad)).toContain('tts.edgeTtsModulePath');
+  });
+  it('validate: engine edge-local は許可される', () => {
+    const ok = normalizeClaudianBridgeSettings({ tts: { engine: 'edge-local' } });
+    expect(validateClaudianBridgeSettings(ok)).toBeNull();
+  });
+});

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as path from 'path';
 import * as os from 'os';
+import fs from 'fs';
 import { addTextToTTS, webSpeechSpeak } from '../../../src/features/tts/core';
 import type { TtsSettings } from '../../../src/features/tts/core';
 import { plachtaSpeakChunksPipelined } from '../../../src/features/tts/plachta-tts';
@@ -78,7 +79,7 @@ function makeChild(): ChildHandle {
 const expectedCmd = path.join(os.homedir(), '.claude', 'skills', 'claude-tts', 'scripts', 'commands.py');
 
 /** v0.6.0: voices がネスト必須になったテストヘルパー */
-function makeSettings(engine: 'edge' | 'webspeech'): TtsSettings {
+function makeSettings(engine: 'edge' | 'webspeech' | 'edge-local'): TtsSettings {
   return {
     engine,
     voices: {
@@ -110,6 +111,8 @@ beforeEach(() => {
   resetPlaybackRegistry();
   vi.mocked(plachtaSpeakChunksPipelined).mockReset();
   vi.mocked(plachtaSpeakChunksPipelined).mockResolvedValue(true);
+  // Node には URL.createObjectURL が無いためモックする（edge-local 経路）
+  URL.createObjectURL = vi.fn(() => 'blob:test') as unknown as typeof URL.createObjectURL;
 });
 
 // ── helper: window モック（webSpeechSpeak / TC-L04 用）──────────────────────
@@ -144,6 +147,7 @@ function mockWindowWithSpeech() {
 
 afterEach(() => {
   delete (globalThis as unknown as { window?: unknown }).window;
+  delete (URL as unknown as { createObjectURL?: unknown }).createObjectURL;
 });
 
 // ── tests ──────────────────────────────────────────────────────────────────
@@ -475,5 +479,50 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     const chunks = vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0];
     expect(chunks.length).toBe(2);
     expect(chunks[0].length).toBe(100);
+  });
+
+  it('TC-EL01: engine=edge-local → spawn で localEdgeTtsSpeak 経由になる（voice=フル名・edge-tts-path 付き）', async () => {
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const settings = makeSettings('edge-local');
+    settings.edgeTtsModulePath = 'C:/MyEdgeTts';
+    // localEdgeTtsSpeak は設定パスに edge_tts が存在するか実 fs で確認する（pathExistsEdgeTts）。
+    // テスト環境では existsSync をモックしてガードを通過させる（Task 4 実装由来の制約）。
+    const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+    try {
+      const p = addTextToTTS(null as never, 'こんにちは', settings);
+      expect(spawnMock).toHaveBeenCalledTimes(1);
+      expect(spawnMock.mock.calls[0][0]).toBe('python');
+      const args = spawnMock.mock.calls[0][1] as string[];
+      expect(args[0]).toContain('claudian_bridge_edge_tts.py');
+      expect(args[2]).toBe('ja-JP-NanamiNeural'); // かな判定 → ja 音声
+      expect(args).toContain('--edge-tts-path');
+      expect(args[args.indexOf('--edge-tts-path') + 1]).toBe('C:/MyEdgeTts');
+      child.emit('close', 0);
+      await p;
+    } finally {
+      existsSpy.mockRestore();
+    }
+  });
+
+  it('TC-EL02: edge-local は 501 文字を chunkMaxChars.edge（既定 500）で分割する', async () => {
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      play(): Promise<void> { this.onended(); return Promise.resolve(); }
+      pause() {}
+    };
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const p = addTextToTTS(null as never, 'a'.repeat(501), makeSettings('edge-local'));
+    // localEdgeTTS は stdout 音声が空だと失敗扱い（Task 4 実装）→ 各チャンクで音声データを流す
+    child.stdout.emitData(Buffer.from('MP3DATA')); // chunk1 の音声
+    child.emit('close', 0); // chunk1 完了 → chunk2 spawn
+    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+    child.stdout.emitData(Buffer.from('MP3DATA')); // chunk2 の音声
+    child.emit('close', 0); // chunk2 完了
+    await p;
+    expect(spawnMock).toHaveBeenCalledTimes(2);
+    expect((child.stdin.write.mock.calls[0][0] as string).length).toBe(500);
   });
 });

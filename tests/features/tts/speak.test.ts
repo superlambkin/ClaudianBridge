@@ -21,6 +21,7 @@ function makeCfg(overrides?: Partial<ClaudianBridgeSettings['tts']>): ClaudianBr
     tts: {
       enabled: true,
       engine: 'edge',
+      edgeTtsModulePath: '',
       voices: { edge: { zh: 'x', ja: 'n', en: 'a' }, webspeech: { zh: '', ja: '', en: '' } },
       chunkMaxChars: { edge: 500, webspeech: 140, plachta: 140 },
       speechFilter: {
@@ -85,6 +86,11 @@ describe('speakText', () => {
   it('chunkMaxChars を TtsSettings に含めて渡す（エンジン別オブジェクト）', async () => {
     await speakText('selection', 'テキスト', makeCfg());
     expect(addTextToTTS.mock.calls[0][2].chunkMaxChars).toEqual({ edge: 500, webspeech: 140, plachta: 140 });
+  });
+
+  it('edgeTtsModulePath を TtsSettings に含めて渡す（v0.20.0）', async () => {
+    await speakText('selection', 'テキスト', makeCfg({ edgeTtsModulePath: 'C:/MyEdgeTts' }));
+    expect(addTextToTTS.mock.calls[0][2].edgeTtsModulePath).toBe('C:/MyEdgeTts');
   });
 
   it('失敗時（false）はエラー Notice「⚠️ 読み上げに失敗しました」を出す', async () => {

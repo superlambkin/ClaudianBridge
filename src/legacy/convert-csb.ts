@@ -29,6 +29,7 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
     tts: {
       enabled: true,
       engine: newEngine,
+      edgeTtsModulePath: '',
       voices: {
         edge: {
           zh: typeof edgeVoices.zh === 'string' ? (edgeVoices.zh as string) : '',
