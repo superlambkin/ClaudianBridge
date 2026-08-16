@@ -44,4 +44,9 @@ describe('serializeElementToMarkdown', () => {
     const html = '<p>本文</p><span class="claudian-text-copy-btn">copy</span>';
     expect(md(html, ['.claudian-text-copy-btn'])).toBe('本文');
   });
+
+  it('既定（引数なし）でも MD 保存ボタン類を除外する', () => {
+    const html = '<p>本文</p><span class="claudian-text-md-save-btn" data-cb-md-save>📝</span><span class="claudian-text-tts-btn">🔊</span>';
+    expect(md(html)).toBe('本文');
+  });
 });

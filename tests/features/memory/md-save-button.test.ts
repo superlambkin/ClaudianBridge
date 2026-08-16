@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupMdSaveButton } from '../../../src/features/memory/md-save-button';
+import { setupMessageMdSaveButtons } from '../../../src/features/memory/message-md-save-button';
 import type { ConfigStore } from '../../../src/core/config-store';
 import * as saveModule from '../../../src/features/memory/save';
 
@@ -73,6 +74,33 @@ describe('setupMdSaveButton', () => {
     (document.querySelector('[data-cb-md-save-toolbar]') as HTMLElement).click();
     expect(noticeFn).toHaveBeenCalled();
     expect(saveModule.saveMarkdown).not.toHaveBeenCalled();
+  });
+
+  it('ツールバー保存でブロック📝ボタンが本文に漏れない（統合）', async () => {
+    makeToolbar();
+    document.body.innerHTML += `
+      <div class="claudian-messages">
+        <div class="claudian-message-user"><div class="claudian-message-content"><p>質問</p></div></div>
+        <div class="claudian-message-assistant"><div class="claudian-message-content">
+          <h2>回答タイトル</h2>
+          <div class="claudian-text-block">
+            <p>回答本文</p>
+            <span class="claudian-text-copy-btn">copy</span>
+          </div>
+        </div></div>
+      </div>`;
+    const noticeFn = vi.fn();
+    // 両方の setup を起動し、ブロック📝ボタンが実注入された状態でツールバー保存する
+    const cleanupBlocks = setupMessageMdSaveButtons({ app: {} as never, store: makeStore(), noticeFn });
+    setupMdSaveButton({ app: {} as never, store: makeStore(), noticeFn });
+    expect(document.querySelector('.claudian-text-md-save-btn')).not.toBeNull();
+    expect(document.querySelector('.claudian-text-md-save-btn')!.textContent).toContain('📝');
+    (document.querySelector('[data-cb-md-save-toolbar]') as HTMLElement).click();
+    await vi.waitFor(() => expect(saveModule.saveMarkdown).toHaveBeenCalledTimes(1));
+    const body = (saveModule.saveMarkdown as unknown as ReturnType<typeof vi.fn>).mock.calls[0][4] as string;
+    expect(body).not.toContain('📝');
+    expect(body).toContain('回答本文');
+    cleanupBlocks();
   });
 
   it('cleanup 後に保存イベントが来てもボタンを再注入しない', () => {

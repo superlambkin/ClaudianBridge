@@ -3,6 +3,7 @@
  * Obsidian MarkdownRenderer / realclaudian 描画後の DOM を Markdown に復元する。
  * 純関数（DOM ロジックのみ・jsdom でテスト可能）。
  */
+import { SAVE_EXCLUDE_SELECTORS } from './constants';
 
 function inline(el: Element): string {
   return Array.from(el.childNodes).map((n) => {
@@ -116,7 +117,7 @@ function serializeNode(node: Node, depth: number): string {
 
 export function serializeElementToMarkdown(root: Element, excludeSelectors?: string[]): string {
   const clone = root.cloneNode(true) as HTMLElement;
-  for (const sel of excludeSelectors ?? []) clone.querySelectorAll(sel).forEach((n) => n.remove());
+  for (const sel of excludeSelectors ?? SAVE_EXCLUDE_SELECTORS) clone.querySelectorAll(sel).forEach((n) => n.remove());
   const parts: string[] = [];
   for (const child of Array.from(clone.childNodes)) {
     const md = serializeNode(child as HTMLElement, 0);

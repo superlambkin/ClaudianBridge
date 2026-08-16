@@ -69,6 +69,21 @@ describe('setupMessageMdSaveButtons', () => {
     expect(block.querySelectorAll('[data-cb-md-save]').length).toBe(0);
   });
 
+  it('保存失敗時は ⚠️ Notice を表示し busy を解除する', async () => {
+    const block = makeBlock('<h2>ブロック見出し</h2><p>ブロック本文</p>');
+    (saveModule.saveMarkdown as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('disk full'));
+    const noticeFn = vi.fn();
+    setupMessageMdSaveButtons({ app: {} as never, store: makeStore(), noticeFn });
+    const btn = block.querySelector('[data-cb-md-save]') as HTMLElement;
+    btn.click();
+    await vi.waitFor(() => expect(noticeFn).toHaveBeenCalled());
+    expect(noticeFn).toHaveBeenCalledWith('⚠️ 保存失敗: disk full');
+    // busy が解除されている → 再クリックで保存を再実行できる
+    (saveModule.saveMarkdown as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ path: 'Memory/x.md', ok: true, message: 'saved' });
+    btn.click();
+    await vi.waitFor(() => expect(saveModule.saveMarkdown).toHaveBeenCalledTimes(2));
+  });
+
   it('保存中は busy ガードで二重クリックを無視し、完了後は再クリックできる', async () => {
     const block = makeBlock('<h2>ブロック見出し</h2><p>ブロック本文</p>');
     let resolveSave!: (v: { path: string; ok: boolean; message: string }) => void;

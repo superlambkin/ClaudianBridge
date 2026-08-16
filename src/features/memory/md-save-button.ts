@@ -7,11 +7,11 @@ import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { extractMessages, findFirstHeadingText, MESSAGES_SELECTOR } from './extract';
 import { serializeElementToMarkdown } from './serialize';
+import { SAVE_EXCLUDE_SELECTORS } from './constants';
 import { composeBody, saveMarkdown } from './save';
 
 const TOOLBAR_SELECTOR = '.claudian-input-toolbar';
 const SAVE_MARK = 'data-cb-md-save-toolbar';
-const EXCLUDE_SELECTORS = ['.claudian-text-copy-btn', '.claudian-text-tts-btn', '[data-cb-md-save-toolbar]'];
 
 export interface MdSaveButtonDeps {
   app: App;
@@ -37,7 +37,7 @@ export function setupMdSaveButton(deps: MdSaveButtonDeps): () => void {
       if (!msgs) { notice('保存するメッセージがありません'); return; }
       const serialized = msgs.map((m) => ({
         role: m.role,
-        md: serializeElementToMarkdown(m.element, EXCLUDE_SELECTORS),
+        md: serializeElementToMarkdown(m.element, SAVE_EXCLUDE_SELECTORS),
       }));
       const body = composeBody(cfg.memory.scope, serialized);
       const lastAssistant = [...msgs].reverse().find((m) => m.role === 'assistant');

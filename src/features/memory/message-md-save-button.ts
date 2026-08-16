@@ -7,12 +7,12 @@ import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { findFirstHeadingText } from './extract';
 import { serializeElementToMarkdown } from './serialize';
+import { SAVE_EXCLUDE_SELECTORS } from './constants';
 import { saveMarkdown } from './save';
 
 const TEXT_BLOCK_SELECTOR = '.claudian-text-block';
 const COPY_BTN_SELECTOR = '.claudian-text-copy-btn';
 const SAVE_MARK = 'data-cb-md-save';
-const EXCLUDE_SELECTORS = ['.claudian-text-copy-btn', '.claudian-text-tts-btn', '[data-cb-md-save]'];
 
 export interface MessageMdSaveButtonDeps {
   app: App;
@@ -46,15 +46,18 @@ export function setupMessageMdSaveButtons(deps: MessageMdSaveButtonDeps): () => 
         try {
           const cfg = deps.store.load();
           if (!cfg.memory.enabled) return;
-          const md = serializeElementToMarkdown(block, EXCLUDE_SELECTORS);
+          const md = serializeElementToMarkdown(block, SAVE_EXCLUDE_SELECTORS);
           if (md.trim() === '') return;
           const title = findFirstHeadingText(block);
           const r = await saveMarkdown(deps.app, cfg.memory.folder, 'block', title, md);
           notice(r.ok ? `✅ ${r.path} に保存しました` : `⚠️ 保存失敗: ${r.message}`);
+        } catch (e) {
+          console.warn('[cb-md-save-block] failed:', e);
+          notice(`⚠️ 保存失敗: ${(e as Error).message}`);
         } finally {
           busy = false;
         }
-      })().catch((e) => console.warn('[cb-md-save-block] failed:', e));
+      })();
     });
     copyBtn.before(btn);
   };
