@@ -249,3 +249,26 @@ describe('detectFinalAnswerState (v0.19.0 最終回答ゲート)', () => {
     expect(detectFinalAnswerState(makeMessages('<p>空</p>'))).toBe('pending');
   });
 });
+
+describe('extractTextBlocks (v0.19.0 構造的除外)', () => {
+  it('full scope: フィルタ全ONでも思考・ツールは読まない（テキストブロックのみ）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-thinking-block"><div class="claudian-thinking-header">Thought for 1s</div><div class="claudian-thinking-content">思考の内容</div></div>
+      <div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div><div class="claudian-tool-summary">git status</div></div>
+      <div class="claudian-text-block"><p>最終回答のテキスト</p></div>
+    </div></div>`;
+    const allTrue = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true, toolCommands: true };
+    const text = extractReportText(makeMessages(html), 'full', { filter: { ...allTrue } });
+    expect(text).toContain('最終回答のテキスト');
+    expect(text).not.toContain('思考の内容');
+    expect(text).not.toContain('Thought for');
+    expect(text).not.toContain('git status');
+    expect(text).not.toContain('Tool Bash');
+  });
+
+  it('full scope: テキストブロック無し（旧DOM）は従来どおり全体を読む', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>旧DOMのテキスト</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'full');
+    expect(text).toContain('旧DOMのテキスト');
+  });
+});

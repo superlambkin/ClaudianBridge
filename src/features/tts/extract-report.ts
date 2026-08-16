@@ -155,6 +155,22 @@ function readSectionText(el: Element, heading: Element, excludeSel: string): str
 }
 
 /**
+ * v0.19.0: メッセージ内容から .claudian-text-block のみを読み連結する。
+ * 思考・ツールは構造的に読み飛ばす（innerText の display 依存を排除）。
+ * ブロッククラス無し（旧DOM・テスト）は従来どおり source 全体を読む。
+ */
+function extractTextBlocks(source: Element, excludeSel: string): string {
+  const blocks = Array.from(source.children).filter((c) => c.classList.contains('claudian-text-block'));
+  if (blocks.length === 0) {
+    return excludeSel === '' ? readVisibleText(source) : readVisibleTextExcluding(source, excludeSel);
+  }
+  return blocks
+    .map((b) => (excludeSel === '' ? readVisibleText(b) : readVisibleTextExcluding(b, excludeSel)))
+    .filter((t) => t !== '')
+    .join('\n');
+}
+
+/**
  * messagesEl（.claudian-messages）内の最後の assistant メッセージから読み上げテキストを抽出。
  * - header: 結果全体まとめのみ。📢 blockquote → 導入文（最初の見出しより前）の順でフォールバック。
  *   v0.14.1 より 📢 が無くても導入文は読む（詳細・次のアクションは読まない）。
@@ -188,8 +204,7 @@ export function extractReportText(
     if (last.hasAttribute(AUTO_READ_MARK)) return null;
     last.setAttribute(AUTO_READ_MARK, '1');
     const source = last.querySelector('.claudian-message-content') ?? last;
-    // v0.17: 全 true フィルタ（speechExclude === ''）でも querySelectorAll('') の SyntaxError を避ける
-    const text = speechExclude === '' ? readVisibleText(source) : readVisibleTextExcluding(source, speechExclude);
+    const text = extractTextBlocks(source, speechExclude);
     return text === '' ? null : text;
   }
 
