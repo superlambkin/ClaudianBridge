@@ -47,6 +47,8 @@ export const THINKING_BLOCK_SELECTOR = '.claudian-thinking-block';
 export const CODE_WRAPPER_SELECTOR = '.claudian-code-wrapper';
 /** コールアウト（> [!type]）セレクタ */
 export const CALLOUT_SELECTOR = '.callout';
+/** v0.18.1: ツール呼び出し（Read/Write/Bash/Task 等）のコンテナ */
+export const TOOL_CALL_SELECTOR = '.claudian-tool-call';
 
 /** ヘッダースコープの抽出で除外する UI 要素（コピー/読上げボタン） */
 const HEADER_UI_EXCLUDE = '.claudian-text-copy-btn, [data-cb-msg-read]';
@@ -57,6 +59,7 @@ export function buildSpeechExclude(filter: SpeechFilterOptions): string {
   if (!filter.thinking) parts.push(THINKING_BLOCK_SELECTOR);
   if (!filter.code) parts.push(CODE_WRAPPER_SELECTOR);
   if (!filter.callout) parts.push(CALLOUT_SELECTOR);
+  if (!filter.toolCommands) parts.push(TOOL_CALL_SELECTOR);
   return parts.join(', ');
 }
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { extractReportText, AUTO_READ_MARK, buildSpeechExclude } from '../../../src/features/tts/extract-report';
+import { extractReportText, AUTO_READ_MARK, buildSpeechExclude, readVisibleTextExcluding } from '../../../src/features/tts/extract-report';
 
 const REPORT_HTML = `
   <div class="claudian-message-assistant">
@@ -67,7 +67,7 @@ describe('extractReportText', () => {
 
   it('full scope: 全 true フィルタでも空セレクタで例外を投げず全文を読む（v0.17）', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><div class="claudian-thinking-block"><div class="claudian-thinking-header">Thought for 1s</div><div class="claudian-thinking-content">内部思考の内容</div></div><p>本体の応答テキスト</p></div></div>`;
-    const allTrue = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true };
+    const allTrue = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true, toolCommands: true };
     const el = makeMessages(html);
     let text: string | null;
     expect(() => { text = extractReportText(el, 'full', { filter: { ...allTrue } }); }).not.toThrow();
@@ -149,7 +149,7 @@ describe('extractReportText', () => {
 });
 
 describe('buildSpeechExclude (v0.17 タイプ別)', () => {
-  const T = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true };
+  const T = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true, toolCommands: true };
 
   it('全 true なら除外なし（空文字）', () => {
     expect(buildSpeechExclude({ ...T })).toBe('');
@@ -168,5 +168,31 @@ describe('buildSpeechExclude (v0.17 タイプ別)', () => {
   it('callout=false ならコールアウトを除外', () => {
     const s = buildSpeechExclude({ ...T, callout: false });
     expect(s).toContain('.callout');
+  });
+});
+
+describe('buildSpeechExclude (v0.18.1 toolCommands)', () => {
+  const T = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true, toolCommands: true };
+
+  it('toolCommands=false なら .claudian-tool-call を除外', () => {
+    const s = buildSpeechExclude({ ...T, toolCommands: false });
+    expect(s).toContain('.claudian-tool-call');
+  });
+
+  it('toolCommands=true なら .claudian-tool-call を含めない', () => {
+    const s = buildSpeechExclude({ ...T });
+    expect(s).not.toContain('.claudian-tool-call');
+  });
+});
+
+describe('readVisibleTextExcluding (v0.18.1 tool call 除外)', () => {
+  it('.claudian-tool-call を除去して本文のみ返す', () => {
+    const el = document.createElement('div');
+    el.innerHTML = '<p>本文です</p><div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div><div class="claudian-tool-summary">git status</div></div><p>末尾です</p>';
+    const text = readVisibleTextExcluding(el, '.claudian-tool-call');
+    expect(text).toContain('本文です');
+    expect(text).toContain('末尾です');
+    expect(text).not.toContain('Tool Bash');
+    expect(text).not.toContain('git status');
   });
 });
