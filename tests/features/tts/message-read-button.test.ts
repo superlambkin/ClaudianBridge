@@ -23,7 +23,7 @@ function makeBlock(body = '<p>読み上げテキスト</p>'): HTMLElement {
 function makeSpeechFilter() {
   return {
     emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false,
-    callout: false, table: true, code: false, thinking: false,
+    callout: false, table: true, code: false, thinking: false, toolCommands: false,
   };
 }
 

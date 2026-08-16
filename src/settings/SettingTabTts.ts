@@ -328,6 +328,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         { key: 'table', label: s.ttsSpeechFilterTable },
         { key: 'code', label: s.ttsSpeechFilterCode },
         { key: 'thinking', label: s.ttsSpeechFilterThinking },
+        { key: 'toolCommands', label: s.ttsSpeechFilterToolCommands },
       ];
       const TYPES: Array<{ key: TtsSpeechFilterSection; label: string }> = [
         { key: 'selection', label: s.ttsSpeechFilterTypeSelection },

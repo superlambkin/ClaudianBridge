@@ -122,6 +122,8 @@ export interface LocaleStrings {
   ttsSpeechFilterTable: string;
   ttsSpeechFilterCode: string;
   ttsSpeechFilterThinking: string;
+  // v0.18.1: ツール呼び出し除外
+  ttsSpeechFilterToolCommands: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -383,6 +385,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterTable: 'テーブル',
     ttsSpeechFilterCode: 'コードブロック',
     ttsSpeechFilterThinking: '思考ブロック',
+    ttsSpeechFilterToolCommands: 'ツール呼び出し',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -640,6 +643,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterTable: 'Table',
     ttsSpeechFilterCode: 'Code block',
     ttsSpeechFilterThinking: 'Thinking block',
+    ttsSpeechFilterToolCommands: 'Tool calls',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -892,6 +896,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterTable: '表格',
     ttsSpeechFilterCode: '代码块',
     ttsSpeechFilterThinking: '思考块',
+    ttsSpeechFilterToolCommands: '工具调用',
     ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
     ttsVoiceZh: '中文 (zh)',
     ttsVoiceJa: '日语 (ja)',
