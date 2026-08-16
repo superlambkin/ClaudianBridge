@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { extractReportText, AUTO_READ_MARK } from '../../../src/features/tts/extract-report';
+import { extractReportText, AUTO_READ_MARK, buildSpeechExclude } from '../../../src/features/tts/extract-report';
 
 const REPORT_HTML = `
   <div class="claudian-message-assistant">
@@ -136,5 +136,28 @@ describe('extractReportText', () => {
     const latest = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>補足コメント</p></div></div>`;
     // 最後のメッセージに 📢・見出しが無い → header は null（手前の 📢 は対象外）
     expect(extractReportText(makeMessages(older + latest), 'header')).toBeNull();
+  });
+});
+
+describe('buildSpeechExclude (v0.17 タイプ別)', () => {
+  const T = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true };
+
+  it('全 true なら除外なし（空文字）', () => {
+    expect(buildSpeechExclude({ ...T })).toBe('');
+  });
+
+  it('thinking=false なら思考ブロックを除外', () => {
+    const s = buildSpeechExclude({ ...T, thinking: false });
+    expect(s).toContain('.claudian-thinking-block');
+  });
+
+  it('code=false ならコードブロックを除外', () => {
+    const s = buildSpeechExclude({ ...T, code: false });
+    expect(s).toContain('.claudian-code-wrapper');
+  });
+
+  it('callout=false ならコールアウトを除外', () => {
+    const s = buildSpeechExclude({ ...T, callout: false });
+    expect(s).toContain('.callout');
   });
 });

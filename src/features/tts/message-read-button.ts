@@ -12,6 +12,7 @@ import { Notice, setIcon } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { readVisibleTextExcluding, buildSpeechExclude } from './extract-report';
+import type { SpeechFilterOptions } from '../../core/settings';
 
 const TEXT_BLOCK_SELECTOR = '.claudian-text-block';
 const COPY_BTN_SELECTOR = '.claudian-text-copy-btn';
@@ -41,9 +42,15 @@ export function setupMessageReadButtons(deps: MessageReadDeps): () => void {
       void (async () => {
         const cfg = deps.store.load();
         if (!cfg.tts.enabled) { notice('🔇 ミュート中です'); return; }
+        // v0.17: タイプ別フィルタで除外セレクタを組み立て（一時対応。Task 7 で resolveSpeechFilter に置き換え）
+        const filter: SpeechFilterOptions = {
+          emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true,
+          callout: !(cfg.tts.excludeCallouts ?? true),
+          table: true, code: false, thinking: false,
+        };
         const text = readVisibleTextExcluding(
           block,
-          `${COPY_BTN_SELECTOR}, [${READ_MARK}], ${buildSpeechExclude(cfg.tts.excludeCallouts ?? true)}`,
+          `${COPY_BTN_SELECTOR}, [${READ_MARK}], ${buildSpeechExclude(filter)}`,
         );
         if (!text) return;
         await deps.speak(text);

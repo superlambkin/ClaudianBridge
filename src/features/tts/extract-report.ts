@@ -3,6 +3,8 @@
  * 発火条件は 📢 blockquote の存在（scope は読み上げ範囲のみ制御）。
  * 抽出と同時に重複防止マーク（data-cb-tts-read）を付与する。
  */
+import type { SpeechFilterOptions } from '../../core/settings';
+
 export type AutoReadScope = 'header' | 'full';
 
 export const AUTO_READ_MARK = 'data-cb-tts-read';
@@ -40,28 +42,29 @@ export function readVisibleTextExcluding(el: Element, excludeSel: string): strin
   return (clone.textContent ?? '').trim();
 }
 
-/** 読み上げから除外する realclaudian 要素（Extended thinking ブロック・コードブロック） */
-export const EXCLUDED_FROM_SPEECH = '.claudian-thinking-block, .claudian-code-wrapper';
-
+/** 読み上げから除外する realclaudian 要素（v0.17: タイプ別フィルタで個別制御） */
+export const THINKING_BLOCK_SELECTOR = '.claudian-thinking-block';
+export const CODE_WRAPPER_SELECTOR = '.claudian-code-wrapper';
 /** コールアウト（> [!type]）セレクタ */
-const CALLOUT_SELECTOR = '.callout';
+export const CALLOUT_SELECTOR = '.callout';
 
 /** ヘッダースコープの抽出で除外する UI 要素（コピー/読上げボタン） */
 const HEADER_UI_EXCLUDE = '.claudian-text-copy-btn, [data-cb-msg-read]';
 
-/** 読み上げ除外セレクタを組み立てる（コールアウト除外は設定に応じて） */
-export function buildSpeechExclude(excludeCallouts: boolean): string {
-  return excludeCallouts ? `${EXCLUDED_FROM_SPEECH}, ${CALLOUT_SELECTOR}` : EXCLUDED_FROM_SPEECH;
+/** 読み上げ除外セレクタを組み立てる（filter の false 項目を除外対象に含める） */
+export function buildSpeechExclude(filter: SpeechFilterOptions): string {
+  const parts: string[] = [];
+  if (!filter.thinking) parts.push(THINKING_BLOCK_SELECTOR);
+  if (!filter.code) parts.push(CODE_WRAPPER_SELECTOR);
+  if (!filter.callout) parts.push(CALLOUT_SELECTOR);
+  return parts.join(', ');
 }
 
-/** ヘッダースコープの除外セレクタ（UI ボタンも除外） */
-function buildHeaderExclude(excludeCallouts: boolean): string {
-  return `${buildSpeechExclude(excludeCallouts)}, ${HEADER_UI_EXCLUDE}`;
-}
-
-/** ヘッダースコープで読み上げない要素（UI に加え、データ表 table も除外） */
-function buildHeaderSpeechExclude(excludeCallouts: boolean): string {
-  return `${buildHeaderExclude(excludeCallouts)}, table`;
+/** ヘッダースコープの除外セレクタ（UI ボタンも除外。table は filter.table に従う） */
+function buildHeaderSpeechExclude(filter: SpeechFilterOptions): string {
+  const base = buildSpeechExclude(filter);
+  const withUi = base === '' ? HEADER_UI_EXCLUDE : `${base}, ${HEADER_UI_EXCLUDE}`;
+  return filter.table ? withUi : `${withUi}, table`;
 }
 
 /** 見出し要素（markdown 見出し） */
@@ -119,17 +122,22 @@ function readSectionText(el: Element, heading: Element, excludeSel: string): str
  *   v0.14.1 より 📢 が無くても導入文は読む（詳細・次のアクションは読まない）。
  * - full:   メッセージ全文（.claudian-message-content）。v0.13.0 以降は 📢 有無に関わらず
  *           最後の応答を全文読み上げる（CLI Stop hook に代わるプラグイン一元化）。
- * @param opts.excludeCallouts コールアウト（> [!type]）を除外するか（既定 true）
+ * @param opts.excludeCallouts コールアウト（> [!type]）を除外するか（既定 true・後方互換）
+ * @param opts.filter タイプ別読み上げフィルタ（false の項目を除外）。省略時は既定（思考/コード/コールアウト/テーブルを除外）
  * 抽出済み・assistant なしの場合は null。
  */
 export function extractReportText(
   messagesEl: Element,
   scope: AutoReadScope,
-  opts?: { excludeCallouts?: boolean },
+  opts?: { excludeCallouts?: boolean; filter?: SpeechFilterOptions },
 ): string | null {
-  const excludeCallouts = opts?.excludeCallouts ?? true;
-  const speechExclude = buildSpeechExclude(excludeCallouts);
-  const headerSpeechExclude = buildHeaderSpeechExclude(excludeCallouts);
+  const filter: SpeechFilterOptions = opts?.filter ?? {
+    emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true,
+    callout: !(opts?.excludeCallouts ?? true),
+    table: false, code: false, thinking: false,
+  };
+  const speechExclude = buildSpeechExclude(filter);
+  const headerSpeechExclude = buildHeaderSpeechExclude(filter);
   const assistants = messagesEl.querySelectorAll('.claudian-message-assistant');
   const last = assistants[assistants.length - 1];
   if (!last) return null;
