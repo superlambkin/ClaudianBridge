@@ -1,58 +1,36 @@
-// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { filterSpeechText } from '../../../src/features/tts/core';
+import { filterSpeechText } from '../../../src/features/tts/speech-filter';
+import type { SpeechFilterOptions } from '../../../src/core/settings';
 
-describe('filterSpeechText', () => {
-  it('emoji を除去する', () => {
-    expect(filterSpeechText('📢 タスク完了しました', { emoji: true })).not.toContain('📢');
-    expect(filterSpeechText('📢 タスク完了しました', { emoji: true })).toContain('タスク完了しました');
+const ALL_TRUE: SpeechFilterOptions = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true };
+
+describe('filterSpeechText (v0.17 チェック=読む)', () => {
+  it('全 true（読む）ならテキストをそのまま返す', () => {
+    expect(filterSpeechText('📢 完了 :tada: (^_^) :)', ALL_TRUE)).toBe('📢 完了 :tada: (^_^) :)');
   });
 
-  it('emoji 除去が OFF なら残す', () => {
-    expect(filterSpeechText('📢 タスク完了', { emoji: false })).toContain('📢');
+  it('emoji=false なら絵文字を除去する', () => {
+    const f = { ...ALL_TRUE, emoji: false };
+    expect(filterSpeechText('📢 完了', f)).not.toContain('📢');
   });
 
-  it('顔文字（括弧内に特徴文字 2 つ以上）を除去する', () => {
-    // (^^) は ^ が2つ → 顔文字と判定
-    expect(filterSpeechText('確認しました(^^)', { kaomoji: true })).not.toContain('(^^)');
-    expect(filterSpeechText('確認しました(^^)', { kaomoji: true })).toContain('確認しました');
-    // (確認) は特徴文字なし → 残す
-    expect(filterSpeechText('(確認)しました', { kaomoji: true })).toContain('(確認)');
+  it('kaomoji=false なら顔文字を除去する', () => {
+    const f = { ...ALL_TRUE, kaomoji: false };
+    expect(filterSpeechText('OK (^_^)', f)).toBe('OK');
   });
 
-  it('ASCII 表情を除去する', () => {
-    expect(filterSpeechText('完了しました :)', { ascii_emoticon: true })).not.toContain(':)');
-    expect(filterSpeechText('完了しました :)', { ascii_emoticon: true })).toContain('完了しました');
-    expect(filterSpeechText('完了しました :)', { ascii_emoticon: false })).toContain(':)');
+  it('ascii_emoticon=false なら ASCII 表情を除去する', () => {
+    const f = { ...ALL_TRUE, ascii_emoticon: false };
+    expect(filterSpeechText('great :)', f)).toBe('great');
   });
 
-  it('emoji 短コードを除去する', () => {
-    expect(filterSpeechText('完了 :tada:', { emoji_shortcode: true })).not.toContain(':tada:');
-    expect(filterSpeechText('完了 :tada:', { emoji_shortcode: true })).toContain('完了');
-    expect(filterSpeechText('完了 :tada:', { emoji_shortcode: false })).toContain(':tada:');
+  it('emoji_shortcode=false なら短コードを除去する', () => {
+    const f = { ...ALL_TRUE, emoji_shortcode: false };
+    expect(filterSpeechText(':tada:', f)).toBe('');
   });
 
-  it('sf 未指定ならデフォルト（全最適化 ON）', () => {
-    const out = filterSpeechText('📢 完了(^^) :tada:');
-    expect(out).not.toContain('📢');
-    expect(out).not.toContain(':tada:');
-    expect(out).not.toContain('(^^)');
-  });
-
-  it('部分指定は残りのキーをデフォルト ON にする', () => {
-    // emoji だけ指定（true）→ 他もデフォルト ON
-    const out = filterSpeechText('📢 完了 :tada:', { emoji: true });
-    expect(out).not.toContain('📢');
-    expect(out).not.toContain(':tada:');
-  });
-
-  it('最適化後に空の括弧対を除去する', () => {
-    expect(filterSpeechText('完了 ( )', { kaomoji: true })).not.toContain('( )');
-    expect(filterSpeechText('完了 ( )', { kaomoji: true })).toContain('完了');
-  });
-
-  it('日本語テキストはそのまま残す', () => {
-    const text = 'タスクを完了しました。検証は正常に通過しました。';
-    expect(filterSpeechText(text)).toBe(text);
+  it('空になった括弧対を除去する', () => {
+    const f = { ...ALL_TRUE, kaomoji: false };
+    expect(filterSpeechText('abc（　）', f)).toBe('abc');
   });
 });
