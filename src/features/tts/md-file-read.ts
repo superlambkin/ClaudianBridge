@@ -7,6 +7,7 @@ import { Notice } from 'obsidian';
 import type { App, TFile, Menu } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import type { SpeechFilterOptions } from '../../core/settings';
+import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import { speakText, resolveSpeechFilter } from './speak';
 
 /** frontmatter（先頭 --- 〜 ---） */
@@ -18,8 +19,8 @@ const CODE_FENCE_RE = /```[\s\S]*?```|~~~[\s\S]*?~~~/g;
 /** コールアウトブロック（> [!type] 連続行） */
 const CALLOUT_BLOCK_RE = />\s*\[![\s\S]*?(?=\r?\n(?!\s*>)|$)/g;
 
-/** テーブル行（| 区切りの連続行 + 区切り行） */
-const TABLE_BLOCK_RE = /^\s*\|.*\|[ \t]*\r?\n(?:^\s*\|[\s:|-]*\|[ \t]*\r?\n)?(?:^\s*\|.*\|[ \t]*\r?\n)*/gm;
+/** テーブル行（| 区切りの連続行 + 区切り行）。各行の終端は改行または行末（$）のどちらも許容 */
+const TABLE_BLOCK_RE = /^\s*\|.*\|[ \t]*(?:\r?\n|$)(?:^\s*\|[\s:|-]*\|[ \t]*(?:\r?\n|$))?(?:^\s*\|.*\|[ \t]*(?:\r?\n|$))*/gm;
 
 /** MD 本文を抽出（filter の false 項目を除去） */
 export function extractMdText(md: string, filter: SpeechFilterOptions): string {
@@ -32,12 +33,13 @@ export function extractMdText(md: string, filter: SpeechFilterOptions): string {
 }
 
 export function setupMdFileRead(app: App, store: ConfigStore): () => void {
+  const s = getLocaleStrings(getUILanguage());
   // TFile の instanceof は信頼しにくいため extension で判定（main.ts のフォルダ「Add to Claudian」も同方式）
   const handler = (menu: Menu, file: unknown): void => {
     const f = file as { extension?: string } | null;
     if (!f || f.extension !== 'md') return;
     menu.addItem((item) => item
-      .setTitle('Add to TTS')
+      .setTitle(s.ttsAddToTts)
       .setIcon('volume-2')
       .onClick(() => {
         void (async () => {

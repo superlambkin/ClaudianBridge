@@ -533,6 +533,25 @@ describe('tts.chunkMaxChars / tts.speechFilter (v0.17 仕様改良)', () => {
     expect(cfg.tts.speechFilter.autoRead).toEqual(cfg.tts.speechFilter.selection);
   });
 
+  it('マイグレーション: 新 speechFilter が一部タイプのみ → 他タイプはレガシー値にフォールバック', () => {
+    const raw = {
+      tts: {
+        enabled: true, engine: 'edge',
+        cli: { speech_filter: { emoji: true, kaomoji: false } },
+        speechFilter: { message: { emoji: true, table: false } },
+      },
+    };
+    const cfg = normalizeClaudianBridgeSettings(raw as never);
+    // message: 新値優先
+    expect(cfg.tts.speechFilter.message.emoji).toBe(true);
+    expect(cfg.tts.speechFilter.message.table).toBe(false);
+    // 未指定タイプ（selection / autoRead / inputAi）: レガシー値（ON=除去 → 反転）にフォールバック
+    expect(cfg.tts.speechFilter.selection.emoji).toBe(false);   // 旧 true(除去) → 新 false(読まない)
+    expect(cfg.tts.speechFilter.selection.kaomoji).toBe(true);  // 旧 false → 新 true(読む)
+    expect(cfg.tts.speechFilter.autoRead.emoji).toBe(false);
+    expect(cfg.tts.speechFilter.inputAi.emoji).toBe(false);
+  });
+
   it('マイグレーション: 既存 cli.speech_filter(ON=除去) を全タイプへ反転して引き継ぐ', () => {
     const raw = { tts: { enabled: true, engine: 'edge', cli: { speech_filter: { emoji: true, kaomoji: false } } } };
     const cfg = normalizeClaudianBridgeSettings(raw as never);

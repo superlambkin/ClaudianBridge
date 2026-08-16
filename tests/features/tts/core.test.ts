@@ -432,12 +432,13 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     expect(notice).not.toHaveBeenCalled();
   });
 
-  it('chunkMaxChars=140 で plachta がチャンク分割される（設定値を使用・v0.17.0）', async () => {
+  it('chunkMaxChars=100（非デフォルト）で plachta がチャンク分割される（設定値を使用・v0.17.0）', async () => {
     const s = makePlachtaSettings();
-    s.chunkMaxChars = 140;
+    s.chunkMaxChars = 100;
     await addTextToTTS(null as never, 'あ'.repeat(141), s);
     expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
     const chunks = vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0];
     expect(chunks.length).toBe(2);
+    expect(chunks[0].length).toBe(100);
   });
 });

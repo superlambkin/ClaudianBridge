@@ -42,9 +42,10 @@ export function setupMessageReadButtons(deps: MessageReadDeps): () => void {
         const cfg = deps.store.load();
         if (!cfg.tts.enabled) { notice('🔇 ミュート中です'); return; }
         const filter = resolveSpeechFilter(cfg, 'message');
+        // buildSpeechExclude が ''（全 true）を返すと末尾カンマで Invalid selector になるため空エントリを除外する
         const text = readVisibleTextExcluding(
           block,
-          `${COPY_BTN_SELECTOR}, [${READ_MARK}], ${buildSpeechExclude(filter)}`,
+          [COPY_BTN_SELECTOR, `[${READ_MARK}]`, buildSpeechExclude(filter)].filter(Boolean).join(', '),
         );
         if (!text) { notice('入力がありません'); return; }
         await speakText('message', text, cfg);

@@ -30,6 +30,17 @@ describe('extractMdText', () => {
     expect(extractMdText(md, T)).toContain('A');
   });
 
+  it('テーブルを除去する（table=false・末尾改行なしの最終行）', () => {
+    const md = '前置き\n| A | B |\n|---|---|\n| 1 | 2 |';
+    expect(extractMdText(md, { ...T, table: false })).not.toContain('| A |');
+    expect(extractMdText(md, { ...T, table: false })).not.toContain('| 1 |');
+    expect(extractMdText(md, { ...T, table: false })).toContain('前置き');
+  });
+
+  it('テーブルを除去する（table=false・1行のみ・末尾改行なし）', () => {
+    expect(extractMdText('| 1 | 2 |', { ...T, table: false })).toBe('');
+  });
+
   it('コールアウトを除去する（callout=false）', () => {
     const md = '本文\n> [!note] 注意\n> 中身\n末尾';
     expect(extractMdText(md, { ...T, callout: false })).not.toContain('注意');

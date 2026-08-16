@@ -9,6 +9,10 @@ vi.mock('../../../src/features/tts/core', () => ({
   addTextToTTS: (...a: unknown[]) => addTextToTTS(...a),
 }));
 
+// obsidian.Notice をモックして副作用（トースト表示）をアサートする
+const { noticeMock } = vi.hoisted(() => ({ noticeMock: vi.fn() }));
+vi.mock('obsidian', () => ({ Notice: noticeMock }));
+
 function makeCfg(overrides?: Partial<ClaudianBridgeSettings['tts']>): ClaudianBridgeSettings {
   return {
     general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true },
@@ -39,15 +43,25 @@ describe('resolveSpeechFilter', () => {
     expect(resolveSpeechFilter(cfg, 'md')).toBe(cfg.tts.speechFilter.selection);
     expect(resolveSpeechFilter(cfg, 'message')).toBe(cfg.tts.speechFilter.message);
   });
+
+  it('各タイプが対応するフィルタに自己マッピングされる', () => {
+    const cfg = makeCfg();
+    expect(resolveSpeechFilter(cfg, 'selection')).toBe(cfg.tts.speechFilter.selection);
+    expect(resolveSpeechFilter(cfg, 'autoRead')).toBe(cfg.tts.speechFilter.autoRead);
+    expect(resolveSpeechFilter(cfg, 'message')).toBe(cfg.tts.speechFilter.message);
+    expect(resolveSpeechFilter(cfg, 'inputAi')).toBe(cfg.tts.speechFilter.inputAi);
+    expect(resolveSpeechFilter(cfg, 'md')).toBe(cfg.tts.speechFilter.selection);
+  });
 });
 
 describe('speakText', () => {
-  beforeEach(() => { addTextToTTS.mockReset(); addTextToTTS.mockResolvedValue(true); });
+  beforeEach(() => { addTextToTTS.mockReset(); addTextToTTS.mockResolvedValue(true); noticeMock.mockClear(); });
 
-  it('空テキスト時は noticeOnEmpty=true で Notice を出し false を返す', async () => {
+  it('空テキスト時は noticeOnEmpty=true で Notice「入力がありません」を出し false を返す', async () => {
     const noticeSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     const r = await speakText('selection', '   ', makeCfg(), { noticeOnEmpty: true });
     expect(r).toBe(false);
+    expect(noticeMock).toHaveBeenCalledWith('入力がありません');
     expect(addTextToTTS).not.toHaveBeenCalled();
     noticeSpy.mockRestore();
   });
@@ -55,6 +69,7 @@ describe('speakText', () => {
   it('空テキスト時は noticeOnEmpty 無指定なら Notice を出さない', async () => {
     const r = await speakText('selection', '', makeCfg());
     expect(r).toBe(false);
+    expect(noticeMock).not.toHaveBeenCalled();
   });
 
   it('タイプ別フィルタを適用して addTextToTTS に渡す', async () => {
@@ -67,15 +82,16 @@ describe('speakText', () => {
     expect(text).not.toContain('📢');
   });
 
-  it('chunkMaxChars を TtsSettings に含めて渡す', async () => {
-    await speakText('selection', 'テキスト', makeCfg());
-    expect(addTextToTTS.mock.calls[0][2].chunkMaxChars).toBe(140);
+  it('chunkMaxChars を TtsSettings に含めて渡す（非デフォルト値 100 を検証）', async () => {
+    await speakText('selection', 'テキスト', makeCfg({ chunkMaxChars: 100 }));
+    expect(addTextToTTS.mock.calls[0][2].chunkMaxChars).toBe(100);
   });
 
-  it('失敗時（false）はエラー Notice を出す', async () => {
+  it('失敗時（false）はエラー Notice「⚠️ 読み上げに失敗しました」を出す', async () => {
     addTextToTTS.mockResolvedValue(false);
     const r = await speakText('selection', 'テキスト', makeCfg(), {});
     expect(r).toBe(false);
+    expect(noticeMock).toHaveBeenCalledWith('⚠️ 読み上げに失敗しました');
   });
 
   it('fallbackText 指定時は失敗後に元文で再試行する（⑤用）', async () => {

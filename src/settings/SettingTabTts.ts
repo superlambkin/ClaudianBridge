@@ -13,7 +13,7 @@ import {
 } from '../features/tts/plachta-tts';
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
 import type { TtsCliSettings, TtsAutoReadSettings } from '../core/settings';
-import { withFullTextState } from '../core/settings';
+import { withFullTextState, DEFAULT_SPEECH_FILTER_OPTIONS } from '../core/settings';
 import { CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX } from '../core/settings';
 import type { TtsSpeechFilterSection, SpeechFilterOptions } from '../core/settings';
 
@@ -328,7 +328,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
       const table = containerEl.createEl('table', { cls: 'cb-speech-filter-table' });
       const thead = table.createEl('thead');
       const headRow = thead.createEl('tr');
-      headRow.createEl('th', { text: '項目' });
+      headRow.createEl('th', { text: s.ttsSpeechFilterItemHeader });
       for (const t of TYPES) headRow.createEl('th', { text: t.label });
       const tbody = table.createEl('tbody');
       for (const row of FILTER_ROWS) {
@@ -341,7 +341,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             tg.setValue(cur).onChange(async (v) => {
               try {
                 const latest = store.load();
-                const sec = latest.tts.speechFilter?.[t.key] ?? { emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false, callout: false, table: true, code: false, thinking: false };
+                const sec = latest.tts.speechFilter?.[t.key] ?? { ...DEFAULT_SPEECH_FILTER_OPTIONS };
                 store.save({
                   ...latest,
                   tts: { ...latest.tts, speechFilter: { ...latest.tts.speechFilter, [t.key]: { ...sec, [row.key]: v } } },

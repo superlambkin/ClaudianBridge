@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupAutoReadTTS } from '../../../src/features/tts/auto-read';
 import type { ConfigStore } from '../../../src/core/config-store';
+import { DEFAULT_SPEECH_FILTER_OPTIONS } from '../../../src/core/settings';
 
 const REPORT_HTML = `
   <div class="claudian-message-assistant">
@@ -42,12 +43,9 @@ function makeStore(autoRead?: { enabled: boolean; scope: 'header' | 'full' }, tt
       tts: {
         enabled: ttsEnabled,
         autoRead: autoRead ?? { enabled: true, scope: 'header' },
-        // 旧デフォルト（callout/table/code/thinking 除外）を維持する値
+        // 本番デフォルト（DEFAULT_SPEECH_FILTER_OPTIONS・table=true）を反映
         speechFilter: {
-          autoRead: {
-            emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true,
-            callout: false, table: false, code: false, thinking: false,
-          },
+          autoRead: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
         },
       },
     }),
@@ -131,7 +129,8 @@ describe('setupAutoReadTTS', () => {
     view.callbacks.onTabStreamingChanged!('t', false);
     await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
     expect(speak.mock.calls[0][0]).toContain('ビルド状況');
-    expect(speak.mock.calls[0][0]).not.toContain('テーブル');
+    // 本番デフォルト（table=true）ではその節のテーブルも読み上げる
+    expect(speak.mock.calls[0][0]).toContain('テーブル');
   });
 
   it('full scope: 📢 なしの応答でも全文を speak に渡す（v0.13.0 全応答統一）', async () => {
@@ -143,6 +142,18 @@ describe('setupAutoReadTTS', () => {
     view.callbacks.onTabStreamingChanged!('t', false);
     await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
     expect(speak.mock.calls[0][0]).toContain('通常応答');
+  });
+
+  it('本番デフォルト（table=true）: full scope でテーブル内容も読み上げる', async () => {
+    const view = makeView('<div class="claudian-message-assistant"><div class="claudian-message-content"><p>集計</p><table><tr><td>統計: 10件</td></tr></table><p>完了</p></div></div>');
+    const { app } = makeApp([view]);
+    const speak = vi.fn(async () => true);
+    setupAutoReadTTS({ app, store: makeStore({ enabled: true, scope: 'full' }), speak });
+    view.callbacks.onTabStreamingChanged!('t', true);
+    view.callbacks.onTabStreamingChanged!('t', false);
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
+    expect(speak.mock.calls[0][0]).toContain('統計: 10件');
+    expect(speak.mock.calls[0][0]).toContain('完了');
   });
 
   it('layout-change で新しい view に hook される（二重 hook しない）', () => {

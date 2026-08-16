@@ -104,6 +104,8 @@ export interface LocaleStrings {
   ttsChunkMaxCharsDesc: string;
   ttsSpeechFilterHeading: string;
   ttsSpeechFilterHint: string;
+  ttsSpeechFilterItemHeader: string;
+  ttsAddToTts: string;
   ttsSpeechFilterTypeSelection: string;
   ttsSpeechFilterTypeAutoRead: string;
   ttsSpeechFilterTypeMessage: string;
@@ -359,6 +361,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsChunkMaxCharsDesc: '長文を分割する1チャンクあたりの上限（50〜140 文字）。すべてのエンジンに適用',
     ttsSpeechFilterHeading: '読み上げ内容フィルタ（タイプ別）',
     ttsSpeechFilterHint: 'チェック=読み上げに含める。チェックなしの項目は読み上げから除外します',
+    ttsSpeechFilterItemHeader: '項目',
+    ttsAddToTts: 'TTS に追加',
     ttsSpeechFilterTypeSelection: '① 選択テキスト',
     ttsSpeechFilterTypeAutoRead: '② 自動読み上げ',
     ttsSpeechFilterTypeMessage: '④ メッセージ読上げ',
@@ -610,6 +614,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsChunkMaxCharsDesc: 'Max characters per chunk when splitting long text (50-140). Applies to all engines',
     ttsSpeechFilterHeading: 'Read-aloud content filter (per type)',
     ttsSpeechFilterHint: 'Checked = include in reading. Unchecked items are excluded',
+    ttsSpeechFilterItemHeader: 'Item',
+    ttsAddToTts: 'Add to TTS',
     ttsSpeechFilterTypeSelection: '① Selection',
     ttsSpeechFilterTypeAutoRead: '② Auto read',
     ttsSpeechFilterTypeMessage: '④ Message read',
@@ -856,6 +862,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsChunkMaxCharsDesc: '长文分割时每块的最大字符数（50-140）。适用于所有引擎',
     ttsSpeechFilterHeading: '朗读内容过滤（按类型）',
     ttsSpeechFilterHint: '勾选=朗读时包含。未勾选的项目从朗读中排除',
+    ttsSpeechFilterItemHeader: '项目',
+    ttsAddToTts: '添加到 TTS',
     ttsSpeechFilterTypeSelection: '① 选择文本',
     ttsSpeechFilterTypeAutoRead: '② 自动朗读',
     ttsSpeechFilterTypeMessage: '④ 消息朗读',
