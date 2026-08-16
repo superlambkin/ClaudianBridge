@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { extractReportText, AUTO_READ_MARK, buildSpeechExclude, readVisibleTextExcluding } from '../../../src/features/tts/extract-report';
+import { extractReportText, AUTO_READ_MARK, buildSpeechExclude, readVisibleTextExcluding, detectFinalAnswerState } from '../../../src/features/tts/extract-report';
 
 const REPORT_HTML = `
   <div class="claudian-message-assistant">
@@ -194,5 +194,58 @@ describe('readVisibleTextExcluding (v0.18.1 tool call 除外)', () => {
     expect(text).toContain('末尾です');
     expect(text).not.toContain('Tool Bash');
     expect(text).not.toContain('git status');
+  });
+});
+
+describe('detectFinalAnswerState (v0.19.0 最終回答ゲート)', () => {
+  it('text-block 終端・非空 → ready', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-thinking-block"><div class="claudian-thinking-content">思考</div></div>
+      <div class="claudian-text-block"><p>最終回答</p></div>
+    </div></div>`;
+    expect(detectFinalAnswerState(makeMessages(html))).toBe('ready');
+  });
+
+  it('tool-call 終端 → intermediate', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-thinking-block"><div class="claudian-thinking-content">思考</div></div>
+      <div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div><div class="claudian-tool-summary">git status</div></div>
+    </div></div>`;
+    expect(detectFinalAnswerState(makeMessages(html))).toBe('intermediate');
+  });
+
+  it('thinking-block 終端 → intermediate', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-thinking-block"><div class="claudian-thinking-content">思考のみ</div></div>
+    </div></div>`;
+    expect(detectFinalAnswerState(makeMessages(html))).toBe('intermediate');
+  });
+
+  it('text-block 空 → pending', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-text-block"></div>
+    </div></div>`;
+    expect(detectFinalAnswerState(makeMessages(html))).toBe('pending');
+  });
+
+  it('.claudian-interrupted 含有 → intermediate', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-text-block"><span class="claudian-interrupted">Interrupted</span></div>
+    </div></div>`;
+    expect(detectFinalAnswerState(makeMessages(html))).toBe('intermediate');
+  });
+
+  it('ブロッククラス無し・可視テキスト有り → ready（後方互換）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常応答</p></div></div>`;
+    expect(detectFinalAnswerState(makeMessages(html))).toBe('ready');
+  });
+
+  it('ブロッククラス無し・テキスト無し → pending', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"></div></div>`;
+    expect(detectFinalAnswerState(makeMessages(html))).toBe('pending');
+  });
+
+  it('assistant メッセージ無し → pending', () => {
+    expect(detectFinalAnswerState(makeMessages('<p>空</p>'))).toBe('pending');
   });
 });

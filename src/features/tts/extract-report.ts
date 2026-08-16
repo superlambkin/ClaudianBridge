@@ -50,6 +50,41 @@ export const CALLOUT_SELECTOR = '.callout';
 /** v0.18.1: ツール呼び出し（Read/Write/Bash/Task 等）のコンテナ */
 export const TOOL_CALL_SELECTOR = '.claudian-tool-call';
 
+/**
+ * v0.19.0: 最終回答ターン判定。
+ * 複数ターンタスクでは onTabStreamingChanged(false) が途中ターン終了時にも発火するため、
+ * 「最後の assistant メッセージが最終回答（非空 .claudian-text-block 終端）か」を DOM 構造から判定する。
+ * - 'ready': 最終回答テキストが存在 → 読み上げ可
+ * - 'intermediate': 途中ターン（ツール/思考終端・中断） → 即スキップ（dedup マークを付けない）
+ * - 'pending': 描画遅延等で判定不能 → リトライ
+ */
+export type FinalAnswerState = 'ready' | 'intermediate' | 'pending';
+
+export function detectFinalAnswerState(messagesEl: Element): FinalAnswerState {
+  const assistants = messagesEl.querySelectorAll('.claudian-message-assistant');
+  const last = assistants[assistants.length - 1];
+  if (!last) return 'pending';
+
+  const source = last.querySelector('.claudian-message-content') ?? last;
+  const blocks = Array.from(source.children).filter((c) =>
+    c.classList.contains('claudian-text-block') ||
+    c.classList.contains('claudian-tool-call') ||
+    c.classList.contains('claudian-thinking-block')
+  );
+
+  // ブロッククラス無し（旧DOM・レンダリング前）: 可視テキスト有無で判定
+  if (blocks.length === 0) {
+    return readVisibleText(source) === '' ? 'pending' : 'ready';
+  }
+
+  const lastBlock = blocks[blocks.length - 1];
+  if (lastBlock.classList.contains('claudian-tool-call')) return 'intermediate';
+  if (lastBlock.classList.contains('claudian-thinking-block')) return 'intermediate';
+  // 最後は .claudian-text-block
+  if (lastBlock.querySelector('.claudian-interrupted')) return 'intermediate';
+  return readVisibleText(lastBlock) === '' ? 'pending' : 'ready';
+}
+
 /** ヘッダースコープの抽出で除外する UI 要素（コピー/読上げボタン） */
 const HEADER_UI_EXCLUDE = '.claudian-text-copy-btn, [data-cb-msg-read]';
 
