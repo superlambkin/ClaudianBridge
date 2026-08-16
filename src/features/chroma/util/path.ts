@@ -69,12 +69,15 @@ export function resolveChromaPath(chromaPath: string, vaultRoot: string): string
   return path.normalize(path.join(vaultRoot, repaired));
 }
 
-/** Locate the Python script in the Vault root (or override path). */
-export function resolveScriptPath(scriptPath: string, vaultRoot: string): string {
+/**
+ * Locate the Python script. Empty override → the plugin folder (default),
+ * falling back to the vault root when the plugin folder is unknown.
+ */
+export function resolveScriptPath(scriptPath: string, vaultRoot: string, pluginDir?: string): string {
   const cleaned = (scriptPath ?? "").trim();
   const repaired = repairImeYen(cleaned);
   if (!repaired) {
-    return path.join(vaultRoot, "_chroma_inspect.py");
+    return path.join(pluginDir ?? vaultRoot, "_chroma_inspect.py");
   }
   if (path.isAbsolute(repaired)) return path.normalize(repaired);
   return path.normalize(path.join(vaultRoot, repaired));

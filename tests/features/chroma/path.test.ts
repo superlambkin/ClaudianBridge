@@ -40,9 +40,14 @@ describe('chroma/util/path', () => {
     expect(out.replace(/\\/g, "/")).toBe("C:/vault/chroma_db");
   });
 
-  it('resolveScriptPath empty → vault root + _chroma_inspect.py', () => {
+  it('resolveScriptPath empty + no pluginDir → vault root fallback + _chroma_inspect.py', () => {
     const out = resolveScriptPath("", "C:/vault");
     expect(out.replace(/\\/g, "/")).toBe("C:/vault/_chroma_inspect.py");
+  });
+
+  it('resolveScriptPath empty → plugin folder + _chroma_inspect.py', () => {
+    const out = resolveScriptPath("", "C:/vault", "C:/vault/.obsidian/plugins/claudian-bridge");
+    expect(out.replace(/\\/g, "/")).toBe("C:/vault/.obsidian/plugins/claudian-bridge/_chroma_inspect.py");
   });
 
   it('resolveScriptPath absolute override', () => {

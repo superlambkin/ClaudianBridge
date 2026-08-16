@@ -1,0 +1,63 @@
+# ========================================
+# word-pdf-rag 設定ファイル
+# WORD/PDF → ローカルRAG 知識ベース
+# ========================================
+
+# Embedding 設定（BGE-m3 多言語対応モデル）
+embedding:
+  model: "BAAI/bge-m3"
+  local_model_dir: "C:/AI-Models"
+  batch_size: 32
+  normalize: true
+
+# チャンク設定
+chunking:
+  chunk_size: 800      # tokens
+  overlap: 150         # tokens
+
+# ベクトルDB設定（ChromaDB）
+vector_store:
+  persist_dir: "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/chroma_db"
+  collection_name: "word_pdf_rag_kb"
+
+# LLM設定（複数モデル対応）
+llm:
+  default: "minimax"      # default model: minimax or deepseek
+  models:
+    minimax:
+      api_key: "sk-cp-xC_L-Sma88Mwg_zDpiAMx5SKXJL1FwiLLBNvMlsxXU1Sln7Px_6KO0fFjLS2v7WJME7pGc5i9VzAatQFhnef2ersJKxWiURexCOI7oGoZJyxb0uTGh_g0z4"  # 環境変数推奨
+      base_url: "https://api.minimaxi.com/v1"
+      model: "MiniMax-M3"
+      temperature: 0.7
+      max_tokens: 10000
+    deepseek:
+      api_key: "sk-c6b298e9f506418c8dda1576c35b3d55"  # 環境変数推奨
+      base_url: "https://api.deepseek.com/v1"
+      model: "deepseek-v4-flash"
+      temperature: 0.7
+      max_tokens: 10000
+
+# 文書パス
+documents:
+  base_dir: "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/chroma_db"
+
+# RAG検索設定
+rag:
+  top_k: 5
+  # min_score: 0.5  # reserved for future score threshold filtering
+
+# Web Search settings (free, uses DuckDuckGo)
+web_search:
+  enabled: false        # default off
+  max_results: 5        # max web results per query
+  auto_fallback: true   # auto-search when KB has no results
+
+# Obsidian Vault settings (optional reference for LLM answers)
+obsidian_vault:
+  enabled: false        # default off
+  path: ""              # e.g. "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault"
+  max_files: 5          # max relevant vault files to include per query
+
+# Language settings
+language:
+  default: "ja"         # default language: ja=Japanese, zh=Chinese, en=English

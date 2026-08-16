@@ -7,8 +7,6 @@ export interface SplitResult {
   stderr: string;
 }
 
-const SCRIPTS_VAULT_REL = '00_Vault管理/_設定ファイル/_scripts';
-
 const SCRIPT_FOR_EXT: Record<string, string> = {
   docx: 'split_docx.py',
   xlsx: 'split_xlsx.py',
@@ -26,13 +24,14 @@ export class SplitterRunner {
     srcAbs: string,
     outDir: string,
     settings: { pythonPath: string },
-    vaultRoot: string
+    vaultRoot: string,
+    pluginDir?: string
   ): Promise<SplitResult> {
     const script = SCRIPT_FOR_EXT[ext.toLowerCase()];
     if (!script) {
       return { exitCode: 1, outputs: [], stderr: `unsupported extension: ${ext}` };
     }
-    const scriptDir = path.join(vaultRoot, SCRIPTS_VAULT_REL);
+    const scriptDir = pluginDir ?? vaultRoot;
     const resolved = await MarkItDownRunner.resolvePython(settings.pythonPath);
     if (!resolved) {
       return { exitCode: 127, outputs: [], stderr: `[claudian-bridge] Python interpreter not found (configured: "${settings.pythonPath}")` };

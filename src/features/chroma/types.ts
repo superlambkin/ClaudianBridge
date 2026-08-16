@@ -16,7 +16,7 @@ export interface ChromaSettings {
   showProgressModal: boolean;
   /** Master switch for the Advanced raw SQL feature. */
   enableRawSql: boolean;
-  /** Optional override of the path to _chroma_inspect.py (defaults to vault root). */
+  /** Optional override of the path to _chroma_inspect.py (defaults to the plugin folder). */
   scriptPath: string;
   /** chroma-fs: chroma_db 内部の非表示 CSS を注入するか */
   hideInternal: boolean;

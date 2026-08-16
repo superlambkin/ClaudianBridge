@@ -29,6 +29,8 @@ import { buildWhereJson } from "./FilterBuilder";
 export interface ListOptions {
   settings: ChromaSettings;
   vaultRoot: string;
+  /** Plugin folder (default location of _chroma_inspect.py). */
+  pluginDir?: string;
 }
 
 export interface GetOptions extends ListOptions {
@@ -55,7 +57,7 @@ export class ChromaService {
   static async listCollections(opts: ListOptions): Promise<ListResult> {
     const run = await runPython({
       pythonPath: opts.settings.pythonPath,
-      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot),
+      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot, opts.pluginDir),
       args: [
         "--json",
         "--path",
@@ -93,7 +95,7 @@ export class ChromaService {
     if (whereJson) args.push("--where", whereJson);
     const run = await runPython({
       pythonPath: opts.settings.pythonPath,
-      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot),
+      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot, opts.pluginDir),
       args,
       cwd: opts.vaultRoot,
     });
@@ -126,7 +128,7 @@ export class ChromaService {
     }
     const run = await runPython({
       pythonPath: opts.settings.pythonPath,
-      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot),
+      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot, opts.pluginDir),
       args,
       cwd: opts.vaultRoot,
     });
@@ -157,7 +159,7 @@ export class ChromaService {
     if (whereJson) args.push("--where", whereJson);
     const run = await runPython({
       pythonPath: opts.settings.pythonPath,
-      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot),
+      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot, opts.pluginDir),
       args,
       cwd: opts.vaultRoot,
       timeoutMs: 120_000, // semantic queries can take longer
@@ -170,7 +172,7 @@ export class ChromaService {
   static async version(opts: ListOptions): Promise<{ version: string; hasPeek: boolean }> {
     const run = await runPython({
       pythonPath: opts.settings.pythonPath,
-      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot),
+      scriptPath: resolveScriptPath(opts.settings.scriptPath, opts.vaultRoot, opts.pluginDir),
       args: ["--json", "version"],
       cwd: opts.vaultRoot,
     });

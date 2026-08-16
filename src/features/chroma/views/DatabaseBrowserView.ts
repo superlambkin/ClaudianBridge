@@ -40,6 +40,8 @@ interface State {
  */
 export interface DatabaseBrowserViewPlugin {
   getSettings: () => { chroma: ChromaSettings };
+  /** Plugin folder (default location of _chroma_inspect.py). */
+  pluginDir?: string;
 }
 
 export class DatabaseBrowserView extends ItemView {
@@ -151,6 +153,7 @@ export class DatabaseBrowserView extends ItemView {
       const result = await ChromaService.listCollections({
         settings: this.chroma,
         vaultRoot,
+        pluginDir: this.plugin.pluginDir,
       });
       this.collectionList?.setCollections(result.collections);
       this.collectionList?.setStatus(
@@ -198,13 +201,14 @@ export class DatabaseBrowserView extends ItemView {
         result = await ChromaService.where({
           settings,
           vaultRoot,
+          pluginDir: this.plugin.pluginDir,
           collection: this.state.selected,
           filter: { ...filter, queryText: "", documentContains: filter.queryText },
         });
       } else if (hasQuery) {
         try {
           result = await ChromaService.query(
-            { settings, vaultRoot, collection: this.state.selected, filter },
+            { settings, vaultRoot, pluginDir: this.plugin.pluginDir, collection: this.state.selected, filter },
             { text: filter.queryText, nResults: filter.nResults }
           );
           mode = "AI 意味検索";
@@ -214,6 +218,7 @@ export class DatabaseBrowserView extends ItemView {
             result = await ChromaService.where({
               settings,
               vaultRoot,
+              pluginDir: this.plugin.pluginDir,
               collection: this.state.selected,
               filter: {
                 ...filter,
@@ -230,6 +235,7 @@ export class DatabaseBrowserView extends ItemView {
         result = await ChromaService.get({
           settings,
           vaultRoot,
+          pluginDir: this.plugin.pluginDir,
           collection: this.state.selected,
           limit: filter.nResults,
         });
@@ -239,6 +245,7 @@ export class DatabaseBrowserView extends ItemView {
         result = await ChromaService.where({
           settings,
           vaultRoot,
+          pluginDir: this.plugin.pluginDir,
           collection: this.state.selected,
           filter,
         });

@@ -1,6 +1,7 @@
 import { App, Plugin, PluginSettingTab } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
+import { getPluginDir } from '../core/plugin-dir';
 import { renderGeneralTab } from './SettingTabGeneral';
 import { renderSelectionTab } from './SettingTabSelection';
 import { renderTtsTab } from './SettingTabTts';
@@ -10,7 +11,7 @@ import { renderQuotaTab } from './SettingTabQuota';
 import { renderChromaTab } from '../features/chroma/settings/ChromaSettingsTab';
 import { renderMemoryTab } from './SettingTabMemory';
 
-type RenderFn = (app: App, el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string) => void;
+type RenderFn = (app: App, el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string, pluginDir?: string) => void;
 
 interface TabDef {
   id: string;
@@ -50,7 +51,9 @@ export class ClaudianBridgeSettingTab extends PluginSettingTab {
     }
     const content = containerEl.createDiv('cb-tab-content');
     const tab = TABS.find((t) => t.id === this.current)!;
-    const pluginId = (this as unknown as { plugin?: { manifest?: { id?: string } } }).plugin?.manifest?.id;
-    tab.render(this.app, content, this.store, this.resetMigration, pluginId);
+    const plugin = (this as unknown as { plugin?: { manifest?: { id: string; dir?: string } } }).plugin;
+    const pluginId = plugin?.manifest?.id;
+    const pluginDir = plugin?.manifest ? getPluginDir(this.app, plugin.manifest) : undefined;
+    tab.render(this.app, content, this.store, this.resetMigration, pluginId, pluginDir);
   }
 }

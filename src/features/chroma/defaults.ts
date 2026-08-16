@@ -16,7 +16,7 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
   recordPreviewLength: 240,
   showProgressModal: true,
   enableRawSql: false, // Security: default OFF
-  scriptPath: "", // Empty = vault root / _chroma_inspect.py
+  scriptPath: "", // Empty = plugin folder / _chroma_inspect.py
   hideInternal: true, // chroma_db 内部の非表示 CSS を注入するか
   ragEnabled: false, // 右クリック「RAG検索」を有効化するか
   ragScriptPath: "", // query.py 絶対パス

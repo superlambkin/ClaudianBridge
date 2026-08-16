@@ -10,7 +10,14 @@ import { ChromaService } from "../chroma/ChromaService";
 import { resolveChromaPath, resolveScriptPath } from "../util/path";
 import { vaultBasePath } from "../util/app";
 
-export function renderChromaTab(app: App, containerEl: HTMLElement, store: ConfigStore): void {
+export function renderChromaTab(
+  app: App,
+  containerEl: HTMLElement,
+  store: ConfigStore,
+  _resetMigration?: () => Promise<void>,
+  _pluginId?: string,
+  pluginDir?: string
+): void {
   const s = getLocaleStrings(getUILanguage());
 
   const draw = (): void => {
@@ -95,7 +102,7 @@ export function renderChromaTab(app: App, containerEl: HTMLElement, store: Confi
       .setDesc(s.chromaScriptPathDesc)
       .addText((t) =>
         t
-          .setPlaceholder("(vault root)/_chroma_inspect.py")
+          .setPlaceholder("(plugin folder)/_chroma_inspect.py")
           .setValue(cfg.chroma.scriptPath)
           .onChange((v) => {
             try {
@@ -281,7 +288,7 @@ export function renderChromaTab(app: App, containerEl: HTMLElement, store: Confi
     // ───── Resolved info ─────
     const info = containerEl.createDiv({ cls: "ci-info" });
     const abs = resolveChromaPath(cfg.chroma.chromaPath, vaultRoot);
-    const script = resolveScriptPath(cfg.chroma.scriptPath, vaultRoot);
+    const script = resolveScriptPath(cfg.chroma.scriptPath, vaultRoot, pluginDir);
     info.createEl("div", { text: s.chromaResolvedPath.replace('{path}', abs) });
     info.createEl("div", { text: s.chromaScriptInfo.replace('{script}', script) });
 
@@ -297,6 +304,7 @@ export function renderChromaTab(app: App, containerEl: HTMLElement, store: Confi
             const result = await ChromaService.listCollections({
               settings: latest.chroma,
               vaultRoot,
+              pluginDir,
             });
             new Notice(s.chromaTestOk.replace('{n}', String(result.collections.length)));
           } catch (e) {
