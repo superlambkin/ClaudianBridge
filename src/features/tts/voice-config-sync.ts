@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import type { ConfigStore } from '../../core/config-store';
 import type { ClaudianBridgeSettings, TtsCliSettings, TtsEngine } from '../../core/settings';
-import { DEFAULT_TTS_CLI_SETTINGS } from '../../core/settings';
+import { DEFAULT_TTS_CLI_SETTINGS, DEFAULT_CHUNK_MAX_CHARS, DEFAULT_SPEECH_FILTER_OPTIONS } from '../../core/settings';
 
 /** voice-config.json（Claude Code CLI 側）のスキーマ */
 interface VoiceConfigJson {
@@ -69,6 +69,13 @@ export class VoiceConfigSync {
             webspeech: { zh: '', ja: '', en: '' },
           },
           cli,
+          chunkMaxChars: DEFAULT_CHUNK_MAX_CHARS,
+          speechFilter: {
+            selection: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+            autoRead: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+            message: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+            inputAi: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+          },
         },
       };
     } catch {

@@ -167,6 +167,37 @@ export const DEFAULT_TTS_CLI_SETTINGS: TtsCliSettings = {
   speech_filter: { ...DEFAULT_TTS_CLI_SPEECH_FILTER },
 };
 
+// === v0.17.0: 読み上げタイプ別フィルタ（speechFilter）とチャンク上限 ===
+export const CHUNK_MAX_CHARS_MIN = 50;
+export const CHUNK_MAX_CHARS_MAX = 140;
+export const DEFAULT_CHUNK_MAX_CHARS = 140;
+
+/** v0.17.0: 読み上げタイプ別フィルタ（チェック=含めて読む。true の項目は除去しない） */
+export interface SpeechFilterOptions {
+  emoji: boolean;
+  kaomoji: boolean;
+  ascii_emoticon: boolean;
+  emoji_shortcode: boolean;
+  callout: boolean;
+  table: boolean;
+  code: boolean;
+  thinking: boolean;
+}
+
+export const DEFAULT_SPEECH_FILTER_OPTIONS: SpeechFilterOptions = {
+  emoji: false,
+  kaomoji: false,
+  ascii_emoticon: false,
+  emoji_shortcode: false,
+  callout: false,
+  table: true,
+  code: false,
+  thinking: false,
+};
+
+export type TtsSpeechFilterSection = 'selection' | 'autoRead' | 'message' | 'inputAi';
+export type TtsSpeechFilters = Record<TtsSpeechFilterSection, SpeechFilterOptions>;
+
 export function normalizeTtsCliSettings(raw: unknown): TtsCliSettings {
   const r = (raw ?? {}) as Partial<TtsCliSettings>;
   const maxChars = Number(r.max_chars);
@@ -413,6 +444,10 @@ export interface ClaudianBridgeSettings {
     excludeCallouts?: boolean;
     /** v0.16.0: AI読み上げボタン（入力文をAIで整形して読み上げ）。 */
     inputAi?: { enabled: boolean };
+    /** v0.17.0: 全エンジン共通の1チャンク上限（50〜140・既定 140） */
+    chunkMaxChars: number;
+    /** v0.17.0: 読み上げタイプ別フィルタ（チェック=含めて読む） */
+    speechFilter: TtsSpeechFilters;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -453,6 +488,13 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     autoRead: { ...DEFAULT_TTS_AUTO_READ_SETTINGS },
     excludeCallouts: true,
     inputAi: { enabled: true },
+    chunkMaxChars: DEFAULT_CHUNK_MAX_CHARS,
+    speechFilter: {
+      selection: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+      autoRead: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+      message: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+      inputAi: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+    },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -595,12 +637,62 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       inputAi: {
         enabled: typeof r.tts?.inputAi?.enabled === 'boolean' ? r.tts.inputAi.enabled : true,
       },
+      chunkMaxChars: clampChunkMaxChars(r.tts?.chunkMaxChars),
+      speechFilter: normalizeTtsSpeechFilters(r),
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
     chroma,
     memory: normalizeMemorySettings(r.memory),
   };
+}
+
+function clampChunkMaxChars(v: unknown): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return DEFAULT_CHUNK_MAX_CHARS;
+  return Math.max(CHUNK_MAX_CHARS_MIN, Math.min(CHUNK_MAX_CHARS_MAX, Math.round(v)));
+}
+
+function normalizeSpeechFilterOptions(
+  raw: Partial<SpeechFilterOptions> | undefined,
+  legacy?: Partial<SpeechFilterOptions>,
+): SpeechFilterOptions {
+  const base = { ...DEFAULT_SPEECH_FILTER_OPTIONS };
+  for (const k of Object.keys(base) as (keyof SpeechFilterOptions)[]) {
+    // レガシー値（旧 cli.speech_filter / excludeCallouts 由来・ON=除去）を反転して反映。
+    // undefined のキーはスキップ（!undefined === true の誤マッピングを防ぐ）。
+    if (legacy && typeof legacy[k] === 'boolean') base[k] = !(legacy[k] as boolean);
+    // 新フィールドの明示値はそのまま採用（不正な undefined はデフォルトのまま）
+    if (raw && typeof raw[k] === 'boolean') base[k] = raw[k] as boolean;
+  }
+  return base;
+}
+
+function normalizeTtsSpeechFilters(r: { tts?: unknown }): TtsSpeechFilters {
+  const tts = (r.tts ?? {}) as {
+    speechFilter?: Partial<Record<TtsSpeechFilterSection, Partial<SpeechFilterOptions>>>;
+    cli?: { speech_filter?: Partial<SpeechFilterOptions> };
+    excludeCallouts?: unknown;
+  };
+  const hasNew = typeof tts.speechFilter === 'object' && tts.speechFilter !== null;
+  // レガシー値を合成（undefined はスキップされるためそのまま含めて良い）。
+  // excludeCallouts は旧値そのまま（ON=除去）を渡し、normalizeSpeechFilterOptions 側で反転する。
+  const legacyCombined: Partial<SpeechFilterOptions> = {
+    emoji: tts.cli?.speech_filter?.emoji,
+    kaomoji: tts.cli?.speech_filter?.kaomoji,
+    ascii_emoticon: tts.cli?.speech_filter?.ascii_emoticon,
+    emoji_shortcode: tts.cli?.speech_filter?.emoji_shortcode,
+    callout: typeof tts.excludeCallouts === 'boolean' ? tts.excludeCallouts : undefined,
+  };
+  const sections: TtsSpeechFilterSection[] = ['selection', 'autoRead', 'message', 'inputAi'];
+  const out = {} as TtsSpeechFilters;
+  for (const sec of sections) {
+    const rawSec = hasNew ? tts.speechFilter?.[sec] : undefined;
+    // 新フィールドが一部でも存在するタイプは新値優先、無ければレガシー値で初期化
+    out[sec] = hasNew && rawSec !== undefined
+      ? normalizeSpeechFilterOptions(rawSec, undefined)
+      : normalizeSpeechFilterOptions(undefined, legacyCombined);
+  }
+  return out;
 }
 
 export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): string | null {
@@ -640,6 +732,15 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     if (cfg.tts.autoRead.scope !== 'header' && cfg.tts.autoRead.scope !== 'full') return `tts.autoRead.scope が未知です: ${cfg.tts.autoRead.scope}`;
   }
   if (cfg.tts.inputAi !== undefined && typeof cfg.tts.inputAi.enabled !== 'boolean') return 'tts.inputAi.enabled は boolean である必要があります';
+  if (typeof cfg.tts.chunkMaxChars !== 'number' || cfg.tts.chunkMaxChars < CHUNK_MAX_CHARS_MIN || cfg.tts.chunkMaxChars > CHUNK_MAX_CHARS_MAX) return 'tts.chunkMaxChars は 50〜140 の数値である必要があります';
+  if (typeof cfg.tts.speechFilter !== 'object' || cfg.tts.speechFilter === null) return 'tts.speechFilter はオブジェクトである必要があります';
+  for (const sec of ['selection', 'autoRead', 'message', 'inputAi'] as const) {
+    const f = cfg.tts.speechFilter?.[sec];
+    if (typeof f !== 'object' || f === null) return `tts.speechFilter.${sec} はオブジェクトである必要があります`;
+    for (const k of ['emoji', 'kaomoji', 'ascii_emoticon', 'emoji_shortcode', 'callout', 'table', 'code', 'thinking'] as const) {
+      if (typeof f[k] !== 'boolean') return `tts.speechFilter.${sec}.${k} は boolean である必要があります`;
+    }
+  }
   if (typeof cfg.office.enabled !== 'boolean') return 'office.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.office.enabledExtensions)) return 'office.enabledExtensions は配列である必要があります';
   if (!['overwrite', 'skip', 'timestamp'].includes(cfg.office.conflictPolicy)) return 'office.conflictPolicy が未知です';

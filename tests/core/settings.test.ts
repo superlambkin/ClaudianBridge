@@ -509,3 +509,49 @@ describe('memory settings', () => {
     expect(validateClaudianBridgeSettings(bad)).toContain('memory.enabled');
   });
 });
+
+describe('tts.chunkMaxChars / tts.speechFilter (v0.17 仕様改良)', () => {
+  it('未設定時はデフォルト（chunkMaxChars=140・speechFilter は table のみ ON）を補完する', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge' } });
+    expect(cfg.tts.chunkMaxChars).toBe(140);
+    expect(cfg.tts.speechFilter.selection).toEqual({ emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false, callout: false, table: true, code: false, thinking: false });
+  });
+
+  it('chunkMaxChars は 50〜140 にクランプされる', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge', chunkMaxChars: 999 } });
+    expect(cfg.tts.chunkMaxChars).toBe(140);
+    const cfg2 = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge', chunkMaxChars: 10 } });
+    expect(cfg2.tts.chunkMaxChars).toBe(50);
+  });
+
+  it('speechFilter の各タイプを保持する', () => {
+    const raw = { tts: { enabled: true, engine: 'edge', speechFilter: { message: { emoji: true, table: false } } } };
+    const cfg = normalizeClaudianBridgeSettings(raw as never);
+    expect(cfg.tts.speechFilter.message.emoji).toBe(true);
+    expect(cfg.tts.speechFilter.message.table).toBe(false);
+    // 未指定タイプはデフォルト
+    expect(cfg.tts.speechFilter.autoRead).toEqual(cfg.tts.speechFilter.selection);
+  });
+
+  it('マイグレーション: 既存 cli.speech_filter(ON=除去) を全タイプへ反転して引き継ぐ', () => {
+    const raw = { tts: { enabled: true, engine: 'edge', cli: { speech_filter: { emoji: true, kaomoji: false } } } };
+    const cfg = normalizeClaudianBridgeSettings(raw as never);
+    expect(cfg.tts.speechFilter.selection.emoji).toBe(false);      // 旧 true(除去) → 新 false(読まない)
+    expect(cfg.tts.speechFilter.selection.kaomoji).toBe(true);     // 旧 false → 新 true(読む)
+  });
+
+  it('マイグレーション: 既存 excludeCallouts を callout へ反転して引き継ぐ', () => {
+    const raw = { tts: { enabled: true, engine: 'edge', excludeCallouts: true } };
+    const cfg = normalizeClaudianBridgeSettings(raw as never);
+    expect(cfg.tts.speechFilter.selection.callout).toBe(false);    // 旧 true(除外) → 新 false(読まない)
+  });
+
+  it('validate が chunkMaxChars と speechFilter を検証する', () => {
+    const bad = normalizeClaudianBridgeSettings({});
+    (bad.tts.chunkMaxChars as unknown) = 30;
+    expect(validateClaudianBridgeSettings(bad)).toContain('tts.chunkMaxChars');
+    const bad2 = normalizeClaudianBridgeSettings({});
+    (bad2.tts.speechFilter.selection as { emoji: unknown }).emoji = 'x';
+    expect(validateClaudianBridgeSettings(bad2)).toContain('tts.speechFilter');
+  });
+});
