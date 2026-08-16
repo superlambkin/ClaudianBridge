@@ -5,7 +5,7 @@ import { addTextToTTS, webSpeechSpeak } from '../../../src/features/tts/core';
 import type { TtsSettings } from '../../../src/features/tts/core';
 import { plachtaSpeakChunksPipelined } from '../../../src/features/tts/plachta-tts';
 import { PLACHTA_DEFAULT_SPEAKER } from '../../../src/features/tts/plachta-tts';
-import { isTtsPlaying, stopAllPlayback, resetPlaybackRegistry } from '../../../src/features/tts/playback-registry';
+import { isTtsPlaying, stopAllPlayback, resetPlaybackRegistry, registerPlayback } from '../../../src/features/tts/playback-registry';
 
 // ── mocks ──────────────────────────────────────────────────────────────────
 // Notice: replace with a spy so we can assert toast messages.
@@ -300,6 +300,20 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     expect(noticeMock).toHaveBeenCalledWith(
       expect.stringContaining('Web SpeechSynthesis API が利用できません'),
     );
+  });
+
+  it('addTextToTTS は冒頭で stopAllPlayback を呼び既存再生を中断する（重複読み防止・後勝ち）', async () => {
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const stop = vi.fn();
+    registerPlayback({ engine: 'edge', stop });
+    expect(isTtsPlaying()).toBe(true);
+
+    const p = addTextToTTS(null as never, 'こんにちは', makeSettings('edge'));
+    expect(stop).toHaveBeenCalledTimes(1);
+
+    child.emit('close', 0);
+    await p;
   });
 });
 

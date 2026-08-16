@@ -7,7 +7,7 @@ import type { PlachtaSettings, TtsChunkMaxChars, TtsCliSpeechFilter, TtsEngine }
 import { DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../../core/settings';
 import { plachtaSpeakChunksPipelined } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
-import { registerPlayback, setEdgeChildPid } from './playback-registry';
+import { registerPlayback, setEdgeChildPid, stopAllPlayback } from './playback-registry';
 
 type NoticeFn = (m: string) => void;
 
@@ -237,6 +237,9 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   // v0.17.0: テキスト最適化（speech_filter）は speakText 側で適用済み。ここでは適用しない（二重フィルタ防止）。
   const trimmed = text.trim();
   if (!trimmed) return true;
+
+  // v0.18.1: 重複読み防止 — 新しい読み上げ開始前に既存の全再生を中断（後勝ち）
+  stopAllPlayback();
 
   // 生成中/再生中の進行状況を永続 Notice で表示するヘルパー（null で非表示）
   let progress: Notice | null = null;
