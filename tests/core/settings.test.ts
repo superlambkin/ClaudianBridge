@@ -486,3 +486,26 @@ describe('tts.inputAi (v0.16 AI読み上げボタン)', () => {
     expect(validateClaudianBridgeSettings(bad)).toContain('tts.inputAi.enabled');
   });
 });
+
+describe('memory settings', () => {
+  it('デフォルト値（enabled=true / scope=pair / folder=Memory/）を持つ', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.memory).toEqual({ enabled: true, scope: 'pair', folder: 'Memory/' });
+  });
+
+  it('不正値はデフォルトにフォールバックする', () => {
+    const cfg = normalizeClaudianBridgeSettings({ memory: { enabled: 'x', scope: 'bad', folder: '' } as never });
+    expect(cfg.memory).toEqual({ enabled: true, scope: 'pair', folder: 'Memory/' });
+  });
+
+  it('有効な値は保持される', () => {
+    const cfg = normalizeClaudianBridgeSettings({ memory: { enabled: false, scope: 'conversation', folder: 'D:/mem' } });
+    expect(cfg.memory).toEqual({ enabled: false, scope: 'conversation', folder: 'D:/mem' });
+  });
+
+  it('validateClaudianBridgeSettings が memory を検証する', () => {
+    expect(validateClaudianBridgeSettings(normalizeClaudianBridgeSettings({}))).toBeNull();
+    const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, memory: { enabled: 'x', scope: 'pair', folder: 'Memory/' } } as never;
+    expect(validateClaudianBridgeSettings(bad)).toContain('memory.enabled');
+  });
+});

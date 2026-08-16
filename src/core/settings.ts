@@ -346,6 +346,33 @@ export const DEFAULT_QUOTA_DISPLAY_MODELS: QuotaDisplayFlags = {
   zhipu: true,
 };
 
+// === v0.17.0: MD保存ボタン設定 ===
+export type MemoryScope = 'pair' | 'conversation';
+
+export interface MemorySettings {
+  /** MD保存ボタン全体の有効/無効（既定 true） */
+  enabled: boolean;
+  /** ツールバーボタンの保存範囲（既定 pair）。ブロックボタンは常に block */
+  scope: MemoryScope;
+  /** メモリフォルダ。相対= Vault 内 / 絶対= ファイルシステム（既定 'Memory/'） */
+  folder: string;
+}
+
+export const DEFAULT_MEMORY_SETTINGS: MemorySettings = {
+  enabled: true,
+  scope: 'pair',
+  folder: 'Memory/',
+};
+
+export function normalizeMemorySettings(raw: unknown): MemorySettings {
+  const r = (raw ?? {}) as Partial<MemorySettings>;
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_MEMORY_SETTINGS.enabled,
+    scope: r.scope === 'conversation' ? 'conversation' : DEFAULT_MEMORY_SETTINGS.scope,
+    folder: typeof r.folder === 'string' && r.folder.trim() !== '' ? r.folder : DEFAULT_MEMORY_SETTINGS.folder,
+  };
+}
+
 export interface ClaudianBridgeSettings {
   general: {
     enabled: boolean;
@@ -390,6 +417,7 @@ export interface ClaudianBridgeSettings {
   office: OfficeSettings;
   whitelist: WhitelistSettings;
   chroma: ChromaSettings;
+  memory: MemorySettings;
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
@@ -429,6 +457,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
   chroma: { ...DEFAULT_CHROMA_SETTINGS },
+  memory: { ...DEFAULT_MEMORY_SETTINGS },
 };
 
 export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSettings {
@@ -570,6 +599,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
     chroma,
+    memory: normalizeMemorySettings(r.memory),
   };
 }
 
@@ -625,6 +655,9 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.chroma.showProgressModal !== 'boolean') return 'chroma.showProgressModal は boolean である必要があります';
   if (typeof cfg.chroma.enableRawSql !== 'boolean') return 'chroma.enableRawSql は boolean である必要があります';
   if (typeof cfg.chroma.scriptPath !== 'string') return 'chroma.scriptPath は文字列である必要があります';
+  if (typeof cfg.memory?.enabled !== 'boolean') return 'memory.enabled は boolean である必要があります';
+  if (cfg.memory?.scope !== 'pair' && cfg.memory?.scope !== 'conversation') return `memory.scope が未知です: ${cfg.memory?.scope}`;
+  if (typeof cfg.memory?.folder !== 'string') return 'memory.folder は文字列である必要があります';
   if (typeof cfg.quota?.claudeSettingsPath !== 'string') return 'quota.claudeSettingsPath は文字列である必要があります';
   if (typeof cfg.quota?.deepseekApiKey !== 'string') return 'quota.deepseekApiKey は文字列である必要があります';
   if (typeof cfg.quota?.kimiApiKey !== 'string') return 'quota.kimiApiKey は文字列である必要があります';
