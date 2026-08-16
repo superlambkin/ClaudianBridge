@@ -21,6 +21,9 @@ export interface MdSaveButtonDeps {
 
 export function setupMdSaveButton(deps: MdSaveButtonDeps): () => void {
   const notice = deps.noticeFn ?? ((m: string) => { new Notice(m); });
+  // ConfigStore.onSave は購読解除を返さないため、cleanup 後に無効化するフラグで
+  // 残留リスナーからの再注入・スキャンを防止する（input-ai-read-button.ts と同じ運用）。
+  let disposed = false;
 
   const handleClick = async (btn: HTMLButtonElement): Promise<void> => {
     const cfg = deps.store.load();
@@ -84,6 +87,7 @@ export function setupMdSaveButton(deps: MdSaveButtonDeps): () => void {
   observer.observe(document.body, { childList: true, subtree: true });
 
   deps.store.onSave(() => {
+    if (disposed) return;
     if (deps.store.load().memory.enabled === false) {
       document.querySelectorAll(`[${SAVE_MARK}]`).forEach((el) => el.remove());
     } else {
@@ -92,6 +96,7 @@ export function setupMdSaveButton(deps: MdSaveButtonDeps): () => void {
   });
 
   return () => {
+    disposed = true;
     observer.disconnect();
     document.querySelectorAll(`[${SAVE_MARK}]`).forEach((el) => el.remove());
   };

@@ -14,13 +14,15 @@ function makeToolbar(): HTMLElement {
 }
 
 function makeStore(overrides: Record<string, unknown> = {}) {
+  let savedListener: (() => void) | null = null;
   return {
     load: () => ({
       memory: { enabled: true, scope: 'pair', folder: 'Memory/' },
       ...overrides,
     }),
-    onSave: () => {},
-  } as unknown as ConfigStore;
+    onSave: (l: () => void) => { savedListener = l; },
+    triggerSave: () => { savedListener?.(); },
+  } as unknown as ConfigStore & { triggerSave: () => void };
 }
 
 describe('setupMdSaveButton', () => {
@@ -71,5 +73,16 @@ describe('setupMdSaveButton', () => {
     (document.querySelector('[data-cb-md-save-toolbar]') as HTMLElement).click();
     expect(noticeFn).toHaveBeenCalled();
     expect(saveModule.saveMarkdown).not.toHaveBeenCalled();
+  });
+
+  it('cleanup 後に保存イベントが来てもボタンを再注入しない', () => {
+    const toolbar = makeToolbar();
+    const store = makeStore();
+    const cleanup = setupMdSaveButton({ app: {} as never, store, noticeFn: vi.fn() });
+    expect(toolbar.querySelector('[data-cb-md-save-toolbar]')).not.toBeNull();
+    cleanup();
+    expect(toolbar.querySelectorAll('[data-cb-md-save-toolbar]').length).toBe(0);
+    store.triggerSave();
+    expect(toolbar.querySelectorAll('[data-cb-md-save-toolbar]').length).toBe(0);
   });
 });
