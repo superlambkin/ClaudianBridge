@@ -8,6 +8,8 @@ import { addTextToTTS } from './features/tts/core';
 import { setupAutoReadTTS } from './features/tts/auto-read';
 import { setupMessageReadButtons } from './features/tts/message-read-button';
 import { setupInputAiReadButton } from './features/tts/input-ai-read-button';
+import { setupMdSaveButton } from './features/memory/md-save-button';
+import { setupMessageMdSaveButtons } from './features/memory/message-md-save-button';
 import { polishInstruction } from './features/llm/claude-cli';
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
@@ -233,6 +235,11 @@ export default class ClaudianBridgePlugin extends Plugin {
         },
       }));
       diag('input-ai-read button registered');
+
+      // ★ v0.17.0: MD保存ボタン（📝 ツールバー + 回答ブロック）
+      this.register(setupMdSaveButton({ app: this.app, store: this.store }));
+      this.register(setupMessageMdSaveButtons({ app: this.app, store: this.store }));
+      diag('md-save buttons registered');
 
       // ★ v0.10.0: 保存時に voice-config.json へエクスポート（Claudian Bridge が SSOT）
       this.store.onSave((cfg) => {

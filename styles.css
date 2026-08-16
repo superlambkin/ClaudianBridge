@@ -372,3 +372,34 @@
 }
 
 /* v0.16.0: AI読み上げボタン（既存ボタンの直後に配置・右端寄せしない） */
+
+/* v0.17.0: MD保存ボタン（メモリフォルダ保存） */
+.cb-md-save-btn {
+  min-width: 2em;
+  padding: 0 0.35em;
+  justify-content: center;
+}
+.claudian-text-md-save-btn {
+  position: absolute;
+  bottom: 0;
+  inset-inline-end: 44px;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.claudian-text-md-save-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.claudian-text-block:hover .claudian-text-md-save-btn {
+  opacity: 1;
+}
+.claudian-text-md-save-btn:hover {
+  color: var(--text-normal);
+}
