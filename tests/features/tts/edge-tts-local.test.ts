@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { localEdgeTtsSpeak, resolveEdgeTtsModulePath, resolveEdgeVoiceFull, initEdgeTtsLocal, resetEdgeTtsLocalState } from '../../../src/features/tts/edge-tts-local';
 import type { TtsSettings } from '../../../src/features/tts/core';
-import { isTtsPlaying, resetPlaybackRegistry } from '../../../src/features/tts/playback-registry';
+import { isTtsPlaying, resetPlaybackRegistry, stopAllPlayback } from '../../../src/features/tts/playback-registry';
 
 // child_process.spawn: controllable per test.
 const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }));
@@ -152,5 +152,65 @@ describe('localEdgeTtsSpeak', () => {
     await expect(p).resolves.toBe(false);
     expect(spawnMock).not.toHaveBeenCalled();
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('指定パスに edge_tts モジュールがありません'));
+  });
+
+  it('F1: 意図的停止（stopAllPlayback）では失敗 Notice を出さず false で解決し isTtsPlaying=false', async () => {
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const notice = vi.fn();
+    const p = localEdgeTtsSpeak('hello', makeSettings(), notice);
+    expect(isTtsPlaying()).toBe(true);
+
+    stopAllPlayback();
+    expect(child.kill).toHaveBeenCalled();
+
+    // taskkill による kill 後の close（exit null）→ 意図的停止のためエラー扱いしない
+    child.emit('close', null);
+    await expect(p).resolves.toBe(false);
+    expect(notice).not.toHaveBeenCalledWith(expect.stringContaining('ローカル EdgeTTS 失敗'));
+    expect(isTtsPlaying()).toBe(false);
+  });
+
+  it('F2: 30秒で合成タイムアウト → false + タイムアウト Notice + child.kill', async () => {
+    vi.useFakeTimers();
+    try {
+      const child = makeChild();
+      spawnMock.mockReturnValue(child);
+      const notice = vi.fn();
+      const p = localEdgeTtsSpeak('hello', makeSettings(), notice);
+      expect(isTtsPlaying()).toBe(true);
+
+      vi.advanceTimersByTime(30_000);
+      await p;
+
+      expect(notice).toHaveBeenCalledWith(expect.stringContaining('タイムアウト'));
+      expect(child.kill).toHaveBeenCalled();
+      expect(isTtsPlaying()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('F3: URL.createObjectURL が throw してもハングせず false + Notice', async () => {
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      play(): Promise<void> { this.onended(); return Promise.resolve(); }
+      pause() {}
+    };
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const notice = vi.fn();
+    (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = vi.fn(() => {
+      throw new Error('blob-fail');
+    });
+
+    const p = localEdgeTtsSpeak('hello', makeSettings(), notice);
+    child.stdout.emitData(Buffer.from('MP3DATA'));
+    child.emit('close', 0);
+    await expect(p).resolves.toBe(false);
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('ローカル EdgeTTS 失敗'));
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('blob-fail'));
+    expect(isTtsPlaying()).toBe(false);
   });
 });

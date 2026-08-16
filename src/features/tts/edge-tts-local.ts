@@ -179,29 +179,62 @@ export function localEdgeTtsSpeak(
     const chunks: Buffer[] = [];
     let err = '';
     let settled = false;
+    let intentionalStop = false;
+    let timeout: ReturnType<typeof setTimeout>;
+    const killChild = (): void => {
+      if (child.pid && process.platform === 'win32') {
+        try { execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* 既に終了済み */ }
+      }
+      try { child.kill(); } catch { /* ignore */ }
+    };
     const unregister = registerPlayback({
       engine: 'edge-local',
       stop: () => {
-        if (child.pid && process.platform === 'win32') {
-          try { execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* 既に終了済み */ }
-        }
-        try { child.kill(); } catch { /* ignore */ }
+        intentionalStop = true;
+        clearTimeout(timeout);
+        killChild();
       },
     });
+
+    // v0.20.1: 合成タイムアウト（30 秒）— edge_tts はネットワーク呼び出しのため、ハング時に救済する。
+    // 発火時は settled 済みでなければ kill して失敗扱い（意図的停止時は timeout は解除済み）。
+    timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      unregister();
+      killChild();
+      if (!intentionalStop) {
+        noticeFn('⚠️ ローカル EdgeTTS 失敗: タイムアウト');
+      }
+      resolve(false);
+    }, 30_000);
 
     child.stdout?.on('data', (d: Buffer) => chunks.push(d));
     child.stderr?.on('data', (d: Buffer) => (err += d.toString()));
     child.on('error', (e) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timeout);
       unregister();
+      if (intentionalStop) {
+        // v0.20.1: 意図的停止中のエラーはユーザー操作由来 → エラー扱いしない
+        resolve(false);
+        return;
+      }
       noticeFn(`⚠️ ローカル EdgeTTS 失敗: ${e.message}`);
       resolve(false);
     });
     child.on('close', async (code) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timeout);
       unregister();
+      if (intentionalStop) {
+        // v0.20.1: 意図的停止中の close（kill による exit null/非0）はエラー扱いしない
+        resolve(false);
+        return;
+      }
       if (code !== 0) {
         noticeFn(`⚠️ ローカル EdgeTTS 失敗 (exit ${code}): ${err.trim().slice(0, 200)}`);
         resolve(false);
@@ -213,8 +246,14 @@ export function localEdgeTtsSpeak(
         resolve(false);
         return;
       }
-      const url = URL.createObjectURL(new Blob([audio], { type: 'audio/mpeg' }));
-      resolve(await playObjectUrl(url, noticeFn, 'edge-local'));
+      try {
+        const url = URL.createObjectURL(new Blob([audio], { type: 'audio/mpeg' }));
+        resolve(await playObjectUrl(url, noticeFn, 'edge-local'));
+      } catch (e) {
+        // v0.20.1: Blob/URL 生成が throw してもハングさせず失敗扱いにする
+        noticeFn(`⚠️ ローカル EdgeTTS 失敗: ${(e as Error).message}`);
+        resolve(false);
+      }
     });
     child.stdin?.write(text);
     child.stdin?.end();
