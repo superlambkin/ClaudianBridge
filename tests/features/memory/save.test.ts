@@ -11,6 +11,12 @@ describe('save helpers', () => {
   it('resolveFolder: 絶対パスはそのまま', () => {
     expect(resolveFolder('C:/vault', 'D:/mem')).toBe('D:/mem');
   });
+  it('resolveFolder: ドライブルート C:/ は末尾スラッシュを維持する（drive-relative に劣化しない）', () => {
+    expect(resolveFolder('C:/vault', 'C:/')).toBe('C:/');
+  });
+  it('resolveFolder: ルート / はそのまま', () => {
+    expect(resolveFolder('C:/vault', '/')).toBe('/');
+  });
   it('sanitizeTitle: 不正文字を _ に置換し 60 字に切る', () => {
     expect(sanitizeTitle('a/b:c*')).toBe('a_b_c_');
     expect(sanitizeTitle('あ'.repeat(100)).length).toBe(60);
@@ -48,9 +54,12 @@ describe('save helpers', () => {
 describe('saveMarkdown', () => {
   let mkdirSpy: ReturnType<typeof vi.spyOn>;
   let writeSpy: ReturnType<typeof vi.spyOn>;
+  let accessSpy: ReturnType<typeof vi.spyOn>;
   beforeEach(() => {
     mkdirSpy = vi.spyOn(fs.promises, 'mkdir').mockResolvedValue(undefined as never);
     writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined as never);
+    // 既定では対象ファイルは存在しない前提（ENOENT → false）
+    accessSpy = vi.spyOn(fs.promises, 'access').mockRejectedValue(new Error('ENOENT'));
   });
   afterEach(() => { vi.restoreAllMocks(); });
 
@@ -71,5 +80,22 @@ describe('saveMarkdown', () => {
     const r = await saveMarkdown(app, 'Memory/', 'block', 't', 'b');
     expect(r.ok).toBe(false);
     expect(r.message).toContain('disk full');
+  });
+
+  it('同一分・同一タイトルで保存すると連番 (-1) を付与して同名衝突を回避する', async () => {
+    const app = { vault: { adapter: { getBasePath: () => 'C:/vault' } } } as never;
+    // 1 回目：ベース名は空き
+    await saveMarkdown(app, 'Memory/', 'pair', 'タイトル', '本文1');
+    // 2 回目：ベース名が既存 → -1 が空き
+    accessSpy.mockReset();
+    accessSpy.mockResolvedValueOnce(undefined as never);  // base 存在
+    accessSpy.mockRejectedValueOnce(new Error('ENOENT')); // -1 は空き
+    await saveMarkdown(app, 'Memory/', 'pair', 'タイトル', '本文2');
+
+    expect(writeSpy).toHaveBeenCalledTimes(2);
+    const [file1] = writeSpy.mock.calls[0] as unknown as [string];
+    const [file2] = writeSpy.mock.calls[1] as unknown as [string];
+    expect(file1.replace(/\\/g, '/')).not.toMatch(/-1\.md$/);
+    expect(file2.replace(/\\/g, '/')).toMatch(/-1\.md$/);
   });
 });

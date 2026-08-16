@@ -15,8 +15,12 @@ export interface MessageMd { role: 'user' | 'assistant'; md: string; }
 export function resolveFolder(vaultRoot: string, folder: string): string {
   // Windows では path.join が `\` を返すため、Obsidian 規約のフォワードスラッシュへ正規化（office VaultPath と同じ）
   const resolved = path.isAbsolute(folder) ? folder : path.join(vaultRoot, folder);
+  const normalized = resolved.replace(/\\/g, '/');
+  // ドライブルート（C:/）やファイルシステムルート（/）は末尾区切りを維持する。
+  // 末尾を剥がすと `C:/` → `C:` になり drive-relative（CWD 相対）へ劣化するため。
+  if (normalized === '/' || /^[A-Za-z]:\/$/.test(normalized)) return normalized;
   // path.join は末尾区切りを保持する（Windows: `Memory/` → `C:\vault\Memory\`）ため、フォルダパスとして整える
-  return resolved.replace(/\\/g, '/').replace(/\/+$/, '');
+  return normalized.replace(/\/+$/, '');
 }
 
 export function sanitizeTitle(title: string): string {
@@ -63,11 +67,36 @@ export function vaultRoot(app: App): string {
   return adapter.getBasePath ? adapter.getBasePath() : (adapter.basePath ?? process.cwd());
 }
 
+/** 指定パスが存在するかどうか（ENOENT は「存在しない」として false） */
+async function fileExists(p: string): Promise<boolean> {
+  try {
+    await fs.promises.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 同名ファイルが既に存在する場合、`-1`, `-2`, … を拡張子の前に付与して空き名を返す。
+ * 設計 §8.2/§十一：同一分に複数保存で同名衝突 → 連番（HHMM 形式は維持）。
+ */
+async function uniquePath(base: string): Promise<string> {
+  if (!(await fileExists(base))) return base;
+  const dir = path.dirname(base);
+  const ext = path.extname(base);
+  const stem = path.basename(base, ext);
+  for (let i = 1; ; i++) {
+    const candidate = path.join(dir, `${stem}-${i}${ext}`);
+    if (!(await fileExists(candidate))) return candidate;
+  }
+}
+
 export async function saveMarkdown(app: App, folder: string, scope: SavedScope, title: string, body: string): Promise<SaveResult> {
   try {
     const root = vaultRoot(app);
     const dirAbs = resolveFolder(root, folder);
-    const abs = path.join(dirAbs, buildFilename(new Date(), title));
+    const abs = await uniquePath(path.join(dirAbs, buildFilename(new Date(), title)));
     await fs.promises.mkdir(dirAbs, { recursive: true });
     const content = `${buildFrontmatter(title, scope, localDateTime())}\n\n${body}\n`;
     await fs.promises.writeFile(abs, content, 'utf8');
