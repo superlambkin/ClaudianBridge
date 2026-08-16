@@ -296,3 +296,39 @@ describe('collectStructuralExcludes (v0.19.0 防御的強化)', () => {
     expect(text).not.toContain('git status');
   });
 });
+
+describe('v0.19.0 追加カバレッジ', () => {
+  function makeMessages(inner: string): Element {
+    const el = document.createElement('div');
+    el.className = 'claudian-messages';
+    el.innerHTML = inner;
+    return el;
+  }
+
+  it('header scope: 📢 なし・見出しあり・フィルタ全ONでも思考・ツールを読まない（構造的除外）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-thinking-block"><div class="claudian-thinking-content">思考の内容</div></div>
+      <div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div><div class="claudian-tool-summary">git status</div></div>
+      <div class="claudian-text-block"><p>導入のまとめ</p><h2>詳細</h2><p>詳細の本文</p></div>
+    </div></div>`;
+    const allTrue = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true, toolCommands: true };
+    const text = extractReportText(makeMessages(html), 'header', { filter: { ...allTrue } });
+    expect(text).toContain('導入のまとめ');
+    expect(text).not.toContain('思考の内容');
+    expect(text).not.toContain('git status');
+  });
+
+  it('複数メッセージ: 最後のメッセージで判定する', () => {
+    const older = `<div class="claudian-message-assistant"><div class="claudian-message-content"><div class="claudian-text-block"><p>古い回答</p></div></div></div>`;
+    const latest = `<div class="claudian-message-assistant"><div class="claudian-message-content"><div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div></div></div></div>`;
+    expect(detectFinalAnswerState(makeMessages(older + latest))).toBe('intermediate');
+  });
+
+  it('tool-call 後に text-block → ready（順序セマンティクス）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div></div>
+      <div class="claudian-text-block"><p>最終回答</p></div>
+    </div></div>`;
+    expect(detectFinalAnswerState(makeMessages(html))).toBe('ready');
+  });
+});
