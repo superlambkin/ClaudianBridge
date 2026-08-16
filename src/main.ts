@@ -14,6 +14,7 @@ import { setupMessageMdSaveButtons } from './features/memory/message-md-save-but
 import { polishInstruction } from './features/llm/claude-cli';
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
+import { initEdgeTtsLocal } from './features/tts/edge-tts-local';
 import { migrateFromLegacy } from './legacy/migration';
 import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
 import { OfficeMenuRegistrar } from './features/office/menu';
@@ -53,6 +54,7 @@ export default class ClaudianBridgePlugin extends Plugin {
       const vaultRoot = adapter.getBasePath ? adapter.getBasePath() : process.cwd();
       diag('vaultRoot', { vaultRoot, configDir: this.app.vault.configDir });
       const pluginDataDir = path.join(vaultRoot, this.app.vault.configDir, 'plugins', 'claudian-bridge');
+      initEdgeTtsLocal(pluginDataDir);
       this.store = new ConfigStore(path.join(pluginDataDir, 'data.json'));
       diag('ConfigStore created', { configPath: path.join(pluginDataDir, 'data.json') });
 
