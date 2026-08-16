@@ -36,16 +36,24 @@ export function setupMessageMdSaveButtons(deps: MessageMdSaveButtonDeps): () => 
     btn.setAttribute(SAVE_MARK, 'true');
     btn.textContent = '📝';
     btn.title = 'MD保存：このブロックを保存';
+    // 二重クリック → busy フラグでガード（同一秒内のファイル名衝突 / 重複ファイルを防止）
+    let busy = false;
     btn.addEventListener('click', (ev) => {
       ev.stopPropagation();
+      if (busy) return;
+      busy = true;
       void (async () => {
-        const cfg = deps.store.load();
-        if (!cfg.memory.enabled) return;
-        const md = serializeElementToMarkdown(block, EXCLUDE_SELECTORS);
-        if (md.trim() === '') return;
-        const title = findFirstHeadingText(block);
-        const r = await saveMarkdown(deps.app, cfg.memory.folder, 'block', title, md);
-        notice(r.ok ? `✅ ${r.path} に保存しました` : `⚠️ 保存失敗: ${r.message}`);
+        try {
+          const cfg = deps.store.load();
+          if (!cfg.memory.enabled) return;
+          const md = serializeElementToMarkdown(block, EXCLUDE_SELECTORS);
+          if (md.trim() === '') return;
+          const title = findFirstHeadingText(block);
+          const r = await saveMarkdown(deps.app, cfg.memory.folder, 'block', title, md);
+          notice(r.ok ? `✅ ${r.path} に保存しました` : `⚠️ 保存失敗: ${r.message}`);
+        } finally {
+          busy = false;
+        }
       })().catch((e) => console.warn('[cb-md-save-block] failed:', e));
     });
     copyBtn.before(btn);

@@ -68,4 +68,21 @@ describe('setupMessageMdSaveButtons', () => {
     store.triggerSave();
     expect(block.querySelectorAll('[data-cb-md-save]').length).toBe(0);
   });
+
+  it('保存中は busy ガードで二重クリックを無視し、完了後は再クリックできる', async () => {
+    const block = makeBlock('<h2>ブロック見出し</h2><p>ブロック本文</p>');
+    let resolveSave!: (v: { path: string; ok: boolean; message: string }) => void;
+    const deferred = new Promise<{ path: string; ok: boolean; message: string }>((res) => { resolveSave = res; });
+    (saveModule.saveMarkdown as unknown as ReturnType<typeof vi.fn>).mockReturnValue(deferred);
+    const noticeFn = vi.fn();
+    setupMessageMdSaveButtons({ app: {} as never, store: makeStore(), noticeFn });
+    const btn = block.querySelector('[data-cb-md-save]') as HTMLElement;
+    btn.click();
+    btn.click();
+    expect(saveModule.saveMarkdown).toHaveBeenCalledTimes(1);
+    resolveSave({ path: 'Memory/x.md', ok: true, message: 'saved' });
+    await vi.waitFor(() => expect(noticeFn).toHaveBeenCalledTimes(1));
+    btn.click();
+    expect(saveModule.saveMarkdown).toHaveBeenCalledTimes(2);
+  });
 });
