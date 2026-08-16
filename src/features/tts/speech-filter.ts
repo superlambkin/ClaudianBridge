@@ -15,6 +15,8 @@ const ASCII_EMOTICON_RE = /(?<![\w])(?::-?[)DdPp]+|;-?[)DdPp]|X-?[Dd]|<3+|>:\(?)
 const SHORTCODE_RE = /:[a-z0-9_+\-]{2,}:/g;
 /** 空になった括弧対 */
 const EMPTY_PAREN_RE = /[(（]\s*[)）]/g;
+/** v0.18.1: ツール呼び出し行 [Tool Name input: ...] を除去（DOM 除外の保険） */
+const TOOL_CALL_LINE_RE = /^\[Tool [^\n]+\]\s*$/gm;
 
 function stripKaomoji(text: string): string {
   return text.replace(/[(（]([^()（）]*)[)）]/g, (m, inner: string) => {
@@ -30,6 +32,7 @@ export function filterSpeechText(text: string, filter: Partial<SpeechFilterOptio
   if (filter.kaomoji === false) t = stripKaomoji(t);
   if (filter.ascii_emoticon === false) t = t.replace(ASCII_EMOTICON_RE, ' ');
   if (filter.emoji_shortcode === false) t = t.replace(SHORTCODE_RE, ' ');
+  if (filter.toolCommands === false) t = t.replace(TOOL_CALL_LINE_RE, ' ');
   t = t.replace(EMPTY_PAREN_RE, '');
   // 除去で生じた前後の空白を除去（brief テスト: 'OK (^_^)' → 'OK' など）
   return t.trim();
