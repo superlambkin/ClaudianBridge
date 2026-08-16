@@ -337,7 +337,8 @@
 }
 
 .claude-tts-mute-btn,
-.claude-tts-fulltext-btn {
+.claude-tts-fulltext-btn,
+.cb-input-ai-btn {
   /* v0.12.4: アイコンのみ表示に合わせてコンパクト化 */
   min-width: 2em;
   padding: 0 0.35em;
@@ -370,7 +371,4 @@
   color: var(--text-normal);
 }
 
-/* v0.16.0: AI読み上げボタン（ツールバー右端） */
-.claudian-input-toolbar .cb-input-ai-btn {
-  margin-inline-start: auto;
-}
+/* v0.16.0: AI読み上げボタン（既存ボタンの直後に配置・右端寄せしない） */
