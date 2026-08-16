@@ -35,13 +35,18 @@ export function extractMessages(scope: MemoryScope, messagesEl: Element): Extrac
   }
 
   // pair: 最後の assistant + 直前の user（無ければ assistant のみ）
+  // conversation と同じくドキュメント順の全メッセージを列挙し、その中から直前の user を探すことで
+  // グループ/コンテナにネストされた DOM でも previousElementSibling の歩行が途中で止まらない。
   const last = assistants[assistants.length - 1];
+  const all = Array.from(messagesEl.querySelectorAll(`${USER_MESSAGE_SELECTOR}, ${ASSISTANT_MESSAGE_SELECTOR}`));
   const out: ExtractedMessage[] = [{ role: 'assistant', element: contentOf(last) }];
-  let prev = last.previousElementSibling;
-  while (prev && !prev.classList.contains('claudian-message-user')) {
-    prev = prev.previousElementSibling;
+  const lastIdx = all.indexOf(last);
+  for (let i = lastIdx - 1; i >= 0; i--) {
+    if (all[i].classList.contains('claudian-message-user')) {
+      out.unshift({ role: 'user', element: contentOf(all[i]) });
+      break;
+    }
   }
-  if (prev) out.unshift({ role: 'user', element: contentOf(prev) });
   return out;
 }
 

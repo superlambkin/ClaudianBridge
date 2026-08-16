@@ -56,6 +56,26 @@ describe('extractMessages', () => {
     expect((msgs![3].element as HTMLElement).textContent).toContain('A2');
   });
 
+  it('pair: グループ/コンテナにネストされた DOM でも直前の user を含む', () => {
+    const root = document.createElement('div');
+    root.className = 'claudian-messages';
+    root.innerHTML = `
+      <div class="group">
+        <div class="claudian-message-user"><div class="claudian-message-content"><p>Q1</p></div></div>
+        <div class="claudian-message-assistant"><div class="claudian-message-content"><h2>A1</h2></div></div>
+      </div>
+      <div class="group">
+        <div class="claudian-message-user"><div class="claudian-message-content"><p>Q2</p></div></div>
+        <div class="claudian-message-assistant"><div class="claudian-message-content"><h2>A2</h2></div></div>
+      </div>
+    `;
+    const msgs = extractMessages('pair', root);
+    expect(msgs).not.toBeNull();
+    expect(msgs!.map((m) => m.role)).toEqual(['user', 'assistant']);
+    expect((msgs![0].element as HTMLElement).textContent).toContain('Q2');
+    expect((msgs![1].element as HTMLElement).textContent).toContain('A2');
+  });
+
   it('assistant が無ければ null', () => {
     const root = document.createElement('div');
     root.className = 'claudian-messages';
