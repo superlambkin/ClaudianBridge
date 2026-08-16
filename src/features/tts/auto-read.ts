@@ -5,6 +5,7 @@ import { extractReportText } from './extract-report';
 import { resolveSpeechFilter } from './speak';
 import { createLatestWinsSpeaker } from './speak-coordinator';
 import type { SpeakFn } from './speak-coordinator';
+import { stopAllPlayback } from './playback-registry';
 
 /**
  * v0.11.0: タスク終了時の自動読み上げ。
@@ -47,7 +48,7 @@ export interface AutoReadDeps {
 
 export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
   const notice = deps.noticeFn ?? ((m: string) => { new Notice(m); });
-  const enqueue = createLatestWinsSpeaker(deps.speak);
+  const enqueue = createLatestWinsSpeaker(deps.speak, stopAllPlayback);
   const hooked = new WeakSet<RealClaudianTabManagerCallbacks>();
   /** 遷移判定は view 単位ではなく tabId 単位（同一 view 内の複数 tab で独立 strmeming するため） */
   const prevStreaming = new Map<string, boolean>();
