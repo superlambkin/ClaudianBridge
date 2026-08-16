@@ -51,7 +51,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         }
       }));
 
-    // 2. エンジン選択（edge / webspeech / plachta の 3 択）
+    // 2. エンジン選択（edge / webspeech / plachta / edge-local の 4 択）
     new Setting(containerEl)
       .setName(s.ttsEngine)
       .setDesc(s.ttsEngineDesc)
@@ -59,6 +59,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         d.addOption('edge', s.ttsEngineEdge);
         d.addOption('webspeech', s.ttsEngineWebspeech);
         d.addOption('plachta', s.ttsEnginePlachta);
+        d.addOption('edge-local', s.ttsEngineEdgeLocal);
         d.setValue(cfg.tts.engine).onChange((v) => {
           try {
             const latest = store.load();
@@ -72,12 +73,32 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // 3. 言語別音色 + テストボタン（edge / webspeech のみ）
-    if (cfg.tts.engine === 'edge' || cfg.tts.engine === 'webspeech') {
+    // 2.5 v0.20.0: ローカル EdgeTTS のモジュール場所（edge-local 選択時のみ表示）
+    if (cfg.tts.engine === 'edge-local') {
+      new Setting(containerEl)
+        .setName(s.ttsEdgeTtsModulePath)
+        .setDesc(s.ttsEdgeTtsModulePathDesc)
+        .addText((t) => t
+          .setPlaceholder(s.ttsEdgeTtsModulePathPlaceholder)
+          .setValue(cfg.tts.edgeTtsModulePath ?? '')
+          .onChange(async (v) => {
+            try {
+              const latest = store.load();
+              store.save({ ...latest, tts: { ...latest.tts, edgeTtsModulePath: v.trim() } });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            }
+          }),
+        );
+    }
+
+    // 3. 言語別音色 + テストボタン（edge / webspeech / edge-local のみ）
+    if (cfg.tts.engine === 'edge' || cfg.tts.engine === 'webspeech' || cfg.tts.engine === 'edge-local') {
       const voiceTable = containerEl.createDiv({ cls: 'cb-tts-voices' });
       voiceTable.createEl('p', { text: s.ttsVoicesHint, cls: 'setting-item-description' });
 
-      const currentEngineVoices = cfg.tts.voices[cfg.tts.engine];
+      const voiceEngine = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
+      const currentEngineVoices = cfg.tts.voices[voiceEngine];
       const renderVoiceRow = (langKey: 'zh' | 'ja' | 'en', label: string): void => {
         const presets = EDGE_VOICE_PRESETS[langKey];
         const current = currentEngineVoices[langKey] || '';
@@ -95,7 +116,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
               try {
                 const latest = store.load();
                 // この行は edge / webspeech エンジンのみ描画されるため型を絞る
-                const engine = latest.tts.engine as 'edge' | 'webspeech';
+                const engine = (latest.tts.engine === 'edge-local' ? 'edge' : latest.tts.engine) as 'edge' | 'webspeech';
                 store.save({
                   ...latest,
                   tts: {
