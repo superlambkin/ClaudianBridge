@@ -52,6 +52,10 @@ export interface LocaleStrings {
   ttsEngineEdge: string;
   ttsEngineWebspeech: string;
   ttsEnginePlachta: string;
+  ttsEngineEdgeLocal: string;
+  ttsEdgeTtsModulePath: string;
+  ttsEdgeTtsModulePathDesc: string;
+  ttsEdgeTtsModulePathPlaceholder: string;
   ttsTestSample: string;
   ttsTestButton: string;
   ttsVoicesHint: string;
@@ -323,10 +327,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEnabled: '🌐 機能 ON/OFF',
     ttsEnabledDesc: 'Add to TTS を有効化',
     ttsEngine: '🔊 TTS エンジン',
-    ttsEngineDesc: '音声合成エンジンを選択（edge-TTS / WebSpeech の 2 択）',
+    ttsEngineDesc: '音声合成エンジンを選択（edge-TTS / WebSpeech / Plachta / ローカル EdgeTTS）',
     ttsEngineEdge: 'edge-TTS（クラウド・高品質）',
     ttsEngineWebspeech: 'WebSpeech（ブラウザ標準）',
     ttsEnginePlachta: 'Plachta VITS（クラウド）',
+    ttsEngineEdgeLocal: 'ローカル EdgeTTS（同梱モジュール）',
+    ttsEdgeTtsModulePath: 'Edge TTS モジュール場所',
+    ttsEdgeTtsModulePathDesc: 'edge_tts モジュールのパス。空ならプラグイン内 edge_tts → Python site-packages の順に使用',
+    ttsEdgeTtsModulePathPlaceholder: '自動（プラグイン内 edge_tts）',
     ttsTestSample: '今日は天気がいい。山に登りたい。',
     ttsTestButton: '🔊 テスト再生',
     ttsVoicesHint: '選択中エンジンの音色。エンジンを切り替えると内容も切り替わります',
@@ -589,10 +597,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEnabled: '🌐 Enable Feature',
     ttsEnabledDesc: 'Enable Add to TTS',
     ttsEngine: '🔊 TTS Engine',
-    ttsEngineDesc: 'Select the speech synthesis engine (edge-TTS / WebSpeech)',
+    ttsEngineDesc: 'Select the speech synthesis engine (edge-TTS / WebSpeech / Plachta / Local Edge-TTS)',
     ttsEngineEdge: 'edge-TTS (cloud, high quality)',
     ttsEngineWebspeech: 'WebSpeech (browser default)',
     ttsEnginePlachta: 'Plachta VITS (Cloud)',
+    ttsEngineEdgeLocal: 'Local Edge-TTS (bundled module)',
+    ttsEdgeTtsModulePath: 'Edge TTS module path',
+    ttsEdgeTtsModulePathDesc: 'Path to the edge_tts module. Empty uses plugin edge_tts → Python site-packages',
+    ttsEdgeTtsModulePathPlaceholder: 'Auto (plugin edge_tts)',
     ttsTestSample: "The weather is nice today. I'd like to climb a mountain.",
     ttsTestButton: '🔊 Test voice',
     ttsVoicesHint: 'Voices for the selected engine. Switching engines swaps the dropdowns.',
@@ -855,10 +867,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEnabled: '🌐 启用功能',
     ttsEnabledDesc: '启用 Add to TTS',
     ttsEngine: '🔊 TTS 引擎',
-    ttsEngineDesc: '选择语音合成引擎（edge-TTS / WebSpeech）',
+    ttsEngineDesc: '选择语音合成引擎（edge-TTS / WebSpeech / Plachta / 本地 EdgeTTS）',
     ttsEngineEdge: 'edge-TTS（云端·高质量）',
     ttsEngineWebspeech: 'WebSpeech（浏览器标准）',
     ttsEnginePlachta: 'Plachta VITS（云端）',
+    ttsEngineEdgeLocal: '本地 EdgeTTS（内置模块）',
+    ttsEdgeTtsModulePath: 'Edge TTS 模块路径',
+    ttsEdgeTtsModulePathDesc: 'edge_tts 模块路径。留空则使用插件内 edge_tts → Python site-packages',
+    ttsEdgeTtsModulePathPlaceholder: '自动（插件内 edge_tts）',
     ttsTestSample: '今天天气不错。我想去爬山。',
     ttsTestButton: '🔊 测试声音',
     ttsMinimaxRemovalNote: 'ℹ️ 旧版本中的 MiniMax 连接设置已删除（连接测试失败）',
