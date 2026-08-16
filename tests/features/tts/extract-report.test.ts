@@ -65,6 +65,15 @@ describe('extractReportText', () => {
     expect(text).not.toContain('内部思考の内容');
   });
 
+  it('full scope: 全 true フィルタでも空セレクタで例外を投げず全文を読む（v0.17）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><div class="claudian-thinking-block"><div class="claudian-thinking-header">Thought for 1s</div><div class="claudian-thinking-content">内部思考の内容</div></div><p>本体の応答テキスト</p></div></div>`;
+    const allTrue = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true };
+    const el = makeMessages(html);
+    let text: string | null;
+    expect(() => { text = extractReportText(el, 'full', { filter: { ...allTrue } }); }).not.toThrow();
+    expect(text!).toContain('本体の応答テキスト');
+  });
+
   it('full scope: コードブロック（言語ラベル含む）を読み上げに含めない', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>本文のテキスト</p><div class="claudian-code-wrapper"><span class="claudian-code-lang-label">bash</span><pre><code>echo hello</code></pre></div></div></div>`;
     const text = extractReportText(makeMessages(html), 'full');

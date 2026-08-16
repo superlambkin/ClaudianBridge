@@ -150,7 +150,8 @@ export function extractReportText(
     if (last.hasAttribute(AUTO_READ_MARK)) return null;
     last.setAttribute(AUTO_READ_MARK, '1');
     const source = last.querySelector('.claudian-message-content') ?? last;
-    const text = readVisibleTextExcluding(source, speechExclude);
+    // v0.17: 全 true フィルタ（speechExclude === ''）でも querySelectorAll('') の SyntaxError を避ける
+    const text = speechExclude === '' ? readVisibleText(source) : readVisibleTextExcluding(source, speechExclude);
     return text === '' ? null : text;
   }
 
