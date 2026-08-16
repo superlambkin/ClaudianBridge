@@ -1,7 +1,7 @@
 /**
  * v0.16.0: ClaudianChat 入力ツールバー右端への ✨AI読み上げボタン。
  * クリックで: 入力文 → deps.polish（claude -p で指令文整形）→ 入力欄上書き
- * → deps.speak（addTextToTTS）で読み上げ。失敗時は元文のまま読み上げる。
+ * → speakText('inputAi', ...) で読み上げ。失敗時は元文のまま読み上げる。
  *
  * realclaudian 構造（main.js 実測）:
  *   .claudian-input-composer
@@ -11,6 +11,7 @@
  */
 import { Notice } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
+import { speakText } from './speak';
 
 const TOOLBAR_SELECTOR = '.claudian-input-toolbar';
 const INPUT_MARK = 'data-cb-input-ai';
@@ -20,8 +21,6 @@ export interface InputAiReadDeps {
   store: ConfigStore;
   /** 入力文 → 整形文（失敗 null）。main.ts では polishInstruction を渡す */
   polish: (text: string) => Promise<string | null>;
-  /** 読み上げ（main.ts では addTextToTTS wrapper を渡す） */
-  speak: (text: string) => Promise<boolean>;
   noticeFn?: (m: string) => void;
 }
 
@@ -51,15 +50,15 @@ export function setupInputAiReadButton(deps: InputAiReadDeps): () => void {
         // realclaudian は input イベントで内部状態（送信テキスト等）を同期する
         input.dispatchEvent(new Event('input', { bubbles: true }));
         notice(`元文: ${original}`);
-        await deps.speak(polished);
+        await speakText('inputAi', polished, cfg, { fallbackText: original });
       } else {
         notice('⚠️ 整形に失敗したため元文を読み上げます');
-        await deps.speak(original);
+        await speakText('inputAi', original, cfg, { noticeOnEmpty: true });
       }
     } catch (e) {
       console.warn('[cb-input-ai] failed:', e);
       notice('⚠️ 整形に失敗したため元文を読み上げます');
-      try { await deps.speak(original); } catch { /* ignore */ }
+      try { await speakText('inputAi', original, cfg, { noticeOnEmpty: true }); } catch { /* ignore */ }
     } finally {
       btn.disabled = false;
       btn.textContent = '✨';

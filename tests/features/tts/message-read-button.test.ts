@@ -3,6 +3,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupMessageReadButtons } from '../../../src/features/tts/message-read-button';
 import type { ConfigStore } from '../../../src/core/config-store';
 
+const speakTextMock = vi.fn(async () => true);
+vi.mock('../../../src/features/tts/speak', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/features/tts/speak')>();
+  return { ...actual, speakText: (...a: unknown[]) => speakTextMock(...a) };
+});
+
 function makeBlock(body = '<p>読み上げテキスト</p>'): HTMLElement {
   const block = document.createElement('div');
   block.className = 'claudian-text-block';
@@ -14,6 +20,13 @@ function makeBlock(body = '<p>読み上げテキスト</p>'): HTMLElement {
   return block;
 }
 
+function makeSpeechFilter() {
+  return {
+    emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false,
+    callout: false, table: true, code: false, thinking: false,
+  };
+}
+
 function makeStore(enabled = true) {
   return {
     load: () => ({
@@ -21,19 +34,28 @@ function makeStore(enabled = true) {
         enabled,
         engine: 'edge',
         voices: { edge: { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' } },
-        cli: { speech_filter: { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true } },
+        chunkMaxChars: 140,
+        speechFilter: {
+          selection: makeSpeechFilter(),
+          autoRead: makeSpeechFilter(),
+          message: makeSpeechFilter(),
+          inputAi: makeSpeechFilter(),
+        },
       },
     }),
   } as unknown as ConfigStore;
 }
 
 describe('setupMessageReadButtons', () => {
-  beforeEach(() => { document.body.innerHTML = ''; });
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    speakTextMock.mockClear();
+  });
   afterEach(() => { vi.restoreAllMocks(); });
 
   it('コピーボタンの左隣に読上げボタンを 1 つ注入し、cleanup で削除される', () => {
     const block = makeBlock();
-    const cleanup = setupMessageReadButtons({ app: {} as never, store: makeStore(), speak: vi.fn(async () => true) });
+    const cleanup = setupMessageReadButtons({ app: {} as never, store: makeStore() });
     const btn = block.querySelector('[data-cb-msg-read]');
     const copyBtn = block.querySelector('.claudian-text-copy-btn');
     expect(btn).not.toBeNull();
@@ -44,55 +66,52 @@ describe('setupMessageReadButtons', () => {
     expect(block.querySelectorAll('[data-cb-msg-read]').length).toBe(0);
   });
 
-  it('クリックでブロックの可視テキストを speak に渡す', async () => {
+  it('クリックでブロックの可視テキストを speakText("message", ...) に渡す', async () => {
     const block = makeBlock('<p>こんにちは</p><p>世界</p>');
-    const speak = vi.fn(async () => true);
-    setupMessageReadButtons({ app: {} as never, store: makeStore(), speak });
+    setupMessageReadButtons({ app: {} as never, store: makeStore() });
     const btn = block.querySelector('[data-cb-msg-read]') as HTMLElement;
     btn.click();
-    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
-    expect(speak.mock.calls[0][0]).toContain('こんにちは');
-    expect(speak.mock.calls[0][0]).toContain('世界');
+    await vi.waitFor(() => expect(speakTextMock).toHaveBeenCalledTimes(1));
+    expect(speakTextMock.mock.calls[0][0]).toBe('message');
+    expect(speakTextMock.mock.calls[0][1]).toContain('こんにちは');
+    expect(speakTextMock.mock.calls[0][1]).toContain('世界');
   });
 
-  it('tts.enabled=false のときは speak を呼ばずミュート通知を出す', () => {
+  it('tts.enabled=false のときは speakText を呼ばずミュート通知を出す', () => {
     const block = makeBlock();
-    const speak = vi.fn(async () => true);
     const noticeFn = vi.fn();
-    setupMessageReadButtons({ app: {} as never, store: makeStore(false), speak, noticeFn });
+    setupMessageReadButtons({ app: {} as never, store: makeStore(false), noticeFn });
     const btn = block.querySelector('[data-cb-msg-read]') as HTMLElement;
     btn.click();
-    expect(speak).not.toHaveBeenCalled();
+    expect(speakTextMock).not.toHaveBeenCalled();
     expect(noticeFn).toHaveBeenCalledTimes(1);
   });
 
-  it('空テキストのブロックでは speak を呼ばない', () => {
+  it('空テキストのブロックでは speakText を呼ばず「入力がありません」を通知する', () => {
     const block = makeBlock('<p>   </p>');
-    const speak = vi.fn(async () => true);
-    setupMessageReadButtons({ app: {} as never, store: makeStore(), speak });
-    const btn = block.querySelector('[data-cb-msg-read]') as HTMLElement;
-    btn.click();
-    expect(speak).not.toHaveBeenCalled();
+    const noticeFn = vi.fn();
+    setupMessageReadButtons({ app: {} as never, store: makeStore(), noticeFn });
+    (block.querySelector('[data-cb-msg-read]') as HTMLElement).click();
+    expect(speakTextMock).not.toHaveBeenCalled();
+    expect(noticeFn).toHaveBeenCalledWith('入力がありません');
   });
 
   it('思考ブロック（.claudian-thinking-block）のテキストは読み上げ対象から除外する', async () => {
     const block = makeBlock(
       '<p>通常テキスト</p><div class="claudian-thinking-block">Thought for 1s<br>思考内容</div>',
     );
-    const speak = vi.fn(async () => true);
-    setupMessageReadButtons({ app: {} as never, store: makeStore(), speak });
+    setupMessageReadButtons({ app: {} as never, store: makeStore() });
     const btn = block.querySelector('[data-cb-msg-read]') as HTMLElement;
     btn.click();
-    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
-    const spoken = speak.mock.calls[0][0] as string;
+    await vi.waitFor(() => expect(speakTextMock).toHaveBeenCalledTimes(1));
+    const spoken = speakTextMock.mock.calls[0][1] as string;
     expect(spoken).toContain('通常テキスト');
     expect(spoken).not.toContain('Thought for 1s');
     expect(spoken).not.toContain('思考内容');
   });
 
   it('MutationObserver: 後から追加されたブロックにも注入する（コピーボタンが別タスクで追加）', async () => {
-    const speak = vi.fn(async () => true);
-    setupMessageReadButtons({ app: {} as never, store: makeStore(), speak });
+    setupMessageReadButtons({ app: {} as never, store: makeStore() });
 
     // 1) まずコピーボタンなしの text block を追加
     const block = document.createElement('div');

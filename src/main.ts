@@ -4,7 +4,7 @@ import { ClaudianBridgeSettingTab } from './settings/ClaudianBridgeSettingTab';
 import { setupSelectionWatcher } from './features/selection/watcher';
 import { setupCodeCopyFence } from './features/code-copy-fence';
 import { addFolderToClaudian } from './features/selection/core';
-import { addTextToTTS } from './features/tts/core';
+import { speakText } from './features/tts/speak';
 import { setupAutoReadTTS } from './features/tts/auto-read';
 import { setupMessageReadButtons } from './features/tts/message-read-button';
 import { setupInputAiReadButton } from './features/tts/input-ai-read-button';
@@ -187,9 +187,8 @@ export default class ClaudianBridgePlugin extends Plugin {
       // 4. 機能登録
       const cleanupSelection = setupSelectionWatcher(this.app, this.store, async (text) => {
         const cfg = this.store.load();
-        console.log('[claudian-bridge] selection -> TTS clicked', { textLen: text.length, ttsEnabled: cfg.tts.enabled, engine: cfg.tts.engine });
         if (!cfg.tts.enabled) return;
-        await addTextToTTS(this.app, text, cfg.tts);  // voices / minimax を含む完全設定
+        await speakText('selection', text, cfg);
       });
       this.register(cleanupSelection);
       diag('selection watcher registered');
@@ -201,7 +200,7 @@ export default class ClaudianBridgePlugin extends Plugin {
         speak: async (text) => {
           const cfg = this.store.load();
           if (!cfg.tts.enabled || cfg.tts.autoRead?.enabled === false) return false;
-          return addTextToTTS(this.app, text, cfg.tts);
+          return speakText('autoRead', text, cfg);
         },
       });
       this.register(cleanupAutoRead);
@@ -217,11 +216,6 @@ export default class ClaudianBridgePlugin extends Plugin {
       this.register(setupMessageReadButtons({
         app: this.app,
         store: this.store,
-        speak: async (text) => {
-          const cfg = this.store.load();
-          if (!cfg.tts.enabled) return false;
-          return addTextToTTS(this.app, text, cfg.tts);
-        },
       }));
       diag('message read button registered');
 
@@ -229,11 +223,6 @@ export default class ClaudianBridgePlugin extends Plugin {
       this.register(setupInputAiReadButton({
         store: this.store,
         polish: (text) => polishInstruction(text),
-        speak: async (text) => {
-          const cfg = this.store.load();
-          if (!cfg.tts.enabled) return false;
-          return addTextToTTS(this.app, text, cfg.tts);
-        },
       }));
       diag('input-ai-read button registered');
 

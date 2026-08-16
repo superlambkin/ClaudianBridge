@@ -2,6 +2,7 @@ import { Notice } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { extractReportText } from './extract-report';
+import { resolveSpeechFilter } from './speak';
 import { createLatestWinsSpeaker } from './speak-coordinator';
 import type { SpeakFn } from './speak-coordinator';
 
@@ -100,7 +101,10 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
       // 抽出を 400ms 間隔で最大5回（計 ~1.6s）リトライする。
       const scope = cfg.tts.autoRead?.scope ?? 'header';
       const tryExtract = (attempt: number): void => {
-        const text = extractReportText(messages, scope, { excludeCallouts: cfg.tts.excludeCallouts ?? true });
+        const text = extractReportText(messages, scope, {
+          excludeCallouts: cfg.tts.excludeCallouts ?? true,
+          filter: resolveSpeechFilter(cfg, 'autoRead'),
+        });
         if (text) {
           notice(`🔊 自動読み上げ: ${text.length} 文字を読み上げます`);
           enqueue(text);

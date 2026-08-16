@@ -1,7 +1,7 @@
 /**
  * v0.14.0: ClaudianChat 結果欄（.claudian-text-block）のコピーボタン左隣に
  * 読上げボタンを注入。クリックで該当ブロックの可視テキストを
- * deps.speak（main.ts では addTextToTTS）へ渡して読み上げる。
+ * speakText('message', ...) へ渡して読み上げる。
  *
  * realclaudian 構造（main.js / styles.css 実測）:
  *   .claudian-text-block                    position:relative
@@ -12,7 +12,7 @@ import { Notice, setIcon } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { readVisibleTextExcluding, buildSpeechExclude } from './extract-report';
-import type { SpeechFilterOptions } from '../../core/settings';
+import { speakText, resolveSpeechFilter } from './speak';
 
 const TEXT_BLOCK_SELECTOR = '.claudian-text-block';
 const COPY_BTN_SELECTOR = '.claudian-text-copy-btn';
@@ -21,7 +21,6 @@ const READ_MARK = 'data-cb-msg-read';
 export interface MessageReadDeps {
   app: App;
   store: ConfigStore;
-  speak: (text: string) => Promise<boolean>;
   noticeFn?: (m: string) => void;
 }
 
@@ -42,18 +41,13 @@ export function setupMessageReadButtons(deps: MessageReadDeps): () => void {
       void (async () => {
         const cfg = deps.store.load();
         if (!cfg.tts.enabled) { notice('🔇 ミュート中です'); return; }
-        // v0.17: タイプ別フィルタで除外セレクタを組み立て（一時対応。Task 7 で resolveSpeechFilter に置き換え）
-        const filter: SpeechFilterOptions = {
-          emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true,
-          callout: !(cfg.tts.excludeCallouts ?? true),
-          table: true, code: false, thinking: false,
-        };
+        const filter = resolveSpeechFilter(cfg, 'message');
         const text = readVisibleTextExcluding(
           block,
           `${COPY_BTN_SELECTOR}, [${READ_MARK}], ${buildSpeechExclude(filter)}`,
         );
-        if (!text) return;
-        await deps.speak(text);
+        if (!text) { notice('入力がありません'); return; }
+        await speakText('message', text, cfg);
       })().catch((e) => console.warn('[cb-msg-read] speak failed:', e));
     });
     copyBtn.before(btn);

@@ -38,7 +38,19 @@ function makeApp(views: unknown[]) {
 
 function makeStore(autoRead?: { enabled: boolean; scope: 'header' | 'full' }, ttsEnabled = true) {
   return {
-    load: () => ({ tts: { enabled: ttsEnabled, autoRead: autoRead ?? { enabled: true, scope: 'header' } } }),
+    load: () => ({
+      tts: {
+        enabled: ttsEnabled,
+        autoRead: autoRead ?? { enabled: true, scope: 'header' },
+        // 旧デフォルト（callout/table/code/thinking 除外）を維持する値
+        speechFilter: {
+          autoRead: {
+            emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true,
+            callout: false, table: false, code: false, thinking: false,
+          },
+        },
+      },
+    }),
   } as unknown as ConfigStore;
 }
 
