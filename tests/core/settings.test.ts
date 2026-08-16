@@ -459,3 +459,30 @@ describe('withFullTextState / isFullTextState (v0.12.0)', () => {
     expect(cfg.tts.cli?.full_text).toBe(false);
   });
 });
+
+describe('tts.inputAi (v0.16 AI読み上げボタン)', () => {
+  it('未設定時はデフォルト { enabled: true } を補完する', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge' } });
+    expect(cfg.tts.inputAi).toEqual({ enabled: true });
+  });
+
+  it('enabled=false を保持する', () => {
+    const cfg = normalizeClaudianBridgeSettings({
+      tts: { enabled: true, engine: 'edge', inputAi: { enabled: false } },
+    });
+    expect(cfg.tts.inputAi).toEqual({ enabled: false });
+  });
+
+  it('型が不正な値はデフォルトへフォールバックする', () => {
+    const cfg = normalizeClaudianBridgeSettings({
+      tts: { enabled: true, engine: 'edge', inputAi: { enabled: 'yes' } as never },
+    });
+    expect(cfg.tts.inputAi).toEqual({ enabled: true });
+  });
+
+  it('validate が inputAi.enabled の型を検証する', () => {
+    const bad = normalizeClaudianBridgeSettings({});
+    (bad.tts.inputAi as { enabled: unknown }).enabled = 1;
+    expect(validateClaudianBridgeSettings(bad)).toContain('tts.inputAi.enabled');
+  });
+});

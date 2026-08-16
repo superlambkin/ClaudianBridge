@@ -384,6 +384,8 @@ export interface ClaudianBridgeSettings {
     autoRead?: TtsAutoReadSettings;
     /** v0.15.0: コールアウト（> [!type]）を読み上げ対象から除外するか。 */
     excludeCallouts?: boolean;
+    /** v0.16.0: AI読み上げボタン（入力文をAIで整形して読み上げ）。 */
+    inputAi?: { enabled: boolean };
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -422,6 +424,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     cli: { ...DEFAULT_TTS_CLI_SETTINGS },
     autoRead: { ...DEFAULT_TTS_AUTO_READ_SETTINGS },
     excludeCallouts: true,
+    inputAi: { enabled: true },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -560,6 +563,9 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       cli,
       autoRead,
       excludeCallouts: typeof r.tts?.excludeCallouts === 'boolean' ? r.tts.excludeCallouts : true,
+      inputAi: {
+        enabled: typeof r.tts?.inputAi?.enabled === 'boolean' ? r.tts.inputAi.enabled : true,
+      },
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
@@ -603,6 +609,7 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     if (typeof cfg.tts.autoRead.enabled !== 'boolean') return 'tts.autoRead.enabled は boolean である必要があります';
     if (cfg.tts.autoRead.scope !== 'header' && cfg.tts.autoRead.scope !== 'full') return `tts.autoRead.scope が未知です: ${cfg.tts.autoRead.scope}`;
   }
+  if (cfg.tts.inputAi !== undefined && typeof cfg.tts.inputAi.enabled !== 'boolean') return 'tts.inputAi.enabled は boolean である必要があります';
   if (typeof cfg.office.enabled !== 'boolean') return 'office.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.office.enabledExtensions)) return 'office.enabledExtensions は配列である必要があります';
   if (!['overwrite', 'skip', 'timestamp'].includes(cfg.office.conflictPolicy)) return 'office.conflictPolicy が未知です';
