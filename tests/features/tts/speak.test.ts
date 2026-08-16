@@ -22,7 +22,7 @@ function makeCfg(overrides?: Partial<ClaudianBridgeSettings['tts']>): ClaudianBr
       enabled: true,
       engine: 'edge',
       voices: { edge: { zh: 'x', ja: 'n', en: 'a' }, webspeech: { zh: '', ja: '', en: '' } },
-      chunkMaxChars: 140,
+      chunkMaxChars: { edge: 500, webspeech: 140, plachta: 140 },
       speechFilter: {
         selection: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
         autoRead: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
@@ -82,9 +82,9 @@ describe('speakText', () => {
     expect(text).not.toContain('📢');
   });
 
-  it('chunkMaxChars を TtsSettings に含めて渡す（非デフォルト値 100 を検証）', async () => {
-    await speakText('selection', 'テキスト', makeCfg({ chunkMaxChars: 100 }));
-    expect(addTextToTTS.mock.calls[0][2].chunkMaxChars).toBe(100);
+  it('chunkMaxChars を TtsSettings に含めて渡す（エンジン別オブジェクト）', async () => {
+    await speakText('selection', 'テキスト', makeCfg());
+    expect(addTextToTTS.mock.calls[0][2].chunkMaxChars).toEqual({ edge: 500, webspeech: 140, plachta: 140 });
   });
 
   it('失敗時（false）はエラー Notice「⚠️ 読み上げに失敗しました」を出す', async () => {

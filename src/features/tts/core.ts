@@ -3,7 +3,8 @@ import { Notice } from 'obsidian';
 import { spawn, execFileSync } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
-import type { PlachtaSettings, TtsCliSpeechFilter, TtsEngine } from '../../core/settings';
+import type { PlachtaSettings, TtsChunkMaxChars, TtsCliSpeechFilter, TtsEngine } from '../../core/settings';
+import { DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../../core/settings';
 import { plachtaSpeakChunksPipelined } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
 import { registerPlayback, setEdgeChildPid } from './playback-registry';
@@ -30,8 +31,8 @@ export interface TtsSettings {
   plachta?: PlachtaSettings;
   /** v0.12.1: 読み上げ文最適化スイッチ（cli.speech_filter を全経路で適用）。 */
   cli?: { speech_filter?: TtsCliSpeechFilter };
-  /** v0.17.0: 1チャンク上限（50〜140・既定 140）。省略時は 140 */
-  chunkMaxChars?: number;
+  /** v0.18.0: エンジン別チャンク上限（edge: 100〜2000 既定500 / webspeech・plachta: 50〜140 既定140） */
+  chunkMaxChars?: Partial<TtsChunkMaxChars>;
 }
 
 /** 選択中エンジンに対応する言語別 voices を取得 */
@@ -250,8 +251,9 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
     }
   };
 
-  // v0.17.0: 全エンジン共通のチャンク上限（既定 140）
-  const limit = settings.chunkMaxChars ?? 140;
+  // v0.18.0: エンジン別のチャンク上限（edge は既定 500・他は 140）
+  const engineDefault = settings.engine === 'edge' ? DEFAULT_EDGE_CHUNK_MAX_CHARS : DEFAULT_CHUNK_MAX_CHARS;
+  const limit = settings.chunkMaxChars?.[settings.engine] ?? engineDefault;
   const chunks = limit > 0 && trimmed.length > limit ? chunkText(trimmed, limit) : [trimmed];
   if (chunks.length > 1) {
     console.log(`[claudian-bridge TTS] chunking: ${trimmed.length} chars → ${chunks.length} chunks (engine: ${settings.engine})`);

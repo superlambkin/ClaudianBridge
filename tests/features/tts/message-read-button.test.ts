@@ -34,7 +34,7 @@ function makeStore(enabled = true) {
         enabled,
         engine: 'edge',
         voices: { edge: { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' } },
-        chunkMaxChars: 140,
+        chunkMaxChars: { edge: 500, webspeech: 140, plachta: 140 },
         speechFilter: {
           selection: makeSpeechFilter(),
           autoRead: makeSpeechFilter(),

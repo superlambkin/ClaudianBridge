@@ -37,7 +37,7 @@ function makeStore(opts?: { enabled?: boolean; inputAi?: boolean }) {
       engine: 'edge',
       voices: { edge: { zh: 'x', ja: 'n', en: 'a' } },
       inputAi: { enabled: opts?.inputAi ?? true },
-      chunkMaxChars: 140,
+      chunkMaxChars: { edge: 500, webspeech: 140, plachta: 140 },
       speechFilter: {
         selection: makeSpeechFilter(),
         autoRead: makeSpeechFilter(),

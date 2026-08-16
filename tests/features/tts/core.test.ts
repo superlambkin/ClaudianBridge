@@ -400,16 +400,16 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     expect(vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0].length).toBe(1);
   });
 
-  it('TC-L03: edge も chunkMaxChars（既定140）でチャンク分割される（v0.17.0）', async () => {
+  it('TC-L03: edge も chunkMaxChars（既定500）でチャンク分割される（v0.18.0）', async () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
-    const p = addTextToTTS(null as never, 'a'.repeat(141), makeSettings('edge'));
+    const p = addTextToTTS(null as never, 'a'.repeat(501), makeSettings('edge'));
     child.emit('close', 0); // 1 チャンク目
     await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
     child.emit('close', 0); // 2 チャンク目
     await p;
     expect(spawnMock).toHaveBeenCalledTimes(2);
-    expect(child.stdin.write).toHaveBeenNthCalledWith(1, 'a'.repeat(140));
+    expect(child.stdin.write).toHaveBeenNthCalledWith(1, 'a'.repeat(500));
     expect(child.stdin.write).toHaveBeenNthCalledWith(2, 'a');
   });
 
@@ -432,9 +432,9 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     expect(notice).not.toHaveBeenCalled();
   });
 
-  it('chunkMaxChars=100（非デフォルト）で plachta がチャンク分割される（設定値を使用・v0.17.0）', async () => {
+  it('chunkMaxChars.plachta=100（非デフォルト）で plachta がチャンク分割される（v0.18.0）', async () => {
     const s = makePlachtaSettings();
-    s.chunkMaxChars = 100;
+    s.chunkMaxChars = { ...s.chunkMaxChars, plachta: 100 };
     await addTextToTTS(null as never, 'あ'.repeat(141), s);
     expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
     const chunks = vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0];
