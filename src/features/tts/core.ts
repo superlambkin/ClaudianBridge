@@ -137,19 +137,10 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
  * Engine: Web SpeechSynthesis API (browser)
  * ========================================================================== */
 
-/** Detect a likely IETF language code for the given text (best-effort). */
-export function pickWebSpeechLang(text: string): string {
-  const counts = { kana: 0, cjk: 0, latin: 0 };
-  for (const ch of text) {
-    const cp = ch.codePointAt(0) ?? 0;
-    if (cp >= 0x3040 && cp <= 0x309f) counts.kana++; // hiragana
-    else if (cp >= 0x30a0 && cp <= 0x30ff) counts.kana++; // katakana
-    else if (cp >= 0x4e00 && cp <= 0x9fff) counts.cjk++; // CJK ideographs
-    else if ((cp >= 0x41 && cp <= 0x5a) || (cp >= 0x61 && cp <= 0x7a)) counts.latin++;
-  }
-  if (counts.kana > 0 || counts.cjk > counts.latin) return counts.kana > counts.cjk ? 'ja' : 'zh';
-  return 'en';
-}
+// v0.20.0: pickWebSpeechLang は lang.ts へ分離（edge-tts-local と共用）。
+// re-export で既存 import を維持しつつ、webSpeechSpeak 内部でも使うため import も行う。
+import { pickWebSpeechLang } from './lang';
+export { pickWebSpeechLang } from './lang';
 
 export async function webSpeechSpeak(text: string, settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
   if (typeof window === 'undefined' || !window || !('speechSynthesis' in window)) {
