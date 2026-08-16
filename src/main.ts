@@ -7,6 +7,8 @@ import { addFolderToClaudian } from './features/selection/core';
 import { addTextToTTS } from './features/tts/core';
 import { setupAutoReadTTS } from './features/tts/auto-read';
 import { setupMessageReadButtons } from './features/tts/message-read-button';
+import { setupInputAiReadButton } from './features/tts/input-ai-read-button';
+import { polishInstruction } from './features/llm/claude-cli';
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { migrateFromLegacy } from './legacy/migration';
@@ -219,6 +221,18 @@ export default class ClaudianBridgePlugin extends Plugin {
         },
       }));
       diag('message read button registered');
+
+      // ★ v0.16.0: AI読み上げボタン（✨ 入力文を整形して読み上げ）
+      this.register(setupInputAiReadButton({
+        store: this.store,
+        polish: (text) => polishInstruction(text),
+        speak: async (text) => {
+          const cfg = this.store.load();
+          if (!cfg.tts.enabled) return false;
+          return addTextToTTS(this.app, text, cfg.tts);
+        },
+      }));
+      diag('input-ai-read button registered');
 
       // ★ v0.10.0: 保存時に voice-config.json へエクスポート（Claudian Bridge が SSOT）
       this.store.onSave((cfg) => {

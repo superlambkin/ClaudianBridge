@@ -369,3 +369,8 @@
 .claudian-text-tts-btn:hover {
   color: var(--text-normal);
 }
+
+/* v0.16.0: AI読み上げボタン（ツールバー右端） */
+.claudian-input-toolbar .cb-input-ai-btn {
+  margin-inline-start: auto;
+}

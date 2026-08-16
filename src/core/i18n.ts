@@ -96,6 +96,9 @@ export interface LocaleStrings {
   ttsMuteBtnMuted: string;
   ttsFullTextBtnOn: string;
   ttsFullTextBtnOff: string;
+  // v0.16.0: AI読み上げボタン
+  ttsInputAiEnabled: string;
+  ttsInputAiEnabledDesc: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -323,6 +326,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsMuteBtnMuted: '🔇 ミュート',
     ttsFullTextBtnOn: '📖 全文',
     ttsFullTextBtnOff: '📄 ヘッダー',
+    ttsInputAiEnabled: 'AI読み上げボタン',
+    ttsInputAiEnabledDesc: 'チャット入力欄の✨ボタン:入力文をAIで指令文に整形し、入力欄を上書きして読み上げます',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -546,6 +551,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsMuteBtnMuted: '🔇 Mute',
     ttsFullTextBtnOn: '📖 Full',
     ttsFullTextBtnOff: '📄 Header',
+    ttsInputAiEnabled: 'AI read-aloud button',
+    ttsInputAiEnabledDesc: '✨ button in the chat input toolbar: polishes your input into a clear instruction, overwrites the input, and reads it aloud',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -764,6 +771,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsMuteBtnMuted: '🔇 静音',
     ttsFullTextBtnOn: '📖 全文',
     ttsFullTextBtnOff: '📄 摘要',
+    ttsInputAiEnabled: 'AI朗读按钮',
+    ttsInputAiEnabledDesc: '聊天输入栏的✨按钮：用AI将输入整理为清晰指令，覆盖输入栏并朗读',
     ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
     ttsVoiceZh: '中文 (zh)',
     ttsVoiceJa: '日语 (ja)',

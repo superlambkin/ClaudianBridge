@@ -269,6 +269,22 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         );
     }
 
+    // 5.5 v0.16.0: AI読み上げボタン（✨ 入力文を整形して読み上げ）
+    new Setting(containerEl)
+      .setName(s.ttsInputAiEnabled)
+      .setDesc(s.ttsInputAiEnabledDesc)
+      .addToggle((t) => t
+        .setValue(cfg.tts.inputAi?.enabled ?? true)
+        .onChange((v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, inputAi: { enabled: v } } });
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          }
+        }),
+      );
+
     // 6. v0.10.0: Claude Code CLI 用設定（voice-config.json と同期）
     {
       const cliBox = containerEl.createDiv({ cls: 'cb-tts-cli' });

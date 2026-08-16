@@ -100,7 +100,9 @@ export function setupInputAiReadButton(deps: InputAiReadDeps): () => void {
   observer.observe(document.body, { childList: true, subtree: true });
 
   // 設定変更で表示/非表示を即時反映
-  const offSave = deps.store.onSave(() => {
+  // ※ ConfigStore.onSave は購読解除を返さない（toolbar-buttons.ts と同じ運用。
+  //   プラグイン終了時に store.close() で解放される）
+  deps.store.onSave(() => {
     if (deps.store.load().tts.inputAi?.enabled === false) {
       document.querySelectorAll(`[${INPUT_MARK}]`).forEach((el) => el.remove());
     } else {
@@ -109,7 +111,6 @@ export function setupInputAiReadButton(deps: InputAiReadDeps): () => void {
   });
 
   return () => {
-    offSave();
     observer.disconnect();
     document.querySelectorAll(`[${INPUT_MARK}]`).forEach((el) => el.remove());
   };
