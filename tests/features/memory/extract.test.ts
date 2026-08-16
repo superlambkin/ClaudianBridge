@@ -36,6 +36,26 @@ describe('extractMessages', () => {
     expect(msgs!.map((m) => m.role)).toEqual(['user', 'assistant', 'user', 'assistant']);
   });
 
+  it('conversation: グループ/コンテナにネストされたメッセージもドキュメント順で返す', () => {
+    const root = document.createElement('div');
+    root.className = 'claudian-messages';
+    root.innerHTML = `
+      <div class="group">
+        <div class="claudian-message-user"><div class="claudian-message-content"><p>Q1</p></div></div>
+        <div class="claudian-message-assistant"><div class="claudian-message-content"><h2>A1</h2></div></div>
+      </div>
+      <div class="group">
+        <div class="claudian-message-user"><div class="claudian-message-content"><p>Q2</p></div></div>
+        <div class="claudian-message-assistant"><div class="claudian-message-content"><h2>A2</h2></div></div>
+      </div>
+    `;
+    const msgs = extractMessages('conversation', root);
+    expect(msgs).not.toBeNull();
+    expect(msgs!.map((m) => m.role)).toEqual(['user', 'assistant', 'user', 'assistant']);
+    expect((msgs![1].element as HTMLElement).textContent).toContain('A1');
+    expect((msgs![3].element as HTMLElement).textContent).toContain('A2');
+  });
+
   it('assistant が無ければ null', () => {
     const root = document.createElement('div');
     root.className = 'claudian-messages';

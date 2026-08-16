@@ -22,10 +22,14 @@ export function extractMessages(scope: MemoryScope, messagesEl: Element): Extrac
   if (assistants.length === 0) return null;
 
   if (scope === 'conversation') {
+    // 直下子要素だけでなくグループ/コンテナにネストされたメッセージも拾うため
+    // 深さ無制限の querySelectorAll を使う（返り値はドキュメント順）。
     const out: ExtractedMessage[] = [];
-    for (const el of Array.from(messagesEl.children)) {
-      if (el.classList.contains('claudian-message-user')) out.push({ role: 'user', element: contentOf(el) });
-      else if (el.classList.contains('claudian-message-assistant')) out.push({ role: 'assistant', element: contentOf(el) });
+    for (const el of Array.from(messagesEl.querySelectorAll(`${USER_MESSAGE_SELECTOR}, ${ASSISTANT_MESSAGE_SELECTOR}`))) {
+      out.push({
+        role: el.classList.contains('claudian-message-user') ? 'user' : 'assistant',
+        element: contentOf(el),
+      });
     }
     return out.length > 0 ? out : null;
   }
