@@ -589,6 +589,16 @@ describe('tts.chunkMaxChars (v0.18 エンジン別マップ)', () => {
     expect(cfg.tts.chunkMaxChars).toEqual({ edge: 2000, webspeech: 50, plachta: 140 });
   });
 
+  it('既存 number が範囲外でもクランプされる（0 → 50）', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge', chunkMaxChars: 0 } });
+    expect(cfg.tts.chunkMaxChars).toEqual({ edge: 500, webspeech: 50, plachta: 50 });
+  });
+
+  it('既存 number が範囲外でもクランプされる（200 → 140）', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge', chunkMaxChars: 200 } });
+    expect(cfg.tts.chunkMaxChars).toEqual({ edge: 500, webspeech: 140, plachta: 140 });
+  });
+
   it('validate がエンジン別の値域を検証する', () => {
     const bad = normalizeClaudianBridgeSettings({});
     (bad.tts.chunkMaxChars as { edge: unknown }).edge = 50; // 100 未満

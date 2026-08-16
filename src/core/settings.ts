@@ -666,7 +666,10 @@ function clampNum(v: unknown, min: number, max: number, def: number): number {
 
 function normalizeTtsChunkMaxChars(raw: unknown): TtsChunkMaxChars {
   // v0.18.0: 既存 number（v0.17）は webspeech/plachta に引き継ぎ・edge は 500 に初期化
-  const legacy = typeof raw === 'number' ? raw : undefined;
+  // 範囲外の legacy number は先にクランプ（未クランプのまま fallback に使うと validate で拒否される）
+  const legacy = typeof raw === 'number'
+    ? clampNum(raw, CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, DEFAULT_CHUNK_MAX_CHARS)
+    : undefined;
   const obj = (typeof raw === 'object' && raw !== null) ? raw as Partial<TtsChunkMaxChars> : {};
   return {
     edge: clampNum(obj.edge, EDGE_CHUNK_MAX_CHARS_MIN, EDGE_CHUNK_MAX_CHARS_MAX, DEFAULT_EDGE_CHUNK_MAX_CHARS),
