@@ -194,6 +194,8 @@ export interface SpeechFilterOptions {
   table: boolean;
   code: boolean;
   thinking: boolean;
+  /** v0.18.1: ツール呼び出し（.claudian-tool-call）を読むか（false=除外） */
+  toolCommands: boolean;
 }
 
 export const DEFAULT_SPEECH_FILTER_OPTIONS: SpeechFilterOptions = {
@@ -205,6 +207,7 @@ export const DEFAULT_SPEECH_FILTER_OPTIONS: SpeechFilterOptions = {
   table: true,
   code: false,
   thinking: false,
+  toolCommands: false, // デフォルト: ツール呼び出しは読まない
 };
 
 export type TtsSpeechFilterSection = 'selection' | 'autoRead' | 'message' | 'inputAi';
@@ -773,7 +776,7 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   for (const sec of ['selection', 'autoRead', 'message', 'inputAi'] as const) {
     const f = cfg.tts.speechFilter?.[sec];
     if (typeof f !== 'object' || f === null) return `tts.speechFilter.${sec} はオブジェクトである必要があります`;
-    for (const k of ['emoji', 'kaomoji', 'ascii_emoticon', 'emoji_shortcode', 'callout', 'table', 'code', 'thinking'] as const) {
+    for (const k of ['emoji', 'kaomoji', 'ascii_emoticon', 'emoji_shortcode', 'callout', 'table', 'code', 'thinking', 'toolCommands'] as const) {
       if (typeof f[k] !== 'boolean') return `tts.speechFilter.${sec}.${k} は boolean である必要があります`;
     }
   }

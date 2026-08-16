@@ -513,7 +513,7 @@ describe('memory settings', () => {
 describe('tts.speechFilter (v0.17 仕様改良)', () => {
   it('未設定時は speechFilter デフォルト（table のみ ON）を補完する', () => {
     const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge' } });
-    expect(cfg.tts.speechFilter.selection).toEqual({ emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false, callout: false, table: true, code: false, thinking: false });
+    expect(cfg.tts.speechFilter.selection).toEqual({ emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false, callout: false, table: true, code: false, thinking: false, toolCommands: false });
   });
 
   it('speechFilter の各タイプを保持する', () => {
@@ -561,6 +561,25 @@ describe('tts.speechFilter (v0.17 仕様改良)', () => {
     const bad2 = normalizeClaudianBridgeSettings({});
     (bad2.tts.speechFilter.selection as { emoji: unknown }).emoji = 'x';
     expect(validateClaudianBridgeSettings(bad2)).toContain('tts.speechFilter');
+  });
+});
+
+describe('tts.speechFilter.toolCommands (v0.18.1)', () => {
+  it('toolCommands はデフォルト false（未設定時に補完される）', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge' } });
+    expect(cfg.tts.speechFilter.selection.toolCommands).toBe(false);
+  });
+
+  it('toolCommands: true を保持する', () => {
+    const raw = { tts: { enabled: true, engine: 'edge', speechFilter: { selection: { toolCommands: true } } } };
+    const cfg = normalizeClaudianBridgeSettings(raw as never);
+    expect(cfg.tts.speechFilter.selection.toolCommands).toBe(true);
+  });
+
+  it('validate が toolCommands の型を検証する', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    (cfg.tts.speechFilter.selection as unknown as { toolCommands: unknown }).toolCommands = 'x';
+    expect(validateClaudianBridgeSettings(cfg)).toContain('tts.speechFilter.selection.toolCommands');
   });
 });
 

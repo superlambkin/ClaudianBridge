@@ -134,7 +134,7 @@ export function extractReportText(
   const filter: SpeechFilterOptions = opts?.filter ?? {
     emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true,
     callout: !(opts?.excludeCallouts ?? true),
-    table: false, code: false, thinking: false,
+    table: false, code: false, thinking: false, toolCommands: false,
   };
   const speechExclude = buildSpeechExclude(filter);
   const headerSpeechExclude = buildHeaderSpeechExclude(filter);
