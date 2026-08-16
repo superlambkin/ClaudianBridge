@@ -1,5 +1,5 @@
 import type { ClaudianBridgeSettings } from '../core/settings';
-import { DEFAULT_OBJECT_EXCLUDE_SELECTORS, DEFAULT_CHUNK_MAX_CHARS, DEFAULT_SPEECH_FILTER_OPTIONS } from '../core/settings';
+import { DEFAULT_OBJECT_EXCLUDE_SELECTORS, DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS, DEFAULT_SPEECH_FILTER_OPTIONS } from '../core/settings';
 
 export function convertFromClaudianSelectionBridge(raw: unknown): Partial<ClaudianBridgeSettings> | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -41,7 +41,7 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
           en: typeof webVoices.en === 'string' ? (webVoices.en as string) : '',
         },
       },
-      chunkMaxChars: DEFAULT_CHUNK_MAX_CHARS,
+      chunkMaxChars: { edge: DEFAULT_EDGE_CHUNK_MAX_CHARS, webspeech: DEFAULT_CHUNK_MAX_CHARS, plachta: DEFAULT_CHUNK_MAX_CHARS },
       speechFilter: {
         selection: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
         autoRead: { ...DEFAULT_SPEECH_FILTER_OPTIONS },

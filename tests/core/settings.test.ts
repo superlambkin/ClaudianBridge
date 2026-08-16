@@ -510,18 +510,10 @@ describe('memory settings', () => {
   });
 });
 
-describe('tts.chunkMaxChars / tts.speechFilter (v0.17 仕様改良)', () => {
-  it('未設定時はデフォルト（chunkMaxChars=140・speechFilter は table のみ ON）を補完する', () => {
+describe('tts.speechFilter (v0.17 仕様改良)', () => {
+  it('未設定時は speechFilter デフォルト（table のみ ON）を補完する', () => {
     const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge' } });
-    expect(cfg.tts.chunkMaxChars).toBe(140);
     expect(cfg.tts.speechFilter.selection).toEqual({ emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false, callout: false, table: true, code: false, thinking: false });
-  });
-
-  it('chunkMaxChars は 50〜140 にクランプされる', () => {
-    const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge', chunkMaxChars: 999 } });
-    expect(cfg.tts.chunkMaxChars).toBe(140);
-    const cfg2 = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge', chunkMaxChars: 10 } });
-    expect(cfg2.tts.chunkMaxChars).toBe(50);
   });
 
   it('speechFilter の各タイプを保持する', () => {
@@ -565,12 +557,41 @@ describe('tts.chunkMaxChars / tts.speechFilter (v0.17 仕様改良)', () => {
     expect(cfg.tts.speechFilter.selection.callout).toBe(false);    // 旧 true(除外) → 新 false(読まない)
   });
 
-  it('validate が chunkMaxChars と speechFilter を検証する', () => {
-    const bad = normalizeClaudianBridgeSettings({});
-    (bad.tts.chunkMaxChars as unknown) = 30;
-    expect(validateClaudianBridgeSettings(bad)).toContain('tts.chunkMaxChars');
+  it('validate が speechFilter を検証する', () => {
     const bad2 = normalizeClaudianBridgeSettings({});
     (bad2.tts.speechFilter.selection as { emoji: unknown }).emoji = 'x';
     expect(validateClaudianBridgeSettings(bad2)).toContain('tts.speechFilter');
+  });
+});
+
+describe('tts.chunkMaxChars (v0.18 エンジン別マップ)', () => {
+  it('未設定時はデフォルト（edge=500・webspeech=140・plachta=140）を補完する', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge' } });
+    expect(cfg.tts.chunkMaxChars).toEqual({ edge: 500, webspeech: 140, plachta: 140 });
+  });
+
+  it('既存 number（v0.17）は webspeech/plachta に引き継ぎ・edge は 500 に初期化する', () => {
+    const cfg = normalizeClaudianBridgeSettings({ tts: { enabled: true, engine: 'edge', chunkMaxChars: 100 } });
+    expect(cfg.tts.chunkMaxChars).toEqual({ edge: 500, webspeech: 100, plachta: 100 });
+  });
+
+  it('エンジン別オブジェクトを保持する', () => {
+    const cfg = normalizeClaudianBridgeSettings({
+      tts: { enabled: true, engine: 'edge', chunkMaxChars: { edge: 800, webspeech: 100, plachta: 60 } },
+    });
+    expect(cfg.tts.chunkMaxChars).toEqual({ edge: 800, webspeech: 100, plachta: 60 });
+  });
+
+  it('edge は 100〜2000・他は 50〜140 にクランプされる', () => {
+    const cfg = normalizeClaudianBridgeSettings({
+      tts: { enabled: true, engine: 'edge', chunkMaxChars: { edge: 9999, webspeech: 10, plachta: 300 } },
+    });
+    expect(cfg.tts.chunkMaxChars).toEqual({ edge: 2000, webspeech: 50, plachta: 140 });
+  });
+
+  it('validate がエンジン別の値域を検証する', () => {
+    const bad = normalizeClaudianBridgeSettings({});
+    (bad.tts.chunkMaxChars as { edge: unknown }).edge = 50; // 100 未満
+    expect(validateClaudianBridgeSettings(bad)).toContain('tts.chunkMaxChars.edge');
   });
 });

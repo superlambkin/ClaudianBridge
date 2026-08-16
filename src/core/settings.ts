@@ -172,6 +172,18 @@ export const CHUNK_MAX_CHARS_MIN = 50;
 export const CHUNK_MAX_CHARS_MAX = 140;
 export const DEFAULT_CHUNK_MAX_CHARS = 140;
 
+// === v0.18.0: エンジン別チャンク上限 ===
+export const EDGE_CHUNK_MAX_CHARS_MIN = 100;
+export const EDGE_CHUNK_MAX_CHARS_MAX = 2000;
+export const DEFAULT_EDGE_CHUNK_MAX_CHARS = 500;
+
+/** v0.18.0: エンジン別チャンク上限（edge: 100〜2000 既定500 / webspeech・plachta: 50〜140 既定140） */
+export interface TtsChunkMaxChars {
+  edge: number;
+  webspeech: number;
+  plachta: number;
+}
+
 /** v0.17.0: 読み上げタイプ別フィルタ（チェック=含めて読む。true の項目は除去しない） */
 export interface SpeechFilterOptions {
   emoji: boolean;
@@ -444,8 +456,8 @@ export interface ClaudianBridgeSettings {
     excludeCallouts?: boolean;
     /** v0.16.0: AI読み上げボタン（入力文をAIで整形して読み上げ）。 */
     inputAi?: { enabled: boolean };
-    /** v0.17.0: 全エンジン共通の1チャンク上限（50〜140・既定 140） */
-    chunkMaxChars: number;
+    /** v0.18.0: エンジン別の1チャンク上限 */
+    chunkMaxChars: TtsChunkMaxChars;
     /** v0.17.0: 読み上げタイプ別フィルタ（チェック=含めて読む） */
     speechFilter: TtsSpeechFilters;
   };
@@ -488,7 +500,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     autoRead: { ...DEFAULT_TTS_AUTO_READ_SETTINGS },
     excludeCallouts: true,
     inputAi: { enabled: true },
-    chunkMaxChars: DEFAULT_CHUNK_MAX_CHARS,
+    chunkMaxChars: { edge: DEFAULT_EDGE_CHUNK_MAX_CHARS, webspeech: DEFAULT_CHUNK_MAX_CHARS, plachta: DEFAULT_CHUNK_MAX_CHARS },
     speechFilter: {
       selection: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
       autoRead: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
@@ -637,7 +649,7 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       inputAi: {
         enabled: typeof r.tts?.inputAi?.enabled === 'boolean' ? r.tts.inputAi.enabled : true,
       },
-      chunkMaxChars: clampChunkMaxChars(r.tts?.chunkMaxChars),
+      chunkMaxChars: normalizeTtsChunkMaxChars(r.tts?.chunkMaxChars),
       speechFilter: normalizeTtsSpeechFilters(r),
     },
     office: normalizeOfficeSettings(r.office),
@@ -647,9 +659,20 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
   };
 }
 
-function clampChunkMaxChars(v: unknown): number {
-  if (typeof v !== 'number' || !Number.isFinite(v)) return DEFAULT_CHUNK_MAX_CHARS;
-  return Math.max(CHUNK_MAX_CHARS_MIN, Math.min(CHUNK_MAX_CHARS_MAX, Math.round(v)));
+function clampNum(v: unknown, min: number, max: number, def: number): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return def;
+  return Math.max(min, Math.min(max, Math.round(v)));
+}
+
+function normalizeTtsChunkMaxChars(raw: unknown): TtsChunkMaxChars {
+  // v0.18.0: 既存 number（v0.17）は webspeech/plachta に引き継ぎ・edge は 500 に初期化
+  const legacy = typeof raw === 'number' ? raw : undefined;
+  const obj = (typeof raw === 'object' && raw !== null) ? raw as Partial<TtsChunkMaxChars> : {};
+  return {
+    edge: clampNum(obj.edge, EDGE_CHUNK_MAX_CHARS_MIN, EDGE_CHUNK_MAX_CHARS_MAX, DEFAULT_EDGE_CHUNK_MAX_CHARS),
+    webspeech: clampNum(obj.webspeech, CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, legacy ?? DEFAULT_CHUNK_MAX_CHARS),
+    plachta: clampNum(obj.plachta, CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, legacy ?? DEFAULT_CHUNK_MAX_CHARS),
+  };
 }
 
 function normalizeSpeechFilterOptions(
@@ -732,7 +755,17 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
     if (cfg.tts.autoRead.scope !== 'header' && cfg.tts.autoRead.scope !== 'full') return `tts.autoRead.scope が未知です: ${cfg.tts.autoRead.scope}`;
   }
   if (cfg.tts.inputAi !== undefined && typeof cfg.tts.inputAi.enabled !== 'boolean') return 'tts.inputAi.enabled は boolean である必要があります';
-  if (typeof cfg.tts.chunkMaxChars !== 'number' || cfg.tts.chunkMaxChars < CHUNK_MAX_CHARS_MIN || cfg.tts.chunkMaxChars > CHUNK_MAX_CHARS_MAX) return 'tts.chunkMaxChars は 50〜140 の数値である必要があります';
+  if (typeof cfg.tts.chunkMaxChars !== 'object' || cfg.tts.chunkMaxChars === null) return 'tts.chunkMaxChars はオブジェクトである必要があります';
+  const chunkRanges: Record<keyof TtsChunkMaxChars, [number, number]> = {
+    edge: [EDGE_CHUNK_MAX_CHARS_MIN, EDGE_CHUNK_MAX_CHARS_MAX],
+    webspeech: [CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX],
+    plachta: [CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX],
+  };
+  for (const k of ['edge', 'webspeech', 'plachta'] as const) {
+    const [min, max] = chunkRanges[k];
+    const v = cfg.tts.chunkMaxChars?.[k];
+    if (typeof v !== 'number' || v < min || v > max) return `tts.chunkMaxChars.${k} は ${min}〜${max} の数値である必要があります`;
+  }
   if (typeof cfg.tts.speechFilter !== 'object' || cfg.tts.speechFilter === null) return 'tts.speechFilter はオブジェクトである必要があります';
   for (const sec of ['selection', 'autoRead', 'message', 'inputAi'] as const) {
     const f = cfg.tts.speechFilter?.[sec];
