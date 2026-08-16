@@ -164,7 +164,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     expect(child.stdin.end).toHaveBeenCalled();
   });
 
-  it('speech_filter が有効なら emoji を除去してから speak に渡す（v0.12.1）', async () => {
+  it('addTextToTTS はフィルタを適用しない（speakText 側で適用済み・v0.17.0）', async () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
     const settings = makeSettings('edge');
@@ -174,17 +174,17 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     child.emit('close', 0);
     await p;
 
+    // emoji が残ったままでもチャンク化・再生に渡る（フィルタは speakText の責務）
     const written = child.stdin.write.mock.calls[0][0] as string;
-    expect(written).not.toContain('📢');
-    expect(written).not.toContain(':tada:');
+    expect(written).toContain('📢');
+    expect(written).toContain(':tada:');
     expect(written).toContain('タスク完了しました');
   });
 
-  it('speech_filter が OFF ならテキストをそのまま渡す（v0.12.1）', async () => {
+  it('addTextToTTS は speech_filter 未設定でもテキストをそのまま渡す（v0.17.0）', async () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
-    const settings = makeSettings('edge');
-    settings.cli = { speech_filter: { emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false } };
+    const settings = makeSettings('edge'); // cli 未設定 → 旧実装なら全最適化 ON で除去される
 
     const p = addTextToTTS(null as never, '📢 タスク完了しました :tada:', settings);
     child.emit('close', 0);
@@ -193,6 +193,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     const written = child.stdin.write.mock.calls[0][0] as string;
     expect(written).toContain('📢');
     expect(written).toContain(':tada:');
+    expect(written).toContain('タスク完了しました');
   });
 
   it('exit 0 + empty stderr/stdout → true（エラー通知なし・プログレスは表示される）', async () => {
@@ -399,18 +400,20 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     expect(vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0].length).toBe(1);
   });
 
-  it('TC-L03: edge はチャンキングしない（制限 null）', async () => {
+  it('TC-L03: edge も chunkMaxChars（既定140）でチャンク分割される（v0.17.0）', async () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
-    const longText = 'a'.repeat(5000);
-    const p = addTextToTTS(null as never, longText, makeSettings('edge'));
-    child.emit('close', 0);
+    const p = addTextToTTS(null as never, 'a'.repeat(141), makeSettings('edge'));
+    child.emit('close', 0); // 1 チャンク目
+    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
+    child.emit('close', 0); // 2 チャンク目
     await p;
-    expect(spawnMock).toHaveBeenCalledTimes(1);
-    expect(child.stdin.write).toHaveBeenCalledWith(longText);
+    expect(spawnMock).toHaveBeenCalledTimes(2);
+    expect(child.stdin.write).toHaveBeenNthCalledWith(1, 'a'.repeat(140));
+    expect(child.stdin.write).toHaveBeenNthCalledWith(2, 'a');
   });
 
-  it('TC-L04: webspeech 450字 → 3チャンク(200/200/50)で連続再生', async () => {
+  it('TC-L04: webspeech 450字 → 4チャンク(140/140/140/30)で連続再生（v0.17.0）', async () => {
     const { synth, fireEnd } = mockWindowWithSpeech();
     const notice = vi.fn();
     const p = addTextToTTS(null as never, 'こ'.repeat(450), makeSettings('webspeech'));
@@ -420,10 +423,21 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     fireEnd();
     await vi.waitFor(() => expect(synth.speak).toHaveBeenCalledTimes(3));
     fireEnd();
+    await vi.waitFor(() => expect(synth.speak).toHaveBeenCalledTimes(4));
+    fireEnd();
     await expect(p).resolves.toBe(true);
-    expect(synth.speak).toHaveBeenCalledTimes(3);
+    expect(synth.speak).toHaveBeenCalledTimes(4);
     const lengths = (synth.speak.mock.calls as unknown[][]).map((c) => (c[0] as { text: string }).text.length);
-    expect(lengths).toEqual([200, 200, 50]);
+    expect(lengths).toEqual([140, 140, 140, 30]);
     expect(notice).not.toHaveBeenCalled();
+  });
+
+  it('chunkMaxChars=140 で plachta がチャンク分割される（設定値を使用・v0.17.0）', async () => {
+    const s = makePlachtaSettings();
+    s.chunkMaxChars = 140;
+    await addTextToTTS(null as never, 'あ'.repeat(141), s);
+    expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
+    const chunks = vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0];
+    expect(chunks.length).toBe(2);
   });
 });
