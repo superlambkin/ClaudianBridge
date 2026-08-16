@@ -130,17 +130,23 @@ function readTextWithHidden(el: Element, hide: Element[], excludeSel: string): s
   }
 }
 
+/** v0.19.0: 思考・ツールブロックは構造的に非表示（innerText の display 依存を排除する二重防護） */
+export function collectStructuralExcludes(el: Element): Element[] {
+  return Array.from(el.querySelectorAll(`${THINKING_BLOCK_SELECTOR}, ${TOOL_CALL_SELECTOR}`));
+}
+
 /**
  * v0.14.1: 最初の見出しより前の「導入文」を取得する（ヘッダースコープの「結果全体まとめ」）。
  * 📢 が無い応答では、見出し以降（詳細・次のアクション）はヘッダーで読まない。
  * 呼び出し側で見出しの存在を確認済み。
  */
 function readIntroText(el: Element, excludeSel: string): string {
-  const firstHeading = el.querySelector(HEADING_SELECTOR)!;
-  const after: Element[] = [];
+  const firstHeading = el.querySelector(HEADING_SELECTOR);
+  if (!firstHeading) return '';
+  const hide = collectStructuralExcludes(el);
   let sib: Element | null = firstHeading;
-  while (sib) { after.push(sib); sib = sib.nextElementSibling; }
-  return readTextWithHidden(el, after, excludeSel);
+  while (sib) { hide.push(sib); sib = sib.nextElementSibling; }
+  return readTextWithHidden(el, hide, excludeSel);
 }
 
 /**
@@ -148,10 +154,10 @@ function readIntroText(el: Element, excludeSel: string): string {
  * データ表・思考ブロック・ボタンは除外（まとめとして読み上げる）。
  */
 function readSectionText(el: Element, heading: Element, excludeSel: string): string {
-  const before: Element[] = [];
+  const hide = collectStructuralExcludes(el);
   let prev: Element | null = heading.previousElementSibling;
-  while (prev) { before.push(prev); prev = prev.previousElementSibling; }
-  return readTextWithHidden(el, before, excludeSel);
+  while (prev) { hide.push(prev); prev = prev.previousElementSibling; }
+  return readTextWithHidden(el, hide, excludeSel);
 }
 
 /**

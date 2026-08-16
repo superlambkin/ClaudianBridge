@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { extractReportText, AUTO_READ_MARK, buildSpeechExclude, readVisibleTextExcluding, detectFinalAnswerState } from '../../../src/features/tts/extract-report';
+import { extractReportText, AUTO_READ_MARK, buildSpeechExclude, readVisibleTextExcluding, detectFinalAnswerState, collectStructuralExcludes } from '../../../src/features/tts/extract-report';
 
 const REPORT_HTML = `
   <div class="claudian-message-assistant">
@@ -270,5 +270,29 @@ describe('extractTextBlocks (v0.19.0 構造的除外)', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>旧DOMのテキスト</p></div></div>`;
     const text = extractReportText(makeMessages(html), 'full');
     expect(text).toContain('旧DOMのテキスト');
+  });
+});
+
+describe('collectStructuralExcludes (v0.19.0 防御的強化)', () => {
+  it('思考・ツールブロックを返す（テキストブロックは含まない）', () => {
+    const el = document.createElement('div');
+    el.innerHTML = '<div class="claudian-thinking-block"></div><div class="claudian-text-block"></div><div class="claudian-tool-call"></div>';
+    const els = collectStructuralExcludes(el);
+    expect(els.length).toBe(2);
+    expect(els[0].className).toBe('claudian-thinking-block');
+    expect(els[1].className).toBe('claudian-tool-call');
+  });
+
+  it('header scope: 思考・ツール混在メッセージでも 📢 のみ読む（回帰）', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
+      <div class="claudian-thinking-block"><div class="claudian-thinking-content">思考</div></div>
+      <div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div><div class="claudian-tool-summary">git status</div></div>
+      <div class="claudian-text-block"><blockquote><p>📢 完了報告</p></blockquote></div>
+    </div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).toContain('📢 完了報告');
+    expect(text).not.toContain('思考');
+    expect(text).not.toContain('Tool Bash');
+    expect(text).not.toContain('git status');
   });
 });
