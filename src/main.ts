@@ -8,6 +8,7 @@ import { addTextToTTS } from './features/tts/core';
 import { setupAutoReadTTS } from './features/tts/auto-read';
 import { setupMessageReadButtons } from './features/tts/message-read-button';
 import { setupInputAiReadButton } from './features/tts/input-ai-read-button';
+import { setupMdFileRead } from './features/tts/md-file-read';
 import { setupMdSaveButton } from './features/memory/md-save-button';
 import { setupMessageMdSaveButtons } from './features/memory/message-md-save-button';
 import { polishInstruction } from './features/llm/claude-cli';
@@ -291,6 +292,10 @@ export default class ClaudianBridgePlugin extends Plugin {
         })
       );
       diag('file-menu registered');
+
+      // ★ v0.17.0: MD ファイル右クリック「Add to TTS」
+      this.register(setupMdFileRead(this.app, this.store));
+      diag('md-file-read registered');
 
       // 6. Chroma Inspector 統合: registerView + ribbon/command
       // chroma-inspector プラグインは disableLegacyPluginsOnce() で先に無効化済みなので
