@@ -99,6 +99,23 @@ export interface LocaleStrings {
   // v0.16.0: AI読み上げボタン
   ttsInputAiEnabled: string;
   ttsInputAiEnabledDesc: string;
+  // v0.17.0: TTS 読み上げ仕様改良
+  ttsChunkMaxChars: string;
+  ttsChunkMaxCharsDesc: string;
+  ttsSpeechFilterHeading: string;
+  ttsSpeechFilterHint: string;
+  ttsSpeechFilterTypeSelection: string;
+  ttsSpeechFilterTypeAutoRead: string;
+  ttsSpeechFilterTypeMessage: string;
+  ttsSpeechFilterTypeInputAi: string;
+  ttsSpeechFilterEmoji: string;
+  ttsSpeechFilterKaomoji: string;
+  ttsSpeechFilterAscii: string;
+  ttsSpeechFilterShortcode: string;
+  ttsSpeechFilterCallout: string;
+  ttsSpeechFilterTable: string;
+  ttsSpeechFilterCode: string;
+  ttsSpeechFilterThinking: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -338,6 +355,22 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsFullTextBtnOff: '📄 ヘッダー',
     ttsInputAiEnabled: 'AI読み上げボタン',
     ttsInputAiEnabledDesc: 'チャット入力欄の✨ボタン:入力文をAIで指令文に整形し、入力欄を上書きして読み上げます',
+    ttsChunkMaxChars: '1チャンクの文字数',
+    ttsChunkMaxCharsDesc: '長文を分割する1チャンクあたりの上限（50〜140 文字）。すべてのエンジンに適用',
+    ttsSpeechFilterHeading: '読み上げ内容フィルタ（タイプ別）',
+    ttsSpeechFilterHint: 'チェック=読み上げに含める。チェックなしの項目は読み上げから除外します',
+    ttsSpeechFilterTypeSelection: '① 選択テキスト',
+    ttsSpeechFilterTypeAutoRead: '② 自動読み上げ',
+    ttsSpeechFilterTypeMessage: '④ メッセージ読上げ',
+    ttsSpeechFilterTypeInputAi: '⑤ AI読み上げ',
+    ttsSpeechFilterEmoji: '絵文字',
+    ttsSpeechFilterKaomoji: '顔文字',
+    ttsSpeechFilterAscii: 'ASCII 表情',
+    ttsSpeechFilterShortcode: 'emoji 短コード',
+    ttsSpeechFilterCallout: 'コールアウト',
+    ttsSpeechFilterTable: 'テーブル',
+    ttsSpeechFilterCode: 'コードブロック',
+    ttsSpeechFilterThinking: '思考ブロック',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -573,6 +606,22 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsFullTextBtnOff: '📄 Header',
     ttsInputAiEnabled: 'AI read-aloud button',
     ttsInputAiEnabledDesc: '✨ button in the chat input toolbar: polishes your input into a clear instruction, overwrites the input, and reads it aloud',
+    ttsChunkMaxChars: 'Chunk character limit',
+    ttsChunkMaxCharsDesc: 'Max characters per chunk when splitting long text (50-140). Applies to all engines',
+    ttsSpeechFilterHeading: 'Read-aloud content filter (per type)',
+    ttsSpeechFilterHint: 'Checked = include in reading. Unchecked items are excluded',
+    ttsSpeechFilterTypeSelection: '① Selection',
+    ttsSpeechFilterTypeAutoRead: '② Auto read',
+    ttsSpeechFilterTypeMessage: '④ Message read',
+    ttsSpeechFilterTypeInputAi: '⑤ AI read',
+    ttsSpeechFilterEmoji: 'Emoji',
+    ttsSpeechFilterKaomoji: 'Kaomoji',
+    ttsSpeechFilterAscii: 'ASCII emoticon',
+    ttsSpeechFilterShortcode: 'Emoji shortcode',
+    ttsSpeechFilterCallout: 'Callout',
+    ttsSpeechFilterTable: 'Table',
+    ttsSpeechFilterCode: 'Code block',
+    ttsSpeechFilterThinking: 'Thinking block',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -803,6 +852,22 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsFullTextBtnOff: '📄 摘要',
     ttsInputAiEnabled: 'AI朗读按钮',
     ttsInputAiEnabledDesc: '聊天输入栏的✨按钮：用AI将输入整理为清晰指令，覆盖输入栏并朗读',
+    ttsChunkMaxChars: '分块字数',
+    ttsChunkMaxCharsDesc: '长文分割时每块的最大字符数（50-140）。适用于所有引擎',
+    ttsSpeechFilterHeading: '朗读内容过滤（按类型）',
+    ttsSpeechFilterHint: '勾选=朗读时包含。未勾选的项目从朗读中排除',
+    ttsSpeechFilterTypeSelection: '① 选择文本',
+    ttsSpeechFilterTypeAutoRead: '② 自动朗读',
+    ttsSpeechFilterTypeMessage: '④ 消息朗读',
+    ttsSpeechFilterTypeInputAi: '⑤ AI朗读',
+    ttsSpeechFilterEmoji: '表情符号',
+    ttsSpeechFilterKaomoji: '颜文字',
+    ttsSpeechFilterAscii: 'ASCII 表情',
+    ttsSpeechFilterShortcode: 'Emoji 短代码',
+    ttsSpeechFilterCallout: 'Callout',
+    ttsSpeechFilterTable: '表格',
+    ttsSpeechFilterCode: '代码块',
+    ttsSpeechFilterThinking: '思考块',
     ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
     ttsVoiceZh: '中文 (zh)',
     ttsVoiceJa: '日语 (ja)',

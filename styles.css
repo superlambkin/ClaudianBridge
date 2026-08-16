@@ -403,3 +403,15 @@
 .claudian-text-md-save-btn:hover {
   color: var(--text-normal);
 }
+
+/* v0.17.0: 読み上げ内容フィルタ表 */
+.cb-speech-filter-table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+.cb-speech-filter-table th, .cb-speech-filter-table td {
+  border: 1px solid var(--background-modifier-border);
+  padding: 4px 8px;
+  text-align: center;
+  font-size: 0.85em;
+}
+.cb-speech-filter-table td:first-child { text-align: left; }
+.cb-speech-filter-cell .setting-item { padding: 0; border: none; }
+.cb-setting-hint { color: var(--text-muted); font-size: 0.85em; }

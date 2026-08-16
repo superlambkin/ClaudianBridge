@@ -14,6 +14,8 @@ import {
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
 import type { TtsCliSettings, TtsAutoReadSettings } from '../core/settings';
 import { withFullTextState } from '../core/settings';
+import { CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX } from '../core/settings';
+import type { TtsSpeechFilterSection, SpeechFilterOptions } from '../core/settings';
 
 const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   zh: ['xiaoxiao', 'yunxi', 'yunyang', 'yunjian', 'xiaoyi', 'yunxia'],
@@ -284,6 +286,74 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
           }
         }),
       );
+
+    // 5.6 v0.17.0: チャンク上限（全エンジン共通）
+    new Setting(containerEl)
+      .setName(s.ttsChunkMaxChars)
+      .setDesc(s.ttsChunkMaxCharsDesc)
+      .addSlider((sl) => sl
+        .setLimits(CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, 5)
+        .setValue(cfg.tts.chunkMaxChars ?? 140)
+        .setDynamicTooltip()
+        .onChange(async (v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, chunkMaxChars: v } });
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          }
+        }),
+      );
+
+    // 5.7 v0.17.0: 読み上げ内容フィルタ（タイプ別・チェック=読む）
+    {
+      containerEl.createEl('h3', { text: s.ttsSpeechFilterHeading });
+      containerEl.createEl('p', { text: s.ttsSpeechFilterHint, cls: 'cb-setting-hint' });
+      const FILTER_ROWS: Array<{ key: keyof SpeechFilterOptions; label: string }> = [
+        { key: 'emoji', label: s.ttsSpeechFilterEmoji },
+        { key: 'kaomoji', label: s.ttsSpeechFilterKaomoji },
+        { key: 'ascii_emoticon', label: s.ttsSpeechFilterAscii },
+        { key: 'emoji_shortcode', label: s.ttsSpeechFilterShortcode },
+        { key: 'callout', label: s.ttsSpeechFilterCallout },
+        { key: 'table', label: s.ttsSpeechFilterTable },
+        { key: 'code', label: s.ttsSpeechFilterCode },
+        { key: 'thinking', label: s.ttsSpeechFilterThinking },
+      ];
+      const TYPES: Array<{ key: TtsSpeechFilterSection; label: string }> = [
+        { key: 'selection', label: s.ttsSpeechFilterTypeSelection },
+        { key: 'autoRead', label: s.ttsSpeechFilterTypeAutoRead },
+        { key: 'message', label: s.ttsSpeechFilterTypeMessage },
+        { key: 'inputAi', label: s.ttsSpeechFilterTypeInputAi },
+      ];
+      const table = containerEl.createEl('table', { cls: 'cb-speech-filter-table' });
+      const thead = table.createEl('thead');
+      const headRow = thead.createEl('tr');
+      headRow.createEl('th', { text: '項目' });
+      for (const t of TYPES) headRow.createEl('th', { text: t.label });
+      const tbody = table.createEl('tbody');
+      for (const row of FILTER_ROWS) {
+        const tr = tbody.createEl('tr');
+        tr.createEl('td', { text: row.label });
+        for (const t of TYPES) {
+          const td = tr.createEl('td');
+          const cur = cfg.tts.speechFilter?.[t.key]?.[row.key] ?? false;
+          new Setting(td).setClass('cb-speech-filter-cell').addToggle((tg) => {
+            tg.setValue(cur).onChange(async (v) => {
+              try {
+                const latest = store.load();
+                const sec = latest.tts.speechFilter?.[t.key] ?? { emoji: false, kaomoji: false, ascii_emoticon: false, emoji_shortcode: false, callout: false, table: true, code: false, thinking: false };
+                store.save({
+                  ...latest,
+                  tts: { ...latest.tts, speechFilter: { ...latest.tts.speechFilter, [t.key]: { ...sec, [row.key]: v } } },
+                });
+              } catch (e) {
+                new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              }
+            });
+          });
+        }
+      }
+    }
 
     // 6. v0.10.0: Claude Code CLI 用設定（voice-config.json と同期）
     {
