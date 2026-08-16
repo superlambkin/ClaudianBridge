@@ -24,6 +24,10 @@ describe('convertFromChromaInspector', () => {
       showProgressModal: false,
       enableRawSql: true,
       scriptPath: '',
+      hideInternal: true,
+      ragEnabled: false,
+      ragScriptPath: '',
+      ragConfigPath: '',
     });
   });
 

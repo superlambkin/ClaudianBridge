@@ -290,6 +290,11 @@ export interface ChromaSettings {
   showProgressModal: boolean;
   enableRawSql: boolean;
   scriptPath: string;
+  // v0.20.0: chroma-fs
+  hideInternal: boolean;
+  ragEnabled: boolean;
+  ragScriptPath: string;
+  ragConfigPath: string;
 }
 
 export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
@@ -302,6 +307,10 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
   showProgressModal: true,
   enableRawSql: false,
   scriptPath: '',
+  hideInternal: true,       // chroma_db 内部の非表示 CSS を注入するか
+  ragEnabled: false,        // 右クリック「RAG検索」を有効化するか
+  ragScriptPath: '',        // query.py 絶対パス
+  ragConfigPath: '',        // config.yaml 絶対パス
 };
 
 /** 既定の Python インタプリタ（office / chroma と同じ導出） */
@@ -338,6 +347,10 @@ export function normalizeChromaSettings(raw: unknown): ChromaSettings {
     showProgressModal: typeof r.showProgressModal === 'boolean' ? r.showProgressModal : DEFAULT_CHROMA_SETTINGS.showProgressModal,
     enableRawSql: typeof r.enableRawSql === 'boolean' ? r.enableRawSql : DEFAULT_CHROMA_SETTINGS.enableRawSql,
     scriptPath: typeof r.scriptPath === 'string' ? r.scriptPath : DEFAULT_CHROMA_SETTINGS.scriptPath,
+    hideInternal: typeof r.hideInternal === 'boolean' ? r.hideInternal : DEFAULT_CHROMA_SETTINGS.hideInternal,
+    ragEnabled: typeof r.ragEnabled === 'boolean' ? r.ragEnabled : DEFAULT_CHROMA_SETTINGS.ragEnabled,
+    ragScriptPath: typeof r.ragScriptPath === 'string' ? r.ragScriptPath : DEFAULT_CHROMA_SETTINGS.ragScriptPath,
+    ragConfigPath: typeof r.ragConfigPath === 'string' ? r.ragConfigPath : DEFAULT_CHROMA_SETTINGS.ragConfigPath,
   };
 }
 
@@ -795,6 +808,10 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.chroma.showProgressModal !== 'boolean') return 'chroma.showProgressModal は boolean である必要があります';
   if (typeof cfg.chroma.enableRawSql !== 'boolean') return 'chroma.enableRawSql は boolean である必要があります';
   if (typeof cfg.chroma.scriptPath !== 'string') return 'chroma.scriptPath は文字列である必要があります';
+  if (typeof cfg.chroma.ragScriptPath !== 'string') return 'chroma.ragScriptPath は文字列である必要があります';
+  if (typeof cfg.chroma.ragConfigPath !== 'string') return 'chroma.ragConfigPath は文字列である必要があります';
+  if (typeof cfg.chroma.hideInternal !== 'boolean') return 'chroma.hideInternal は boolean である必要があります';
+  if (typeof cfg.chroma.ragEnabled !== 'boolean') return 'chroma.ragEnabled は boolean である必要があります';
   if (typeof cfg.memory?.enabled !== 'boolean') return 'memory.enabled は boolean である必要があります';
   if (cfg.memory?.scope !== 'pair' && cfg.memory?.scope !== 'conversation') return `memory.scope が未知です: ${cfg.memory?.scope}`;
   if (typeof cfg.memory?.folder !== 'string') return 'memory.folder は文字列である必要があります';

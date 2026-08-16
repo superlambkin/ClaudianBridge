@@ -624,3 +624,39 @@ describe('tts.chunkMaxChars (v0.18 エンジン別マップ)', () => {
     expect(validateClaudianBridgeSettings(bad)).toContain('tts.chunkMaxChars.edge');
   });
 });
+
+describe('chroma-fs settings', () => {
+  it('デフォルト値（hideInternal=true / ragEnabled=false / パス空）を持つ', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.chroma.hideInternal).toBe(true);
+    expect(cfg.chroma.ragEnabled).toBe(false);
+    expect(cfg.chroma.ragScriptPath).toBe('');
+    expect(cfg.chroma.ragConfigPath).toBe('');
+  });
+
+  it('不正値はデフォルトにフォールバックする', () => {
+    const cfg = normalizeClaudianBridgeSettings({
+      chroma: { hideInternal: 'x', ragEnabled: 'y', ragScriptPath: 1, ragConfigPath: 2 } as never,
+    });
+    expect(cfg.chroma.hideInternal).toBe(true);
+    expect(cfg.chroma.ragEnabled).toBe(false);
+    expect(cfg.chroma.ragScriptPath).toBe('');
+    expect(cfg.chroma.ragConfigPath).toBe('');
+  });
+
+  it('有効な値は保持される', () => {
+    const cfg = normalizeClaudianBridgeSettings({
+      chroma: { hideInternal: false, ragEnabled: true, ragScriptPath: 'D:/AI-Agent/word-pdf-rag/query.py', ragConfigPath: 'D:/AI-Agent/word-pdf-rag/config.yaml' },
+    });
+    expect(cfg.chroma.hideInternal).toBe(false);
+    expect(cfg.chroma.ragEnabled).toBe(true);
+    expect(cfg.chroma.ragScriptPath).toBe('D:/AI-Agent/word-pdf-rag/query.py');
+    expect(cfg.chroma.ragConfigPath).toBe('D:/AI-Agent/word-pdf-rag/config.yaml');
+  });
+
+  it('validateClaudianBridgeSettings が ragScriptPath / ragConfigPath を検証する', () => {
+    expect(validateClaudianBridgeSettings(normalizeClaudianBridgeSettings({}))).toBeNull();
+    const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, chroma: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.chroma, ragScriptPath: 1 } } as never;
+    expect(validateClaudianBridgeSettings(bad)).toContain('ragScriptPath');
+  });
+});

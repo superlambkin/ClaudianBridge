@@ -38,6 +38,10 @@ export function convertFromChromaInspector(raw: unknown): Partial<ClaudianBridge
       typeof r.enableRawSql === 'boolean' ? r.enableRawSql : DEFAULT_CHROMA_SETTINGS.enableRawSql,
     scriptPath:
       typeof r.scriptPath === 'string' ? r.scriptPath : DEFAULT_CHROMA_SETTINGS.scriptPath,
+    hideInternal: DEFAULT_CHROMA_SETTINGS.hideInternal,
+    ragEnabled: DEFAULT_CHROMA_SETTINGS.ragEnabled,
+    ragScriptPath: DEFAULT_CHROMA_SETTINGS.ragScriptPath,
+    ragConfigPath: DEFAULT_CHROMA_SETTINGS.ragConfigPath,
   };
 
   return { chroma };

@@ -18,6 +18,14 @@ export interface ChromaSettings {
   enableRawSql: boolean;
   /** Optional override of the path to _chroma_inspect.py (defaults to vault root). */
   scriptPath: string;
+  /** chroma-fs: chroma_db 内部の非表示 CSS を注入するか */
+  hideInternal: boolean;
+  /** chroma-fs: 右クリック「RAG検索」を有効化するか */
+  ragEnabled: boolean;
+  /** chroma-fs: query.py 絶対パス */
+  ragScriptPath: string;
+  /** chroma-fs: config.yaml 絶対パス */
+  ragConfigPath: string;
 }
 
 /** A Chroma collection (as returned by `client.list_collections()`). */

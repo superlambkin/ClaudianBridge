@@ -17,6 +17,10 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
   showProgressModal: true,
   enableRawSql: false, // Security: default OFF
   scriptPath: "", // Empty = vault root / _chroma_inspect.py
+  hideInternal: true, // chroma_db 内部の非表示 CSS を注入するか
+  ragEnabled: false, // 右クリック「RAG検索」を有効化するか
+  ragScriptPath: "", // query.py 絶対パス
+  ragConfigPath: "", // config.yaml 絶対パス
 };
 
 export const MAX_QUERY_RESULTS = 100;
