@@ -7,7 +7,7 @@ import type { PlachtaSettings, TtsChunkMaxChars, TtsCliSpeechFilter, TtsEngine }
 import { DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../../core/settings';
 import { plachtaSpeakChunksPipelined } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
-import { registerPlayback, setEdgeChildPid, stopAllPlayback } from './playback-registry';
+import { registerPlayback, setEdgeChildPid, stopAllPlayback, getStopEpoch } from './playback-registry';
 
 type NoticeFn = (m: string) => void;
 
@@ -240,6 +240,9 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
 
   // v0.18.1: 重複読み防止 — 新しい読み上げ開始前に既存の全再生を中断（後勝ち）
   stopAllPlayback();
+  // v0.18.x (F1): この読みの開始時エポック基準値（自身の開始割り込み後）。
+  // 後続の停止（この読みへの外部中断）で初めて基準値を超える → 中断を非エラーと判定できる。
+  const stopEpochAtStart = getStopEpoch();
 
   // 生成中/再生中の進行状況を永続 Notice で表示するヘルパー（null で非表示）
   let progress: Notice | null = null;
@@ -264,7 +267,10 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
 
   // v0.10.0 UAT: plachta はパイプライン再生（次チャンクを先行合成してギャップ解消）
   if (settings.engine === 'plachta') {
-    return plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress);
+    const plachtaOk = await plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress);
+    // v0.18.x (F1): 後続の外部停止（後勝ち中断）で失敗してもエラー扱いしない
+    if (!plachtaOk && getStopEpoch() > stopEpochAtStart) return true;
+    return plachtaOk;
   }
 
   // v0.18.1: エンジン名を表示（ユーザー改良要望）
@@ -284,5 +290,7 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
     return webSpeechSpeak(chunk, settings, noticeFn);
   });
   showProgress(null);
+  // v0.18.x (F1): 後続の外部停止（後勝ち中断）で失敗してもエラー扱いしない
+  if (!result && getStopEpoch() > stopEpochAtStart) return true;
   return result;
 }

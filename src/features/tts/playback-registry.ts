@@ -17,6 +17,15 @@ const listeners = new Set<() => void>();
 /** v0.12.5: レジストリ追跡が外れても停止できるよう、edge 子プロセス PID を直接保持 */
 let edgeChildPid: number | null = null;
 
+/** v0.18.x (F1): 停止エポック。stopAllPlayback() が実際に何かを停止するたびに +1。
+ * 読み上げ中断（後勝ち）を「エラーではない」と判定するための世代カウンタ。 */
+let stopEpoch = 0;
+
+/** 現在の停止エポックを返す（addTextToTTS が読み開始時の基準値として使う） */
+export function getStopEpoch(): number {
+  return stopEpoch;
+}
+
 /** edge 子プロセス PID を登録/解除（claudettsHttpSpeak から呼ぶ） */
 export function setEdgeChildPid(pid: number | null): void {
   edgeChildPid = pid;
@@ -60,11 +69,11 @@ export function stopAllPlayback(): number {
     try { h.stop(); } catch { /* ベストエフォート */ }
   }
   // v0.12.5: 保険としてレジストリ外の edge 子プロセスも kill
-  if (killEdgeChild()) {
-    // レジストリに無い edge プロセスを止めた場合は追加で 1 として数える
-    return handles.length + 1;
-  }
-  return handles.length;
+  const stopped = handles.length + (killEdgeChild() ? 1 : 0);
+  // v0.18.x (F1): 実際に何かを停止した場合のみエポックを進める。
+  // 読みAを中断した読みBは「自分の開始後」の基準値を持ち、後続の停止（=この読みの中断）で初めて基準値を超える。
+  if (stopped > 0) stopEpoch++;
+  return stopped;
 }
 
 export function onPlaybackChange(fn: () => void): () => void {
@@ -77,4 +86,5 @@ export function resetPlaybackRegistry(): void {
   active.clear();
   listeners.clear();
   edgeChildPid = null;
+  stopEpoch = 0;
 }

@@ -250,7 +250,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     );
   });
 
-  it('stopAllPlayback で child.kill されると false を返しエラー Notice を出さない', async () => {
+  it('stopAllPlayback で child.kill されると true を返しエラー Notice を出さない（F1: 中断はエラー扱いしない）', async () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
 
@@ -261,7 +261,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     expect(child.kill).toHaveBeenCalled();
 
     child.emit('close', 1); // kill による close（非0 exit）
-    await expect(p).resolves.toBe(false);
+    await expect(p).resolves.toBe(true);
     expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
   });
 
@@ -279,7 +279,7 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
     );
   });
 
-  it('意図的停止後に error イベントが来てもエラー Notice を出さず false を返す', async () => {
+  it('意図的停止後に error イベントが来てもエラー Notice を出さず true を返す（F1: 中断はエラー扱いしない）', async () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);
 
@@ -288,7 +288,28 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
 
     stopAllPlayback(); // intentionalStop=true + child.kill
     child.emit('error', new Error('ESRCH')); // kill 後の error イベント
-    await expect(p).resolves.toBe(false);
+    await expect(p).resolves.toBe(true);
+    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
+  });
+
+  it('F1回帰: 既存再生を後勝ち中断した読みが外部 stopAllPlayback で止められても true を返しエラー Notice を出さない', async () => {
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+
+    // 読みA相当の偽ハンドルを再生中にしておく
+    const fakeStop = vi.fn();
+    registerPlayback({ engine: 'edge', stop: fakeStop });
+    expect(isTtsPlaying()).toBe(true);
+
+    // 読みB開始 → 冒頭の後勝ち stopAllPlayback で読みA相当ハンドルが中断される
+    const p = addTextToTTS(null as never, 'こんにちは', makeSettings('edge'));
+    expect(fakeStop).toHaveBeenCalledTimes(1);
+
+    // 読みB再生中に外部からの中断（ミュートボタン/さらに新しい読み上げ）
+    stopAllPlayback();
+    child.emit('close', 1); // kill による close（非0 exit）
+
+    await expect(p).resolves.toBe(true);
     expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
   });
 
