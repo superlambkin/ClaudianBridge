@@ -115,5 +115,18 @@ describe('VoiceConfigSync', () => {
       const written = JSON.parse(fs.readFileSync(vcPath, 'utf-8'));
       expect(written.engine_priority[0]).toBe('edge-tts');
     });
+
+    it('engine=edge-local は edge-tts 優先で出力する（v0.20.0）', async () => {
+      const store = makeStore(tmp);
+      store.save({ ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS });
+      const cfg: ClaudianBridgeSettings = {
+        ...store.load(),
+        tts: { ...store.load().tts, engine: 'edge-local' },
+      };
+      const sync = new VoiceConfigSync(store, vcPath);
+      await sync.exportToVoiceConfig(cfg);
+      const written = JSON.parse(fs.readFileSync(vcPath, 'utf-8'));
+      expect(written.engine_priority).toEqual(['edge-tts', 'pyttsx3', 'system']);
+    });
   });
 });
