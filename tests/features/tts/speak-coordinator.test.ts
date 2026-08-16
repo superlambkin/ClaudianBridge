@@ -8,7 +8,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-describe('createLatestWinsSpeaker', () => {
+describe('createLatestWinsSpeaker (v0.18.1 即割り込み)', () => {
   it('idle 時は即座に speak を呼ぶ', async () => {
     const speak = vi.fn(() => Promise.resolve(true));
     const enqueue = createLatestWinsSpeaker(speak);
@@ -18,45 +18,90 @@ describe('createLatestWinsSpeaker', () => {
     expect(speak).toHaveBeenCalledTimes(1);
   });
 
-  it('speaking 中の新報告は最新1件のみ保留（古いのは破棄）', async () => {
+  it('speaking 中の新報告は旧スピーチを停止して即再生する（後勝ち）', async () => {
     const d1 = deferred<boolean>();
+    const stop = vi.fn();
     const speak = vi.fn()
       .mockImplementationOnce(() => d1.promise)
       .mockImplementation(() => Promise.resolve(true));
-    const enqueue = createLatestWinsSpeaker(speak);
-    enqueue('A');          // 読み上げ開始
-    await Promise.resolve();
-    enqueue('B');          // 保留
-    enqueue('C');          // B を上書き
-    d1.resolve(true);      // A 完了
-    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
-    expect(speak).not.toHaveBeenCalledWith('B');
-    expect(speak).toHaveBeenCalledWith('C');
-  });
+    const enqueue = createLatestWinsSpeaker(speak, stop);
 
-  it('完了後に保留分を読む（順序保証）', async () => {
-    const calls: string[] = [];
-    const d1 = deferred<boolean>();
-    const speak = vi.fn((t: string) => { calls.push(t); return d1.promise; });
-    const enqueue = createLatestWinsSpeaker(speak);
     enqueue('A');
     await Promise.resolve();
-    enqueue('B');
-    d1.resolve(true);
-    await vi.waitFor(() => expect(calls).toEqual(['A', 'B']));
-  });
+    expect(speak).toHaveBeenCalledTimes(1);
 
-  it('speak が reject しても保留分を読む（例外で停止しない）', async () => {
-    const d1 = deferred<boolean>();
-    const speak = vi.fn()
-      .mockImplementationOnce(() => d1.promise)
-      .mockImplementation(() => Promise.resolve(true));
-    const enqueue = createLatestWinsSpeaker(speak);
-    enqueue('A');
-    await Promise.resolve();
     enqueue('B');
-    d1.reject(new Error('tts failed'));
-    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(speak).toHaveBeenCalledTimes(2);
     expect(speak).toHaveBeenLastCalledWith('B');
+
+    d1.resolve(true);
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
+  });
+
+  it('連続割り込み（A→B→C）では最終報告 C のみが発声される', async () => {
+    const d1 = deferred<boolean>();
+    const stop = vi.fn();
+    const speak = vi.fn()
+      .mockImplementationOnce(() => d1.promise)
+      .mockImplementationOnce(() => Promise.resolve(true))
+      .mockImplementationOnce(() => Promise.resolve(true));
+    const enqueue = createLatestWinsSpeaker(speak, stop);
+
+    enqueue('A');
+    await Promise.resolve();
+    enqueue('B');
+    enqueue('C');
+
+    expect(stop).toHaveBeenCalledTimes(2);
+    expect(speak).toHaveBeenCalledTimes(3);
+    expect(speak).toHaveBeenLastCalledWith('C');
+
+    d1.resolve(true);
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(3));
+  });
+
+  it('旧スピーチの finally は新スピーチの speaking を誤解除しない（世代ガード）', async () => {
+    const d1 = deferred<boolean>();
+    const d2 = deferred<boolean>();
+    const stop = vi.fn();
+    const speak = vi.fn()
+      .mockImplementationOnce(() => d1.promise)
+      .mockImplementationOnce(() => d2.promise);
+    const enqueue = createLatestWinsSpeaker(speak, stop);
+
+    enqueue('A');
+    await Promise.resolve();
+    enqueue('B');
+    expect(speak).toHaveBeenCalledTimes(2);
+
+    d1.resolve(true);
+    await Promise.resolve();
+
+    const d3 = deferred<boolean>();
+    speak.mockImplementationOnce(() => d3.promise);
+    enqueue('C');
+    expect(stop).toHaveBeenCalledTimes(2);
+    expect(speak).toHaveBeenLastCalledWith('C');
+
+    d2.resolve(true);
+    d3.resolve(true);
+  });
+
+  it('speak が reject しても例外で停止しない', async () => {
+    const d1 = deferred<boolean>();
+    const stop = vi.fn();
+    const speak = vi.fn()
+      .mockImplementationOnce(() => d1.promise)
+      .mockImplementationOnce(() => Promise.reject(new Error('tts failed')));
+    const enqueue = createLatestWinsSpeaker(speak, stop);
+
+    enqueue('A');
+    await Promise.resolve();
+    enqueue('B');
+    expect(speak).toHaveBeenCalledTimes(2);
+
+    d1.reject(new Error('old failed'));
+    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(2));
   });
 });
