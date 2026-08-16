@@ -14,7 +14,8 @@ import {
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
 import type { TtsCliSettings, TtsAutoReadSettings } from '../core/settings';
 import { withFullTextState, DEFAULT_SPEECH_FILTER_OPTIONS } from '../core/settings';
-import { CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX } from '../core/settings';
+import { CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, DEFAULT_CHUNK_MAX_CHARS, EDGE_CHUNK_MAX_CHARS_MIN, EDGE_CHUNK_MAX_CHARS_MAX, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../core/settings';
+import type { TtsChunkMaxChars } from '../core/settings';
 import type { TtsSpeechFilterSection, SpeechFilterOptions } from '../core/settings';
 
 const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
@@ -287,23 +288,32 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         }),
       );
 
-    // 5.6 v0.17.0: チャンク上限（全エンジン共通）
-    new Setting(containerEl)
-      .setName(s.ttsChunkMaxChars)
-      .setDesc(s.ttsChunkMaxCharsDesc)
-      .addSlider((sl) => sl
-        .setLimits(CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, 5)
-        .setValue(cfg.tts.chunkMaxChars ?? 140)
-        .setDynamicTooltip()
-        .onChange(async (v) => {
-          try {
-            const latest = store.load();
-            store.save({ ...latest, tts: { ...latest.tts, chunkMaxChars: v } });
-          } catch (e) {
-            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
-          }
-        }),
-      );
+    // 5.6 v0.18.0: チャンク上限（エンジン別）
+    {
+      const chunkRows: Array<{ key: keyof TtsChunkMaxChars; label: string; desc: string; min: number; max: number; def: number; step: number }> = [
+        { key: 'edge', label: s.ttsChunkMaxCharsEdge, desc: s.ttsChunkMaxCharsEdgeDesc, min: EDGE_CHUNK_MAX_CHARS_MIN, max: EDGE_CHUNK_MAX_CHARS_MAX, def: DEFAULT_EDGE_CHUNK_MAX_CHARS, step: 50 },
+        { key: 'webspeech', label: s.ttsChunkMaxCharsWebspeech, desc: s.ttsChunkMaxCharsWebspeechDesc, min: CHUNK_MAX_CHARS_MIN, max: CHUNK_MAX_CHARS_MAX, def: DEFAULT_CHUNK_MAX_CHARS, step: 5 },
+        { key: 'plachta', label: s.ttsChunkMaxCharsPlachta, desc: s.ttsChunkMaxCharsPlachtaDesc, min: CHUNK_MAX_CHARS_MIN, max: CHUNK_MAX_CHARS_MAX, def: DEFAULT_CHUNK_MAX_CHARS, step: 5 },
+      ];
+      for (const row of chunkRows) {
+        new Setting(containerEl)
+          .setName(row.label)
+          .setDesc(row.desc)
+          .addSlider((sl) => sl
+            .setLimits(row.min, row.max, row.step)
+            .setValue(cfg.tts.chunkMaxChars?.[row.key] ?? row.def)
+            .setDynamicTooltip()
+            .onChange(async (v) => {
+              try {
+                const latest = store.load();
+                store.save({ ...latest, tts: { ...latest.tts, chunkMaxChars: { ...latest.tts.chunkMaxChars, [row.key]: v } } });
+              } catch (e) {
+                new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              }
+            }),
+          );
+      }
+    }
 
     // 5.7 v0.17.0: 読み上げ内容フィルタ（タイプ別・チェック=読む）
     {

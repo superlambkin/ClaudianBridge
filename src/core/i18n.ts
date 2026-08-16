@@ -100,8 +100,12 @@ export interface LocaleStrings {
   ttsInputAiEnabled: string;
   ttsInputAiEnabledDesc: string;
   // v0.17.0: TTS 読み上げ仕様改良
-  ttsChunkMaxChars: string;
-  ttsChunkMaxCharsDesc: string;
+  ttsChunkMaxCharsEdge: string;
+  ttsChunkMaxCharsEdgeDesc: string;
+  ttsChunkMaxCharsWebspeech: string;
+  ttsChunkMaxCharsWebspeechDesc: string;
+  ttsChunkMaxCharsPlachta: string;
+  ttsChunkMaxCharsPlachtaDesc: string;
   ttsSpeechFilterHeading: string;
   ttsSpeechFilterHint: string;
   ttsSpeechFilterItemHeader: string;
@@ -357,8 +361,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsFullTextBtnOff: '📄 ヘッダー',
     ttsInputAiEnabled: 'AI読み上げボタン',
     ttsInputAiEnabledDesc: 'チャット入力欄の✨ボタン:入力文をAIで指令文に整形し、入力欄を上書きして読み上げます',
-    ttsChunkMaxChars: '1チャンクの文字数',
-    ttsChunkMaxCharsDesc: '長文を分割する1チャンクあたりの上限（50〜140 文字）。すべてのエンジンに適用',
+    ttsChunkMaxCharsEdge: 'EdgeTTS のチャンク文字数',
+    ttsChunkMaxCharsEdgeDesc: 'EdgeTTS の1チャンク上限（100〜2000 文字）。既定 500',
+    ttsChunkMaxCharsWebspeech: 'WebSpeech のチャンク文字数',
+    ttsChunkMaxCharsWebspeechDesc: 'WebSpeech の1チャンク上限（50〜140 文字）。既定 140',
+    ttsChunkMaxCharsPlachta: 'Plachta のチャンク文字数',
+    ttsChunkMaxCharsPlachtaDesc: 'Plachta の1チャンク上限（50〜140 文字）。既定 140',
     ttsSpeechFilterHeading: '読み上げ内容フィルタ（タイプ別）',
     ttsSpeechFilterHint: 'チェック=読み上げに含める。チェックなしの項目は読み上げから除外します',
     ttsSpeechFilterItemHeader: '項目',
@@ -610,8 +618,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsFullTextBtnOff: '📄 Header',
     ttsInputAiEnabled: 'AI read-aloud button',
     ttsInputAiEnabledDesc: '✨ button in the chat input toolbar: polishes your input into a clear instruction, overwrites the input, and reads it aloud',
-    ttsChunkMaxChars: 'Chunk character limit',
-    ttsChunkMaxCharsDesc: 'Max characters per chunk when splitting long text (50-140). Applies to all engines',
+    ttsChunkMaxCharsEdge: 'EdgeTTS chunk character limit',
+    ttsChunkMaxCharsEdgeDesc: 'Max characters per chunk for EdgeTTS (100-2000). Default 500',
+    ttsChunkMaxCharsWebspeech: 'WebSpeech chunk character limit',
+    ttsChunkMaxCharsWebspeechDesc: 'Max characters per chunk for WebSpeech (50-140). Default 140',
+    ttsChunkMaxCharsPlachta: 'Plachta chunk character limit',
+    ttsChunkMaxCharsPlachtaDesc: 'Max characters per chunk for Plachta (50-140). Default 140',
     ttsSpeechFilterHeading: 'Read-aloud content filter (per type)',
     ttsSpeechFilterHint: 'Checked = include in reading. Unchecked items are excluded',
     ttsSpeechFilterItemHeader: 'Item',
@@ -858,8 +870,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsFullTextBtnOff: '📄 摘要',
     ttsInputAiEnabled: 'AI朗读按钮',
     ttsInputAiEnabledDesc: '聊天输入栏的✨按钮：用AI将输入整理为清晰指令，覆盖输入栏并朗读',
-    ttsChunkMaxChars: '分块字数',
-    ttsChunkMaxCharsDesc: '长文分割时每块的最大字符数（50-140）。适用于所有引擎',
+    ttsChunkMaxCharsEdge: 'EdgeTTS 分块字数',
+    ttsChunkMaxCharsEdgeDesc: 'EdgeTTS 每块最大字符数（100-2000）。默认 500',
+    ttsChunkMaxCharsWebspeech: 'WebSpeech 分块字数',
+    ttsChunkMaxCharsWebspeechDesc: 'WebSpeech 每块最大字符数（50-140）。默认 140',
+    ttsChunkMaxCharsPlachta: 'Plachta 分块字数',
+    ttsChunkMaxCharsPlachtaDesc: 'Plachta 每块最大字符数（50-140）。默认 140',
     ttsSpeechFilterHeading: '朗读内容过滤（按类型）',
     ttsSpeechFilterHint: '勾选=朗读时包含。未勾选的项目从朗读中排除',
     ttsSpeechFilterItemHeader: '项目',
