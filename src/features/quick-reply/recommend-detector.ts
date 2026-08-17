@@ -2,15 +2,16 @@ export const MESSAGES_SELECTOR = '.claudian-messages';
 export const RECOMMEND_DEBOUNCE_MS = 300;
 
 // 推奨方案のパターン（ja/zh/en）。最初に一致した番号（1〜5）を採用する
+// (?!\d) は桁境界: 「方案10」等の先頭桁（1）を誤マッチしないようにする
 const RECOMMEND_PATTERNS: RegExp[] = [
   // ja
-  /推奨[は:：]?\s*(?:方案\s*)?([1-5])/,
-  /おすすめ[は:：]?\s*(?:方案\s*)?([1-5])/,
+  /推奨[は:：]?\s*(?:方案\s*)?([1-5])(?!\d)/,
+  /おすすめ[は:：]?\s*(?:方案\s*)?([1-5])(?!\d)/,
   // zh
-  /推荐\s*(?:方案)?\s*([1-5])/,
-  /建议(?:选择)?\s*(?:方案)?\s*([1-5])/,
+  /推荐\s*(?:方案)?\s*([1-5])(?!\d)/,
+  /建议(?:选择)?\s*(?:方案)?\s*([1-5])(?!\d)/,
   // en
-  /recommend(?:ed|ation)?\s*:?\s*(?:option\s*)?([1-5])/i,
+  /recommend(?:ed|ation)?\s*:?\s*(?:option\s*)?([1-5])(?!\d)/i,
 ];
 
 /**
@@ -61,9 +62,19 @@ export function readRecommendedOption(app: App): number | null {
   }
 }
 
+/**
+ * 追加ノードがメッセージ領域（.claudian-messages）に関連するかを判定する。
+ * 2 ケースをカバー:
+ *  1. ノード自身が .claudian-messages の内部・またはそれ自体（closest で上方向に判定）
+ *  2. ノードが .claudian-messages を CONTAINS する（タブ切替時にラッパーごと再構築されるケース）
+ * パターンは src/features/tts/toolbar-buttons.ts の
+ * `node.matches(SELECTOR) || node.querySelector(SELECTOR)` に倣う。
+ */
 function isInMessages(node: Node): boolean {
   const el = node instanceof HTMLElement ? node : node.parentElement;
-  return !!el?.closest?.(MESSAGES_SELECTOR);
+  if (!el) return false;
+  if (el.closest?.(MESSAGES_SELECTOR)) return true;
+  return !!el.querySelector?.(MESSAGES_SELECTOR);
 }
 
 /**

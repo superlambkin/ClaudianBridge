@@ -28,18 +28,26 @@ describe('extractRecommendedOption', () => {
   it('範囲外（6 以上）→ null', () => {
     expect(extractRecommendedOption('推奨は方案6')).toBeNull();
   });
+  it('ja: 「推奨は方案10」→ null（桁境界: 先頭桁 1 を誤マッチしない）', () => {
+    expect(extractRecommendedOption('推奨は方案10')).toBeNull();
+  });
+  it('en: "I recommend option 10." → null（桁境界: 先頭桁 1 を誤マッチしない）', () => {
+    expect(extractRecommendedOption('I recommend option 10.')).toBeNull();
+  });
   it('空文字 → null', () => {
     expect(extractRecommendedOption('')).toBeNull();
   });
 });
 
-function makeAppWithMessages(messagesEl: HTMLElement | null) {
+function makeAppWithMessages(messagesEl: HTMLElement | null | (() => HTMLElement | null)) {
+  // タブ切替テスト用に getter も受け付ける（アクティブタブの messagesEl が動的に変わる）
+  const resolve = typeof messagesEl === 'function' ? messagesEl : () => messagesEl;
   return {
     plugins: {
       plugins: {
         realclaudian: {
           getView: () => ({
-            getActiveTab: () => ({ dom: { messagesEl } }),
+            getActiveTab: () => ({ dom: { messagesEl: resolve() } }),
           }),
         },
       },
@@ -97,6 +105,40 @@ describe('setupRecommendDetection', () => {
 
     await vi.advanceTimersByTimeAsync(300);
     expect(onChange).toHaveBeenLastCalledWith(2);
+
+    cleanup();
+  });
+
+  it('タブ切替（.claudian-messages を CONTAINS するラッパー再構築）で再スキャンする', async () => {
+    vi.useFakeTimers();
+    const oldMessagesEl = document.createElement('div');
+    oldMessagesEl.className = 'claudian-messages';
+    oldMessagesEl.innerHTML = '<div data-role="assistant"><div class="claudian-message-content">まずA</div></div>';
+    document.body.appendChild(oldMessagesEl);
+
+    // アクティブタブの messagesEl が動的に変わることを模す
+    let activeMessagesEl: HTMLElement | null = oldMessagesEl;
+
+    const onChange = vi.fn();
+    const app = makeAppWithMessages(() => activeMessagesEl);
+    const cleanup = setupRecommendDetection(app, onChange);
+
+    await vi.advanceTimersByTimeAsync(300);
+    expect(onChange).toHaveBeenLastCalledWith(null);
+
+    // realclaudian のタブ切替を模す: 新コンテナを「デタッチ状態」でラッパー内に構築し、
+    // そのラッパーを body へ一括挿入する。このとき observer が観測する added node は
+    // ラッパーのみ（中の .claudian-messages はデタッチ中に追加されたため記録されない）。
+    const wrapper = document.createElement('div');
+    const newMessagesEl = document.createElement('div');
+    newMessagesEl.className = 'claudian-messages';
+    newMessagesEl.innerHTML = '<div data-role="assistant"><div class="claudian-message-content">推奨は方案3</div></div>';
+    wrapper.appendChild(newMessagesEl);
+    activeMessagesEl = newMessagesEl;
+    oldMessagesEl.replaceWith(wrapper);
+
+    await vi.advanceTimersByTimeAsync(300);
+    expect(onChange).toHaveBeenLastCalledWith(3);
 
     cleanup();
   });
