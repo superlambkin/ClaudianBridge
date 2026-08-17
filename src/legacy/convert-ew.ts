@@ -17,6 +17,8 @@ export function convertFromExtensionWhitelist(raw: unknown): Partial<ClaudianBri
       enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_WHITELIST_SETTINGS.enabled,
       extensions: normalizeExtList(r.extensions),
       alwaysShowFolders: typeof r.alwaysShowFolders === 'boolean' ? r.alwaysShowFolders : DEFAULT_WHITELIST_SETTINGS.alwaysShowFolders,
+      // v0.22.0: _ フォルダ非表示（既定 ON）
+      hideUnderscoreFolders: DEFAULT_WHITELIST_SETTINGS.hideUnderscoreFolders,
     },
   };
 }

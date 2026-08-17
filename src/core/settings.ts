@@ -258,12 +258,15 @@ export interface WhitelistSettings {
   enabled: boolean;
   extensions: string[];
   alwaysShowFolders: boolean;
+  // === v0.22.0: _ プレフィックスフォルダ非表示 ===
+  hideUnderscoreFolders: boolean;
 }
 
 export const DEFAULT_WHITELIST_SETTINGS: WhitelistSettings = {
   enabled: true,
   extensions: ['md', 'canvas', 'pdf', 'png', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'],
   alwaysShowFolders: true,
+  hideUnderscoreFolders: true,  // v0.22.0: _ フォルダ非表示（既定 ON）
 };
 
 export function normalizeWhitelistSettings(raw: unknown): WhitelistSettings {
@@ -277,6 +280,8 @@ export function normalizeWhitelistSettings(raw: unknown): WhitelistSettings {
           .filter((e) => e.length > 0)
       : [...DEFAULT_WHITELIST_SETTINGS.extensions],
     alwaysShowFolders: r.alwaysShowFolders ?? DEFAULT_WHITELIST_SETTINGS.alwaysShowFolders,
+    // v0.22.0: _ フォルダ非表示（既定 ON）
+    hideUnderscoreFolders: r.hideUnderscoreFolders ?? DEFAULT_WHITELIST_SETTINGS.hideUnderscoreFolders,
   };
 }
 
@@ -815,6 +820,7 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.whitelist.enabled !== 'boolean') return 'whitelist.enabled は boolean である必要があります';
   if (!Array.isArray(cfg.whitelist.extensions)) return 'whitelist.extensions は配列である必要があります';
   if (typeof cfg.whitelist.alwaysShowFolders !== 'boolean') return 'whitelist.alwaysShowFolders は boolean である必要があります';
+  if (typeof cfg.whitelist.hideUnderscoreFolders !== 'boolean') return 'whitelist.hideUnderscoreFolders は boolean である必要があります';
   if (typeof cfg.chroma.enabled !== 'boolean') return 'chroma.enabled は boolean である必要があります';
   if (typeof cfg.chroma.chromaPath !== 'string') return 'chroma.chromaPath は文字列である必要があります';
   if (typeof cfg.chroma.pythonPath !== 'string') return 'chroma.pythonPath は文字列である必要があります';
