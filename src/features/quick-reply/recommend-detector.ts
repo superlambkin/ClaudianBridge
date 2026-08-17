@@ -28,3 +28,82 @@ export function extractRecommendedOption(text: string): number | null {
   }
   return null;
 }
+
+import type { App } from 'obsidian';
+
+// === v0.23.0: 推奨方案の自動検出 ===
+
+// realclaudian プラグインへのアクセスに必要な最小形状。
+// インラインで `Record<string, { ... } | undefined>` を書くと esbuild の TS パーサーが解析失敗するため、named type に分離。
+type RecommendTabLike = { dom?: { messagesEl?: HTMLElement } };
+type RecommendViewLike = { getActiveTab?: () => RecommendTabLike | null | null };
+type RecommendPluginLike = { getView?: () => RecommendViewLike | null | null };
+
+/**
+ * 直近の assistant メッセージ本文から推奨方案（1〜5）を抽出する。
+ * realclaudian の messagesEl（.claudian-messages）を参照。
+ * 取得不能・解析不能は null（無害）。
+ */
+export function readRecommendedOption(app: App): number | null {
+  try {
+    const p = (app as unknown as { plugins?: { plugins?: Record<string, RecommendPluginLike | undefined> } })
+      ?.plugins?.plugins?.['realclaudian'];
+    const view = p?.getView?.() ?? null;
+    const tab = view?.getActiveTab?.() ?? null;
+    const messagesEl = tab?.dom?.messagesEl;
+    if (!messagesEl) return null;
+    const msgs = messagesEl.querySelectorAll('[data-role="assistant"]');
+    const last = msgs[msgs.length - 1];
+    const text = last?.querySelector('.claudian-message-content')?.textContent ?? '';
+    return extractRecommendedOption(text);
+  } catch {
+    return null;
+  }
+}
+
+function isInMessages(node: Node): boolean {
+  const el = node instanceof HTMLElement ? node : node.parentElement;
+  return !!el?.closest?.(MESSAGES_SELECTOR);
+}
+
+/**
+ * メッセージ領域の変化を監視し、デバウンス後に推奨方案を再スキャンする。
+ * 戻り値は cleanup 関数。
+ */
+export function setupRecommendDetection(
+  app: App,
+  onChange: (option: number | null) => void
+): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const scan = (): void => {
+    onChange(readRecommendedOption(app));
+  };
+  const schedule = (): void => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(scan, RECOMMEND_DEBOUNCE_MS);
+  };
+
+  const observer = new MutationObserver((mutations) => {
+    let shouldScan = false;
+    for (const m of mutations) {
+      if (m.type === 'characterData') {
+        if (m.target.parentElement?.closest(MESSAGES_SELECTOR)) { shouldScan = true; break; }
+        continue;
+      }
+      for (const node of Array.from(m.addedNodes)) {
+        if (isInMessages(node)) { shouldScan = true; break; }
+      }
+      if (shouldScan) break;
+    }
+    if (shouldScan) schedule();
+  });
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+  // 初回スキャン
+  schedule();
+
+  return () => {
+    if (timer) clearTimeout(timer);
+    observer.disconnect();
+  };
+}

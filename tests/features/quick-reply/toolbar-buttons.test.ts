@@ -2,9 +2,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupQuickReplyButtons } from '../../../src/features/quick-reply/toolbar-buttons';
 
-const { sendToClaudian } = vi.hoisted(() => ({
+const { sendToClaudian, setupRecommendDetectionMock } = vi.hoisted(() => ({
   sendToClaudian: vi.fn(async () => true),
+  setupRecommendDetectionMock: vi.fn(),
 }));
+
+let capturedOnChange: ((option: number | null) => void) | null = null;
 
 vi.mock('obsidian', () => ({
   Notice: class { constructor(_m: string) {} },
@@ -15,9 +18,8 @@ vi.mock('../../../src/features/quick-reply/core', () => ({
   sendToClaudian,
 }));
 
-// Task 5 まで recommend-detector は空実装（後続タスクで置換）
 vi.mock('../../../src/features/quick-reply/recommend-detector', () => ({
-  setupRecommendDetection: vi.fn(() => () => {}),
+  setupRecommendDetection: setupRecommendDetectionMock,
 }));
 
 function addToolbar() {
@@ -41,6 +43,12 @@ describe('setupQuickReplyButtons', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     sendToClaudian.mockClear();
+    setupRecommendDetectionMock.mockClear();
+    capturedOnChange = null;
+    setupRecommendDetectionMock.mockImplementation((_app: unknown, onChange: (o: number | null) => void) => {
+      capturedOnChange = onChange;
+      return () => {};
+    });
   });
   afterEach(() => { cleanup?.(); cleanup = undefined; vi.restoreAllMocks(); });
 
@@ -74,5 +82,20 @@ describe('setupQuickReplyButtons', () => {
     cleanup!();
     cleanup = undefined;
     expect(toolbar.querySelector('[data-cb-quickreply]')).toBeNull();
+  });
+
+  it('推奨方案が変わると該当ボタンに .is-recommended が付与・解除される', async () => {
+    cleanup = setupQuickReplyButtons({} as never);
+    const toolbar = addToolbar();
+    const group = await waitForGroup(toolbar);
+
+    // 推奨 = 方案3
+    capturedOnChange?.(3);
+    expect((group.querySelector('[data-cb-qr-3]') as HTMLElement).classList.contains('is-recommended')).toBe(true);
+    expect((group.querySelector('[data-cb-qr-2]') as HTMLElement).classList.contains('is-recommended')).toBe(false);
+
+    // 推奨なし
+    capturedOnChange?.(null);
+    expect((group.querySelector('[data-cb-qr-3]') as HTMLElement).classList.contains('is-recommended')).toBe(false);
   });
 });
