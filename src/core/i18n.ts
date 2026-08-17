@@ -288,6 +288,10 @@ export interface LocaleStrings {
   memoryScopeConversation: string;
   memoryFolder: string;
   memoryFolderDesc: string;
+  // v0.23.0: クイック返信ボタン
+  quickReplySendOk: string;
+  quickReplySendNg: string;
+  quickReplySendOption: string; // {n}
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -569,6 +573,10 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     memoryScopeConversation: 'チャット全体',
     memoryFolder: 'メモリフォルダ',
     memoryFolderDesc: '相対パスは Vault 内、絶対パスはそのまま。既定 Memory/',
+    // v0.23.0
+    quickReplySendOk: '✅ OK を送信',
+    quickReplySendNg: '❌ NG を送信',
+    quickReplySendOption: '方案{n} を送信',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -848,6 +856,10 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     memoryScopeConversation: 'Whole chat',
     memoryFolder: 'Memory folder',
     memoryFolderDesc: 'Relative path resolves inside the vault, absolute path is used as-is. Default Memory/',
+    // v0.23.0
+    quickReplySendOk: 'Send OK',
+    quickReplySendNg: 'Send NG',
+    quickReplySendOption: 'Send option {n}',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -1127,6 +1139,10 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     memoryScopeConversation: '整个聊天',
     memoryFolder: '记忆文件夹',
     memoryFolderDesc: '相对路径解析为库内，绝对路径原样使用。默认为 Memory/',
+    // v0.23.0
+    quickReplySendOk: '发送 OK',
+    quickReplySendNg: '发送 NG',
+    quickReplySendOption: '发送方案{n}',
   },
 };
 
