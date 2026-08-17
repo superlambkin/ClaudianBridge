@@ -17,6 +17,9 @@ export interface LocaleStrings {
   generalEnabledDesc: string;
   generalCodeCopyFence: string;
   generalCodeCopyFenceDesc: string;
+  // === v0.21.0: バックアップ機能 ===
+  generalBackupEnabled: string;
+  generalBackupEnabledDesc: string;
   selectionEnabled: string;
   selectionEnabledDesc: string;
   selectionFolderEnabled: string;
@@ -296,6 +299,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalEnabledDesc: 'Claudian Bridge 全体を ON/OFF',
     generalCodeCopyFence: '🔧 コードコピー時にフェンス付与',
     generalCodeCopyFenceDesc: 'Claudian チャットのコードブロックをコピーするとき、``` のコードフェンスを自動で付与します（Mermaid 等の貼り付け崩れを防止）',
+    // v0.21.0
+    generalBackupEnabled: '💾 右クリックバックアップ',
+    generalBackupEnabledDesc: 'ファイル/フォルダ右クリックメニューに「バックアップ」を追加（OFF で非表示）',
     selectionEnabled: '🌐 機能 ON/OFF',
     selectionEnabledDesc: '選択テキストを Claudian 入力に挿入する機能を有効化',
     selectionFolderEnabled: '📁 フォルダ右クリック追加',
@@ -566,6 +572,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalEnabledDesc: 'Toggle Claudian Bridge globally',
     generalCodeCopyFence: '🔧 Add fences when copying code',
     generalCodeCopyFenceDesc: 'When copying a code block from Claudian chat, automatically wrap it in ``` fences (prevents broken pastes such as Mermaid diagrams).',
+    // v0.21.0
+    generalBackupEnabled: '💾 Right-click backup',
+    generalBackupEnabledDesc: 'Add "Backup" to file/folder right-click menu (hide when OFF)',
     selectionEnabled: '🌐 Enable Feature',
     selectionEnabledDesc: 'Insert selected text into Claudian input',
     selectionFolderEnabled: '📁 Folder right-click add',
@@ -836,6 +845,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalEnabledDesc: '全局开关 Claudian Bridge',
     generalCodeCopyFence: '🔧 复制代码时添加围栏',
     generalCodeCopyFenceDesc: '从 Claudian 聊天复制代码块时，自动补全 ``` 代码围栏（防止 Mermaid 等粘贴后无法渲染）',
+    // v0.21.0
+    generalBackupEnabled: '💾 右键备份',
+    generalBackupEnabledDesc: '在文件/文件夹右键菜单中添加"备份"（关闭时不显示）',
     selectionEnabled: '🌐 启用功能',
     selectionEnabledDesc: '将选中文本插入 Claudian 输入框',
     selectionFolderEnabled: '📁 文件夹右键添加',
