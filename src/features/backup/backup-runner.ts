@@ -18,6 +18,20 @@ export interface BackupDialog {
 }
 
 /**
+ * Electron の require('electron') 戻り値から dialog を解決する。
+ * dialog モジュールは main-process 専用のため、レンダラープロセスでは
+ * electron.dialog が undefined の場合がある。
+ * Obsidian は remote を有効にしているため、electron.remote?.dialog に
+ * フォールバックする。
+ */
+export function resolveBackupDialog(electron: {
+  dialog?: BackupDialog;
+  remote?: { dialog?: BackupDialog };
+}): BackupDialog | null {
+  return electron.dialog ?? electron.remote?.dialog ?? null;
+}
+
+/**
  * 保存先フォルダを選択するダイアログを開く。
  * キャンセル時は null を返す。
  */
@@ -73,10 +87,15 @@ export async function runBackup(
   pluginDir?: string,
 ): Promise<void> {
   // 1. 保存先ダイアログ（OS ネイティブ / Electron）
-  //    Obsidian の App クラスには openFolderDialog が存在しないため、
-  //    Electron の dialog.showOpenDialog を使用する（Vault 外にも保存可能）。
-  const electron = require('electron') as { dialog?: BackupDialog };
-  const dialog = electron.dialog;
+  //    Obsidian の App/Workspace にはフォルダ選択 API が存在しない。
+  //    dialog モジュールは main-process 専用のため、レンダラープロセスでは
+  //    electron.dialog が undefined の場合がある。Obsidian は remote を
+  //    有効にしているため、electron.remote?.dialog にフォールバックする。
+  const electron = require('electron') as {
+    dialog?: BackupDialog;
+    remote?: { dialog?: BackupDialog };
+  };
+  const dialog = resolveBackupDialog(electron);
   if (!dialog) {
     new Notice('⚠️ 保存先ダイアログを開けません');
     return;
