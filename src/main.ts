@@ -13,6 +13,7 @@ import { setupMdSaveButton } from './features/memory/md-save-button';
 import { setupMessageMdSaveButtons } from './features/memory/message-md-save-button';
 import { polishInstruction } from './features/llm/claude-cli';
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
+import { setupQuickReplyButtons } from './features/quick-reply/toolbar-buttons';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { initEdgeTtsLocal } from './features/tts/edge-tts-local';
 import { migrateFromLegacy } from './legacy/migration';
@@ -218,6 +219,10 @@ export default class ClaudianBridgePlugin extends Plugin {
       //   📖 ボタンは tts.autoRead.scope と tts.cli.full_text を統一同期）
       this.register(setupToolbarButtons(this.store));
       diag('toolbar fulltext button registered');
+
+      // ★ v0.23.0: クイック返信ボタン（✅ ❌ 1️⃣〜5️⃣ ワンクリック直接送信 + 推奨ハイライト）
+      this.register(setupQuickReplyButtons(this.app));
+      diag('quick-reply buttons registered');
 
       // ★ v0.14.0: メッセージ結果欄の読上げボタン（コピーボタン左隣）
       this.register(setupMessageReadButtons({
