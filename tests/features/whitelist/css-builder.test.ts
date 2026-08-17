@@ -58,5 +58,6 @@ describe('buildWhitelistCss - hideUnderscoreFolders (v0.22.0)', () => {
     expect(css).not.toBeNull();
     expect(css).toContain('[data-path^="_"]');
     expect(css).not.toContain('.nav-file:not');
+    expect(css).toContain('display: none !important');
   });
 });
