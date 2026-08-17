@@ -101,7 +101,7 @@ export default class ClaudianBridgePlugin extends Plugin {
         const w = c.whitelist;
         diag('whitelist config', { pluginEnabled: c.general.enabled, enabled: w.enabled });
         if (c.general.enabled && w.enabled) {
-          const css = buildWhitelistCss(w.extensions, w.alwaysShowFolders);
+          const css = buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders);
           if (css) installWhitelistCss(css);
           diag('whitelist css injected');
         }
@@ -257,7 +257,7 @@ export default class ClaudianBridgePlugin extends Plugin {
       // 外部変更検知（UI 更新は SettingTab の onChange で実施済み）。close は onunload で実施
       this.store.watch(() => {
         const w = this.store.load().whitelist;
-        const css = w.enabled ? buildWhitelistCss(w.extensions, w.alwaysShowFolders) : null;
+        const css = w.enabled ? buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders) : null;
         if (css) installWhitelistCss(css); else removeWhitelistCss();
       });
       diag('store.watch registered');
