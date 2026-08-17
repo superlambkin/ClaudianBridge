@@ -23,7 +23,7 @@ export class BackupMenuRegistrar {
       const target = file as BackupTarget;
       menu.addItem((item: MenuItem) =>
         item.setTitle('💾 バックアップ').setIcon('save').onClick(() => {
-          void runBackup(app, target, pluginDir);
+          void runBackup(app, target, pluginDir, { autoClose: settingsRef().general.backupAutoClose });
         })
       );
     };

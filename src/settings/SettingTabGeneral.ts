@@ -74,6 +74,21 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
         }
       }));
 
+    // v0.21.1: バックアップ完了時にダイアログを自動で閉じる（既定 ON）
+    new Setting(containerEl)
+      .setName(s.generalBackupAutoClose)
+      .setDesc(s.generalBackupAutoCloseDesc)
+      .addToggle((t) => t.setValue(cfg.general.backupAutoClose).onChange(async (v) => {
+        try {
+          const latest = store.load();
+          store.save({ ...latest, general: { ...latest.general, backupAutoClose: v } });
+          new Notice(s.noticeSaved);
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+
     containerEl.createEl('h3', { text: s.migratedFrom });
     const ul = containerEl.createEl('ul');
     ul.createEl('li', { text: `claudian-selection-bridge: ${cfg.general.migratedFrom.claudianSelectionBridge ? s.migrated : s.notMigrated}` });
