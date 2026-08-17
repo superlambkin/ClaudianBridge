@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-import { buildTimestamp, resolveDestName } from '../../../src/features/backup/backup-runner';
+import { buildTimestamp, resolveDestName, pickBackupDestination } from '../../../src/features/backup/backup-runner';
 
 describe('backup-runner', () => {
   describe('buildTimestamp', () => {
@@ -49,6 +49,28 @@ describe('backup-runner', () => {
     it('ファイル: サブディレクトリ含む path → basename+拡張子', () => {
       const name = resolveDestName('sub/dir/note.md', false);
       expect(name).toMatch(/^note_\d{8}_\d{6}\.md$/);
+    });
+  });
+
+  describe('pickBackupDestination', () => {
+    it('キャンセル時は null を返す', async () => {
+      const dialog = {
+        showOpenDialog: vi.fn().mockResolvedValue({ canceled: true, filePaths: [] }),
+      };
+      const result = await pickBackupDestination(dialog, 'バックアップ保存先を選択');
+      expect(result).toBeNull();
+      expect(dialog.showOpenDialog).toHaveBeenCalledWith({
+        title: 'バックアップ保存先を選択',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+    });
+
+    it('選択時はパスを返す', async () => {
+      const dialog = {
+        showOpenDialog: vi.fn().mockResolvedValue({ canceled: false, filePaths: ['D:/backup'] }),
+      };
+      const result = await pickBackupDestination(dialog, 'バックアップ保存先を選択');
+      expect(result).toBe('D:/backup');
     });
   });
 });

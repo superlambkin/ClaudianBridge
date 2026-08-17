@@ -43,16 +43,17 @@ Claudian Bridge の左ファイルツリーで、フォルダまたはファイ�
 
 ## デザイン決定
 
-### D1: 保存先ダイアログは Obsidian 公式 API
+### D1: 保存先ダイアログは Electron の `dialog.showOpenDialog`
 
-**決定**: `app.openFolderDialog(title: string): Promise<string | null>` を使用
+**決定**: `require('electron').dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })` を使用
 **理由**:
-- Obsidian 公式 API（`electron.remote` のような deprecated パスを使わない）
+- Obsidian の `App` クラスには `openFolderDialog` が**存在しない**（v0.21.0 実装時に確認）
+- `electron.remote` は deprecated なので使わず、`require('electron')` の `dialog` を直接使用（Obsidian プラグインの標準パターン）
 - Vault 外への保存が要件（OS レベルのファイルシステムへ退避）
 - OS ネイティブの UX（Electron ラッパー）
-- TypeScript のみで完結（追加ライブラリ不要）
+- esbuild の `external` に `'electron'` が含まれており、実行時に require で解決される
 
-**キャンセル時**: `null` が返る → 何もしない（モーダル・Notice なし）
+**キャンセル時**: `{ canceled: true }` → `null` を返す → 何もしない（モーダル・Notice なし）
 
 ### D2: プログレスモーダルを採用
 
@@ -161,7 +162,7 @@ sequenceDiagram
     participant W as Obsidian Workspace
     participant M as BackupMenuRegistrar
     participant R as runBackup
-    participant D as app.openFolderDialog
+    participant D as Electron dialog
     participant P as ProgressModal
     participant FS as ファイルシステム
 
@@ -172,8 +173,8 @@ sequenceDiagram
         M->>W: menu.addItem("💾 バックアップ")
         U->>W: メニュー選択
         W->>R: runBackup(app, file)
-        R->>D: app.openFolderDialog(title)
-        D-->>R: 保存先パス or null（キャンセル）
+        R->>D: dialog.showOpenDialog({ properties: ['openDirectory'] })
+        D-->>R: 保存先パス or キャンセル
         alt ユーザーキャンセル (null)
             R->>U: 何もしない
         else 保存先選択
