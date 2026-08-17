@@ -104,6 +104,21 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
         }
       }));
 
+    // === v0.25.0: クイック返信ボタン全体の ON/OFF ===
+    new Setting(containerEl)
+      .setName(s.quickReplyEnabled)
+      .setDesc(s.quickReplyEnabledDesc)
+      .addToggle((t) => t.setValue(cfg.general.quickReplyEnabled).onChange(async (v) => {
+        try {
+          const latest = store.load();
+          store.save({ ...latest, general: { ...latest.general, quickReplyEnabled: v } });
+          new Notice(s.noticeSaved);
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+
     containerEl.createEl('h3', { text: s.migratedFrom });
     const ul = containerEl.createEl('ul');
     ul.createEl('li', { text: `claudian-selection-bridge: ${cfg.general.migratedFrom.claudianSelectionBridge ? s.migrated : s.notMigrated}` });

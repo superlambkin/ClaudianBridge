@@ -745,6 +745,17 @@ describe('normalizeClaudianBridgeSettings - general.backupAutoClose (v0.21.1)', 
     const result = normalizeClaudianBridgeSettings({ general: { quickReplyShowAllOptions: true } });
     expect(result.general.quickReplyShowAllOptions).toBe(true);
   });
+
+  // === v0.25.0: quickReplyEnabled ===
+  it('normalizeClaudianBridgeSettings: general.quickReplyEnabled デフォルト true', () => {
+    const result = normalizeClaudianBridgeSettings({});
+    expect(result.general.quickReplyEnabled).toBe(true);
+  });
+
+  it('normalizeClaudianBridgeSettings: general.quickReplyEnabled=false 明示設定', () => {
+    const result = normalizeClaudianBridgeSettings({ general: { quickReplyEnabled: false } });
+    expect(result.general.quickReplyEnabled).toBe(false);
+  });
 });
 
 describe('normalizeWhitelistSettings (v0.22.0)', () => {
