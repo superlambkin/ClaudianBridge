@@ -1,17 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TFile, TFolder, Notice } from 'obsidian';
-import * as path from 'path';
-import * as fs from 'fs';
+import { describe, it, expect } from 'vitest';
 
-vi.mock('obsidian', async () => {
-  const actual = await vi.importActual<typeof import('obsidian')>('obsidian');
-  return {
-    ...actual,
-    Notice: vi.fn(),
-  };
-});
-
-import { buildTimestamp, resolveDestName, runBackup } from '../../../src/features/backup/backup-runner';
+import { buildTimestamp, resolveDestName } from '../../../src/features/backup/backup-runner';
 
 describe('backup-runner', () => {
   describe('buildTimestamp', () => {
