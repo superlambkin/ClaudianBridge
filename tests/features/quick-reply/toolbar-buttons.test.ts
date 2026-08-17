@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupQuickReplyButtons } from '../../../src/features/quick-reply/toolbar-buttons';
+import type { RecommendState } from '../../../src/features/quick-reply/recommend-detector';
 
 const { sendToClaudian, setupRecommendDetectionMock } = vi.hoisted(() => ({
   sendToClaudian: vi.fn(async () => true),
   setupRecommendDetectionMock: vi.fn(),
 }));
 
-let capturedOnChange: ((option: number | null) => void) | null = null;
+let capturedOnChange: ((state: RecommendState) => void) | null = null;
 
 vi.mock('obsidian', () => ({
   Notice: class { constructor(_m: string) {} },
@@ -45,19 +46,22 @@ describe('setupQuickReplyButtons', () => {
     sendToClaudian.mockClear();
     setupRecommendDetectionMock.mockClear();
     capturedOnChange = null;
-    setupRecommendDetectionMock.mockImplementation((_app: unknown, onChange: (o: number | null) => void) => {
+    setupRecommendDetectionMock.mockImplementation((_app: unknown, onChange: (s: RecommendState) => void) => {
       capturedOnChange = onChange;
       return () => {};
     });
   });
   afterEach(() => { cleanup?.(); cleanup = undefined; vi.restoreAllMocks(); });
 
-  it('✅ ❌ 1️⃣〜5️⃣ が順に注入される', async () => {
+  it('✅ ❌ 1️⃣〜5️⃣ が順に注入される（初期は方案ボタン非表示）', async () => {
     cleanup = setupQuickReplyButtons({} as never);
     const toolbar = addToolbar();
     const group = await waitForGroup(toolbar);
     const icons = Array.from(group.querySelectorAll('button')).map((b) => b.textContent);
     expect(icons).toEqual(['✅', '❌', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']);
+    // デフォルト（選択肢なし）: 方案ボタンは cb-hidden
+    const visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
+    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌']);
   });
 
   it('クリックで正しい文言が送信される（OK / NG / 方案N）', async () => {
@@ -92,18 +96,23 @@ describe('setupQuickReplyButtons', () => {
     expect(toolbar2.querySelector('[data-cb-quickreply]')).toBeNull();
   });
 
+  it('maxOptionCount=3 → 1️⃣2️⃣3️⃣ 表示、4️⃣5️⃣ 非表示', async () => {
+    cleanup = setupQuickReplyButtons({} as never);
+    const toolbar = addToolbar();
+    const group = await waitForGroup(toolbar);
+    capturedOnChange?.({ recommended: null, maxOptionCount: 3 });
+    const visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
+    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌', '1️⃣', '2️⃣', '3️⃣']);
+  });
+
   it('推奨方案が変わると該当ボタンに .is-recommended が付与・解除される', async () => {
     cleanup = setupQuickReplyButtons({} as never);
     const toolbar = addToolbar();
     const group = await waitForGroup(toolbar);
-
-    // 推奨 = 方案3
-    capturedOnChange?.(3);
+    capturedOnChange?.({ recommended: 3, maxOptionCount: 5 });
     expect((group.querySelector('[data-cb-qr-3]') as HTMLElement).classList.contains('is-recommended')).toBe(true);
     expect((group.querySelector('[data-cb-qr-2]') as HTMLElement).classList.contains('is-recommended')).toBe(false);
-
-    // 推奨なし
-    capturedOnChange?.(null);
+    capturedOnChange?.({ recommended: null, maxOptionCount: 5 });
     expect((group.querySelector('[data-cb-qr-3]') as HTMLElement).classList.contains('is-recommended')).toBe(false);
   });
 });
