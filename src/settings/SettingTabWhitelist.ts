@@ -131,6 +131,20 @@ export function renderWhitelistTab(_app: App, containerEl: HTMLElement, store: C
         }
       }));
 
+    // v0.22.0: _ で始まるフォルダを非表示（既定 ON）
+    new Setting(containerEl)
+      .setName(s.whitelistHideUnderscoreFolders)
+      .setDesc(s.whitelistHideUnderscoreFoldersDesc)
+      .addToggle((t) => t.setValue(cfg.whitelist.hideUnderscoreFolders).onChange((v) => {
+        try {
+          const latest = store.load();
+          store.save({ ...latest, whitelist: { ...latest.whitelist, hideUnderscoreFolders: v } });
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+
     // リセット
     containerEl.createEl('hr');
     new Setting(containerEl)
