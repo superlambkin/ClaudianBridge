@@ -95,14 +95,28 @@ export function setupQuickReplyButtons(app: App): () => void {
     }
   };
 
+  // v0.25.0: quickReplyEnabled 設定を取得（既定 true）
+  // OFF の場合はボタン注入を完全にスキップ（既存ボタンは削除）
+  const loadEnabled = (): boolean => {
+    try {
+      const cfg = store.load() as ClaudianBridgeSettings | null;
+      return cfg?.general?.quickReplyEnabled ?? DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general.quickReplyEnabled;
+    } catch {
+      return DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general.quickReplyEnabled;
+    }
+  };
+
   // 状態変化（推奨方案 + 選択肢数）でボタン表示を更新
   const offDetect = setupRecommendDetection(app, (state) => {
     const showAll = loadShowAll();
+    if (!loadEnabled()) return; // v0.25.0: 無効時はスキップ
     document.querySelectorAll(`[${GROUP_MARK}]`).forEach((group) => renderGroup(group, state, showAll));
   });
 
   const inject = (toolbar: Element): void => {
     if (toolbar.querySelector(`[${GROUP_MARK}]`)) return;
+    // v0.25.0: 無効時は注入スキップ（既存ボタンは cleanup で削除）
+    if (!loadEnabled()) return;
     // 他ボタンの上の行・右寄せ: 全幅の行（.cb-quickreply-row）をツールバー先頭に挿入
     const row = document.createElement('div');
     row.className = 'cb-quickreply-row';
@@ -117,7 +131,17 @@ export function setupQuickReplyButtons(app: App): () => void {
     toolbar.insertBefore(row, toolbar.firstChild);
   };
 
+  // v0.25.0: 設定 OFF の場合、既存の注入済みボタンをすべて削除
+  const removeInjected = (): void => {
+    document.querySelectorAll(`[${ROW_MARK}]`).forEach((el) => el.remove());
+  };
+
   const scan = (): void => {
+    if (!loadEnabled()) {
+      // v0.25.0: OFF の場合は既存ボタンを削除してスキップ
+      removeInjected();
+      return;
+    }
     document.querySelectorAll(TOOLBAR_SELECTOR).forEach(inject);
   };
   scan();

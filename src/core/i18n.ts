@@ -295,6 +295,9 @@ export interface LocaleStrings {
   // v0.24.0: クイック返信ボタンの方案ボタン常時表示
   quickReplyShowAllOptions: string;
   quickReplyShowAllOptionsDesc: string;
+  // v0.25.0: クイック返信ボタン全体の ON/OFF
+  quickReplyEnabled: string;
+  quickReplyEnabledDesc: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -583,6 +586,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.24.0
     quickReplyShowAllOptions: '方案ボタンを常に表示',
     quickReplyShowAllOptionsDesc: 'ON で 1️⃣〜5️⃣ を常に表示（OFF は応答の「方案N」検出時のみ表示）',
+    // v0.25.0
+    quickReplyEnabled: 'クイック返信ボタンを表示',
+    quickReplyEnabledDesc: 'ON（既定）で Claudian チャット入力欄に ✅ ❌ 1️⃣〜5️⃣ のクイック返信ボタンを表示。OFF でボタンの注入自体を停止',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -869,6 +875,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.24.0
     quickReplyShowAllOptions: 'Always show option buttons',
     quickReplyShowAllOptionsDesc: 'ON: always show 1️⃣–5️⃣. OFF: only show when response contains "方案N".',
+    // v0.25.0
+    quickReplyEnabled: 'Show quick reply buttons',
+    quickReplyEnabledDesc: 'ON (default): show ✅ ❌ 1️⃣–5️⃣ buttons in the Claudian chat input toolbar. OFF: stop injecting buttons entirely.',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -1155,6 +1164,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.24.0
     quickReplyShowAllOptions: '始终显示方案按钮',
     quickReplyShowAllOptionsDesc: '开启时始终显示 1️⃣–5️⃣。关闭时仅在回答包含"方案N"时显示',
+    // v0.25.0
+    quickReplyEnabled: '显示快速回复按钮',
+    quickReplyEnabledDesc: '开启（默认）时在 Claudian 聊天输入栏显示 ✅ ❌ 1️⃣–5️⃣。关闭时停止注入按钮',
   },
 };
 
