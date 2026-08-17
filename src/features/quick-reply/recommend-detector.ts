@@ -40,26 +40,41 @@ type RecommendTabLike = { dom?: { messagesEl?: HTMLElement } };
 type RecommendViewLike = { getActiveTab?: () => RecommendTabLike | null | null };
 type RecommendPluginLike = { getView?: () => RecommendViewLike | null | null };
 
-/**
- * 直近の assistant メッセージ本文から推奨方案（1〜5）を抽出する。
- * realclaudian の messagesEl（.claudian-messages）を参照。
- * 取得不能・解析不能は null（無害）。
- */
-export function readRecommendedOption(app: App): number | null {
+/** 直近の assistant メッセージ本文を取得する（取得不能は空文字） */
+function readLastAssistantText(app: App): string {
   try {
     const p = (app as unknown as { plugins?: { plugins?: Record<string, RecommendPluginLike | undefined> } })
       ?.plugins?.plugins?.['realclaudian'];
     const view = p?.getView?.() ?? null;
     const tab = view?.getActiveTab?.() ?? null;
     const messagesEl = tab?.dom?.messagesEl;
-    if (!messagesEl) return null;
+    if (!messagesEl) return '';
     const msgs = messagesEl.querySelectorAll('[data-role="assistant"]');
     const last = msgs[msgs.length - 1];
-    const text = last?.querySelector('.claudian-message-content')?.textContent ?? '';
-    return extractRecommendedOption(text);
+    return last?.querySelector('.claudian-message-content')?.textContent ?? '';
   } catch {
-    return null;
+    return '';
   }
+}
+
+/** 直近の assistant メッセージ本文から推奨方案（1〜5）を抽出する。取得不能・解析不能は null。 */
+export function readRecommendedOption(app: App): number | null {
+  return extractRecommendedOption(readLastAssistantText(app));
+}
+
+/** クイック返信ボタンの状態（推奨方案 + 選択肢数） */
+export interface RecommendState {
+  recommended: number | null;
+  maxOptionCount: number;
+}
+
+/** 直近の assistant メッセージから推奨方案と選択肢数を返す */
+export function readRecommendationState(app: App): RecommendState {
+  const text = readLastAssistantText(app);
+  return {
+    recommended: extractRecommendedOption(text),
+    maxOptionCount: extractMaxOptionCount(text),
+  };
 }
 
 /**
