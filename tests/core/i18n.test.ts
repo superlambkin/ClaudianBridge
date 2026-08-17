@@ -153,6 +153,8 @@ describe('i18n', () => {
       'tabMemory', 'memoryEnabled', 'memoryEnabledDesc',
       'memoryScope', 'memoryScopeDesc', 'memoryScopePair', 'memoryScopeConversation',
       'memoryFolder', 'memoryFolderDesc',
+      // v0.23.0: クイック返信ボタン
+      'quickReplySendOk', 'quickReplySendNg', 'quickReplySendOption',
     ];
     for (const lang of ['ja', 'en', 'zh'] as const) {
       const s = getLocaleStrings(lang);
