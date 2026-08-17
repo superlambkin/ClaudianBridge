@@ -15,7 +15,10 @@ export function buildWhitelistCss(
     : '';
 
   const underscoreRule = hideUnderscoreFolders
-    ? '\n/* hide _-prefixed folders (v0.22.0) */\n' +
+    ? // data-path^="_" covers top-level _ folders; data-path*="/_" covers nested
+      // _ folders. The latter over-matches descendants of _ folders (harmless:
+      // the ancestor .nav-folder is already display:none, hiding the subtree).
+      '\n/* hide _-prefixed folders (v0.22.0) */\n' +
       '.nav-folder:has(> .nav-folder-title[data-path^="_"]),\n' +
       '.nav-folder:has(> .nav-folder-title[data-path*="/_"]) {\n' +
       '  display: none !important;\n' +
