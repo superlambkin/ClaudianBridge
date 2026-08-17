@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, normalizeClaudianBridgeSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState } from '../../src/core/settings';
+import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState } from '../../src/core/settings';
 
 describe('settings', () => {
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS は全フィールドを持つ', () => {
@@ -101,6 +101,14 @@ describe('settings', () => {
   it('validate は whitelist 型違反を返す（enabled が boolean でない）', () => {
     const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, whitelist: { enabled: 'yes' as unknown as boolean, extensions: [], alwaysShowFolders: true } };
     expect(validateClaudianBridgeSettings(bad)).toContain('whitelist.enabled');
+  });
+
+  it('validateClaudianBridgeSettings: whitelist.hideUnderscoreFolders が boolean であること', () => {
+    const valid = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, whitelist: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.whitelist, hideUnderscoreFolders: true } };
+    expect(validateClaudianBridgeSettings(valid)).toBeNull();
+
+    const invalid = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, whitelist: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.whitelist, hideUnderscoreFolders: 'yes' as unknown as boolean } };
+    expect(validateClaudianBridgeSettings(invalid)).toMatch(/whitelist\.hideUnderscoreFolders/);
   });
 
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.chroma は全フィールドを持つ', () => {
@@ -725,5 +733,17 @@ describe('normalizeClaudianBridgeSettings - general.backupAutoClose (v0.21.1)', 
   it('normalizeClaudianBridgeSettings: general.backupAutoClose=false 明示設定', () => {
     const result = normalizeClaudianBridgeSettings({ general: { backupAutoClose: false } });
     expect(result.general.backupAutoClose).toBe(false);
+  });
+});
+
+describe('normalizeWhitelistSettings (v0.22.0)', () => {
+  it('normalizeWhitelistSettings: hideUnderscoreFolders デフォルト true', () => {
+    const result = normalizeWhitelistSettings({});
+    expect(result.hideUnderscoreFolders).toBe(true);
+  });
+
+  it('normalizeWhitelistSettings: hideUnderscoreFolders=false 明示設定', () => {
+    const result = normalizeWhitelistSettings({ hideUnderscoreFolders: false });
+    expect(result.hideUnderscoreFolders).toBe(false);
   });
 });
