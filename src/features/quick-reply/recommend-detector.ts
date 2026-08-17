@@ -118,3 +118,26 @@ export function setupRecommendDetection(
     observer.disconnect();
   };
 }
+
+/**
+ * v0.23.0: メッセージ本文から選択肢の最大数（方案N）を抽出する純関数。
+ * 個別表記（方案1、方案2、…）と範囲表記（方案1〜5 / 方案1-5 / 方案1〜方案5）を併走し、
+ * 収集した数値の最大値を返す。該当なしは 0。上限 99。
+ */
+export function extractMaxOptionCount(text: string): number {
+  if (!text) return 0;
+  const nums: number[] = [];
+  // 範囲表記: 終端値を採用（方案1〜5 / 方案1〜方案5 / 方案1-5）
+  const rangeRe = /方案\s*(\d{1,2})\s*[〜~\-–]\s*(?:方案\s*)?(\d{1,2})/g;
+  let m: RegExpExecArray | null;
+  while ((m = rangeRe.exec(text)) !== null) {
+    nums.push(Number(m[2]));
+  }
+  // 個別表記: 方案N（(?!\d) で「方案10」の先頭桁を誤マッチしない）
+  const singleRe = /方案\s*(\d{1,2})(?!\d)/g;
+  while ((m = singleRe.exec(text)) !== null) {
+    nums.push(Number(m[1]));
+  }
+  if (nums.length === 0) return 0;
+  return Math.min(Math.max(...nums), 99);
+}

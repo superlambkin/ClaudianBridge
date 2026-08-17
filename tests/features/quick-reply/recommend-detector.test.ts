@@ -143,3 +143,32 @@ describe('setupRecommendDetection', () => {
     cleanup();
   });
 });
+
+import { extractMaxOptionCount } from '../../../src/features/quick-reply/recommend-detector';
+
+describe('extractMaxOptionCount', () => {
+  it('個別表記: 方案1、方案2、方案3 → 3', () => {
+    expect(extractMaxOptionCount('方案1: A\n方案2: B\n方案3: C')).toBe(3);
+  });
+  it('範囲表記: 方案1〜5 → 5', () => {
+    expect(extractMaxOptionCount('方案1〜5')).toBe(5);
+  });
+  it('範囲表記: 方案1-3 → 3', () => {
+    expect(extractMaxOptionCount('方案1-3')).toBe(3);
+  });
+  it('範囲表記: 方案1〜方案5 → 5', () => {
+    expect(extractMaxOptionCount('方案1〜方案5')).toBe(5);
+  });
+  it('混在: 方案1、方案2、方案1〜5 → 5', () => {
+    expect(extractMaxOptionCount('方案1、方案2 は任意、方案1〜5 から選ぶ')).toBe(5);
+  });
+  it('選択肢が 1 つ → 1', () => {
+    expect(extractMaxOptionCount('方案1で進めます')).toBe(1);
+  });
+  it('該当なし → 0', () => {
+    expect(extractMaxOptionCount('了解しました。')).toBe(0);
+  });
+  it('空文字 → 0', () => {
+    expect(extractMaxOptionCount('')).toBe(0);
+  });
+});
