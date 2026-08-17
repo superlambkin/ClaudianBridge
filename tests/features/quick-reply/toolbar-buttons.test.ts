@@ -77,11 +77,19 @@ describe('setupQuickReplyButtons', () => {
     cleanup = setupQuickReplyButtons({} as never);
     const toolbar = addToolbar();
     await waitForGroup(toolbar);
-    document.body.appendChild(document.createElement('div'));
+
+    // 2 つ目のツールバーを追加 → observer の再注入パスが走るが、
+    // 既存ツールバーには重複注入しない（各ツールバーにちょうど 1 グループ）
+    const toolbar2 = addToolbar();
+    await waitForGroup(toolbar2);
+
     expect(toolbar.querySelectorAll('[data-cb-quickreply]')).toHaveLength(1);
+    expect(toolbar2.querySelectorAll('[data-cb-quickreply]')).toHaveLength(1);
+
     cleanup!();
     cleanup = undefined;
     expect(toolbar.querySelector('[data-cb-quickreply]')).toBeNull();
+    expect(toolbar2.querySelector('[data-cb-quickreply]')).toBeNull();
   });
 
   it('推奨方案が変わると該当ボタンに .is-recommended が付与・解除される', async () => {

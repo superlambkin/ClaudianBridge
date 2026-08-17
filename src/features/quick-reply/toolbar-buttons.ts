@@ -48,11 +48,14 @@ function makeButton(app: App, def: QuickReplyButtonDef): HTMLButtonElement {
     if (busy) return;
     busy = true;
     btn.disabled = true;
-    // sendToClaudian は内部 try/catch でエラー処理済み（reject しない）
-    void sendToClaudian(app, def.text, (m) => new Notice(m)).finally(() => {
-      busy = false;
-      btn.disabled = false;
-    });
+    // sendToClaudian は内部 try/catch でエラー処理済み（reject しない）が、
+    // 将来 reject する変更が入っても unhandled rejection にしないよう防御
+    void sendToClaudian(app, def.text, (m) => new Notice(m))
+      .catch(() => {})
+      .finally(() => {
+        busy = false;
+        btn.disabled = false;
+      });
   });
   return btn;
 }
