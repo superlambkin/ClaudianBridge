@@ -26,6 +26,14 @@ describe('settings', () => {
     expect(validateClaudianBridgeSettings(bad)).toContain('general.enabled');
   });
 
+  it('validateClaudianBridgeSettings: general.backupEnabled が boolean であること', () => {
+    const valid = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, general: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general, backupEnabled: true } };
+    expect(validateClaudianBridgeSettings(valid)).toBeNull();
+
+    const invalid = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, general: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general, backupEnabled: 'yes' as unknown as boolean } };
+    expect(validateClaudianBridgeSettings(invalid)).toMatch(/general\.backupEnabled/);
+  });
+
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.office は全フィールドを持つ', () => {
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.office).toMatchObject({
       enabled: true,
@@ -685,5 +693,17 @@ describe('tts.edgeTtsModulePath (ローカル EdgeTTS, v0.20.0)', () => {
   it('validate: engine edge-local は許可される', () => {
     const ok = normalizeClaudianBridgeSettings({ tts: { engine: 'edge-local' } });
     expect(validateClaudianBridgeSettings(ok)).toBeNull();
+  });
+});
+
+describe('normalizeClaudianBridgeSettings - general.backupEnabled (v0.21.0)', () => {
+  it('normalizeClaudianBridgeSettings: general.backupEnabled デフォルト true', () => {
+    const result = normalizeClaudianBridgeSettings({});
+    expect(result.general.backupEnabled).toBe(true);
+  });
+
+  it('normalizeClaudianBridgeSettings: general.backupEnabled=false 明示設定', () => {
+    const result = normalizeClaudianBridgeSettings({ general: { backupEnabled: false } });
+    expect(result.general.backupEnabled).toBe(false);
   });
 });
