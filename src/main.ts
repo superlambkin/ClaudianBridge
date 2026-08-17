@@ -18,6 +18,7 @@ import { initEdgeTtsLocal } from './features/tts/edge-tts-local';
 import { migrateFromLegacy } from './legacy/migration';
 import { disableLegacyPluginsOnce } from './legacy/disable-legacy';
 import { OfficeMenuRegistrar } from './features/office/menu';
+import { BackupMenuRegistrar } from './features/backup/menu';
 import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
@@ -273,6 +274,8 @@ export default class ClaudianBridgePlugin extends Plugin {
       };
       OfficeMenuRegistrar.registerFileMenu(this, this.app, officeSettingsRef, openSettings, pluginDir);
       OfficeMenuRegistrar.registerMultiSelect(this, this.app, officeSettingsRef, openSettings, pluginDir);
+      BackupMenuRegistrar.register(this, this.app, () => this.store.load(), pluginDir);
+      diag('backup menu registered');
       diag('office menu registered');
 
       // 5.5 フォルダ右クリック「Add to Claudian」（selection.folderEnabled が true の時のみ）
