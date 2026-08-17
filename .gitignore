@@ -10,3 +10,6 @@ data.json
 
 # git worktrees (SDD isolated workspaces)
 .worktrees/
+
+# SDD scratch (ledger, briefs, review packages)
+.superpowers/
