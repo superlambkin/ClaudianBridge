@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { extractRecommendedOption } from '../../../src/features/quick-reply/recommend-detector';
+import { readRecommendedOption, setupRecommendDetection } from '../../../src/features/quick-reply/recommend-detector';
 
 describe('extractRecommendedOption', () => {
   it('ja: 「推奨は方案2」→ 2', () => {
@@ -29,5 +30,74 @@ describe('extractRecommendedOption', () => {
   });
   it('空文字 → null', () => {
     expect(extractRecommendedOption('')).toBeNull();
+  });
+});
+
+function makeAppWithMessages(messagesEl: HTMLElement | null) {
+  return {
+    plugins: {
+      plugins: {
+        realclaudian: {
+          getView: () => ({
+            getActiveTab: () => ({ dom: { messagesEl } }),
+          }),
+        },
+      },
+    },
+  } as unknown as import('obsidian').App;
+}
+
+describe('readRecommendedOption', () => {
+  it('最後の assistant メッセージから推奨方案を読む', () => {
+    const messagesEl = document.createElement('div');
+    messagesEl.className = 'claudian-messages';
+    messagesEl.innerHTML = `
+      <div data-role="assistant"><div class="claudian-message-content">まずA</div></div>
+      <div data-role="assistant"><div class="claudian-message-content">推奨は方案4</div></div>
+    `;
+    expect(readRecommendedOption(makeAppWithMessages(messagesEl))).toBe(4);
+  });
+
+  it('messagesEl が無い → null', () => {
+    expect(readRecommendedOption(makeAppWithMessages(null))).toBeNull();
+  });
+
+  it('assistant メッセージが無い → null', () => {
+    const messagesEl = document.createElement('div');
+    messagesEl.className = 'claudian-messages';
+    messagesEl.innerHTML = '<div data-role="user"><div class="claudian-message-content">hi</div></div>';
+    expect(readRecommendedOption(makeAppWithMessages(messagesEl))).toBeNull();
+  });
+});
+
+describe('setupRecommendDetection', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('メッセージ追加で onChange がデバウンス後に呼ばれる', async () => {
+    vi.useFakeTimers();
+    const messagesEl = document.createElement('div');
+    messagesEl.className = 'claudian-messages';
+    messagesEl.innerHTML = '<div data-role="assistant"><div class="claudian-message-content">まずA</div></div>';
+    document.body.appendChild(messagesEl);
+
+    const onChange = vi.fn();
+    const app = makeAppWithMessages(messagesEl);
+    const cleanup = setupRecommendDetection(app, onChange);
+
+    // 初回スキャン
+    await vi.advanceTimersByTimeAsync(300);
+    expect(onChange).toHaveBeenLastCalledWith(null);
+
+    // 新しい assistant メッセージを追記 → デバウンス後に再スキャン
+    const msg = document.createElement('div');
+    msg.setAttribute('data-role', 'assistant');
+    msg.innerHTML = '<div class="claudian-message-content">推奨は方案2</div>';
+    messagesEl.appendChild(msg);
+
+    await vi.advanceTimersByTimeAsync(300);
+    expect(onChange).toHaveBeenLastCalledWith(2);
+
+    cleanup();
   });
 });
