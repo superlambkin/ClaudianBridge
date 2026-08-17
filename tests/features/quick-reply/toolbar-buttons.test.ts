@@ -105,6 +105,27 @@ describe('setupQuickReplyButtons', () => {
     expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌', '1️⃣', '2️⃣', '3️⃣']);
   });
 
+  it('maxOptionCount=7 → 5 を超える分はクランプされ 1️⃣〜5️⃣ まで表示', async () => {
+    cleanup = setupQuickReplyButtons({} as never);
+    const toolbar = addToolbar();
+    const group = await waitForGroup(toolbar);
+    capturedOnChange?.({ recommended: null, maxOptionCount: 7 });
+    const visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
+    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']);
+  });
+
+  it('選択肢あり → なし で 方案ボタンが再表示・再非表示になる', async () => {
+    cleanup = setupQuickReplyButtons({} as never);
+    const toolbar = addToolbar();
+    const group = await waitForGroup(toolbar);
+    capturedOnChange?.({ recommended: null, maxOptionCount: 3 });
+    let visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
+    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌', '1️⃣', '2️⃣', '3️⃣']);
+    capturedOnChange?.({ recommended: null, maxOptionCount: 0 });
+    visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
+    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌']);
+  });
+
   it('推奨方案が変わると該当ボタンに .is-recommended が付与・解除される', async () => {
     cleanup = setupQuickReplyButtons({} as never);
     const toolbar = addToolbar();

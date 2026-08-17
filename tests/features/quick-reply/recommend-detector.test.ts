@@ -151,6 +151,12 @@ describe('extractMaxOptionCount', () => {
   it('範囲表記: 方案1〜5 → 5', () => {
     expect(extractMaxOptionCount('方案1〜5')).toBe(5);
   });
+  it('範囲表記: 方案1～5（全角チルダ U+FF5E）→ 5', () => {
+    expect(extractMaxOptionCount('方案1～5')).toBe(5);
+  });
+  it('範囲表記: 方案1〜7 → 7（生の最大値。5 へはクランプしない）', () => {
+    expect(extractMaxOptionCount('方案1〜7')).toBe(7);
+  });
   it('範囲表記: 方案1-3 → 3', () => {
     expect(extractMaxOptionCount('方案1-3')).toBe(3);
   });
