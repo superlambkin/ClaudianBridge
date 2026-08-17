@@ -43,6 +43,32 @@ export class Notice {
   constructor(_message: string, _timeout?: number) {}
 }
 
+// === menu/backup feature: TFile/TFolder/Menu/MenuItem ===
+// menu.ts 等は workspace.on('file-menu') ハンドラ内で `instanceof TFile` / `instanceof TFolder` を使う。
+// テストでは実オブジェクトではなくインスタンス（`new TFile(...)`）を作って `instanceof` を通す。
+// 最低限のクラススタブだけを export し、App 等の既存スタブには触らない。
+export class TFile {
+  constructor(
+    public path: string = '',
+    public basename: string = '',
+    public extension: string = '',
+  ) {}
+}
+export class TFolder {
+  constructor(
+    public path: string = '',
+    public name: string = '',
+  ) {}
+}
+export class Menu {
+  addItem(_cb: (item: MenuItem) => MenuItem): void { /* no-op */ }
+}
+export class MenuItem {
+  setTitle(_t: string): this { return this; }
+  setIcon(_i: string): this { return this; }
+  onClick(_cb: () => void): this { return this; }
+}
+
 export class Plugin {
   app: App = new App();
   // No-op stubs for the chroma ribbon/command APIs
