@@ -1,7 +1,7 @@
 {
   "id": "claudian-bridge",
   "name": "Claudian Bridge",
-  "version": "0.21.1",
+  "version": "0.22.0",
   "minAppVersion": "1.7.2",
   "description": "Unified Claudian integration: Add to Claudian (text+folder), Add to TTS (edge-TTS / WebSpeech / Plachta Cloud VITS), Office-to-Markdown, extension whitelist.",
   "author": "MiuMiu",
