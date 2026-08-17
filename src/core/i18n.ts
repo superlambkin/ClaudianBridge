@@ -173,6 +173,9 @@ export interface LocaleStrings {
   whitelistApplyButton: string;
   whitelistAlwaysShowFolders: string;
   whitelistAlwaysShowFoldersDesc: string;
+  // === v0.22.0: _ プレフィックスフォルダ非表示 ===
+  whitelistHideUnderscoreFolders: string;
+  whitelistHideUnderscoreFoldersDesc: string;
   whitelistAllFilesShown: string;
   whitelistOptionsHeading: string;
   whitelistReset: string;
@@ -453,6 +456,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistApplyButton: '適用',
     whitelistAlwaysShowFolders: '📁 フォルダは常に表示',
     whitelistAlwaysShowFoldersDesc: 'フォルダをフィルター対象外とする',
+    // v0.22.0
+    whitelistHideUnderscoreFolders: '📁 _ で始まるフォルダを非表示',
+    whitelistHideUnderscoreFoldersDesc: 'フォルダ名の先頭が _ のフォルダ（例: _テンプレート）をファイルエクスプローラから非表示にします',
     whitelistAllFilesShown: '（すべてのファイルが表示されます）',
     whitelistOptionsHeading: '⚙️ オプション',
     whitelistReset: '🔄 デフォルトにリセット',
@@ -729,6 +735,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistApplyButton: 'Apply',
     whitelistAlwaysShowFolders: '📁 Always show folders',
     whitelistAlwaysShowFoldersDesc: 'Folders are not affected by the filter',
+    // v0.22.0
+    whitelistHideUnderscoreFolders: '📁 Hide _-prefixed folders',
+    whitelistHideUnderscoreFoldersDesc: 'Hide folders whose name starts with _ (e.g. _templates) from the file explorer',
     whitelistAllFilesShown: '（All files are shown）',
     whitelistOptionsHeading: '⚙️ Options',
     whitelistReset: '🔄 Reset to default',
@@ -1005,6 +1014,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     whitelistApplyButton: '应用',
     whitelistAlwaysShowFolders: '📁 始终显示文件夹',
     whitelistAlwaysShowFoldersDesc: '文件夹不受过滤影响',
+    // v0.22.0
+    whitelistHideUnderscoreFolders: '📁 隐藏 _ 开头的文件夹',
+    whitelistHideUnderscoreFoldersDesc: '将名称以 _ 开头的文件夹（例如 _templates）从文件浏览器中隐藏',
     whitelistAllFilesShown: '（将显示所有文件）',
     whitelistOptionsHeading: '⚙️ 选项',
     whitelistReset: '🔄 恢复默认',
