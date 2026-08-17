@@ -2,16 +2,18 @@
  * v0.23.0: Claudian チャット入力ツールバーへのクイック返信ボタン注入。
  * ボタン: ✅ OK / ❌ NG / 1️⃣〜5️⃣ 方案1〜方案5
  * クリックで定型文を直接送信する（sendToClaudian）。
- * 推奨方案ハイライトは recommend-detector.ts の setupRecommendDetection と連携（Task 5）。
+ * 推奨方案ハイライトと選択肢数の動的表示は recommend-detector.ts の
+ * setupRecommendDetection（RecommendState）と連携する。
  */
 import type { App } from 'obsidian';
 import { Notice } from 'obsidian';
 import { sendToClaudian } from './core';
-import { setupRecommendDetection } from './recommend-detector';
+import { setupRecommendDetection, type RecommendState } from './recommend-detector';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 
 const TOOLBAR_SELECTOR = '.claudian-input-toolbar';
 const GROUP_MARK = 'data-cb-quickreply';
+const MAX_OPTIONS = 5;
 
 const OPTION_ICONS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
 
@@ -25,7 +27,7 @@ interface QuickReplyButtonDef {
 const BUTTONS: QuickReplyButtonDef[] = [
   { mark: 'data-cb-qr-ok', icon: '✅', text: 'OK' },
   { mark: 'data-cb-qr-ng', icon: '❌', text: 'NG' },
-  ...Array.from({ length: 5 }, (_, i) => ({
+  ...Array.from({ length: MAX_OPTIONS }, (_, i) => ({
     mark: `data-cb-qr-${i + 1}`,
     icon: OPTION_ICONS[i],
     text: `方案${i + 1}`,
@@ -36,6 +38,7 @@ const BUTTONS: QuickReplyButtonDef[] = [
 function makeButton(app: App, def: QuickReplyButtonDef): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.classList.add('claudian-action-btn', 'cb-quickreply-btn');
+  if (def.option) btn.classList.add('cb-hidden'); // デフォルトは選択肢なし
   btn.setAttribute(def.mark, 'true');
   btn.textContent = def.icon;
   const s = getLocaleStrings(getUILanguage());
@@ -60,15 +63,21 @@ function makeButton(app: App, def: QuickReplyButtonDef): HTMLButtonElement {
   return btn;
 }
 
+/** 選択肢数に応じて方案ボタンの表示と推奨ハイライトを更新する */
+function renderGroup(group: Element, state: RecommendState): void {
+  const optionCount = Math.min(state.maxOptionCount, MAX_OPTIONS);
+  for (let i = 1; i <= MAX_OPTIONS; i++) {
+    const btn = group.querySelector(`[data-cb-qr-${i}]`);
+    if (!btn) continue;
+    btn.classList.toggle('cb-hidden', i > optionCount);
+    btn.classList.toggle('is-recommended', state.recommended === i);
+  }
+}
+
 export function setupQuickReplyButtons(app: App): () => void {
-  // 推奨方案のハイライト反映（Task 5 で実装される setupRecommendDetection）
-  const offDetect = setupRecommendDetection(app, (option) => {
-    document.querySelectorAll(`[${GROUP_MARK}]`).forEach((group) => {
-      for (let i = 1; i <= 5; i++) {
-        const btn = group.querySelector(`[data-cb-qr-${i}]`);
-        btn?.classList.toggle('is-recommended', option === i);
-      }
-    });
+  // 状態変化（推奨方案 + 選択肢数）でボタン表示を更新
+  const offDetect = setupRecommendDetection(app, (state) => {
+    document.querySelectorAll(`[${GROUP_MARK}]`).forEach((group) => renderGroup(group, state));
   });
 
   const inject = (toolbar: Element): void => {

@@ -93,16 +93,17 @@ function isInMessages(node: Node): boolean {
 }
 
 /**
- * メッセージ領域の変化を監視し、デバウンス後に推奨方案を再スキャンする。
+ * メッセージ領域の変化を監視し、デバウンス後に推奨方案と選択肢数を再スキャンする。
+ * onChange には RecommendState（推奨方案 + 選択肢数）が渡る。
  * 戻り値は cleanup 関数。
  */
 export function setupRecommendDetection(
   app: App,
-  onChange: (option: number | null) => void
+  onChange: (state: RecommendState) => void
 ): () => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const scan = (): void => {
-    onChange(readRecommendedOption(app));
+    onChange(readRecommendationState(app));
   };
   const schedule = (): void => {
     if (timer) clearTimeout(timer);

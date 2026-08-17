@@ -83,7 +83,7 @@ describe('setupRecommendDetection', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
   afterEach(() => { vi.useRealTimers(); });
 
-  it('メッセージ追加で onChange がデバウンス後に呼ばれる', async () => {
+  it('メッセージ追加で onChange に RecommendState が渡る', async () => {
     vi.useFakeTimers();
     const messagesEl = document.createElement('div');
     messagesEl.className = 'claudian-messages';
@@ -91,21 +91,18 @@ describe('setupRecommendDetection', () => {
     document.body.appendChild(messagesEl);
 
     const onChange = vi.fn();
-    const app = makeAppWithMessages(messagesEl);
-    const cleanup = setupRecommendDetection(app, onChange);
+    const cleanup = setupRecommendDetection(makeAppWithMessages(messagesEl), onChange);
 
-    // 初回スキャン
     await vi.advanceTimersByTimeAsync(300);
-    expect(onChange).toHaveBeenLastCalledWith(null);
+    expect(onChange).toHaveBeenLastCalledWith({ recommended: null, maxOptionCount: 0 });
 
-    // 新しい assistant メッセージを追記 → デバウンス後に再スキャン
     const msg = document.createElement('div');
     msg.setAttribute('data-role', 'assistant');
-    msg.innerHTML = '<div class="claudian-message-content">推奨は方案2</div>';
+    msg.innerHTML = '<div class="claudian-message-content">方案1、方案2 を提示。推奨は方案2</div>';
     messagesEl.appendChild(msg);
 
     await vi.advanceTimersByTimeAsync(300);
-    expect(onChange).toHaveBeenLastCalledWith(2);
+    expect(onChange).toHaveBeenLastCalledWith({ recommended: 2, maxOptionCount: 2 });
 
     cleanup();
   });
@@ -125,7 +122,7 @@ describe('setupRecommendDetection', () => {
     const cleanup = setupRecommendDetection(app, onChange);
 
     await vi.advanceTimersByTimeAsync(300);
-    expect(onChange).toHaveBeenLastCalledWith(null);
+    expect(onChange).toHaveBeenLastCalledWith({ recommended: null, maxOptionCount: 0 });
 
     // realclaudian のタブ切替を模す: 新コンテナを「デタッチ状態」でラッパー内に構築し、
     // そのラッパーを body へ一括挿入する。このとき observer が観測する added node は
@@ -139,7 +136,7 @@ describe('setupRecommendDetection', () => {
     oldMessagesEl.replaceWith(wrapper);
 
     await vi.advanceTimersByTimeAsync(300);
-    expect(onChange).toHaveBeenLastCalledWith(3);
+    expect(onChange).toHaveBeenLastCalledWith({ recommended: 3, maxOptionCount: 3 });
 
     cleanup();
   });
