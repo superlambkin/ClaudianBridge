@@ -38,6 +38,34 @@ describe('extractRecommendedOption', () => {
   it('空文字 → null', () => {
     expect(extractRecommendedOption('')).toBeNull();
   });
+  // === v0.26.0: 案/最優先/第一選択/優先案/best/prefer の追加パターン ===
+  it('ja: 「案2 が推奨」→ 2（方 なしの「案」も検出）', () => {
+    expect(extractRecommendedOption('- 案1: A\n- 案2: B\n案2 が推奨')).toBe(2);
+  });
+  it('ja: 「推奨案は 案3」→ 3', () => {
+    expect(extractRecommendedOption('推奨案は 案3')).toBe(3);
+  });
+  it('ja: 「最優先は案1」→ 1', () => {
+    expect(extractRecommendedOption('最優先は案1')).toBe(1);
+  });
+  it('ja: 「第一選択は 案4」→ 4', () => {
+    expect(extractRecommendedOption('第一選択は 案4')).toBe(4);
+  });
+  it('zh: 「首选是方案2」→ 2', () => {
+    expect(extractRecommendedOption('首选是方案2')).toBe(2);
+  });
+  it('zh: 「优选 案1」→ 1', () => {
+    expect(extractRecommendedOption('优选 案1')).toBe(1);
+  });
+  it('en: "best option 3" → 3', () => {
+    expect(extractRecommendedOption('best option 3')).toBe(3);
+  });
+  it('en: "prefer option 2" → 2', () => {
+    expect(extractRecommendedOption('I prefer option 2')).toBe(2);
+  });
+  it('ja: 「案10」→ null（桁境界）', () => {
+    expect(extractRecommendedOption('案10')).toBeNull();
+  });
 });
 
 function makeAppWithMessages(messagesEl: HTMLElement | null | (() => HTMLElement | null)) {
@@ -174,6 +202,16 @@ describe('extractMaxOptionCount', () => {
   });
   it('空文字 → 0', () => {
     expect(extractMaxOptionCount('')).toBe(0);
+  });
+  // === v0.26.0: 「案」（方案なし）もカウント対象 ===
+  it('個別表記: 案1、案2、案3、案4 → 4', () => {
+    expect(extractMaxOptionCount('案1: A\n案2: B\n案3: C\n案4: D')).toBe(4);
+  });
+  it('混在: 案1、案2 と 方案3 → 3', () => {
+    expect(extractMaxOptionCount('案1 と 案2 もありますが、方案3 が本命です')).toBe(3);
+  });
+  it('範囲表記: 案1〜4 → 4', () => {
+    expect(extractMaxOptionCount('案1〜4 を比較した結果')).toBe(4);
   });
 });
 
