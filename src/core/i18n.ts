@@ -20,6 +20,9 @@ export interface LocaleStrings {
   // === v0.21.0: バックアップ機能 ===
   generalBackupEnabled: string;
   generalBackupEnabledDesc: string;
+  // === v0.21.1: バックアップ完了時ダイアログ自動クローズ ===
+  generalBackupAutoClose: string;
+  generalBackupAutoCloseDesc: string;
   selectionEnabled: string;
   selectionEnabledDesc: string;
   selectionFolderEnabled: string;
@@ -302,6 +305,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.21.0
     generalBackupEnabled: '💾 右クリックバックアップ',
     generalBackupEnabledDesc: 'ファイル/フォルダ右クリックメニューに「バックアップ」を追加（OFF で非表示）',
+    // v0.21.1
+    generalBackupAutoClose: '⏱️ 完了時にダイアログを自動で閉じる',
+    generalBackupAutoCloseDesc: 'バックアップ成功後、1.5秒後にダイアログを自動で閉じます（失敗時は閉じません）',
     selectionEnabled: '🌐 機能 ON/OFF',
     selectionEnabledDesc: '選択テキストを Claudian 入力に挿入する機能を有効化',
     selectionFolderEnabled: '📁 フォルダ右クリック追加',
@@ -575,6 +581,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.21.0
     generalBackupEnabled: '💾 Right-click backup',
     generalBackupEnabledDesc: 'Add "Backup" to file/folder right-click menu (hide when OFF)',
+    // v0.21.1
+    generalBackupAutoClose: '⏱️ Auto-close dialog on completion',
+    generalBackupAutoCloseDesc: 'Automatically closes the dialog 1.5s after a successful backup (not on failure)',
     selectionEnabled: '🌐 Enable Feature',
     selectionEnabledDesc: 'Insert selected text into Claudian input',
     selectionFolderEnabled: '📁 Folder right-click add',
@@ -848,6 +857,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.21.0
     generalBackupEnabled: '💾 右键备份',
     generalBackupEnabledDesc: '在文件/文件夹右键菜单中添加"备份"（关闭时不显示）',
+    // v0.21.1
+    generalBackupAutoClose: '⏱️ 完成时自动关闭对话框',
+    generalBackupAutoCloseDesc: '备份成功后 1.5 秒自动关闭对话框（失败时不关闭）',
     selectionEnabled: '🌐 启用功能',
     selectionEnabledDesc: '将选中文本插入 Claudian 输入框',
     selectionFolderEnabled: '📁 文件夹右键添加',

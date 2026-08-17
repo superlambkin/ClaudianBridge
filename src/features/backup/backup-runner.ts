@@ -78,6 +78,15 @@ export function resolveDestName(srcPath: string, isDir: boolean): string {
   return `${stem}_${ts}${isDir ? '' : ext}`;
 }
 
+/** v0.21.1: バックアップ完了時にモーダルを自動で閉じるまでの遅延 (ms) */
+export const BACKUP_AUTO_CLOSE_DELAY_MS = 1500;
+
+/** runBackup のオプション */
+export interface BackupRunOptions {
+  /** 成功時にモーダルを自動で閉じるか（既定 true） */
+  autoClose?: boolean;
+}
+
 /**
  * バックアップ実行: ダイアログ → ProgressModal → fs.promises.cp
  */
@@ -85,6 +94,7 @@ export async function runBackup(
   app: App,
   target: BackupTarget,
   pluginDir?: string,
+  opts?: BackupRunOptions,
 ): Promise<void> {
   // 1. 保存先ダイアログ（OS ネイティブ / Electron）
   //    Obsidian の App/Workspace にはフォルダ選択 API が存在しない。
@@ -124,6 +134,10 @@ export async function runBackup(
     modal.appendLog(`✅ 完了: ${destPath}`);
     new Notice(`✅ バックアップ完了: ${destName}`);
     modal.setButtonsEnabled({ copy: true, open: false, retry: false, settings: false });
+    // v0.21.1: 成功時のみ・設定 ON のとき 1.5 秒後に自動で閉じる
+    if (opts?.autoClose !== false) {
+      setTimeout(() => modal.close(), BACKUP_AUTO_CLOSE_DELAY_MS);
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     modal.appendLog(`[ERROR] ${msg}`);

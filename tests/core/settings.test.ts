@@ -34,6 +34,14 @@ describe('settings', () => {
     expect(validateClaudianBridgeSettings(invalid)).toMatch(/general\.backupEnabled/);
   });
 
+  it('validateClaudianBridgeSettings: general.backupAutoClose が boolean であること', () => {
+    const valid = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, general: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general, backupAutoClose: true } };
+    expect(validateClaudianBridgeSettings(valid)).toBeNull();
+
+    const invalid = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, general: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general, backupAutoClose: 'yes' as unknown as boolean } };
+    expect(validateClaudianBridgeSettings(invalid)).toMatch(/general\.backupAutoClose/);
+  });
+
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.office は全フィールドを持つ', () => {
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.office).toMatchObject({
       enabled: true,
@@ -705,5 +713,17 @@ describe('normalizeClaudianBridgeSettings - general.backupEnabled (v0.21.0)', ()
   it('normalizeClaudianBridgeSettings: general.backupEnabled=false 明示設定', () => {
     const result = normalizeClaudianBridgeSettings({ general: { backupEnabled: false } });
     expect(result.general.backupEnabled).toBe(false);
+  });
+});
+
+describe('normalizeClaudianBridgeSettings - general.backupAutoClose (v0.21.1)', () => {
+  it('normalizeClaudianBridgeSettings: general.backupAutoClose デフォルト true', () => {
+    const result = normalizeClaudianBridgeSettings({});
+    expect(result.general.backupAutoClose).toBe(true);
+  });
+
+  it('normalizeClaudianBridgeSettings: general.backupAutoClose=false 明示設定', () => {
+    const result = normalizeClaudianBridgeSettings({ general: { backupAutoClose: false } });
+    expect(result.general.backupAutoClose).toBe(false);
   });
 });

@@ -444,6 +444,8 @@ export interface ClaudianBridgeSettings {
     codeCopyFence: boolean;
     // === v0.21.0: バックアップ機能 ===
     backupEnabled: boolean;
+    // === v0.21.1: バックアップ完了時にダイアログを自動で閉じる ===
+    backupAutoClose: boolean;
   };
   quota: QuotaSettings;
   selection: {
@@ -488,7 +490,7 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true, backupAutoClose: true },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
@@ -567,6 +569,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       codeCopyFence: typeof r.general?.codeCopyFence === 'boolean' ? r.general.codeCopyFence : true,
       // v0.21.0: バックアップ機能
       backupEnabled: typeof r.general?.backupEnabled === 'boolean' ? r.general.backupEnabled : true,
+      // v0.21.1: バックアップ完了時にダイアログを自動で閉じる（既定 ON）
+      backupAutoClose: typeof r.general?.backupAutoClose === 'boolean' ? r.general.backupAutoClose : true,
     },
     quota: {
       claudeSettingsPath: typeof r.quota?.claudeSettingsPath === 'string' && r.quota.claudeSettingsPath.trim() !== ''
@@ -750,6 +754,7 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.general.enabled !== 'boolean') return 'general.enabled は boolean である必要があります';
   if (typeof cfg.general.codeCopyFence !== 'boolean') return 'general.codeCopyFence は boolean である必要があります';
   if (typeof cfg.general.backupEnabled !== 'boolean') return 'general.backupEnabled は boolean である必要があります';
+  if (typeof cfg.general.backupAutoClose !== 'boolean') return 'general.backupAutoClose は boolean である必要があります';
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';

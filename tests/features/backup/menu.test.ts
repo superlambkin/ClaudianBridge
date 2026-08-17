@@ -38,7 +38,7 @@ function makePlugin() {
 }
 
 function makeSettingsRef(enabled: boolean): () => ClaudianBridgeSettings {
-  return () => ({ ...({} as ClaudianBridgeSettings), general: { ...({} as ClaudianBridgeSettings.general), backupEnabled: enabled } });
+  return () => ({ ...({} as ClaudianBridgeSettings), general: { ...({} as ClaudianBridgeSettings.general), backupEnabled: enabled, backupAutoClose: true } });
 }
 
 function makeFile(): TFile {
