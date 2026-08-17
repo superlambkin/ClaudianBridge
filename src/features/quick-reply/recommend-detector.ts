@@ -144,7 +144,7 @@ export function extractMaxOptionCount(text: string): number {
   if (!text) return 0;
   const nums: number[] = [];
   // 範囲表記: 終端値を採用（方案1〜5 / 方案1〜方案5 / 方案1-5）
-  const rangeRe = /方案\s*(\d{1,2})\s*[〜~\-–]\s*(?:方案\s*)?(\d{1,2})/g;
+  const rangeRe = /方案\s*(\d{1,2})\s*[〜~～\-–]\s*(?:方案\s*)?(\d{1,2})/g;
   let m: RegExpExecArray | null;
   while ((m = rangeRe.exec(text)) !== null) {
     nums.push(Number(m[2]));
