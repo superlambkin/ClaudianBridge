@@ -6,6 +6,34 @@ import { ProgressModal } from '../office/progress-modal';
 type BackupTarget = TFile | TFolder;
 
 /**
+ * Electron のダイアログ API。
+ * Obsidian の型定義 (obsidian.d.ts) には存在しないため、ローカルで定義する。
+ * esbuild の external に 'electron' が含まれており、実行時に require で解決される。
+ */
+export interface BackupDialog {
+  showOpenDialog(opts: {
+    title?: string;
+    properties?: string[];
+  }): Promise<{ canceled: boolean; filePaths: string[] }>;
+}
+
+/**
+ * 保存先フォルダを選択するダイアログを開く。
+ * キャンセル時は null を返す。
+ */
+export async function pickBackupDestination(
+  dialog: BackupDialog,
+  title: string,
+): Promise<string | null> {
+  const result = await dialog.showOpenDialog({
+    title,
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+}
+
+/**
  * 現在時刻を "YYYYMMDD_HHMMSS" 形式で返す。
  * ファイル名安全（Windows / macOS / Linux 全対応）。
  */
@@ -44,13 +72,16 @@ export async function runBackup(
   target: BackupTarget,
   pluginDir?: string,
 ): Promise<void> {
-  // 1. 保存先ダイアログ（Obsidian 公式 API）
-  const openFolderDialog = (app as unknown as {
-    openFolderDialog?: (title: string) => Promise<string | null>;
-  }).openFolderDialog;
-  const destRoot = openFolderDialog
-    ? await openFolderDialog.call(app, 'バックアップ保存先を選択')
-    : null;
+  // 1. 保存先ダイアログ（OS ネイティブ / Electron）
+  //    Obsidian の App クラスには openFolderDialog が存在しないため、
+  //    Electron の dialog.showOpenDialog を使用する（Vault 外にも保存可能）。
+  const electron = require('electron') as { dialog?: BackupDialog };
+  const dialog = electron.dialog;
+  if (!dialog) {
+    new Notice('⚠️ 保存先ダイアログを開けません');
+    return;
+  }
+  const destRoot = await pickBackupDestination(dialog, 'バックアップ保存先を選択');
   if (!destRoot) return; // ユーザーキャンセル
 
   // 2. パス解決

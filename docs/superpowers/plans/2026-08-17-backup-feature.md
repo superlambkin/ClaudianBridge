@@ -27,7 +27,7 @@
 | ファイル | 責務 |
 |---------|------|
 | `src/features/backup/menu.ts` | `BackupMenuRegistrar` クラス。`workspace.on('file-menu')` で右クリックメニュー登録。`backupEnabled` フラグと TFile/TFolder 型ガード |
-| `src/features/backup/backup-runner.ts` | `runBackup()` 関数。`app.openFolderDialog` → `ProgressModal` → `fs.promises.cp` の実行パイプライン |
+| `src/features/backup/backup-runner.ts` | `runBackup()` 関数。Electron `dialog.showOpenDialog` → `ProgressModal` → `fs.promises.cp` の実行パイプライン |
 | `tests/features/backup/menu.test.ts` | `BackupMenuRegistrar.register()` のテスト |
 | `tests/features/backup/backup-runner.test.ts` | `buildTimestamp()` / `resolveDestName()` の単体テスト |
 
