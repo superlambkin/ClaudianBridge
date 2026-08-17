@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import { buildTimestamp, resolveDestName, pickBackupDestination } from '../../../src/features/backup/backup-runner';
+import { buildTimestamp, resolveDestName, pickBackupDestination, resolveBackupDialog } from '../../../src/features/backup/backup-runner';
 
 describe('backup-runner', () => {
   describe('buildTimestamp', () => {
@@ -71,6 +71,22 @@ describe('backup-runner', () => {
       };
       const result = await pickBackupDestination(dialog, 'バックアップ保存先を選択');
       expect(result).toBe('D:/backup');
+    });
+  });
+
+  describe('resolveBackupDialog', () => {
+    it('electron.dialog があればそれを返す', () => {
+      const dialog = { showOpenDialog: vi.fn() };
+      expect(resolveBackupDialog({ dialog })).toBe(dialog);
+    });
+
+    it('electron.dialog がなければ remote.dialog を返す', () => {
+      const dialog = { showOpenDialog: vi.fn() };
+      expect(resolveBackupDialog({ remote: { dialog } })).toBe(dialog);
+    });
+
+    it('両方なければ null を返す', () => {
+      expect(resolveBackupDialog({})).toBeNull();
     });
   });
 });
