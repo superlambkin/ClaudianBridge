@@ -13,6 +13,7 @@ import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 
 const TOOLBAR_SELECTOR = '.claudian-input-toolbar';
 const GROUP_MARK = 'data-cb-quickreply';
+const ROW_MARK = 'data-cb-quickreply-row';
 const MAX_OPTIONS = 5;
 
 const OPTION_ICONS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
@@ -82,13 +83,18 @@ export function setupQuickReplyButtons(app: App): () => void {
 
   const inject = (toolbar: Element): void => {
     if (toolbar.querySelector(`[${GROUP_MARK}]`)) return;
+    // 他ボタンの上の行・右寄せ: 全幅の行（.cb-quickreply-row）をツールバー先頭に挿入
+    const row = document.createElement('div');
+    row.className = 'cb-quickreply-row';
+    row.setAttribute(ROW_MARK, 'true');
     const group = document.createElement('span');
     group.className = 'cb-quickreply-group';
     group.setAttribute(GROUP_MARK, 'true');
     for (const def of BUTTONS) {
       group.appendChild(makeButton(app, def));
     }
-    toolbar.appendChild(group);
+    row.appendChild(group);
+    toolbar.insertBefore(row, toolbar.firstChild);
   };
 
   const scan = (): void => {
@@ -116,6 +122,6 @@ export function setupQuickReplyButtons(app: App): () => void {
   return () => {
     offDetect();
     observer.disconnect();
-    document.querySelectorAll(`[${GROUP_MARK}]`).forEach((el) => el.remove());
+    document.querySelectorAll(`[${GROUP_MARK}], [${ROW_MARK}]`).forEach((el) => el.remove());
   };
 }

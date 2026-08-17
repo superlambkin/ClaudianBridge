@@ -64,6 +64,21 @@ describe('setupQuickReplyButtons', () => {
     expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌']);
   });
 
+  it('クイック返信行がツールバーの先頭・グループは行の内側に配置される', async () => {
+    cleanup = setupQuickReplyButtons({} as never);
+    const toolbar = addToolbar();
+    const group = await waitForGroup(toolbar);
+
+    // 行（data-cb-quickreply-row）はツールバーの先頭要素
+    const row = toolbar.firstElementChild as HTMLElement;
+    expect(row).not.toBeNull();
+    expect(row.getAttribute('data-cb-quickreply-row')).toBe('true');
+    expect(row.classList.contains('cb-quickreply-row')).toBe(true);
+
+    // グループは行の中に含まれる
+    expect(row.contains(group)).toBe(true);
+  });
+
   it('クリックで正しい文言が送信される（OK / NG / 方案N）', async () => {
     cleanup = setupQuickReplyButtons({} as never);
     const toolbar = addToolbar();

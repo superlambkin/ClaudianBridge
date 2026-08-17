@@ -422,6 +422,13 @@
 .cb-setting-hint { color: var(--text-muted); font-size: 0.85em; }
 
 /* v0.23.0: クイック返信ボタン */
+.cb-quickreply-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
 .cb-quickreply-group {
   display: inline-flex;
   align-items: center;
