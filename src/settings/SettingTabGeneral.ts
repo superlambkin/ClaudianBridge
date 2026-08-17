@@ -89,6 +89,21 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
         }
       }));
 
+    // === v0.24.0: クイック返信ボタンの方案ボタンを常に表示 ===
+    new Setting(containerEl)
+      .setName(s.quickReplyShowAllOptions)
+      .setDesc(s.quickReplyShowAllOptionsDesc)
+      .addToggle((t) => t.setValue(cfg.general.quickReplyShowAllOptions).onChange(async (v) => {
+        try {
+          const latest = store.load();
+          store.save({ ...latest, general: { ...latest.general, quickReplyShowAllOptions: v } });
+          new Notice(s.noticeSaved);
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+
     containerEl.createEl('h3', { text: s.migratedFrom });
     const ul = containerEl.createEl('ul');
     ul.createEl('li', { text: `claudian-selection-bridge: ${cfg.general.migratedFrom.claudianSelectionBridge ? s.migrated : s.notMigrated}` });

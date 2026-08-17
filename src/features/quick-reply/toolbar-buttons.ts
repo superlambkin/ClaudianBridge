@@ -1,5 +1,6 @@
 /**
  * v0.23.0: Claudian チャット入力ツールバーへのクイック返信ボタン注入。
+ * v0.24.0: showAllOptions 設定で方案ボタンを常に表示可能に。
  * ボタン: ✅ OK / ❌ NG / 1️⃣〜5️⃣ 方案1〜方案5
  * クリックで定型文を直接送信する（sendToClaudian）。
  * 推奨方案ハイライトと選択肢数の動的表示は recommend-detector.ts の
@@ -10,6 +11,12 @@ import { Notice } from 'obsidian';
 import { sendToClaudian } from './core';
 import { setupRecommendDetection, type RecommendState } from './recommend-detector';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
+import { ConfigStore } from '../../core/config-store';
+import type { ClaudianBridgeSettings } from '../../core/settings';
+import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS } from '../../core/settings';
+
+// ConfigStore は configPath を引数に取るため、app 参照は不要
+const store = new ConfigStore();
 
 const TOOLBAR_SELECTOR = '.claudian-input-toolbar';
 const GROUP_MARK = 'data-cb-quickreply';
@@ -65,8 +72,9 @@ function makeButton(app: App, def: QuickReplyButtonDef): HTMLButtonElement {
 }
 
 /** 選択肢数に応じて方案ボタンの表示と推奨ハイライトを更新する */
-function renderGroup(group: Element, state: RecommendState): void {
-  const optionCount = Math.min(state.maxOptionCount, MAX_OPTIONS);
+function renderGroup(group: Element, state: RecommendState, showAllOptions: boolean): void {
+  // v0.24.0: showAllOptions が true なら常に全方案ボタンを表示
+  const optionCount = showAllOptions ? MAX_OPTIONS : Math.min(state.maxOptionCount, MAX_OPTIONS);
   for (let i = 1; i <= MAX_OPTIONS; i++) {
     const btn = group.querySelector(`[data-cb-qr-${i}]`);
     if (!btn) continue;
@@ -76,9 +84,21 @@ function renderGroup(group: Element, state: RecommendState): void {
 }
 
 export function setupQuickReplyButtons(app: App): () => void {
+  // v0.24.0: showAllOptions 設定を取得（既定 false）
+  // ConfigStore 経由で現在の設定を読み取る。失敗時は既定 OFF
+  const loadShowAll = (): boolean => {
+    try {
+      const cfg = store.load() as ClaudianBridgeSettings | null;
+      return cfg?.general?.quickReplyShowAllOptions ?? DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general.quickReplyShowAllOptions;
+    } catch {
+      return DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general.quickReplyShowAllOptions;
+    }
+  };
+
   // 状態変化（推奨方案 + 選択肢数）でボタン表示を更新
   const offDetect = setupRecommendDetection(app, (state) => {
-    document.querySelectorAll(`[${GROUP_MARK}]`).forEach((group) => renderGroup(group, state));
+    const showAll = loadShowAll();
+    document.querySelectorAll(`[${GROUP_MARK}]`).forEach((group) => renderGroup(group, state, showAll));
   });
 
   const inject = (toolbar: Element): void => {
