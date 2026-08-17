@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { extractRecommendedOption } from '../../../src/features/quick-reply/recommend-detector';
 import { readRecommendedOption, setupRecommendDetection } from '../../../src/features/quick-reply/recommend-detector';
+import { readRecommendationState } from '../../../src/features/quick-reply/recommend-detector';
 
 describe('extractRecommendedOption', () => {
   it('ja: 「推奨は方案2」→ 2', () => {
@@ -170,5 +171,24 @@ describe('extractMaxOptionCount', () => {
   });
   it('空文字 → 0', () => {
     expect(extractMaxOptionCount('')).toBe(0);
+  });
+});
+
+describe('readRecommendationState', () => {
+  it('最後の assistant メッセージから recommended と maxOptionCount を返す', () => {
+    const messagesEl = document.createElement('div');
+    messagesEl.className = 'claudian-messages';
+    messagesEl.innerHTML = `
+      <div data-role="assistant"><div class="claudian-message-content">方案1、方案2、方案3 を提示します。推奨は方案2</div></div>
+    `;
+    const state = readRecommendationState(makeAppWithMessages(messagesEl));
+    expect(state.recommended).toBe(2);
+    expect(state.maxOptionCount).toBe(3);
+  });
+
+  it('messagesEl が無い → recommended null / maxOptionCount 0', () => {
+    const state = readRecommendationState(makeAppWithMessages(null));
+    expect(state.recommended).toBeNull();
+    expect(state.maxOptionCount).toBe(0);
   });
 });
