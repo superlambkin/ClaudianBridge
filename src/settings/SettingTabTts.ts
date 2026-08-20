@@ -14,7 +14,7 @@ import {
 } from '../features/tts/plachta-tts';
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
 import type { TtsCliSettings, TtsAutoReadSettings } from '../core/settings';
-import { withFullTextState, DEFAULT_SPEECH_FILTER_OPTIONS } from '../core/settings';
+import { withFullTextState, DEFAULT_SPEECH_FILTER_OPTIONS, DEFAULT_TTS_EDGE_CLOUD } from '../core/settings';
 import { TTS_LANGUAGE_MODES } from '../core/settings';
 import type { TtsLanguageMode } from '../core/settings';
 import { CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, DEFAULT_CHUNK_MAX_CHARS, EDGE_CHUNK_MAX_CHARS_MIN, EDGE_CHUNK_MAX_CHARS_MAX, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../core/settings';
@@ -76,7 +76,67 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // 2.5 v0.27.0: 言語モード（Add to TTS 系）
+    // 2.5 v0.27.0: edgeCloud プロキシ設定（engine=edge 選択時のみ表示）
+    if (cfg.tts.engine === 'edge') {
+      const cloud = cfg.tts.edgeCloud ?? DEFAULT_TTS_EDGE_CLOUD;
+      new Setting(containerEl)
+        .setName(s.edgeCloudServerUrl ?? 'EdgeCloud サーバ URL')
+        .addText((t) => t
+          .setPlaceholder('https://my-tts-proxy.local/speak')
+          .setValue(cloud.serverUrl)
+          .onChange(async (v) => {
+            try {
+              const latest = store.load();
+              const prev = latest.tts.edgeCloud ?? DEFAULT_TTS_EDGE_CLOUD;
+              store.save({
+                ...latest,
+                tts: { ...latest.tts, edgeCloud: { ...prev, serverUrl: v.trim() } },
+              });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            }
+          }),
+        );
+      new Setting(containerEl)
+        .setName(s.edgeCloudAuthToken ?? 'EdgeCloud 認証トークン')
+        .addText((t) => {
+          t.inputEl.type = 'password';
+          t.setValue(cloud.authToken).onChange(async (v) => {
+            try {
+              const latest = store.load();
+              const prev = latest.tts.edgeCloud ?? DEFAULT_TTS_EDGE_CLOUD;
+              store.save({
+                ...latest,
+                tts: { ...latest.tts, edgeCloud: { ...prev, authToken: v } },
+              });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            }
+          });
+        });
+      new Setting(containerEl)
+        .setName(s.edgeCloudTimeout ?? 'EdgeCloud タイムアウト (ms)')
+        .addText((t) => t
+          .setPlaceholder('30000')
+          .setValue(String(cloud.timeout))
+          .onChange(async (v) => {
+            const n = Number.parseInt(v, 10);
+            if (!Number.isFinite(n) || n < 1000) return;
+            try {
+              const latest = store.load();
+              const prev = latest.tts.edgeCloud ?? DEFAULT_TTS_EDGE_CLOUD;
+              store.save({
+                ...latest,
+                tts: { ...latest.tts, edgeCloud: { ...prev, timeout: n } },
+              });
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            }
+          }),
+        );
+    }
+
+    // 2.6 v0.27.0: 言語モード（Add to TTS 系）
     new Setting(containerEl)
       .setName(s.ttsAddToTtsLanguageMode ?? '言語モード（Add to TTS）')
       .setDesc(s.ttsAddToTtsLanguageModeDesc ?? 'auto=自動判定 / ja/zh/en=固定')
@@ -96,7 +156,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // 2.6 v0.27.0: 言語モード（AI 自動読上げ系）
+    // 2.7 v0.27.0: 言語モード（AI 自動読上げ系）
     new Setting(containerEl)
       .setName(s.ttsAutoReadLanguageMode ?? '言語モード（AI 自動読上げ）')
       .setDesc(s.ttsAutoReadLanguageModeDesc ?? 'auto=自動判定 / 固定言語選択時は毎回その言語で再生')
@@ -116,7 +176,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // 2.7 v0.20.0: ローカル EdgeTTS のモジュール場所（edge-local 選択時のみ表示）
+    // 2.8 v0.20.0: ローカル EdgeTTS のモジュール場所（edge-local 選択時のみ表示）
     if (cfg.tts.engine === 'edge-local') {
       const folderSetting = new Setting(containerEl)
         .setName(s.ttsEdgeTtsModulePath)
