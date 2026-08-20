@@ -76,7 +76,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // 2.6 v0.27.0: 言語モード（Add to TTS 系）
+    // 2.5 v0.27.0: 言語モード（Add to TTS 系）
     new Setting(containerEl)
       .setName(s.ttsAddToTtsLanguageMode ?? '言語モード（Add to TTS）')
       .setDesc(s.ttsAddToTtsLanguageModeDesc ?? 'auto=自動判定 / ja/zh/en=固定')
@@ -96,7 +96,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // 2.7 v0.27.0: 言語モード（AI 自動読上げ系）
+    // 2.6 v0.27.0: 言語モード（AI 自動読上げ系）
     new Setting(containerEl)
       .setName(s.ttsAutoReadLanguageMode ?? '言語モード（AI 自動読上げ）')
       .setDesc(s.ttsAutoReadLanguageModeDesc ?? 'auto=自動判定 / 固定言語選択時は毎回その言語で再生')
@@ -116,7 +116,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         });
       });
 
-    // 2.5 v0.20.0: ローカル EdgeTTS のモジュール場所（edge-local 選択時のみ表示）
+    // 2.7 v0.20.0: ローカル EdgeTTS のモジュール場所（edge-local 選択時のみ表示）
     if (cfg.tts.engine === 'edge-local') {
       const folderSetting = new Setting(containerEl)
         .setName(s.ttsEdgeTtsModulePath)
