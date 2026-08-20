@@ -36,6 +36,8 @@ export interface TtsSettings {
   chunkMaxChars?: Partial<TtsChunkMaxChars>;
   /** v0.20.0: ローカル EdgeTTS の edge_tts モジュール場所（空=自動: プラグイン内 edge_tts → site-packages）。 */
   edgeTtsModulePath?: string;
+  /** v0.27.0: 言語モード（auto / 固定）。localEdgeTtsSpeak で pickLang に渡す */
+  addToTtsLanguageMode?: 'auto' | 'ja' | 'zh' | 'en';
 }
 
 /** 選択中エンジンに対応する言語別 voices を取得 */
