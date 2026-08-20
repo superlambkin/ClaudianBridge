@@ -65,6 +65,15 @@ export interface LocaleStrings {
   // v0.27.0: 📂 ボタン用ツールチップ／モジュール未存在通知（Task 13 で本実装予定・それまではフォールバック文字列を使用）
   ttsOpenFolderTooltip?: string;
   ttsEdgeModuleNotFound?: string;
+  // v0.27.0: 言語モード dropdown 用（Task 13 で本実装予定・それまではフォールバック文字列を使用）
+  ttsAddToTtsLanguageMode?: string;
+  ttsAddToTtsLanguageModeDesc?: string;
+  ttsAutoReadLanguageMode?: string;
+  ttsAutoReadLanguageModeDesc?: string;
+  ttsLang_auto?: string;
+  ttsLang_ja?: string;
+  ttsLang_zh?: string;
+  ttsLang_en?: string;
   ttsTestSample: string;
   ttsTestButton: string;
   ttsVoicesHint: string;
