@@ -99,6 +99,10 @@ vi.mock('../../src/features/tts/core', async () => {
 
 import { renderTtsTab } from '../../src/settings/SettingTabTts';
 import type { ConfigStore } from '../../src/core/config-store';
+// vi.mock('obsidian', ...) で Notice は vi.fn() に置換済み。再度 import して
+// モック参照を取得し、Notice が期待通り呼ばれたか検証できるようにする。
+// （vitest の vi.mock は同モジュール内 import を全て同一モックへ binding する）
+import { Notice } from 'obsidian';
 
 function makeStore(overrides: { edgeTtsModulePath?: string } = {}): ConfigStore {
   const cfg = {
@@ -183,6 +187,7 @@ describe('SettingTabTts — 📂 ボタン (Task 7 / v0.27.0)', () => {
   beforeEach(() => {
     buttonHandlers.length = 0;
     openPathMock.mockReset();
+    vi.mocked(Notice).mockClear();
     // stub 用にグローバル経由で electron モックを差し込む
     (globalThis as unknown as { __cb_electron_mock__: unknown }).__cb_electron_mock__ = {
       shell: { openPath: openPathMock },
@@ -238,8 +243,9 @@ describe('SettingTabTts — 📂 ボタン (Task 7 / v0.27.0)', () => {
   });
 
   it('モジュール場所が存在しない場合、shell.openPath は呼ばず Notice で通知', async () => {
+    const configuredPath = '/missing/edge_tts';
     const containerEl = makeContainerEl();
-    const store = makeStore({ edgeTtsModulePath: '/missing/edge_tts' });
+    const store = makeStore({ edgeTtsModulePath: configuredPath });
     const app = makeApp({ exists: false });
 
     renderTtsTab(app as never, containerEl, store);
@@ -248,6 +254,10 @@ describe('SettingTabTts — 📂 ボタン (Task 7 / v0.27.0)', () => {
     await folderBtn!.onClick!();
 
     expect(openPathMock).not.toHaveBeenCalled();
+    // Notice にモジュール未存在のメッセージ + displayPath を渡して通知していること
+    // （silent failure 防止：Notice 呼び出しを忘れて return だけする実装を検知）
+    expect(Notice).toHaveBeenCalledTimes(1);
+    expect(Notice).toHaveBeenCalledWith(expect.stringContaining(configuredPath));
   });
 
   it('engine !== edge-local のときは 📂 ボタンは描画されない', () => {
