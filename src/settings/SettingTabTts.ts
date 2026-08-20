@@ -1,5 +1,6 @@
 import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
+import * as path from 'path';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { addTextToTTS, SAMPLE_TEXT } from '../features/tts/core';
@@ -75,7 +76,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
 
     // 2.5 v0.20.0: ローカル EdgeTTS のモジュール場所（edge-local 選択時のみ表示）
     if (cfg.tts.engine === 'edge-local') {
-      new Setting(containerEl)
+      const folderSetting = new Setting(containerEl)
         .setName(s.ttsEdgeTtsModulePath)
         .setDesc(s.ttsEdgeTtsModulePathDesc)
         .addText((t) => t
@@ -90,6 +91,31 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             }
           }),
         );
+      // v0.27.0: 📂 ボタンで electron shell.openPath を呼び OS のファイルマネージャを開く
+      folderSetting.addButton((b) => b
+        .setButtonText('📂')
+        .setTooltip(s.ttsOpenFolderTooltip ?? 'モジュール場所をエクスプローラで開く')
+        .onClick(async () => {
+          const configured = (cfg.tts.edgeTtsModulePath ?? '').trim();
+          let displayPath = configured;
+          if (!displayPath) {
+            const pluginDir = (app as unknown as { vault?: { adapter?: { basePath?: string } } }).vault?.adapter?.basePath ?? '';
+            displayPath = path.join(pluginDir, 'py', 'edge_tts');
+          }
+          const exists = await app.vault.adapter.exists(displayPath);
+          if (!exists) {
+            new Notice(s.ttsEdgeModuleNotFound?.replace('{path}', displayPath) ?? `⚠️ モジュールが見つかりません: ${displayPath}`);
+            return;
+          }
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { shell } = require('electron') as { shell: { openPath: (p: string) => Promise<string> } };
+            await shell.openPath(displayPath);
+          } catch (e) {
+            new Notice(`⚠️ フォルダを開けません: ${(e as Error).message}`);
+          }
+        }),
+      );
     }
 
     // 3. 言語別音色 + テストボタン（edge / webspeech / edge-local のみ）

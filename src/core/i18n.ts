@@ -62,6 +62,9 @@ export interface LocaleStrings {
   ttsEdgeTtsModulePath: string;
   ttsEdgeTtsModulePathDesc: string;
   ttsEdgeTtsModulePathPlaceholder: string;
+  // v0.27.0: 📂 ボタン用ツールチップ／モジュール未存在通知（Task 13 で本実装予定・それまではフォールバック文字列を使用）
+  ttsOpenFolderTooltip?: string;
+  ttsEdgeModuleNotFound?: string;
   ttsTestSample: string;
   ttsTestButton: string;
   ttsVoicesHint: string;
