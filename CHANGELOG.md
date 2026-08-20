@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.27.0] - 2026-08-20 — TTS エンジン変更（ローカル EdgeTTS 同梱＋クラウドサーバ対応＋言語モード切替）
+
+### Added
+
+- **edge_tts 完全同梱**: `git subtree` で `py/edge_tts/` に edge-tts v7.2.8（**LGPLv3 + MIT mixed**・詳細は `THIRD_PARTY_NOTICES.md`）をバンドル。`pip install edge-tts` 不要
+- **言語モード切替**: `Add to TTS` 系と `AI 自動読上げ` 系（自動読み上げ / AI 読上げボタン）で独立した `auto / ja / zh / en` を選択可能（`addToTtsLanguageMode` / `autoReadLanguageMode`）
+- **クラウド EdgeTTS（HTTPS POST プロキシ）**: `edgeCloud = { serverUrl, authToken, timeout }` で任意の外部サーバを指定可能。旧 `claudettsHttpSpeak`（POC_015 依存）は完全削除
+- **クロスプラットフォーム対応**: Ubuntu / Linux で `python3` 自動検出（`resolvePythonCmd`）+ `SIGTERM → SIGKILL` プロセス停止（`killProcessTree`）
+- **UI 改善**: EdgeTTS モジュール場所に 📂 ボタン（OS のファイルマネージャで開く・electron `shell.openPath`）
+- i18n ラベル 15 キー × 3 言語（ja / zh / en）
+
+### Changed
+
+- **デフォルトエンジン変更**: 新規ユーザー = `edge-local` ／ 既存ユーザー = `edge` → `edge-local` 自動マイグレーション
+- 同梱に伴い edge_tts モジュールパス解決を src-layout（`py/edge_tts/src`）に更新
+
+### ⚠️ 既知の制限
+
+- `edge` → `edge-local` マイグレーションの**永続化（data.json 書き戻し）は未実装**。マイグレーションはロード時に正規化されるため動作上問題ないが、設定ファイル上の表記は更新されない（将来タスクで対応）
+- Web Speech エンジン（`webspeech`）は言語モード固定に未対応（従来どおり自動判定のみ）
+
+### 参照
+
+- 設計書: `80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-08-19-tts-engine-change-local-bundle-cloud-server-language-mode.md`
+- 実装計画: `80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/18_TTSエンジン変更実装計画.md`
+- テスト件数: 778 → **782** (+4)
+
 ## [0.26.0] - 2026-08-18
 ### Added
 - クイック返信ボタンの検出パターン拡張（`features/quick-reply/recommend-detector.ts`）

@@ -453,3 +453,17 @@
 .cb-quickreply-btn.is-recommended:hover {
   background: var(--color-accent-hover, var(--color-accent));
 }
+
+/* v0.27.0: TTS エンジン変更 — edgeCloud プロキシ設定グループ */
+.cb-tts-edge-cloud {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--interactive-accent);
+  background: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.cb-tts-edge-cloud .setting-item {
+  border: none;
+  padding: 4px 0;
+}

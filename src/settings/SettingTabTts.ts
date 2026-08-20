@@ -79,7 +79,8 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
     // 2.5 v0.27.0: edgeCloud プロキシ設定（engine=edge 選択時のみ表示）
     if (cfg.tts.engine === 'edge') {
       const cloud = cfg.tts.edgeCloud ?? DEFAULT_TTS_EDGE_CLOUD;
-      new Setting(containerEl)
+      const cloudBox = containerEl.createDiv({ cls: 'cb-tts-edge-cloud' });
+      new Setting(cloudBox)
         .setName(s.edgeCloudServerUrl ?? 'EdgeCloud サーバ URL')
         .addText((t) => t
           .setPlaceholder('https://my-tts-proxy.local/speak')
@@ -97,7 +98,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             }
           }),
         );
-      new Setting(containerEl)
+      new Setting(cloudBox)
         .setName(s.edgeCloudAuthToken ?? 'EdgeCloud 認証トークン')
         .addText((t) => {
           t.inputEl.type = 'password';
@@ -114,7 +115,7 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             }
           });
         });
-      new Setting(containerEl)
+      new Setting(cloudBox)
         .setName(s.edgeCloudTimeout ?? 'EdgeCloud タイムアウト (ms)')
         .addText((t) => t
           .setPlaceholder('30000')
