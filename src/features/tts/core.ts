@@ -1,13 +1,10 @@
 import type { App } from 'obsidian';
 import { Notice } from 'obsidian';
-import { spawn, execFileSync } from 'child_process';
-import * as path from 'path';
-import * as os from 'os';
-import type { PlachtaSettings, TtsChunkMaxChars, TtsCliSpeechFilter, TtsEngine } from '../../core/settings';
+import type { PlachtaSettings, TtsChunkMaxChars, TtsCliSpeechFilter, TtsEdgeCloudSettings, TtsEngine } from '../../core/settings';
 import { DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../../core/settings';
-import { plachtaSpeakChunksPipelined } from './plachta-tts';
+import { plachtaSpeakChunksPipelined, playObjectUrl } from './plachta-tts';
 import { chunkText, speakChunks } from './chunking';
-import { registerPlayback, setEdgeChildPid, stopAllPlayback, getStopEpoch } from './playback-registry';
+import { registerPlayback, stopAllPlayback, getStopEpoch } from './playback-registry';
 import { localEdgeTtsSpeak } from './edge-tts-local';
 
 type NoticeFn = (m: string) => void;
@@ -38,6 +35,8 @@ export interface TtsSettings {
   edgeTtsModulePath?: string;
   /** v0.27.0: 言語モード（auto / 固定）。localEdgeTtsSpeak で pickLang に渡す */
   addToTtsLanguageMode?: 'auto' | 'ja' | 'zh' | 'en';
+  /** v0.27.0: クラウド EdgeTTS プロキシ設定（HTTPS POST 経路・Task 6 で追加） */
+  edgeCloud?: TtsEdgeCloudSettings;
 }
 
 /** 選択中エンジンに対応する言語別 voices を取得 */
@@ -61,81 +60,51 @@ export const SAMPLE_TEXT: Record<'zh' | 'ja' | 'en', string> = {
  * Engine: edge-tts（クラウド・高品質）
  * ========================================================================== */
 /**
- * POC_015 ClaudeTTS プラグインへ HTTP ブリッジ経由で speak 要求を発行。
- * プラグインが未配置でも NoOp で false を返す（VP_017 は POC_015 に依存しない）。
+ * v0.27.0: クラウド EdgeTTS（HTTPS POST プロキシ方式）。
+ * settings.edgeCloud.serverUrl へ POST。body は { text, voice, lang } 標準プロトコル。
+ * レスポンスは audio/mpeg (or audio/wav) の Blob を想定し、playObjectUrl で再生。
+ *
+ * 旧 claudettsHttpSpeak（POC_015 依存・固定パス spawn 実装）は完全削除。
+ * ~/.claude/skills/claude-tts/scripts/commands.py ハードコード呼び出しも撤廃。
  */
-export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
-  return new Promise((resolve) => {
-    let settled = false;
-    let intentionalStop = false;
-    const cmd = path.join(os.homedir(), '.claude', 'skills', 'claude-tts', 'scripts', 'commands.py');
-    let child: ReturnType<typeof spawn>;
-    console.log('[claudian-bridge TTS] spawning:', { cmd, textLen: text.length, textPreview: text.slice(0, 40) });
-    try {
-      child = spawn('python', [cmd, 'speak'], { windowsHide: true });
-    } catch (e) {
-      console.error('[claudian-bridge TTS] spawn threw:', e);
-      noticeFn(`⚠️ ClaudeTTS 起動失敗: ${(e as Error).message}`);
-      resolve(false);
-      return;
+export async function edgeCloudHttpSpeak(text: string, settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
+  const cloud = settings.edgeCloud;
+  if (!cloud?.serverUrl) {
+    noticeFn('⚠️ クラウドサーバ URL 未設定。設定タブで edgeCloud.serverUrl を入力してください');
+    return false;
+  }
+
+  const lang = pickLang(text, settings.addToTtsLanguageMode ?? 'auto');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (cloud.authToken) headers['Authorization'] = `Bearer ${cloud.authToken}`;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), cloud.timeout);
+
+  try {
+    const res = await fetch(cloud.serverUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        text,
+        voice: settings.voices.edge[lang],
+        lang,
+      }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      noticeFn(`⚠️ クラウド EdgeTTS 失敗 (HTTP ${res.status})`);
+      return false;
     }
-    // v0.12.5: レジストリ追跡が外れても停止できるよう PID を直接保持
-    setEdgeChildPid(child.pid ?? null);
-    // v0.12.0: 再生レジストリへ登録（ミュートボタンの停止ハンドル）
-    // v0.12.2: PowerShell プレイヤー（子プロセス）を止めるためプロセスツリーごと kill
-    const unregister = registerPlayback({
-      engine: 'edge',
-      stop: () => {
-        intentionalStop = true;
-        if (child.pid && process.platform === 'win32') {
-          try { execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* 既に終了済み */ }
-        }
-        try { child.kill(); } catch { /* ignore */ }
-      },
-    });
-    let err = '';
-    let out = '';
-    child.stderr?.on('data', (d) => (err += d.toString()));
-    child.stdout?.on('data', (d) => (out += d.toString()));
-    child.on('error', (e) => {
-      console.error('[claudian-bridge TTS] spawn error event:', e.message);
-      if (settled) return;
-      settled = true;
-      unregister();
-      if (intentionalStop) {
-        // v0.12.0: 意図的停止中のエラーはユーザー操作由来 → エラー扱いしない
-        resolve(false);
-        return;
-      }
-      noticeFn(`⚠️ ClaudeTTS 失敗: ${e.message}`);
-      resolve(false);
-    });
-    child.on('close', (code) => {
-      console.log('[claudian-bridge TTS] child close:', { code, stderr: err.slice(0, 300), stdout: out.slice(0, 100) });
-      if (settled) return;
-      settled = true;
-      setEdgeChildPid(null);
-      unregister();
-      if (intentionalStop) {
-        // v0.12.0: ユーザー操作による停止 → エラー扱いしない
-        resolve(false);
-        return;
-      }
-      if (code === 0) {
-        if (/使い方|usage/i.test(err) || /使い方|usage/i.test(out)) {
-          noticeFn('⚠️ ClaudeTTS speak サブコマンド未定義。~/.claude/skills/claude-tts/scripts/commands.py を更新してください');
-          resolve(false);
-          return;
-        }
-        resolve(true);
-      } else {
-        noticeFn(`⚠️ ClaudeTTS 失敗 (exit ${code}): ${err.slice(0, 200)}`);
-        resolve(false);
-      }
-    });
-    child.stdin?.write(text);
-    child.stdin?.end();
-  });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    return await playObjectUrl(url, noticeFn, 'edge');
+  } catch (e) {
+    clearTimeout(timer);
+    noticeFn(`⚠️ クラウド EdgeTTS エラー: ${(e as Error).message}`);
+    return false;
+  }
 }
 
 /* ============================================================================
@@ -143,9 +112,10 @@ export async function claudettsHttpSpeak(text: string, _settings: TtsSettings, n
  * ========================================================================== */
 
 // v0.20.0: pickWebSpeechLang は lang.ts へ分離（edge-tts-local と共用）。
+// v0.27.0: pickLang(text, mode) も共用（edgeCloudHttpSpeak / localEdgeTtsSpeak）。
 // re-export で既存 import を維持しつつ、webSpeechSpeak 内部でも使うため import も行う。
-import { pickWebSpeechLang } from './lang';
-export { pickWebSpeechLang } from './lang';
+import { pickLang, pickWebSpeechLang } from './lang';
+export { pickLang, pickWebSpeechLang } from './lang';
 
 export async function webSpeechSpeak(text: string, settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
   if (typeof window === 'undefined' || !window || !('speechSynthesis' in window)) {
@@ -286,7 +256,7 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   showProgress(progressMsg);
   const result = await speakChunks(chunks, async (chunk) => {
     if (settings.engine === 'edge') {
-      return claudettsHttpSpeak(chunk, settings, noticeFn);
+      return edgeCloudHttpSpeak(chunk, settings, noticeFn);  // v0.27.0: claudettsHttpSpeak → edgeCloudHttpSpeak
     }
     if (settings.engine === 'edge-local') {
       return localEdgeTtsSpeak(chunk, settings, noticeFn);

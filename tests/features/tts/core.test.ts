@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as path from 'path';
 import * as os from 'os';
 import fs from 'fs';
-import { addTextToTTS, webSpeechSpeak } from '../../../src/features/tts/core';
+import { addTextToTTS, webSpeechSpeak, edgeCloudHttpSpeak } from '../../../src/features/tts/core';
 import type { TtsSettings } from '../../../src/features/tts/core';
+import type { TtsEdgeCloudSettings } from '../../../src/core/settings';
+import type { TtsEngine } from '../../../src/core/settings';
 import { plachtaSpeakChunksPipelined } from '../../../src/features/tts/plachta-tts';
 import { PLACHTA_DEFAULT_SPEAKER } from '../../../src/features/tts/plachta-tts';
 import { isTtsPlaying, stopAllPlayback, resetPlaybackRegistry, registerPlayback } from '../../../src/features/tts/playback-registry';
@@ -79,13 +81,29 @@ function makeChild(): ChildHandle {
 const expectedCmd = path.join(os.homedir(), '.claude', 'skills', 'claude-tts', 'scripts', 'commands.py');
 
 /** v0.6.0: voices がネスト必須になったテストヘルパー */
-function makeSettings(engine: 'edge' | 'webspeech' | 'edge-local'): TtsSettings {
-  return {
+function makeSettings(engine: 'edge' | 'webspeech' | 'edge-local'): TtsSettings;
+function makeSettings(overrides: Partial<TtsSettings>): TtsSettings;
+function makeSettings(arg: 'edge' | 'webspeech' | 'edge-local' | Partial<TtsSettings>): TtsSettings {
+  const engine: TtsEngine = typeof arg === 'string' ? arg : (arg.engine ?? 'edge');
+  const base: TtsSettings = {
     engine,
     voices: {
       edge:      { zh: 'xiaoxiao', ja: 'nanami', en: 'aria' },
       webspeech: { zh: '',         ja: '',       en: '' },
     },
+  };
+  if (typeof arg === 'string') return base;
+  // v0.27.0: overrides で部分指定を可能にする（makeSettings({ edgeCloud: {...} }) 形式）
+  return { ...base, ...arg, voices: base.voices };
+}
+
+/** v0.27.0: edgeCloud 設定のみを持つヘルパー */
+function edgeCloud(partial: Partial<TtsEdgeCloudSettings> = {}): TtsEdgeCloudSettings {
+  return {
+    serverUrl: '',
+    authToken: '',
+    timeout: 30_000,
+    ...partial,
   };
 }
 
@@ -151,170 +169,116 @@ afterEach(() => {
 });
 
 // ── tests ──────────────────────────────────────────────────────────────────
-describe('claudettsHttpSpeak (via addTextToTTS)', () => {
-  it('spawns `python <commands.py> speak` and pipes text to stdin', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-
-    const p = addTextToTTS(null as never, 'こんにちは', makeSettings('edge'));
-    child.emit('close', 0);
-    await p;
-
-    expect(spawnMock).toHaveBeenCalledTimes(1);
-    expect(spawnMock.mock.calls[0][0]).toBe('python');
-    expect(spawnMock.mock.calls[0][1][0]).toBe(expectedCmd);
-    expect(spawnMock.mock.calls[0][1][1]).toBe('speak');
-    expect(child.stdin.write).toHaveBeenCalledWith('こんにちは');
-    expect(child.stdin.end).toHaveBeenCalled();
+// v0.27.0: claudettsHttpSpeak は削除され edgeCloudHttpSpeak（HTTPS POST プロキシ方式）に置換。
+// 旧 spawn ベース経路のテスト（12件）は削除。dispatcher の edge 経路検証は
+// edgeCloudHttpSpeak 直結テストと新 dispatcher テスト（後述）でカバーする。
+describe('edgeCloudHttpSpeak (v0.27.0)', () => {
+  it('serverUrl 未設定で false 返却 + Notice', async () => {
+    const notice = vi.fn();
+    const result = await edgeCloudHttpSpeak('hello', makeSettings({}), notice);
+    expect(result).toBe(false);
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('URL'));
   });
 
-  it('addTextToTTS はフィルタを適用しない（speakText 側で適用済み・v0.17.0）', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-    const settings = makeSettings('edge');
-    settings.cli = { speech_filter: { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true } };
-
-    const p = addTextToTTS(null as never, '📢 タスク完了しました :tada:', settings);
-    child.emit('close', 0);
-    await p;
-
-    // emoji が残ったままでもチャンク化・再生に渡る（フィルタは speakText の責務）
-    const written = child.stdin.write.mock.calls[0][0] as string;
-    expect(written).toContain('📢');
-    expect(written).toContain(':tada:');
-    expect(written).toContain('タスク完了しました');
-  });
-
-  it('addTextToTTS は speech_filter 未設定でもテキストをそのまま渡す（v0.17.0）', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-    const settings = makeSettings('edge'); // cli 未設定 → 旧実装なら全最適化 ON で除去される
-
-    const p = addTextToTTS(null as never, '📢 タスク完了しました :tada:', settings);
-    child.emit('close', 0);
-    await p;
-
-    const written = child.stdin.write.mock.calls[0][0] as string;
-    expect(written).toContain('📢');
-    expect(written).toContain(':tada:');
-    expect(written).toContain('タスク完了しました');
-  });
-
-  it('exit 0 + empty stderr/stdout → true（エラー通知なし・プログレスは表示される）', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-
-    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
-    child.emit('close', 0);
-    await expect(p).resolves.toBe(true);
-    // エラー通知（⚠️）は出ない。プログレス（⏳/▶）は出る。
-    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
-    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⏳'))).toBe(true);
-  });
-
-  it('exit 0 + stderr usage string → false (無音失敗検出)', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-
-    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
-    child.stderr.emitData('使い方: python commands.py {status|test|config|voice|mute|speak} [args...]');
-    child.emit('close', 0);
-
-    await expect(p).resolves.toBe(false);
-    expect(noticeMock).toHaveBeenCalledWith(
-      expect.stringContaining('speak サブコマンド未定義'),
+  it('POST が serverUrl に向かい Authorization ヘッダが付く', async () => {
+    // Audio: テスト用に即座に onended を発火させるモック
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      play(): Promise<void> { this.onended(); return Promise.resolve(); }
+      pause() {}
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(new Blob(['x'], { type: 'audio/mpeg' })),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const settings = makeSettings({
+      edgeCloud: edgeCloud({
+        serverUrl: 'https://my-proxy.local/speak',
+        authToken: 'secret-token',
+        timeout: 5000,
+      }),
+    });
+    const result = await edgeCloudHttpSpeak('你好', settings, vi.fn());
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://my-proxy.local/speak',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer secret-token',
+        }),
+        body: expect.stringContaining('"text"'),
+      }),
     );
+    vi.unstubAllGlobals();
+    delete (globalThis as unknown as { Audio?: unknown }).Audio;
   });
 
-  it('exit 0 + stdout usage string → false (usage が stdout に出る場合も検出)', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
+  it('authToken 空文字のとき Authorization ヘッダなし', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(new Blob(['x'])),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await edgeCloudHttpSpeak('hi', makeSettings({
+      edgeCloud: edgeCloud({ serverUrl: 'https://x.local', authToken: '', timeout: 5000 }),
+    }), vi.fn());
+    const call = fetchMock.mock.calls[0];
+    expect(call[1].headers).not.toHaveProperty('Authorization');
+    vi.unstubAllGlobals();
+  });
 
-    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
-    child.stdout.emitData('usage: python commands.py speak <text>');
-    child.emit('close', 0);
+  it('HTTP 400 で false 返却 + Notice', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400 });
+    vi.stubGlobal('fetch', fetchMock);
+    const notice = vi.fn();
+    const result = await edgeCloudHttpSpeak('x', makeSettings({
+      edgeCloud: edgeCloud({ serverUrl: 'https://x.local', authToken: '', timeout: 5000 }),
+    }), notice);
+    expect(result).toBe(false);
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('400'));
+    vi.unstubAllGlobals();
+  });
+});
 
-    await expect(p).resolves.toBe(false);
+describe('addTextToTTS dispatcher (v0.27.0)', () => {
+  it('engine=edge → edgeCloudHttpSpeak（HTTPS POST）が呼ばれ spawn は実行されない', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(new Blob(['x'], { type: 'audio/mpeg' })),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      play(): Promise<void> { this.onended(); return Promise.resolve(); }
+      pause() {}
+    };
+    try {
+      const settings = makeSettings({
+        edgeCloud: edgeCloud({ serverUrl: 'https://x.local', authToken: '', timeout: 5000 }),
+      });
+      await addTextToTTS(null as never, 'こんにちは', settings);
+      expect(spawnMock).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][0]).toBe('https://x.local');
+    } finally {
+      vi.unstubAllGlobals();
+      delete (globalThis as unknown as { Audio?: unknown }).Audio;
+    }
+  });
+
+  it('engine=edge で serverUrl 未設定 → false 返却 + Notice', async () => {
+    const settings = makeSettings('edge'); // edgeCloud は渡さない（normalize でデフォルト）
+    // serverUrl が空文字のため edgeCloudHttpSpeak が即 false を返す
+    await expect(addTextToTTS(null as never, 'hello', settings)).resolves.toBe(false);
     expect(noticeMock).toHaveBeenCalledWith(
-      expect.stringContaining('speak サブコマンド未定義'),
+      expect.stringContaining('URL'),
     );
-  });
-
-  it('exit 1 → false + Notice', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-
-    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
-    child.stderr.emitData('boom');
-    child.emit('close', 1);
-
-    await expect(p).resolves.toBe(false);
-    expect(noticeMock).toHaveBeenCalledWith(
-      expect.stringContaining('ClaudeTTS 失敗 (exit 1)'),
-    );
-  });
-
-  it('stopAllPlayback で child.kill されると true を返しエラー Notice を出さない（F1: 中断はエラー扱いしない）', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-
-    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
-    expect(isTtsPlaying()).toBe(true);
-
-    stopAllPlayback();
-    expect(child.kill).toHaveBeenCalled();
-
-    child.emit('close', 1); // kill による close（非0 exit）
-    await expect(p).resolves.toBe(true);
-    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
-  });
-
-  it('spawn error event → false + Notice', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-
-    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
-    child.emit('error', new Error('ENOENT'));
-    child.emit('close', -2);
-
-    await expect(p).resolves.toBe(false);
-    expect(noticeMock).toHaveBeenCalledWith(
-      expect.stringContaining('ClaudeTTS 失敗'),
-    );
-  });
-
-  it('意図的停止後に error イベントが来てもエラー Notice を出さず true を返す（F1: 中断はエラー扱いしない）', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-
-    const p = addTextToTTS(null as never, 'hello', makeSettings('edge'));
-    expect(isTtsPlaying()).toBe(true);
-
-    stopAllPlayback(); // intentionalStop=true + child.kill
-    child.emit('error', new Error('ESRCH')); // kill 後の error イベント
-    await expect(p).resolves.toBe(true);
-    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
-  });
-
-  it('F1回帰: 既存再生を後勝ち中断した読みが外部 stopAllPlayback で止められても true を返しエラー Notice を出さない', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-
-    // 読みA相当の偽ハンドルを再生中にしておく
-    const fakeStop = vi.fn();
-    registerPlayback({ engine: 'edge', stop: fakeStop });
-    expect(isTtsPlaying()).toBe(true);
-
-    // 読みB開始 → 冒頭の後勝ち stopAllPlayback で読みA相当ハンドルが中断される
-    const p = addTextToTTS(null as never, 'こんにちは', makeSettings('edge'));
-    expect(fakeStop).toHaveBeenCalledTimes(1);
-
-    // 読みB再生中に外部からの中断（ミュートボタン/さらに新しい読み上げ）
-    stopAllPlayback();
-    child.emit('close', 1); // kill による close（非0 exit）
-
-    await expect(p).resolves.toBe(true);
-    expect(noticeMock.mock.calls.some((c) => String(c[0]).startsWith('⚠️'))).toBe(false);
+    expect(spawnMock).not.toHaveBeenCalled();
   });
 
   it('webspeech engine: Node 環境では API がなく false を返す', async () => {
@@ -328,17 +292,33 @@ describe('claudettsHttpSpeak (via addTextToTTS)', () => {
   });
 
   it('addTextToTTS は冒頭で stopAllPlayback を呼び既存再生を中断する（重複読み防止・後勝ち）', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-    const stop = vi.fn();
-    registerPlayback({ engine: 'edge', stop });
-    expect(isTtsPlaying()).toBe(true);
+    // edge 経路でも dispatcher 冒頭で stopAllPlayback が呼ばれることを確認
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(new Blob(['x'], { type: 'audio/mpeg' })),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      play(): Promise<void> { this.onended(); return Promise.resolve(); }
+      pause() {}
+    };
+    try {
+      const stop = vi.fn();
+      registerPlayback({ engine: 'edge', stop });
+      expect(isTtsPlaying()).toBe(true);
 
-    const p = addTextToTTS(null as never, 'こんにちは', makeSettings('edge'));
-    expect(stop).toHaveBeenCalledTimes(1);
-
-    child.emit('close', 0);
-    await p;
+      const settings = makeSettings({
+        edgeCloud: edgeCloud({ serverUrl: 'https://x.local', authToken: '', timeout: 5000 }),
+      });
+      const p = addTextToTTS(null as never, 'こんにちは', settings);
+      expect(stop).toHaveBeenCalledTimes(1);
+      await p;
+    } finally {
+      vi.unstubAllGlobals();
+      delete (globalThis as unknown as { Audio?: unknown }).Audio;
+    }
   });
 });
 
@@ -437,19 +417,6 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     await addTextToTTS(null as never, 'あ'.repeat(140), makePlachtaSettings());
     expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
     expect(vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0].length).toBe(1);
-  });
-
-  it('TC-L03: edge も chunkMaxChars（既定500）でチャンク分割される（v0.18.0）', async () => {
-    const child = makeChild();
-    spawnMock.mockReturnValue(child);
-    const p = addTextToTTS(null as never, 'a'.repeat(501), makeSettings('edge'));
-    child.emit('close', 0); // 1 チャンク目
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2));
-    child.emit('close', 0); // 2 チャンク目
-    await p;
-    expect(spawnMock).toHaveBeenCalledTimes(2);
-    expect(child.stdin.write).toHaveBeenNthCalledWith(1, 'a'.repeat(500));
-    expect(child.stdin.write).toHaveBeenNthCalledWith(2, 'a');
   });
 
   it('TC-L04: webspeech 450字 → 4チャンク(140/140/140/30)で連続再生（v0.17.0）', async () => {
