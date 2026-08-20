@@ -15,6 +15,8 @@ import {
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
 import type { TtsCliSettings, TtsAutoReadSettings } from '../core/settings';
 import { withFullTextState, DEFAULT_SPEECH_FILTER_OPTIONS } from '../core/settings';
+import { TTS_LANGUAGE_MODES } from '../core/settings';
+import type { TtsLanguageMode } from '../core/settings';
 import { CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, DEFAULT_CHUNK_MAX_CHARS, EDGE_CHUNK_MAX_CHARS_MIN, EDGE_CHUNK_MAX_CHARS_MAX, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../core/settings';
 import type { TtsChunkMaxChars } from '../core/settings';
 import type { TtsSpeechFilterSection, SpeechFilterOptions } from '../core/settings';
@@ -67,6 +69,46 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             const next = { ...latest, tts: { ...latest.tts, engine: v as EngineKey } };
             store.save(next);
             draw(); // 音色セクションを再描画
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        });
+      });
+
+    // 2.6 v0.27.0: 言語モード（Add to TTS 系）
+    new Setting(containerEl)
+      .setName(s.ttsAddToTtsLanguageMode ?? '言語モード（Add to TTS）')
+      .setDesc(s.ttsAddToTtsLanguageModeDesc ?? 'auto=自動判定 / ja/zh/en=固定')
+      .addDropdown((d) => {
+        for (const m of TTS_LANGUAGE_MODES) {
+          d.addOption(m, s[`ttsLang_${m}`] ?? m);
+        }
+        d.setValue(cfg.tts.addToTtsLanguageMode ?? 'auto').onChange(async (v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, addToTtsLanguageMode: v as TtsLanguageMode } });
+            new Notice(s.noticeSaved);
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        });
+      });
+
+    // 2.7 v0.27.0: 言語モード（AI 自動読上げ系）
+    new Setting(containerEl)
+      .setName(s.ttsAutoReadLanguageMode ?? '言語モード（AI 自動読上げ）')
+      .setDesc(s.ttsAutoReadLanguageModeDesc ?? 'auto=自動判定 / 固定言語選択時は毎回その言語で再生')
+      .addDropdown((d) => {
+        for (const m of TTS_LANGUAGE_MODES) {
+          d.addOption(m, s[`ttsLang_${m}`] ?? m);
+        }
+        d.setValue(cfg.tts.autoReadLanguageMode ?? 'auto').onChange(async (v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, autoReadLanguageMode: v as TtsLanguageMode } });
+            new Notice(s.noticeSaved);
           } catch (e) {
             new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
             draw();
