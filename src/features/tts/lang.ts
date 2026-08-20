@@ -3,6 +3,8 @@
  * core.ts の pickWebSpeechLang を分離（edge-tts-local と共用のため）。
  */
 
+import type { TtsLanguageMode } from '../../core/settings';
+
 /** Detect a likely IETF language code for the given text (best-effort). */
 export function pickWebSpeechLang(text: string): 'zh' | 'ja' | 'en' {
   const counts = { kana: 0, cjk: 0, latin: 0 };
@@ -15,4 +17,10 @@ export function pickWebSpeechLang(text: string): 'zh' | 'ja' | 'en' {
   }
   if (counts.kana > 0 || counts.cjk > counts.latin) return counts.kana > counts.cjk ? 'ja' : 'zh';
   return 'en';
+}
+
+/** v0.27.0: 言語モードに応じた言語を解決 */
+export function pickLang(text: string, mode: TtsLanguageMode): 'zh' | 'ja' | 'en' {
+  if (mode === 'auto') return pickWebSpeechLang(text);
+  return mode;
 }
