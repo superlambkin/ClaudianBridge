@@ -29,7 +29,10 @@ export function resolveSpeechFilter(cfg: ClaudianBridgeSettings, type: TtsReadTy
   }
 }
 
-function toTtsSettings(cfg: ClaudianBridgeSettings): TtsSettings {
+function toTtsSettings(cfg: ClaudianBridgeSettings, type: TtsReadType): TtsSettings {
+  // v0.27.0: 読み上げタイプ別に言語モードを解決（AI 自動読上げ系=autoRead/inputAi は autoReadLanguageMode、その他は addToTtsLanguageMode）
+  const isAiType = type === 'autoRead' || type === 'inputAi';
+  const mode = (isAiType ? cfg.tts.autoReadLanguageMode : cfg.tts.addToTtsLanguageMode) ?? 'auto';
   return {
     engine: cfg.tts.engine,
     voices: cfg.tts.voices,
@@ -37,6 +40,7 @@ function toTtsSettings(cfg: ClaudianBridgeSettings): TtsSettings {
     cli: cfg.tts.cli,
     chunkMaxChars: cfg.tts.chunkMaxChars,
     edgeTtsModulePath: cfg.tts.edgeTtsModulePath,
+    addToTtsLanguageMode: mode,
   };
 }
 
@@ -56,7 +60,7 @@ export async function speakText(
   const optimized = filterSpeechText(trimmed, filter);
   if (!optimized.trim()) return true; // フィルタ後空なら読まない（エラー扱いしない）
 
-  const settings = toTtsSettings(cfg);
+  const settings = toTtsSettings(cfg, type);
   const ok = await addTextToTTS(null, optimized, settings);
   if (ok) return true;
 
