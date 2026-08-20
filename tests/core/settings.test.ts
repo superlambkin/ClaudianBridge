@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState } from '../../src/core/settings';
+import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState, TTS_LANGUAGE_MODES, DEFAULT_TTS_EDGE_CLOUD, normalizeTtsSettings, TtsLanguageMode } from '../../src/core/settings';
 
 describe('settings', () => {
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS は全フィールドを持つ', () => {
@@ -767,5 +767,62 @@ describe('normalizeWhitelistSettings (v0.22.0)', () => {
   it('normalizeWhitelistSettings: hideUnderscoreFolders=false 明示設定', () => {
     const result = normalizeWhitelistSettings({ hideUnderscoreFolders: false });
     expect(result.hideUnderscoreFolders).toBe(false);
+  });
+});
+
+describe('TtsLanguageMode / TtsEdgeCloudSettings', () => {
+  it('TTS_LANGUAGE_MODES は auto / ja / zh / en', () => {
+    expect(TTS_LANGUAGE_MODES).toEqual(['auto', 'ja', 'zh', 'en']);
+  });
+
+  it('DEFAULT_TTS_EDGE_CLOUD は空文字 + 30000ms', () => {
+    expect(DEFAULT_TTS_EDGE_CLOUD).toEqual({
+      serverUrl: '',
+      authToken: '',
+      timeout: 30_000,
+    });
+  });
+
+  it('normalizeTtsSettings: addToTtsLanguageMode 未設定 → auto', () => {
+    const out = normalizeTtsSettings({ engine: 'edge-local', voices: { edge: {zh:'',ja:'',en:''}, webspeech: {zh:'',ja:'',en:''} } });
+    expect(out.addToTtsLanguageMode).toBe('auto');
+  });
+
+  it('normalizeTtsSettings: autoReadLanguageMode=ja は維持', () => {
+    const out = normalizeTtsSettings({
+      engine: 'edge-local',
+      voices: { edge: {zh:'',ja:'',en:''}, webspeech: {zh:'',ja:'',en:''} },
+      autoReadLanguageMode: 'ja',
+    });
+    expect(out.autoReadLanguageMode).toBe('ja');
+  });
+
+  it('normalizeTtsSettings: 異常な addToTtsLanguageMode → auto にフォールバック', () => {
+    const out = normalizeTtsSettings({
+      engine: 'edge-local',
+      voices: { edge: {zh:'',ja:'',en:''}, webspeech: {zh:'',ja:'',en:''} },
+      addToTtsLanguageMode: 'fr' as unknown as TtsLanguageMode,
+    });
+    expect(out.addToTtsLanguageMode).toBe('auto');
+  });
+
+  it('normalizeTtsSettings: edgeCloud 部分設定は DEFAULT とマージ', () => {
+    const out = normalizeTtsSettings({
+      engine: 'edge',
+      voices: { edge: {zh:'',ja:'',en:''}, webspeech: {zh:'',ja:'',en:''} },
+      edgeCloud: { serverUrl: 'https://x.local', authToken: '', timeout: 5000 },
+    });
+    expect(out.edgeCloud).toEqual({
+      serverUrl: 'https://x.local',
+      authToken: '',
+      timeout: 5000,
+    });
+  });
+
+  it('normalizeTtsSettings: engine 未指定 → edge-local にフォールバック（v0.27 デフォルト）', () => {
+    const out = normalizeTtsSettings({
+      voices: { edge: {zh:'',ja:'',en:''}, webspeech: {zh:'',ja:'',en:''} },
+    } as unknown);
+    expect(out.engine).toBe('edge-local');
   });
 });

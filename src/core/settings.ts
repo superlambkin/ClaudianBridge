@@ -124,6 +124,24 @@ export interface PlachtaSettings {
 /** TTS エンジン識別子。v0.8.0: spawn ベースのローカル VITS を完全削除しクラウド Plachta に置換。 */
 export type TtsEngine = 'edge' | 'webspeech' | 'plachta' | 'edge-local';
 
+/** v0.27.0: 言語モード — auto / 固定言語 */
+export type TtsLanguageMode = 'auto' | 'ja' | 'zh' | 'en';
+
+export const TTS_LANGUAGE_MODES: readonly TtsLanguageMode[] = ['auto', 'ja', 'zh', 'en'] as const;
+
+/** v0.27.0: クラウド EdgeTTS プロキシ設定 */
+export interface TtsEdgeCloudSettings {
+  serverUrl: string;
+  authToken: string;
+  timeout: number;
+}
+
+export const DEFAULT_TTS_EDGE_CLOUD: TtsEdgeCloudSettings = {
+  serverUrl: '',
+  authToken: '',
+  timeout: 30_000,
+};
+
 export const PLACHTA_DEFAULT_SPEAKER = '特别周 Special Week (Umamusume Pretty Derby)';
 export const PLACHTA_DEFAULT_LANGUAGE: PlachtaLanguage = '日本語';
 export const PLACHTA_DEFAULT_SPEED = 1.0;
@@ -491,6 +509,12 @@ export interface ClaudianBridgeSettings {
     chunkMaxChars: TtsChunkMaxChars;
     /** v0.17.0: 読み上げタイプ別フィルタ（チェック=含めて読む） */
     speechFilter: TtsSpeechFilters;
+    /** v0.27.0: 言語モード — Add to TTS 系（任意: normalize で補填される） */
+    addToTtsLanguageMode?: TtsLanguageMode;
+    /** v0.27.0: 言語モード — AI 自動読上げ系（任意: normalize で補填される） */
+    autoReadLanguageMode?: TtsLanguageMode;
+    /** v0.27.0: クラウド EdgeTTS プロキシ設定（任意: normalize で補填される） */
+    edgeCloud?: TtsEdgeCloudSettings;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -539,6 +563,10 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
       message: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
       inputAi: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
     },
+    // v0.27.0: 言語モード既定 + クラウド EdgeTTS プロキシ設定
+    addToTtsLanguageMode: 'auto' as TtsLanguageMode,
+    autoReadLanguageMode: 'auto' as TtsLanguageMode,
+    edgeCloud: { ...DEFAULT_TTS_EDGE_CLOUD },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -693,6 +721,17 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       },
       chunkMaxChars: normalizeTtsChunkMaxChars(r.tts?.chunkMaxChars),
       speechFilter: normalizeTtsSpeechFilters(r),
+      // v0.27.0: 言語モード（auto / 固定言語）+ クラウド EdgeTTS プロキシ設定。
+      // 正規化ロジックは normalizeTtsSettings に集約 — engine / voices 等のレガシー差分は
+      // 呼び出し元で個別に上書きしないため、ここでは v0.27 フィールドのみ採用。
+      ...(() => {
+        const v027 = normalizeTtsSettings(r.tts);
+        return {
+          addToTtsLanguageMode: v027.addToTtsLanguageMode,
+          autoReadLanguageMode: v027.autoReadLanguageMode,
+          edgeCloud: v027.edgeCloud,
+        };
+      })(),
     },
     office: normalizeOfficeSettings(r.office),
     whitelist: normalizeWhitelistSettings(r.whitelist),
@@ -704,6 +743,85 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
 function clampNum(v: unknown, min: number, max: number, def: number): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return def;
   return Math.max(min, Math.min(max, Math.round(v)));
+}
+
+/** v0.27.0: TtsEngine 型ガード（edge / webspeech / plachta / edge-local） */
+function isValidEngine(v: unknown): v is TtsEngine {
+  return v === 'edge' || v === 'webspeech' || v === 'plachta' || v === 'edge-local';
+}
+
+/**
+ * v0.27.0: TTS セクション正規化。新フィールド（addToTtsLanguageMode / autoReadLanguageMode / edgeCloud）と
+ * デフォルトエンジンのフォールバック（edge-local）を担当。normalizeClaudianBridgeSettings からも利用される。
+ */
+export function normalizeTtsSettings(raw: unknown): {
+  enabled: boolean;
+  engine: TtsEngine;
+  edgeTtsModulePath: string;
+  voices: { edge: { zh: string; ja: string; en: string }; webspeech: { zh: string; ja: string; en: string } };
+  plachta?: PlachtaSettings;
+  cli?: TtsCliSettings;
+  autoRead?: TtsAutoReadSettings;
+  excludeCallouts?: boolean;
+  inputAi?: { enabled: boolean };
+  chunkMaxChars: TtsChunkMaxChars;
+  speechFilter: TtsSpeechFilters;
+  addToTtsLanguageMode: TtsLanguageMode;
+  autoReadLanguageMode: TtsLanguageMode;
+  edgeCloud: TtsEdgeCloudSettings;
+} {
+  const r = (raw ?? {}) as Partial<{
+    enabled: boolean;
+    engine: unknown;
+    edgeTtsModulePath: string;
+    voices: { edge: { zh: string; ja: string; en: string }; webspeech: { zh: string; ja: string; en: string } };
+    plachta: PlachtaSettings;
+    cli: TtsCliSettings;
+    autoRead: TtsAutoReadSettings;
+    excludeCallouts: boolean;
+    inputAi: { enabled: boolean };
+    chunkMaxChars: TtsChunkMaxChars;
+    speechFilter: TtsSpeechFilters;
+    addToTtsLanguageMode: unknown;
+    autoReadLanguageMode: unknown;
+    edgeCloud: Partial<TtsEdgeCloudSettings>;
+  }>;
+  // v0.27.0: 言語モードの正規化
+  const TTS_LANG_SET = new Set<TtsLanguageMode>(TTS_LANGUAGE_MODES);
+  const rawAddMode = r.addToTtsLanguageMode;
+  const rawAutoMode = r.autoReadLanguageMode;
+  const addToTtsLanguageMode: TtsLanguageMode = TTS_LANG_SET.has(rawAddMode as TtsLanguageMode)
+    ? (rawAddMode as TtsLanguageMode)
+    : 'auto';
+  const autoReadLanguageMode: TtsLanguageMode = TTS_LANG_SET.has(rawAutoMode as TtsLanguageMode)
+    ? (rawAutoMode as TtsLanguageMode)
+    : 'auto';
+  // v0.27.0: edgeCloud の正規化（部分指定 → DEFAULT とマージ）
+  const edgeCloud: TtsEdgeCloudSettings = { ...DEFAULT_TTS_EDGE_CLOUD, ...(r.edgeCloud ?? {}) };
+  // v0.27.0: デフォルトエンジンを edge-local に変更（既存 'edge' は migration で吸収）
+  const engine: TtsEngine = isValidEngine(r.engine) ? r.engine : 'edge-local';
+
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : true,
+    engine,
+    edgeTtsModulePath: typeof r.edgeTtsModulePath === 'string' ? r.edgeTtsModulePath : '',
+    voices: r.voices ?? { edge: { zh: '', ja: '', en: '' }, webspeech: { zh: '', ja: '', en: '' } },
+    ...(r.plachta !== undefined ? { plachta: r.plachta } : {}),
+    ...(r.cli !== undefined ? { cli: r.cli } : {}),
+    ...(r.autoRead !== undefined ? { autoRead: r.autoRead } : {}),
+    ...(r.excludeCallouts !== undefined ? { excludeCallouts: r.excludeCallouts } : {}),
+    ...(r.inputAi !== undefined ? { inputAi: r.inputAi } : {}),
+    chunkMaxChars: r.chunkMaxChars ?? { edge: DEFAULT_EDGE_CHUNK_MAX_CHARS, webspeech: DEFAULT_CHUNK_MAX_CHARS, plachta: DEFAULT_CHUNK_MAX_CHARS },
+    speechFilter: r.speechFilter ?? {
+      selection: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+      autoRead: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+      message: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+      inputAi: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
+    },
+    addToTtsLanguageMode,
+    autoReadLanguageMode,
+    edgeCloud,
+  };
 }
 
 function normalizeTtsChunkMaxChars(raw: unknown): TtsChunkMaxChars {

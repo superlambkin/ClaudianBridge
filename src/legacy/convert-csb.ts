@@ -49,6 +49,8 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
         message: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
         inputAi: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
       },
+      // v0.27.0 フィールド（addToTtsLanguageMode / autoReadLanguageMode / edgeCloud）は optional。
+      // Claudian Selection Bridge には存在しないため未設定で返し、normalize 時に補填される。
     },
   };
 }
