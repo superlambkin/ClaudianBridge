@@ -8,7 +8,7 @@
  * because at runtime the plugin resolves them from <pluginDir>.
  */
 import { spawnSync } from "child_process";
-import { copyFileSync, existsSync, mkdirSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { resolveVaultPath } from "../../_devtools/obsidian-deploy.mjs";
@@ -47,6 +47,19 @@ const RAG_FILES = [
 const dest = join(resolveVaultPath(), ".obsidian", "plugins", "claudian-bridge");
 mkdirSync(dest, { recursive: true });
 
+/** Recursively copy a directory. Returns false if source does not exist. */
+function copyDirSync(src, dest) {
+  if (!existsSync(src)) return false;
+  mkdirSync(dest, { recursive: true });
+  for (const entry of readdirSync(src)) {
+    const srcPath = join(src, entry);
+    const destPath = join(dest, entry);
+    if (statSync(srcPath).isDirectory()) copyDirSync(srcPath, destPath);
+    else copyFileSync(srcPath, destPath);
+  }
+  return true;
+}
+
 /** Copy one repo-relative file into the plugin folder (creating parent dirs). */
 function copyOne(srcRel, dstRel) {
   const src = join(process.cwd(), srcRel);
@@ -64,4 +77,15 @@ function copyOne(srcRel, dstRel) {
 let pyOk = true;
 for (const f of PY_FILES) pyOk = copyOne(`python/${f}`, f) && pyOk;
 for (const f of RAG_FILES) pyOk = copyOne(f, f.replace(/^rag\//, "")) && pyOk;
+
+// v0.27.0: 同梱 edge_tts（pip 依存ゼロ）。src-layout のため py/edge_tts/src/edge_tts/ が実体
+const edgeTtsSrc = join(process.cwd(), "py", "edge_tts");
+const edgeTtsDest = join(dest, "py", "edge_tts");
+if (!copyDirSync(edgeTtsSrc, edgeTtsDest)) {
+  console.error(`❌ edge_tts bundled dir missing: ${edgeTtsSrc}`);
+  pyOk = false;
+} else {
+  console.log(`✅ py/edge_tts -> ${edgeTtsDest}`);
+}
+
 process.exit(result.status === 0 && pyOk ? 0 : 1);
