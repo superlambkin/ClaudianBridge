@@ -62,14 +62,14 @@ export interface LocaleStrings {
   ttsEdgeTtsModulePath: string;
   ttsEdgeTtsModulePathDesc: string;
   ttsEdgeTtsModulePathPlaceholder: string;
-  // v0.27.0: 📂 ボタン用ツールチップ／モジュール未存在通知（Task 13 で本実装予定・それまではフォールバック文字列を使用）
+  // v0.27.0: 📂 ボタン用ツールチップ／モジュール未存在通知（Task 10 で ja/zh/en 実装済み）
   ttsOpenFolderTooltip?: string;
   ttsEdgeModuleNotFound?: string;
-  // v0.27.0: edgeCloud プロキシ設定用（Task 13 で本実装予定・それまではフォールバック文字列を使用）
+  // v0.27.0: edgeCloud プロキシ設定用（Task 10 で ja/zh/en 実装済み）
   edgeCloudServerUrl?: string;
   edgeCloudAuthToken?: string;
   edgeCloudTimeout?: string;
-  // v0.27.0: 言語モード dropdown 用（Task 13 で本実装予定・それまではフォールバック文字列を使用）
+  // v0.27.0: 言語モード dropdown 用（Task 10 で ja/zh/en 実装済み）
   ttsAddToTtsLanguageMode?: string;
   ttsAddToTtsLanguageModeDesc?: string;
   ttsAutoReadLanguageMode?: string;
@@ -373,9 +373,22 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEngineWebspeech: 'WebSpeech（ブラウザ標準）',
     ttsEnginePlachta: 'Plachta VITS（クラウド）',
     ttsEngineEdgeLocal: 'ローカル EdgeTTS（同梱モジュール）',
-    ttsEdgeTtsModulePath: 'Edge TTS モジュール場所',
-    ttsEdgeTtsModulePathDesc: 'edge_tts モジュールのパス。空ならプラグイン内 edge_tts → Python site-packages の順に使用',
-    ttsEdgeTtsModulePathPlaceholder: '自動（プラグイン内 edge_tts）',
+    ttsEdgeTtsModulePath: 'EdgeTTS モジュール場所',
+    ttsEdgeTtsModulePathDesc: '同梱の `py/edge_tts/` を自動使用します。空欄推奨。',
+    ttsEdgeTtsModulePathPlaceholder: '例: D:\\path\\to\\edge_tts（空欄=同梱）',
+    ttsOpenFolderTooltip: 'モジュール場所をエクスプローラで開く',
+    ttsEdgeModuleNotFound: '⚠️ モジュールが見つかりません: {path}',
+    ttsAddToTtsLanguageMode: '言語モード（Add to TTS）',
+    ttsAddToTtsLanguageModeDesc: 'auto=自動判定 / ja=日本語固定 / zh=中文固定 / en=English 固定',
+    ttsAutoReadLanguageMode: '言語モード（AI 自動読上げ）',
+    ttsAutoReadLanguageModeDesc: 'auto=自動判定 / 固定言語選択時は毎回その言語で再生',
+    ttsLang_auto: 'auto（自動判定）',
+    ttsLang_ja: 'ja（日本語固定）',
+    ttsLang_zh: 'zh（中文固定）',
+    ttsLang_en: 'en（English 固定）',
+    edgeCloudServerUrl: 'EdgeCloud サーバ URL',
+    edgeCloudAuthToken: 'EdgeCloud 認証トークン',
+    edgeCloudTimeout: 'EdgeCloud タイムアウト (ms)',
     ttsTestSample: '今日は天気がいい。山に登りたい。',
     ttsTestButton: '🔊 テスト再生',
     ttsVoicesHint: '選択中エンジンの音色。エンジンを切り替えると内容も切り替わります',
@@ -662,9 +675,22 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEngineWebspeech: 'WebSpeech (browser default)',
     ttsEnginePlachta: 'Plachta VITS (Cloud)',
     ttsEngineEdgeLocal: 'Local Edge-TTS (bundled module)',
-    ttsEdgeTtsModulePath: 'Edge TTS module path',
-    ttsEdgeTtsModulePathDesc: 'Path to the edge_tts module. Empty uses plugin edge_tts → Python site-packages',
-    ttsEdgeTtsModulePathPlaceholder: 'Auto (plugin edge_tts)',
+    ttsEdgeTtsModulePath: 'EdgeTTS module path',
+    ttsEdgeTtsModulePathDesc: 'The bundled `py/edge_tts/` is used automatically. Leave empty.',
+    ttsEdgeTtsModulePathPlaceholder: 'e.g. D:\\path\\to\\edge_tts (empty=bundled)',
+    ttsOpenFolderTooltip: 'Open module path in file manager',
+    ttsEdgeModuleNotFound: '⚠️ Module not found: {path}',
+    ttsAddToTtsLanguageMode: 'Language mode (Add to TTS)',
+    ttsAddToTtsLanguageModeDesc: 'auto=auto-detect / ja/zh/en=fixed',
+    ttsAutoReadLanguageMode: 'Language mode (AI auto-read)',
+    ttsAutoReadLanguageModeDesc: 'auto=auto-detect / fixed language always used',
+    ttsLang_auto: 'auto (auto-detect)',
+    ttsLang_ja: 'ja (Japanese fixed)',
+    ttsLang_zh: 'zh (Chinese fixed)',
+    ttsLang_en: 'en (English fixed)',
+    edgeCloudServerUrl: 'EdgeCloud server URL',
+    edgeCloudAuthToken: 'EdgeCloud auth token',
+    edgeCloudTimeout: 'EdgeCloud timeout (ms)',
     ttsTestSample: "The weather is nice today. I'd like to climb a mountain.",
     ttsTestButton: '🔊 Test voice',
     ttsVoicesHint: 'Voices for the selected engine. Switching engines swaps the dropdowns.',
@@ -951,9 +977,22 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsEngineWebspeech: 'WebSpeech（浏览器标准）',
     ttsEnginePlachta: 'Plachta VITS（云端）',
     ttsEngineEdgeLocal: '本地 EdgeTTS（内置模块）',
-    ttsEdgeTtsModulePath: 'Edge TTS 模块路径',
-    ttsEdgeTtsModulePathDesc: 'edge_tts 模块路径。留空则使用插件内 edge_tts → Python site-packages',
-    ttsEdgeTtsModulePathPlaceholder: '自动（插件内 edge_tts）',
+    ttsEdgeTtsModulePath: 'EdgeTTS 模块路径',
+    ttsEdgeTtsModulePathDesc: '默认自动使用内置 `py/edge_tts/`,留空即可。',
+    ttsEdgeTtsModulePathPlaceholder: '例如: D:\\path\\to\\edge_tts（留空=内置）',
+    ttsOpenFolderTooltip: '在文件管理器中打开模块路径',
+    ttsEdgeModuleNotFound: '⚠️ 未找到模块: {path}',
+    ttsAddToTtsLanguageMode: '语言模式（Add to TTS）',
+    ttsAddToTtsLanguageModeDesc: 'auto=自动检测 / ja/zh/en=固定',
+    ttsAutoReadLanguageMode: '语言模式（AI 自动朗读）',
+    ttsAutoReadLanguageModeDesc: 'auto=自动检测 / 固定语言时始终使用该语言',
+    ttsLang_auto: 'auto（自动检测）',
+    ttsLang_ja: 'ja（日语固定）',
+    ttsLang_zh: 'zh（中文固定）',
+    ttsLang_en: 'en（英语固定）',
+    edgeCloudServerUrl: 'EdgeCloud 服务器 URL',
+    edgeCloudAuthToken: 'EdgeCloud 认证令牌',
+    edgeCloudTimeout: 'EdgeCloud 超时 (ms)',
     ttsTestSample: '今天天气不错。我想去爬山。',
     ttsTestButton: '🔊 测试声音',
     ttsMinimaxRemovalNote: 'ℹ️ 旧版本中的 MiniMax 连接设置已删除（连接测试失败）',
