@@ -1,8 +1,9 @@
 import * as os from 'os';
 import * as path from 'path';
 import { spawn, execFileSync } from 'child_process';
+import type { ChildProcess } from 'child_process';
 import type { TtsSettings } from './core';
-import { pickWebSpeechLang } from './lang';
+import { pickLang } from './lang';
 import { playObjectUrl } from './plachta-tts';
 import { registerPlayback } from './playback-registry';
 
@@ -44,11 +45,11 @@ export function resetEdgeTtsLocalState(): void {
   adapterPath = '';
 }
 
-/** edge_tts モジュールのパス解決: 設定値 → プラグイン内 edge_tts → ''（site-packages） */
+/** edge_tts モジュールのパス解決: 設定値 → プラグイン内 py/edge_tts/src → ''（site-packages） */
 export function resolveEdgeTtsModulePath(configured: string): string {
   const c = configured.trim();
   if (c !== '') return c;
-  if (edgeTtsPluginDir !== '') return path.join(edgeTtsPluginDir, 'edge_tts');
+  if (edgeTtsPluginDir !== '') return path.join(edgeTtsPluginDir, 'py', 'edge_tts', 'src');
   return '';
 }
 
@@ -56,6 +57,42 @@ export function resolveEdgeTtsModulePath(configured: string): string {
 export function resolveEdgeVoiceFull(configured: string, lang: 'zh' | 'ja' | 'en'): string {
   if (configured) return EDGE_VOICE_FULL[configured] ?? configured;
   return LANG_DEFAULT_VOICE[lang];
+}
+
+/** v0.27.0: クロスプラットフォーム Python コマンド解決 */
+export function resolvePythonCmd(): 'python' | 'python3' {
+  if (process.platform === 'win32') return 'python';
+  return 'python3';
+}
+
+/** v0.27.0: クロスプラットフォーム・プロセスツリー停止 */
+export function killProcessTree(child: ChildProcess): void {
+  if (process.platform === 'win32') {
+    try {
+      execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    } catch {
+      /* 既に終了済み */
+    }
+    try {
+      child.kill();
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+  // POSIX: SIGTERM → 500ms 待機 → SIGKILL
+  try {
+    child.kill('SIGTERM');
+  } catch {
+    /* ignore */
+  }
+  setTimeout(() => {
+    try {
+      child.kill('SIGKILL');
+    } catch {
+      /* ignore */
+    }
+  }, 500);
 }
 
 /** 埋め込み Python アダプタ（stdin のテキストを edge_tts で合成し audio/mpeg を stdout へ） */
@@ -144,7 +181,9 @@ export function localEdgeTtsSpeak(
   noticeFn: (m: string) => void,
 ): Promise<boolean> {
   return new Promise((resolve) => {
-    const lang = pickWebSpeechLang(text);
+    // v0.27.0: 言語モードを pickLang に渡す
+    const langMode = settings.addToTtsLanguageMode ?? 'auto';
+    const lang = pickLang(text, langMode);
     const voice = resolveEdgeVoiceFull(settings.voices.edge[lang], lang);
     const configured = (settings.edgeTtsModulePath ?? '').trim();
     const modulePath = resolveEdgeTtsModulePath(configured);
@@ -169,7 +208,8 @@ export function localEdgeTtsSpeak(
     try {
       const args = [scriptPath, '--voice', voice];
       if (modulePath !== '') args.push('--edge-tts-path', modulePath);
-      child = spawn('python', args, { windowsHide: true });
+      // v0.27.0: resolvePythonCmd() でクロスプラットフォーム対応
+      child = spawn(resolvePythonCmd(), args, { windowsHide: true });
     } catch (e) {
       noticeFn(`⚠️ ローカル EdgeTTS 起動失敗: ${(e as Error).message}`);
       resolve(false);
@@ -181,12 +221,7 @@ export function localEdgeTtsSpeak(
     let settled = false;
     let intentionalStop = false;
     let timeout: ReturnType<typeof setTimeout>;
-    const killChild = (): void => {
-      if (child.pid && process.platform === 'win32') {
-        try { execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* 既に終了済み */ }
-      }
-      try { child.kill(); } catch { /* ignore */ }
-    };
+    const killChild = (): void => killProcessTree(child);  // v0.27.0: 関数参照に置換
     const unregister = registerPlayback({
       engine: 'edge-local',
       stop: () => {
