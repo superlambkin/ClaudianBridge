@@ -13,6 +13,34 @@ export const TTS_MIGRATION_NOTICE =
 
 export type NoticeFn = (message: string) => void;
 
+/**
+ * マイグレーション中に発生する変更を記録するバックアップインターフェース。
+ * テスト容易性のため関数ベースで注入可能。
+ */
+export interface MigratorBackup {
+  record(message: string): void;
+}
+
+/** デフォルトの backup（console.warn に流す） */
+const defaultBackup: MigratorBackup = {
+  record(message: string): void {
+    console.warn(`[claudian-bridge][migrator] ${message}`);
+  },
+};
+
+/** v0.27.0: edge → edge-local 自動変換 */
+export function migrateEdgeToEdgeLocal(
+  tts: unknown,
+  backup: MigratorBackup,
+): void {
+  if (typeof tts !== 'object' || tts === null) return;
+  const t = tts as { engine?: string };
+  if (t.engine === 'edge') {
+    backup.record('tts.engine: edge → edge-local (v0.27.0 — デフォルト切替)');
+    t.engine = 'edge-local';
+  }
+}
+
 /** 旧フィールド検出（normalize 前の生データに対して） */
 export function detectRemovedTtsFields(raw: unknown): string[] {
   const removed: string[] = [];
@@ -60,6 +88,12 @@ export function runTtsMigration(
     // 破損 JSON は ConfigStore.load() 側で .broken.json に退避済み → 何もしない
     return { executed: false, removed: [] };
   }
+
+  // v0.27.0: edge → edge-local 自動変換（生 data.json レベルで実施）
+  const ttsBlock = (raw && typeof raw === 'object')
+    ? (raw as Record<string, unknown>).tts
+    : undefined;
+  migrateEdgeToEdgeLocal(ttsBlock, defaultBackup);
 
   const removed = detectRemovedTtsFields(raw);
   if (removed.length === 0) return { executed: false, removed };
