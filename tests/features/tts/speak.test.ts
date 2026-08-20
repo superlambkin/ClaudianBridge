@@ -116,3 +116,37 @@ describe('speakText', () => {
     expect(addTextToTTS).not.toHaveBeenCalled();
   });
 });
+
+describe('speakText: 言語モード（v0.27.0）', () => {
+  beforeEach(() => { addTextToTTS.mockReset(); addTextToTTS.mockResolvedValue(true); noticeMock.mockClear(); });
+
+  it('autoRead タイプは autoReadLanguageMode を addToTtsLanguageMode に解決して渡す', async () => {
+    const cfg = makeCfg({ autoReadLanguageMode: 'ja', addToTtsLanguageMode: 'zh' });
+    await speakText('autoRead', 'テキスト', cfg);
+    const settings = addTextToTTS.mock.calls[0][2];
+    expect(settings.addToTtsLanguageMode).toBe('ja');
+  });
+
+  it('inputAi タイプも autoReadLanguageMode を使う（AI 自動読上げ系）', async () => {
+    const cfg = makeCfg({ autoReadLanguageMode: 'en', addToTtsLanguageMode: 'zh' });
+    await speakText('inputAi', 'テキスト', cfg);
+    const settings = addTextToTTS.mock.calls[0][2];
+    expect(settings.addToTtsLanguageMode).toBe('en');
+  });
+
+  it('selection / message / md タイプは addToTtsLanguageMode を使う', async () => {
+    const cfg = makeCfg({ autoReadLanguageMode: 'ja', addToTtsLanguageMode: 'zh' });
+    await speakText('selection', 'テキスト', cfg);
+    expect(addTextToTTS.mock.calls[0][2].addToTtsLanguageMode).toBe('zh');
+    await speakText('message', 'テキスト', cfg);
+    expect(addTextToTTS.mock.calls[1][2].addToTtsLanguageMode).toBe('zh');
+    await speakText('md', 'テキスト', cfg);
+    expect(addTextToTTS.mock.calls[2][2].addToTtsLanguageMode).toBe('zh');
+  });
+
+  it('両モード未設定時は auto にフォールバック', async () => {
+    const cfg = makeCfg();
+    await speakText('autoRead', 'テキスト', cfg);
+    expect(addTextToTTS.mock.calls[0][2].addToTtsLanguageMode).toBe('auto');
+  });
+});
