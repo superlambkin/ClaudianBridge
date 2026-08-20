@@ -8,7 +8,8 @@
     "dev": "node esbuild.config.mjs",
     "test": "vitest run",
     "deploy": "node scripts/deploy.mjs",
-    "typecheck": "tsc -noEmit"
+    "typecheck": "tsc -noEmit",
+    "bundle:edge-tts": "git subtree pull --prefix=py/edge_tts https://github.com/rany2/edge-tts.git 7.2.8 --squash"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
