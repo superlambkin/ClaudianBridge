@@ -109,30 +109,7 @@ describe('setupAutoReadTTS', () => {
     expect(speak).not.toHaveBeenCalled();
   });
 
-  it('ヘッダー: 📢 なしでも見出し前の導入文を speak に渡す（v0.14.1）', async () => {
-    const view = makeView('<div class="claudian-message-assistant"><div class="claudian-message-content"><p>導入のまとめ</p><h2>詳細</h2><p>詳細は読まない</p></div></div>');
-    const { app } = makeApp([view]);
-    const speak = vi.fn(async () => true);
-    setupAutoReadTTS({ app, store: makeStore(), speak });
-    view.callbacks.onTabStreamingChanged!('t', true);
-    view.callbacks.onTabStreamingChanged!('t', false);
-    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
-    expect(speak.mock.calls[0][0]).toContain('導入のまとめ');
-    expect(speak.mock.calls[0][0]).not.toContain('詳細は読まない');
-  });
-
-  it('ヘッダー: 一項目のみ（見出し1つ・導入文なし）でも speak に渡す（v0.14.2）', async () => {
-    const view = makeView('<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>ビルド状況</h2><table><tr><td>テーブル</td></tr></table><p>最新版が反映されています。</p></div></div>');
-    const { app } = makeApp([view]);
-    const speak = vi.fn(async () => true);
-    setupAutoReadTTS({ app, store: makeStore(), speak });
-    view.callbacks.onTabStreamingChanged!('t', true);
-    view.callbacks.onTabStreamingChanged!('t', false);
-    await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
-    expect(speak.mock.calls[0][0]).toContain('ビルド状況');
-    // 本番デフォルト（table=true）ではその節のテーブルも読み上げる
-    expect(speak.mock.calls[0][0]).toContain('テーブル');
-  });
+  // 📢 なしの導入文フォールバックは v0.27.0 で廃止（タスク終了報告📢がない通常応答は読まない）
 
   it('full scope: 📢 なしの応答でも全文を speak に渡す（v0.13.0 全応答統一）', async () => {
     const view = makeView('<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常応答</p></div></div>');
