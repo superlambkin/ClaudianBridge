@@ -95,31 +95,24 @@ describe('extractReportText', () => {
     expect(text).toContain('コールアウトの内容');
   });
 
-  it('ヘッダー: 📢・見出しが無い → null（v0.14.1）', () => {
+  it('ヘッダー: 📢・見出しが無い → null（タスク終了報告📢がない通常応答は読まない）', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>通常の応答</p></div></div>`;
     expect(extractReportText(makeMessages(html), 'header')).toBeNull();
   });
 
-  it('ヘッダー: 📢 が無く見出しがある → 見出しより前の導入文だけを読む（v0.14.1）', () => {
+  it('ヘッダー: 📢 が無く見出しがある → null（タスク終了報告📢がない通常応答は読まない）', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>これは導入のまとめです。</p><h2>詳細</h2><p>詳細の内容は読まない。</p></div></div>`;
-    const text = extractReportText(makeMessages(html), 'header');
-    expect(text).toContain('これは導入のまとめです。');
-    expect(text).not.toContain('詳細の内容は読まない。');
+    expect(extractReportText(makeMessages(html), 'header')).toBeNull();
   });
 
-  it('ヘッダー: 📢 で始まらない blockquote は対象外 → 見出し前の導入文を読む', () => {
+  it('ヘッダー: 📢 で始まらない blockquote は対象外 → null（タスク終了報告📢がない）', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>まとめの文章</p><blockquote><p>引用です</p></blockquote><h2>詳細</h2><p>詳細の内容</p></div></div>`;
-    const text = extractReportText(makeMessages(html), 'header');
-    expect(text).toContain('まとめの文章');
-    expect(text).not.toContain('詳細の内容');
+    expect(extractReportText(makeMessages(html), 'header')).toBeNull();
   });
 
-  it('ヘッダー: 一項目のみ（導入文なし・見出し1つ）→ その節を読む（テーブルは除外・v0.14.2）', () => {
+  it('ヘッダー: 一項目のみ（導入文なし・見出し1つ）→ null（タスク終了報告📢がない）', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>ビルド・コミット状況</h2><table><tr><td>テーブルデータ</td></tr></table><p>最新の v0.14.2 が反映されています。</p></div></div>`;
-    const text = extractReportText(makeMessages(html), 'header');
-    expect(text).toContain('ビルド・コミット状況');
-    expect(text).toContain('最新の v0.14.2 が反映されています。');
-    expect(text).not.toContain('テーブルデータ');
+    expect(extractReportText(makeMessages(html), 'header')).toBeNull();
   });
 
   it('assistant メッセージが無い → null', () => {
@@ -305,17 +298,14 @@ describe('v0.19.0 追加カバレッジ', () => {
     return el;
   }
 
-  it('header scope: 📢 なし・見出しあり・フィルタ全ONでも思考・ツールを読まない（構造的除外）', () => {
+  it('header scope: 📢 なし・見出しあり → null（タスク終了報告📢がない通常応答は読まない）', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
       <div class="claudian-thinking-block"><div class="claudian-thinking-content">思考の内容</div></div>
       <div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div><div class="claudian-tool-summary">git status</div></div>
       <div class="claudian-text-block"><p>導入のまとめ</p><h2>詳細</h2><p>詳細の本文</p></div>
     </div></div>`;
     const allTrue = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true, toolCommands: true };
-    const text = extractReportText(makeMessages(html), 'header', { filter: { ...allTrue } });
-    expect(text).toContain('導入のまとめ');
-    expect(text).not.toContain('思考の内容');
-    expect(text).not.toContain('git status');
+    expect(extractReportText(makeMessages(html), 'header', { filter: { ...allTrue } })).toBeNull();
   });
 
   it('複数メッセージ: 最後のメッセージで判定する', () => {

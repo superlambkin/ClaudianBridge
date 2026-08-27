@@ -214,26 +214,18 @@ export function extractReportText(
     return text === '' ? null : text;
   }
 
-  // header scope: 結果全体まとめのみ
+  // header scope: 結果全体まとめのみ（📢 blockquote または導入文）
   const source = last.querySelector('.claudian-message-content') ?? last;
   if (report) {
+    // 📢 blockquote がある場合: それのみを読む
     if (report.hasAttribute(AUTO_READ_MARK)) return null;
     report.setAttribute(AUTO_READ_MARK, '1');
     const text = readVisibleText(report);
     return text === '' ? null : text;
   }
 
-  // 📢 が無い場合: 導入文（最初の見出しまで）→ 一項目のみ（見出し1つ）の順でフォールバック
-  const headings = Array.from(source.querySelectorAll(HEADING_SELECTOR));
-  let text = '';
-  if (headings.length >= 1) {
-    text = readIntroText(source, headerSpeechExclude); // 見出し前の導入文（空なら ''）
-  }
-  if (!text && headings.length === 1) {
-    text = readSectionText(source, headings[0], headerSpeechExclude); // 一項目のみ → その節を読む
-  }
-  if (!text) return null;
-  if (last.hasAttribute(AUTO_READ_MARK)) return null;
-  last.setAttribute(AUTO_READ_MARK, '1');
-  return text;
+  // 📢 が無い場合: タスク終了時の autoRead は静かにスキップ
+  // （メッセージ読み上げボタン等の他用途には導入文フォールバックが意図されていたが、
+  //  autoRead では📢がない通常応答は読み上げ対象外）
+  return null;
 }
