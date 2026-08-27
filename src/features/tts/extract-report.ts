@@ -151,12 +151,31 @@ function readIntroText(el: Element, excludeSel: string): string {
 
 /**
  * v0.14.2: 一項目のみの応答（見出しが1つ・導入文なし）で、その節（見出し以降）を読む。
+ * 見出し自体は除外して内容のみを読む（v0.27.0: 🎯 結論/実装方針の見出しを読ませない）。
+ * 次の見出しまでの内容のみを読み上げ、それ以降は除外する。
  * データ表・思考ブロック・ボタンは除外（まとめとして読み上げる）。
  */
 function readSectionText(el: Element, heading: Element, excludeSel: string): string {
   const hide = collectStructuralExcludes(el);
+  hide.push(heading); // 見出し自体も除外
+
+  // 前の要素を除外
   let prev: Element | null = heading.previousElementSibling;
   while (prev) { hide.push(prev); prev = prev.previousElementSibling; }
+
+  // 次の見出しを検出し、それ以降を除外
+  let nextHeadingFound = false;
+  let next: Element | null = heading.nextElementSibling;
+  while (next) {
+    if (next.matches(HEADING_SELECTOR)) {
+      nextHeadingFound = true;
+    }
+    if (nextHeadingFound) {
+      hide.push(next);
+    }
+    next = next.nextElementSibling;
+  }
+
   return readTextWithHidden(el, hide, excludeSel);
 }
 
@@ -214,7 +233,7 @@ export function extractReportText(
     return text === '' ? null : text;
   }
 
-  // header scope: 結果全体まとめのみ（📢 blockquote または導入文）
+  // header scope: 結果全体まとめのみ（📢 blockquote または🎯結論/実装方針）
   const source = last.querySelector('.claudian-message-content') ?? last;
   if (report) {
     // 📢 blockquote がある場合: それのみを読む
@@ -224,8 +243,25 @@ export function extractReportText(
     return text === '' ? null : text;
   }
 
-  // 📢 が無い場合: タスク終了時の autoRead は静かにスキップ
-  // （メッセージ読み上げボタン等の他用途には導入文フォールバックが意図されていたが、
-  //  autoRead では📢がない通常応答は読み上げ対象外）
+  // 📢 が無い場合: 🎯 結論 → 🎯 実装方針 の順で検索し、読み上げる
+  const conclusionHeading = Array.from(source.querySelectorAll(HEADING_SELECTOR))
+    .find(h => h.textContent?.trim() === '🎯 結論');
+  if (conclusionHeading) {
+    if (last.hasAttribute(AUTO_READ_MARK)) return null;
+    last.setAttribute(AUTO_READ_MARK, '1');
+    const text = readSectionText(source, conclusionHeading, headerSpeechExclude);
+    return text ? `📢 ${text}` : null;
+  }
+
+  const implementationHeading = Array.from(source.querySelectorAll(HEADING_SELECTOR))
+    .find(h => h.textContent?.trim() === '🎯 実装方針');
+  if (implementationHeading) {
+    if (last.hasAttribute(AUTO_READ_MARK)) return null;
+    last.setAttribute(AUTO_READ_MARK, '1');
+    const text = readSectionText(source, implementationHeading, headerSpeechExclude);
+    return text ? `📢 ${text}` : null;
+  }
+
+  // 📢・🎯 結論・🎯 実装方針が無い場合は読み上げない
   return null;
 }

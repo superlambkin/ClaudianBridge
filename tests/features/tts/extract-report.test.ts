@@ -100,18 +100,41 @@ describe('extractReportText', () => {
     expect(extractReportText(makeMessages(html), 'header')).toBeNull();
   });
 
-  it('ヘッダー: 📢 が無く見出しがある → null（タスク終了報告📢がない通常応答は読まない）', () => {
-    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>これは導入のまとめです。</p><h2>詳細</h2><p>詳細の内容は読まない。</p></div></div>`;
-    expect(extractReportText(makeMessages(html), 'header')).toBeNull();
+  it('ヘッダー: 📢 が無く「🎯 結論」見出しがある → その節を読み、先頭に📢を付加', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>導入テキスト</p><h2>🎯 結論</h2><p>結論の内容です。詳細は後述。</p><h2>詳細</h2><p>詳細の内容</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).not.toBeNull();
+    expect(text!).toContain('📢 結論の内容です。詳細は後述。');
+    expect(text!).not.toContain('導入テキスト');
+    expect(text!).not.toContain('詳細の内容');
   });
 
-  it('ヘッダー: 📢 で始まらない blockquote は対象外 → null（タスク終了報告📢がない）', () => {
-    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>まとめの文章</p><blockquote><p>引用です</p></blockquote><h2>詳細</h2><p>詳細の内容</p></div></div>`;
-    expect(extractReportText(makeMessages(html), 'header')).toBeNull();
+  it('ヘッダー: 📢 が無く「🎯 実装方針」見出しがある → その節を読み、先頭に📢を付加', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>🎯 実装方針</h2><p>実装の内容です。手順は以下の通り。</p><h2>詳細</h2><p>詳細の内容</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).not.toBeNull();
+    expect(text!).toContain('📢 実装の内容です。手順は以下の通り。');
+    expect(text!).not.toContain('詳細の内容');
   });
 
-  it('ヘッダー: 一項目のみ（導入文なし・見出し1つ）→ null（タスク終了報告📢がない）', () => {
-    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>ビルド・コミット状況</h2><table><tr><td>テーブルデータ</td></tr></table><p>最新の v0.14.2 が反映されています。</p></div></div>`;
+  it('ヘッダー: 🎯 結論と🎯 実装方針が両方ある → 結論を優先', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>🎯 実装方針</h2><p>実装内容</p><h2>🎯 結論</h2><p>結論内容</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).not.toBeNull();
+    expect(text!).toContain('📢 結論内容');
+    expect(text!).not.toContain('実装内容');
+  });
+
+  it('ヘッダー: 🎯 結論と🎯 実装方針が逆順でも結論を優先', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>🎯 結論</h2><p>結論内容</p><h2>🎯 実装方針</h2><p>実装内容</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).not.toBeNull();
+    expect(text!).toContain('📢 結論内容');
+    expect(text!).not.toContain('実装内容');
+  });
+
+  it('ヘッダー: 🎯 結論・実装方針が無い → null', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>詳細</h2><p>詳細の内容</p></div></div>`;
     expect(extractReportText(makeMessages(html), 'header')).toBeNull();
   });
 
@@ -298,14 +321,19 @@ describe('v0.19.0 追加カバレッジ', () => {
     return el;
   }
 
-  it('header scope: 📢 なし・見出しあり → null（タスク終了報告📢がない通常応答は読まない）', () => {
+  it('header scope: 📢 なし・🎯 結論あり → 🎯 結論の節を📢付きで読む', () => {
     const html = `<div class="claudian-message-assistant"><div class="claudian-message-content">
       <div class="claudian-thinking-block"><div class="claudian-thinking-content">思考の内容</div></div>
       <div class="claudian-tool-call"><div class="claudian-tool-header">Tool Bash</div><div class="claudian-tool-summary">git status</div></div>
-      <div class="claudian-text-block"><p>導入のまとめ</p><h2>詳細</h2><p>詳細の本文</p></div>
+      <div class="claudian-text-block"><p>導入</p><h2>🎯 結論</h2><p>結論の内容</p><h2>詳細</h2><p>詳細の本文</p></div>
     </div></div>`;
     const allTrue = { emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true, callout: true, table: true, code: true, thinking: true, toolCommands: true };
-    expect(extractReportText(makeMessages(html), 'header', { filter: { ...allTrue } })).toBeNull();
+    const text = extractReportText(makeMessages(html), 'header', { filter: { ...allTrue } });
+    expect(text).not.toBeNull();
+    expect(text!).toContain('📢 結論の内容');
+    expect(text!).not.toContain('思考の内容');
+    expect(text!).not.toContain('git status');
+    expect(text!).not.toContain('詳細の本文');
   });
 
   it('複数メッセージ: 最後のメッセージで判定する', () => {
