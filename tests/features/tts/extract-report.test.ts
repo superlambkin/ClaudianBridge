@@ -138,6 +138,38 @@ describe('extractReportText', () => {
     expect(extractReportText(makeMessages(html), 'header')).toBeNull();
   });
 
+  it('ヘッダー: ✅ 完了見出しがある → その節を読み、先頭に✅を付加', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><p>導入</p><h2>✅ 完了 · テストタスク</h2><p>テストが全件パスしました。</p><h2>詳細</h2><p>詳細の内容</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).not.toBeNull();
+    expect(text!).toContain('✅ テストが全件パスしました。');
+    expect(text!).not.toContain('導入');
+    expect(text!).not.toContain('詳細の内容');
+  });
+
+  it('ヘッダー: ✅ 修正完了見出しがある → その節を読み、先頭に✅を付加', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>✅ 修正完了</h2><p>バグが修正されました。</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).not.toBeNull();
+    expect(text!).toContain('✅ バグが修正されました。');
+  });
+
+  it('ヘッダー: 🎯 結論と✅ 完了が両方ある → 🎯 結論を優先', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>🎯 実装方針</h2><p>実装内容</p><h2>✅ 完了</h2><p>完了しました</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).not.toBeNull();
+    expect(text!).toContain('📢 実装内容'); // 🎯 実装方針が先にあるが、🎯結論がないので✅完了を読む
+    expect(text!).not.toContain('完了しました');
+  });
+
+  it('ヘッダー: 🎯 結論と✅ 完了の逆順でも 🎯 結論を優先', () => {
+    const html = `<div class="claudian-message-assistant"><div class="claudian-message-content"><h2>✅ 完了</h2><p>完了しました</p><h2>🎯 結論</h2><p>結論内容</p></div></div>`;
+    const text = extractReportText(makeMessages(html), 'header');
+    expect(text).not.toBeNull();
+    expect(text!).toContain('📢 結論内容');
+    expect(text!).not.toContain('完了しました');
+  });
+
   it('assistant メッセージが無い → null', () => {
     expect(extractReportText(makeMessages('<p>空</p>'), 'header')).toBeNull();
   });
@@ -174,6 +206,13 @@ describe('buildSpeechExclude (v0.17 タイプ別)', () => {
   it('thinking=false なら思考ブロックを除外', () => {
     const s = buildSpeechExclude({ ...T, thinking: false });
     expect(s).toContain('.claudian-thinking-block');
+  });
+
+  it('v0.27.1: thinking=false の除外セレクタは防御的に thinking-content/-header/-label/-thinking も含める', () => {
+    const s = buildSpeechExclude({ ...T, thinking: false });
+    expect(s).toContain('.claudian-thinking-content');
+    expect(s).toContain('.claudian-thinking-header');
+    expect(s).toContain('.claudian-thinking-label');
   });
 
   it('code=false ならコードブロックを除外', () => {
