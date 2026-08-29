@@ -2,7 +2,7 @@
 
 > 📑 **仕様書 ID**: backup-feature
 > 📅 **作成日**: 2026-08-17
-> 🎯 **対象バージョン**: claudian-bridge v0.21.0
+> 🎯 **対象バージョン**: ClaudianBridge v0.21.0
 > 👤 **作成者**: MiuMiu（ブレインストーミング経由）
 
 ---
@@ -367,7 +367,7 @@ tests/features/backup/
 
 ```bash
 npm run build
-# esbuild ビルド → obsidian-deploy.mjs 経由で .obsidian/plugins/claudian-bridge/ に配置
+# esbuild ビルド → obsidian-deploy.mjs 経由で .obsidian/plugins/ClaudianBridge/ に配置
 ```
 
 ---
