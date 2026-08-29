@@ -43,7 +43,9 @@ export function readVisibleTextExcluding(el: Element, excludeSel: string): strin
 }
 
 /** 読み上げから除外する realclaudian 要素（v0.17: タイプ別フィルタで個別制御） */
-export const THINKING_BLOCK_SELECTOR = '.claudian-thinking-block';
+/** v0.27.1: thinking 防御的拡張 - thinking-block だけでなく thinking-content/-header も除外
+ * realclaudian の DOM 構造変更（thinking 内容が別クラスに置かれる等）への保険 */
+export const THINKING_BLOCK_SELECTOR = '.claudian-thinking-block, .claudian-thinking-content, .claudian-thinking-header, .claudian-thinking-label, .claudian-thinking';
 export const CODE_WRAPPER_SELECTOR = '.claudian-code-wrapper';
 /** コールアウト（> [!type]）セレクタ */
 export const CALLOUT_SELECTOR = '.callout';
@@ -233,7 +235,7 @@ export function extractReportText(
     return text === '' ? null : text;
   }
 
-  // header scope: 結果全体まとめのみ（📢 blockquote または🎯結論/実装方針）
+  // header scope: 結果全体まとめのみ（📢 blockquote または🎯結論/実装方針/✅完了）
   const source = last.querySelector('.claudian-message-content') ?? last;
   if (report) {
     // 📢 blockquote がある場合: それのみを読む
@@ -243,7 +245,7 @@ export function extractReportText(
     return text === '' ? null : text;
   }
 
-  // 📢 が無い場合: 🎯 結論 → 🎯 実装方針 の順で検索し、読み上げる
+  // 📢 が無い場合: 🎯 結論 → 🎯 実装方針 → ✅完了見出し の順で検索し、読み上げる
   const conclusionHeading = Array.from(source.querySelectorAll(HEADING_SELECTOR))
     .find(h => h.textContent?.trim() === '🎯 結論');
   if (conclusionHeading) {
@@ -262,6 +264,23 @@ export function extractReportText(
     return text ? `📢 ${text}` : null;
   }
 
-  // 📢・🎯 結論・🎯 実装方針が無い場合は読み上げない
+  // ✅ 完了見出し（「✅」で始まり「完了」「修正」「完了」を含む）
+  const completionHeading = Array.from(source.querySelectorAll(HEADING_SELECTOR))
+    .find(h => {
+      const text = h.textContent?.trim() || '';
+      return text.startsWith('✅') && (
+        text.includes('完了') ||
+        text.includes('修正') ||
+        text.includes('実装')
+      );
+    });
+  if (completionHeading) {
+    if (last.hasAttribute(AUTO_READ_MARK)) return null;
+    last.setAttribute(AUTO_READ_MARK, '1');
+    const text = readSectionText(source, completionHeading, headerSpeechExclude);
+    return text ? `✅ ${text}` : null;
+  }
+
+  // 📢・🎯 結論・🎯 実装方針・✅完了が無い場合は読み上げない
   return null;
 }

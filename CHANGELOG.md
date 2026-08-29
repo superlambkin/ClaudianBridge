@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.27.1] - 2026-08-27 — Thought 読上げ除外の防御的強化 🛡️
+
+### Fixed
+
+- **Thought 除外セレクタの防御的拡張**: `THINKING_BLOCK_SELECTOR` を `.claudian-thinking-block` 単体から **複数クラスのOR** に拡張
+  - 追加: `.claudian-thinking-content` / `.claudian-thinking-header` / `.claudian-thinking-label` / `.claudian-thinking`
+  - realclaudian v2.2.4+ の DOM 構造（thinking 内容が `claudian-thinking-block` の子クラス `claudian-thinking-content` 等に置かれる）に対応
+  - 既存ユーザー（`thinking: false` 既定・手動 OFF）への破壊的変更なし
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **787 件 PASS**（v0.27.0 の 786 件 + 新規 1 件） |
+| 新規テスト | `v0.27.1: thinking=false の除外セレクタは防御的に thinking-content/-header/-label/-thinking も含める` |
+| 影響範囲 | `src/features/tts/extract-report.ts` の `THINKING_BLOCK_SELECTOR` 定数のみ |
+
 ## [0.27.0] - 2026-08-20 — TTS エンジン変更（ローカル EdgeTTS 同梱＋クラウドサーバ対応＋言語モード切替）
 
 ### Added
