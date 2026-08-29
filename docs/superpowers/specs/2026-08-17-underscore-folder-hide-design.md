@@ -2,7 +2,7 @@
 
 > 📑 **仕様書 ID**: underscore-folder-hide
 > 📅 **作成日**: 2026-08-17
-> 🎯 **対象バージョン**: claudian-bridge v0.22.0
+> 🎯 **対象バージョン**: ClaudianBridge v0.22.0
 > 👤 **作成者**: MiuMiu（ブレインストーミング経由）
 
 ---
@@ -302,7 +302,7 @@ const css = buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscor
 
 ```bash
 npm run build
-# esbuild ビルド → obsidian-deploy.mjs 経由で .obsidian/plugins/claudian-bridge/ に配置
+# esbuild ビルド → obsidian-deploy.mjs 経由で .obsidian/plugins/ClaudianBridge/ に配置
 ```
 
 ---

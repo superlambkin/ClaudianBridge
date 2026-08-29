@@ -82,7 +82,7 @@ it('normalizeWhitelistSettings: hideUnderscoreFolders=false 明示設定', () =>
 - [ ] **Step 2: テスト失敗確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/core/settings.test.ts 2>&1 | tail -30
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/core/settings.test.ts 2>&1 | tail -30
 ```
 
 期待: `whitelist.hideUnderscoreFolders` 関連で 3 件 FAIL
@@ -139,7 +139,7 @@ if (typeof cfg.whitelist.hideUnderscoreFolders !== 'boolean') return 'whitelist.
 - [ ] **Step 7: テスト合格確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/core/settings.test.ts 2>&1 | tail -20
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/core/settings.test.ts 2>&1 | tail -20
 ```
 
 期待: 既存 + 新規 3 件すべて PASS
@@ -147,7 +147,7 @@ cd D:/AI-Agent/claudian-bridge && npx vitest run tests/core/settings.test.ts 2>&
 - [ ] **Step 8: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/core/settings.ts tests/core/settings.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(settings): add whitelist.hideUnderscoreFolders (v0.22.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/core/settings.ts tests/core/settings.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(settings): add whitelist.hideUnderscoreFolders (v0.22.0)
 
 WhitelistSettings に hideUnderscoreFolders: boolean を追加。
 既定 true、後方互換性あり（未設定ユーザーは自動的に ON）。
@@ -211,7 +211,7 @@ whitelistHideUnderscoreFoldersDesc: '将名称以 _ 开头的文件夹（例如 
 - [ ] **Step 5: TypeScript 型チェック**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
+cd D:/AI-Agent/ClaudianBridge && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 期待: エラーなし
@@ -219,7 +219,7 @@ cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
 - [ ] **Step 6: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/core/i18n.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(i18n): add whitelistHideUnderscoreFolders strings (ja/en/zh, v0.22.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/core/i18n.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(i18n): add whitelistHideUnderscoreFolders strings (ja/en/zh, v0.22.0)
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
@@ -286,7 +286,7 @@ describe('buildWhitelistCss - hideUnderscoreFolders (v0.22.0)', () => {
 - [ ] **Step 3: テスト失敗確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/features/whitelist/css-builder.test.ts 2>&1 | tail -30
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/features/whitelist/css-builder.test.ts 2>&1 | tail -30
 ```
 
 期待: 新規 4 件が FAIL（3 引数が受け付けられない / セレクタ未実装）
@@ -329,7 +329,7 @@ export function buildWhitelistCss(
 - [ ] **Step 5: テスト合格確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/features/whitelist/css-builder.test.ts 2>&1 | tail -20
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/features/whitelist/css-builder.test.ts 2>&1 | tail -20
 ```
 
 期待: 既存 5 + 新規 4 = 9 件すべて PASS
@@ -337,7 +337,7 @@ cd D:/AI-Agent/claudian-bridge && npx vitest run tests/features/whitelist/css-bu
 - [ ] **Step 6: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/features/whitelist/css-builder.ts tests/features/whitelist/css-builder.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(whitelist): add hideUnderscoreFolders CSS support (v0.22.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/features/whitelist/css-builder.ts tests/features/whitelist/css-builder.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(whitelist): add hideUnderscoreFolders CSS support (v0.22.0)
 
 buildWhitelistCss を 3 引数化（extensions, alwaysShowFolders, hideUnderscoreFolders）。
 .nav-folder:has(> .nav-folder-title[data-path^=\"_\"]) と [data-path*=\"/_\"] で
@@ -379,7 +379,7 @@ new Setting(containerEl)
 - [ ] **Step 2: TypeScript 型チェック**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
+cd D:/AI-Agent/ClaudianBridge && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 期待: エラーなし
@@ -387,7 +387,7 @@ cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
 - [ ] **Step 3: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/settings/SettingTabWhitelist.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(settings): add hideUnderscoreFolders toggle UI (v0.22.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/settings/SettingTabWhitelist.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(settings): add hideUnderscoreFolders toggle UI (v0.22.0)
 
 拡張子フィルタタブに「_ で始まるフォルダを非表示」トグルを追加。
 既定 ON。alwaysShowFolders トグルの直後に配置。
@@ -427,8 +427,8 @@ const css = w.enabled ? buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.h
 - [ ] **Step 3: TypeScript 型チェック + 全テスト**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
-cd D:/AI-Agent/claudian-bridge && npx vitest run 2>&1 | tail -5
+cd D:/AI-Agent/ClaudianBridge && npx tsc --noEmit 2>&1 | tail -10
+cd D:/AI-Agent/ClaudianBridge && npx vitest run 2>&1 | tail -5
 ```
 
 期待: エラーなし + 全テストパス
@@ -436,7 +436,7 @@ cd D:/AI-Agent/claudian-bridge && npx vitest run 2>&1 | tail -5
 - [ ] **Step 4: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/main.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(main): pass hideUnderscoreFolders to buildWhitelistCss (v0.22.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/main.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(main): pass hideUnderscoreFolders to buildWhitelistCss (v0.22.0)
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
@@ -509,7 +509,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - [ ] **Step 5: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/manifest.json package.json versions.json && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "chore: bump version to 0.22.0 + release notes
+cd D:/AI-Agent/ClaudianBridge && git add src/manifest.json package.json versions.json && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "chore: bump version to 0.22.0 + release notes
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
@@ -528,7 +528,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - [ ] **Step 1: 全テスト実行**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run 2>&1 | tail -6
+cd D:/AI-Agent/ClaudianBridge && npx vitest run 2>&1 | tail -6
 ```
 
 期待: 全件 PASS（既存 691 + 新規 7 = 698 + 1 skipped）
@@ -536,7 +536,7 @@ cd D:/AI-Agent/claudian-bridge && npx vitest run 2>&1 | tail -6
 - [ ] **Step 2: TypeScript 型チェック**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -5
+cd D:/AI-Agent/ClaudianBridge && npx tsc --noEmit 2>&1 | tail -5
 ```
 
 期待: エラーなし
@@ -544,7 +544,7 @@ cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -5
 - [ ] **Step 3: ビルド + デプロイ**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npm run build 2>&1 | tail -10
+cd D:/AI-Agent/ClaudianBridge && npm run build 2>&1 | tail -10
 ```
 
 期待: esbuild ビルド成功 + `obsidian-deploy.mjs` で配置完了
@@ -552,8 +552,8 @@ cd D:/AI-Agent/claudian-bridge && npm run build 2>&1 | tail -10
 - [ ] **Step 4: デプロイ成果物確認**
 
 ```bash
-grep '"version"' "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/.obsidian/plugins/claudian-bridge/manifest.json"
-grep -c "data-path\\^=\\|hideUnderscoreFolders" "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/.obsidian/plugins/claudian-bridge/main.js"
+grep '"version"' "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/.obsidian/plugins/ClaudianBridge/manifest.json"
+grep -c "data-path\\^=\\|hideUnderscoreFolders" "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/.obsidian/plugins/ClaudianBridge/main.js"
 ```
 
 期待: `"version": "0.22.0"` + セレクタが含まれる

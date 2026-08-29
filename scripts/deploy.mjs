@@ -16,7 +16,7 @@ import { resolveVaultPath } from "../../_devtools/obsidian-deploy.mjs";
 const shared = fileURLToPath(new URL("../../_devtools/obsidian-deploy.mjs", import.meta.url));
 const result = spawnSync(
   process.execPath,
-  [shared, "claudian-bridge", "--markers", "Claudian Bridge,claudian-bridge"],
+  [shared, "ClaudianBridge", "--markers", "Claudian Bridge,ClaudianBridge"],
   { stdio: "inherit" }
 );
 
@@ -44,7 +44,7 @@ const RAG_FILES = [
   "rag/src/vector_store.py",
   "rag/src/web_search.py",
 ];
-const dest = join(resolveVaultPath(), ".obsidian", "plugins", "claudian-bridge");
+const dest = join(resolveVaultPath(), ".obsidian", "plugins", "ClaudianBridge");
 mkdirSync(dest, { recursive: true });
 
 /** Recursively copy a directory. Returns false if source does not exist. */

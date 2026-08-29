@@ -85,7 +85,7 @@ it('normalizeClaudianBridgeSettings: general.backupEnabled=false 明示設定', 
 - [ ] **Step 2: テスト失敗確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/core/settings.test.ts 2>&1 | tail -30
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/core/settings.test.ts 2>&1 | tail -30
 ```
 
 期待: `TypeError: cfg.general.backupEnabled` 関連で 3 件 FAIL
@@ -123,7 +123,7 @@ if (typeof cfg.general.backupEnabled !== 'boolean') return 'general.backupEnable
 - [ ] **Step 7: テスト合格確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/core/settings.test.ts 2>&1 | tail -20
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/core/settings.test.ts 2>&1 | tail -20
 ```
 
 期待: 既存 + 新規 3 件すべて PASS
@@ -131,7 +131,7 @@ cd D:/AI-Agent/claudian-bridge && npx vitest run tests/core/settings.test.ts 2>&
 - [ ] **Step 8: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/core/settings.ts tests/core/settings.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(settings): add general.backupEnabled (v0.21.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/core/settings.ts tests/core/settings.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(settings): add general.backupEnabled (v0.21.0)
 
 ClaudianBridgeSettings.general に backupEnabled: boolean を追加。
 既定 true、後方互換性あり（未設定ユーザーは自動的に ON）。
@@ -195,7 +195,7 @@ generalBackupEnabledDesc: '在文件/文件夹右键菜单中添加"备份"（�
 - [ ] **Step 5: TypeScript 型チェック**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -20
+cd D:/AI-Agent/ClaudianBridge && npx tsc --noEmit 2>&1 | tail -20
 ```
 
 期待: エラーなし（3 言語分のキー不足は型レベルで検出される）
@@ -203,7 +203,7 @@ cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -20
 - [ ] **Step 6: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/core/i18n.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(i18n): add generalBackupEnabled strings (ja/en/zh, v0.21.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/core/i18n.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(i18n): add generalBackupEnabled strings (ja/en/zh, v0.21.0)
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
@@ -296,7 +296,7 @@ describe('backup-runner', () => {
 - [ ] **Step 2: テスト失敗確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/features/backup/backup-runner.test.ts 2>&1 | tail -20
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/features/backup/backup-runner.test.ts 2>&1 | tail -20
 ```
 
 期待: `Failed to resolve import "../../../src/features/backup/backup-runner"` で FAIL
@@ -393,7 +393,7 @@ export async function runBackup(
 - [ ] **Step 4: テスト合格確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/features/backup/backup-runner.test.ts 2>&1 | tail -20
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/features/backup/backup-runner.test.ts 2>&1 | tail -20
 ```
 
 期待: 7 件すべて PASS
@@ -401,7 +401,7 @@ cd D:/AI-Agent/claudian-bridge && npx vitest run tests/features/backup/backup-ru
 - [ ] **Step 5: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/features/backup/backup-runner.ts tests/features/backup/backup-runner.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(backup): add backup-runner with fs.promises.cp (v0.21.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/features/backup/backup-runner.ts tests/features/backup/backup-runner.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(backup): add backup-runner with fs.promises.cp (v0.21.0)
 
 buildTimestamp: YYYYMMDD_HHMMSS 形式のタイムスタンプ生成
 resolveDestName: <name>_<TS>[.<ext>] の命名規則でバックアップ名を解決
@@ -545,7 +545,7 @@ describe('BackupMenuRegistrar', () => {
 - [ ] **Step 2: テスト失敗確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/features/backup/menu.test.ts 2>&1 | tail -20
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/features/backup/menu.test.ts 2>&1 | tail -20
 ```
 
 期待: `Failed to resolve import "../../../src/features/backup/menu"` で FAIL
@@ -595,7 +595,7 @@ export class BackupMenuRegistrar {
 - [ ] **Step 4: テスト合格確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run tests/features/backup/menu.test.ts 2>&1 | tail -30
+cd D:/AI-Agent/ClaudianBridge && npx vitest run tests/features/backup/menu.test.ts 2>&1 | tail -30
 ```
 
 期待: 5 件すべて PASS
@@ -603,7 +603,7 @@ cd D:/AI-Agent/claudian-bridge && npx vitest run tests/features/backup/menu.test
 - [ ] **Step 5: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/features/backup/menu.ts tests/features/backup/menu.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(backup): add BackupMenuRegistrar (v0.21.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/features/backup/menu.ts tests/features/backup/menu.test.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(backup): add BackupMenuRegistrar (v0.21.0)
 
 workspace.on('file-menu') でファイル/フォルダ右クリックメニューに
 「💾 バックアップ」を追加。general.backupEnabled=false で非表示。
@@ -645,7 +645,7 @@ new Setting(containerEl)
 - [ ] **Step 2: TypeScript 型チェック**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
+cd D:/AI-Agent/ClaudianBridge && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 期待: エラーなし
@@ -653,7 +653,7 @@ cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
 - [ ] **Step 3: 既存テスト全件パス確認**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run 2>&1 | tail -10
+cd D:/AI-Agent/ClaudianBridge && npx vitest run 2>&1 | tail -10
 ```
 
 期待: 全テスト PASS（既存 + 新規）
@@ -661,7 +661,7 @@ cd D:/AI-Agent/claudian-bridge && npx vitest run 2>&1 | tail -10
 - [ ] **Step 4: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/settings/SettingTabGeneral.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(settings): add backupEnabled toggle UI (v0.21.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/settings/SettingTabGeneral.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(settings): add backupEnabled toggle UI (v0.21.0)
 
 一般タブに「💾 右クリックバックアップ」トグルを追加。
 既定 ON、OFF にすると右クリックメニューからバックアップが消える。
@@ -699,7 +699,7 @@ diag('backup menu registered');
 - [ ] **Step 3: TypeScript 型チェック + ビルド**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
+cd D:/AI-Agent/ClaudianBridge && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 期待: エラーなし
@@ -707,7 +707,7 @@ cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
 - [ ] **Step 4: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/main.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(main): wire BackupMenuRegistrar (v0.21.0)
+cd D:/AI-Agent/ClaudianBridge && git add src/main.ts && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "feat(main): wire BackupMenuRegistrar (v0.21.0)
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
@@ -754,7 +754,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - [ ] **Step 3: コミット**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && git add src/manifest.json "POC_017_ClaudianBridge/08_説明書/03_リリースノート/リリースノート.md" && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "chore: bump version to 0.21.0 + release notes
+cd D:/AI-Agent/ClaudianBridge && git add src/manifest.json "POC_017_ClaudianBridge/08_説明書/03_リリースノート/リリースノート.md" && git -c user.name="MiuMiu" -c user.email="noreply@anthropic.com" commit -m "chore: bump version to 0.21.0 + release notes
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
@@ -773,7 +773,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - [ ] **Step 1: 全テスト実行**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx vitest run 2>&1 | tail -15
+cd D:/AI-Agent/ClaudianBridge && npx vitest run 2>&1 | tail -15
 ```
 
 期待: 全件 PASS（既存 226 件 + 新規 12 件 = 238 件）
@@ -781,7 +781,7 @@ cd D:/AI-Agent/claudian-bridge && npx vitest run 2>&1 | tail -15
 - [ ] **Step 2: TypeScript 型チェック**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
+cd D:/AI-Agent/ClaudianBridge && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 期待: エラーなし
@@ -789,7 +789,7 @@ cd D:/AI-Agent/claudian-bridge && npx tsc --noEmit 2>&1 | tail -10
 - [ ] **Step 3: ビルド + デプロイ**
 
 ```bash
-cd D:/AI-Agent/claudian-bridge && npm run build 2>&1 | tail -30
+cd D:/AI-Agent/ClaudianBridge && npm run build 2>&1 | tail -30
 ```
 
 期待: esbuild ビルド成功 + `obsidian-deploy.mjs` で `.obsidian/plugins/claudian-bridge/` に配置完了
@@ -797,8 +797,8 @@ cd D:/AI-Agent/claudian-bridge && npm run build 2>&1 | tail -30
 - [ ] **Step 4: デプロイ成果物確認**
 
 ```bash
-ls -la "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/.obsidian/plugins/claudian-bridge/" 2>&1 | head -10
-cat "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/.obsidian/plugins/claudian-bridge/manifest.json" 2>&1 | head -10
+ls -la "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/.obsidian/plugins/ClaudianBridge/" 2>&1 | head -10
+cat "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault/.obsidian/plugins/ClaudianBridge/manifest.json" 2>&1 | head -10
 ```
 
 期待: `manifest.json` のバージョンが `"0.21.0"`
