@@ -8,7 +8,7 @@
  * because at runtime the plugin resolves them from <pluginDir>.
  */
 import { spawnSync } from "child_process";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { resolveVaultPath } from "../../_devtools/obsidian-deploy.mjs";
@@ -77,6 +77,19 @@ function copyOne(srcRel, dstRel) {
 let pyOk = true;
 for (const f of PY_FILES) pyOk = copyOne(`python/${f}`, f) && pyOk;
 for (const f of RAG_FILES) pyOk = copyOne(f, f.replace(/^rag\//, "")) && pyOk;
+
+// VERSION ファイルを src/manifest.json の version と完全同期（バージョン二重管理解消）
+try {
+  const manifestPath = "src/manifest.json";
+  const manifestContent = readFileSync(manifestPath, "utf-8");
+  const manifest = JSON.parse(manifestContent);
+  const versionFile = join(dest, "VERSION");
+  writeFileSync(versionFile, manifest.version);
+  console.log(`✅ VERSION 同期: ${manifest.version} -> ${versionFile}`);
+} catch (e) {
+  console.error(`❌ VERSION 同期失敗: ${e.message}`);
+  pyOk = false;
+}
 
 // v0.27.0: 同梱 edge_tts（pip 依存ゼロ）。src-layout のため py/edge_tts/src/edge_tts/ が実体
 const edgeTtsSrc = join(process.cwd(), "py", "edge_tts");
