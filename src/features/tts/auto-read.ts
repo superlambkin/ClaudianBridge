@@ -123,6 +123,7 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
         const text = extractReportText(messages, scope, {
           excludeCallouts: cfg.tts.excludeCallouts ?? true,
           filter: resolveSpeechFilter(cfg, 'autoRead'),
+          reportScript: cfg.tts.autoReadReportScript ?? true, // v0.28.0 (F026)
         });
         if (text) {
           notice(`🔊 自動読み上げ: ${text.length} 文字を読み上げます`);

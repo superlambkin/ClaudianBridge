@@ -172,4 +172,11 @@ describe('i18n', () => {
       expect(v.ttsEdgeTtsModulePathPlaceholder.length, `${lang}.ttsEdgeTtsModulePathPlaceholder empty`).toBeGreaterThan(0);
     }
   });
+  it('v0.28.0: ttsReportScript は全ロケールで定義される', () => {
+    for (const lang of SUPPORTED_LOCALES) {
+      const v = getLocaleStrings(lang);
+      expect(v.ttsReportScript.length, `${lang}.ttsReportScript empty`).toBeGreaterThan(0);
+      expect(v.ttsReportScriptDesc.length, `${lang}.ttsReportScriptDesc empty`).toBeGreaterThan(0);
+    }
+  });
 });

@@ -9,6 +9,13 @@ const buttonHandlers: Array<{
   onClick: (() => void | Promise<void>) | null;
 }> = [];
 
+// トグルハンドラを記録するストア（F026: autoReadReportScript トグル検証用）
+const toggleHandlers: Array<{
+  name: string;
+  value: unknown;
+  onChange: ((v: unknown) => void) | null;
+}> = [];
+
 vi.mock('obsidian', () => {
   return {
     Notice: vi.fn(),
@@ -36,8 +43,17 @@ vi.mock('obsidian', () => {
         return this;
       }
       addToggle(cb: (t: unknown) => unknown) {
-        const t = { setValue: function () { return this; }, onChange: function () { return this; } };
+        const captured: { name: string; value: unknown; onChange: ((v: unknown) => void) | null } = {
+          name: this._name,
+          value: undefined,
+          onChange: null,
+        };
+        const t = {
+          setValue: function (v: unknown) { captured.value = v; return this; },
+          onChange: function (h: (v: unknown) => void) { captured.onChange = h; return this; },
+        };
         cb(t);
+        toggleHandlers.push(captured);
         return this;
       }
       addDropdown(cb: (d: unknown) => unknown) {
@@ -98,18 +114,20 @@ vi.mock('../../src/features/tts/core', async () => {
 });
 
 import { renderTtsTab } from '../../src/settings/SettingTabTts';
+import { getLocaleStrings } from '../../src/core/i18n';
 import type { ConfigStore } from '../../src/core/config-store';
 // vi.mock('obsidian', ...) で Notice は vi.fn() に置換済み。再度 import して
 // モック参照を取得し、Notice が期待通り呼ばれたか検証できるようにする。
 // （vitest の vi.mock は同モジュール内 import を全て同一モックへ binding する）
 import { Notice } from 'obsidian';
 
-function makeStore(overrides: { edgeTtsModulePath?: string } = {}): ConfigStore {
+function makeStore(overrides: { edgeTtsModulePath?: string; autoReadReportScript?: boolean } = {}): ConfigStore {
   const cfg = {
     tts: {
       enabled: true,
       engine: 'edge-local' as const,
       edgeTtsModulePath: overrides.edgeTtsModulePath ?? '/mock/path/to/edge_tts',
+      autoReadReportScript: overrides.autoReadReportScript ?? true,
       voices: { edge: { zh: '', ja: '', en: '' }, webspeech: { zh: '', ja: '', en: '' } },
       plachta: { speaker: '', language: '日本語' as const, speed: 1.0 },
       cli: undefined,
@@ -186,6 +204,7 @@ function makeContainerEl(): HTMLElement {
 describe('SettingTabTts — 📂 ボタン (Task 7 / v0.27.0)', () => {
   beforeEach(() => {
     buttonHandlers.length = 0;
+    toggleHandlers.length = 0;
     openPathMock.mockReset();
     vi.mocked(Notice).mockClear();
     // stub 用にグローバル経由で electron モックを差し込む
@@ -292,5 +311,60 @@ describe('SettingTabTts — 📂 ボタン (Task 7 / v0.27.0)', () => {
 
     const folderBtn = buttonHandlers.find((b) => b.text === '📂');
     expect(folderBtn).toBeUndefined();
+  });
+});
+// F026 (v0.28.0): 完了報告スクリプト整形トグル
+describe('SettingTabTts — autoReadReportScript トグル (F026 / v0.28.0)', () => {
+  beforeEach(() => {
+    buttonHandlers.length = 0;
+    toggleHandlers.length = 0;
+    vi.mocked(Notice).mockClear();
+  });
+
+  it('トグルが現在値で初期化され、ja ラベル・説明で描画される', () => {
+    const containerEl = makeContainerEl();
+    const store = makeStore({ autoReadReportScript: false });
+    renderTtsTab(makeApp() as never, containerEl, store);
+
+    const toggle = toggleHandlers.find((t) => t.name === getLocaleStrings('ja').ttsReportScript);
+    expect(toggle).toBeDefined();
+    expect(toggle?.value).toBe(false);
+    expect(toggle?.onChange).toBeTypeOf('function');
+  });
+
+  it('既定値（未設定）は true で初期化される', () => {
+    const containerEl = makeContainerEl();
+    const store = makeStore({ autoReadReportScript: undefined as unknown as boolean });
+    renderTtsTab(makeApp() as never, containerEl, store);
+
+    const toggle = toggleHandlers.find((t) => t.name === getLocaleStrings('ja').ttsReportScript);
+    expect(toggle?.value).toBe(true);
+  });
+
+  it('トグル ON にすると autoReadReportScript: true がストアへ保存される', () => {
+    const containerEl = makeContainerEl();
+    const store = makeStore({ autoReadReportScript: false });
+    renderTtsTab(makeApp() as never, containerEl, store);
+
+    const toggle = toggleHandlers.find((t) => t.name === getLocaleStrings('ja').ttsReportScript);
+    toggle!.onChange!(true);
+
+    expect(store.save).toHaveBeenCalledTimes(1);
+    const saved = (store.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as { tts: { autoReadReportScript: boolean; enabled: boolean } };
+    expect(saved.tts.autoReadReportScript).toBe(true);
+    expect(saved.tts.enabled).toBe(true); // 既存フィールドが保持される
+  });
+
+  it('トグル OFF にすると autoReadReportScript: false がストアへ保存される', () => {
+    const containerEl = makeContainerEl();
+    const store = makeStore({ autoReadReportScript: true });
+    renderTtsTab(makeApp() as never, containerEl, store);
+
+    const toggle = toggleHandlers.find((t) => t.name === getLocaleStrings('ja').ttsReportScript);
+    toggle!.onChange!(false);
+
+    expect(store.save).toHaveBeenCalledTimes(1);
+    const saved = (store.save as ReturnType<typeof vi.fn>).mock.calls[0][0] as { tts: { autoReadReportScript: boolean } };
+    expect(saved.tts.autoReadReportScript).toBe(false);
   });
 });
