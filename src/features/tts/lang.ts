@@ -18,7 +18,10 @@ export function pickWebSpeechLang(text: string): TtsLang {
     else if (cp >= 0x4e00 && cp <= 0x9fff) counts.cjk++; // CJK ideographs
     else if ((cp >= 0x41 && cp <= 0x5a) || (cp >= 0x61 && cp <= 0x7a)) counts.latin++;
   }
-  if (counts.kana > 0 || counts.cjk > counts.latin) return counts.kana > counts.cjk ? 'ja' : 'zh';
+  // v0.27.3: かな（ひらがな/カタカナ）は中国語で使用されないため、1 文字でも存在すれば ja。
+  // 旧ロジック（kana > cjk で ja）は漢字多めの通常の日本語文を zh に誤判定していた。
+  if (counts.kana > 0) return 'ja';
+  if (counts.cjk > counts.latin) return 'zh';
   return 'en';
 }
 

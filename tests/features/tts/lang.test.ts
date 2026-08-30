@@ -11,6 +11,14 @@ describe('pickWebSpeechLang', () => {
   it('ラテン主体は en', () => {
     expect(pickWebSpeechLang('Hello, this is a test.')).toBe('en');
   });
+  // v0.27.3: かなは中国語で使用されないため、かなを含むテキストは漢字が多くても ja
+  it('かなを含む漢字多めの日本語は ja（zh に誤判定しない）', () => {
+    expect(pickWebSpeechLang('国立国会図書館の蔵書は膨大だ。')).toBe('ja');
+    expect(pickWebSpeechLang('政府は経済対策として新たな予算案を承認した。')).toBe('ja');
+  });
+  it('カタカナのみでも ja', () => {
+    expect(pickWebSpeechLang('コンピューター、スマートフォン。')).toBe('ja');
+  });
 });
 
 describe('pickLang', () => {
