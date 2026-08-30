@@ -3,14 +3,15 @@
  * v0.24.0: showAllOptions 設定で方案ボタンを常に表示可能に。
  * v0.29.0: 配置を .claudian-input-toolbar の先頭行から
  *          .claudian-input-nav-actions 内の NewTab 左隣へ移動。
- * ボタン: ✅ OK / ❌ NG / 1️⃣〜5️⃣ 方案1〜方案5
+ * v0.29.1: 絵文字ボタンを NewTab（.clickable-icon）と同サイズの SVG アイコンに置換。
+ *          OK/NG = Lucide icon（check / x）、方案1〜5 = カスタム SVG 数字バッジ。
  * クリックで定型文を直接送信する（sendToClaudian）。
  * 推奨方案ハイライトと選択肢数の動的表示は recommend-detector.ts の
  * setupRecommendDetection（RecommendState）と連携する。
  * 設計: docs/superpowers/specs/2026-08-30-quick-reply-nav-actions-design.md
  */
 import type { App } from 'obsidian';
-import { Notice } from 'obsidian';
+import { Notice, setIcon } from 'obsidian';
 import { sendToClaudian } from './core';
 import { setupRecommendDetection, type RecommendState } from './recommend-detector';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
@@ -29,23 +30,50 @@ const GROUP_MARK = 'data-cb-quickreply';
 const ROW_MARK = 'data-cb-quickreply-row';
 const MAX_OPTIONS = 5;
 
-const OPTION_ICONS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
-
 interface QuickReplyButtonDef {
   mark: string;
-  icon: string;
-  text: string;
+  /** Lucide icon 名（OK/NG 用） */
+  lucideIcon?: string;
+  /** 方案番号（1〜5 用） */
   option?: number;
+  text: string;
+}
+
+/** v0.29.1: 方案ボタン用カスタム SVG（circle + 数字テキスト）を生成 */
+function createNumberedBadge(n: number): SVGElement {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '1.5');
+  const circle = document.createElementNS(NS, 'circle');
+  circle.setAttribute('cx', '8');
+  circle.setAttribute('cy', '8');
+  circle.setAttribute('r', '6.5');
+  svg.appendChild(circle);
+  const text = document.createElementNS(NS, 'text');
+  text.setAttribute('x', '8');
+  text.setAttribute('y', '11');
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('font-size', '9');
+  text.setAttribute('font-weight', '600');
+  text.setAttribute('fill', 'currentColor');
+  text.setAttribute('stroke', 'none');
+  text.textContent = String(n);
+  svg.appendChild(text);
+  return svg;
 }
 
 const BUTTONS: QuickReplyButtonDef[] = [
-  { mark: 'data-cb-qr-ok', icon: '✅', text: 'OK' },
-  { mark: 'data-cb-qr-ng', icon: '❌', text: 'NG' },
+  { mark: 'data-cb-qr-ok', lucideIcon: 'check', text: 'OK' },
+  { mark: 'data-cb-qr-ng', lucideIcon: 'x', text: 'NG' },
   ...Array.from({ length: MAX_OPTIONS }, (_, i) => ({
     mark: `data-cb-qr-${i + 1}`,
-    icon: OPTION_ICONS[i],
-    text: `方案${i + 1}`,
     option: i + 1,
+    text: `方案${i + 1}`,
   })),
 ];
 
@@ -54,7 +82,12 @@ function makeButton(app: App, def: QuickReplyButtonDef): HTMLButtonElement {
   btn.classList.add('claudian-action-btn', 'cb-quickreply-btn');
   if (def.option) btn.classList.add('cb-hidden'); // デフォルトは選択肢なし
   btn.setAttribute(def.mark, 'true');
-  btn.textContent = def.icon;
+  // v0.29.1: 絵文字 textContent → SVG アイコンに置換
+  if (def.lucideIcon) {
+    setIcon(btn, def.lucideIcon);
+  } else if (def.option !== undefined) {
+    btn.appendChild(createNumberedBadge(def.option));
+  }
   const s = getLocaleStrings(getUILanguage());
   btn.title = def.option
     ? s.quickReplySendOption.replace('{n}', String(def.option))

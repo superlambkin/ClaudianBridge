@@ -427,19 +427,42 @@
 .cb-quickreply-row {
   display: inline-flex;      /* インライン化（NewTab と横並び） */
   align-items: center;
-  gap: 2px;                  /* コンパクト化 */
+  gap: 1px;                  /* コンパクト化（v0.29.1: 2px → 1px）*/
+  margin-right: 6px;         /* v0.29.1: NewTab との間隔 */
 }
 .cb-quickreply-group {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;                  /* v0.29.1: 2px → 1px */
   margin-left: 6px;
 }
+/* v0.29.1: SVG アイコン化（NewTab = .clickable-icon, 24x24 square）と同サイズに揃える。
+   背景 = 白（テーマ変数で light/dark 対応）、枠 = 灰色。
+   v0.29.1 微調整: 24x24 → 20x20 */
 .cb-quickreply-btn {
-  min-width: 2em;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  font-size: 14px;
-  padding: 2px 4px;
+  border-radius: 3px;
+  background: transparent;                       /* 透明背景 */
+  border: 1px solid var(--background-modifier-border); /* 灰色枠 */
+  color: var(--icon-color);
+  cursor: var(--cursor-clickable, pointer);
+  transition: background-color 80ms ease-out;
+}
+.cb-quickreply-btn:hover {
+  background: var(--background-modifier-hover);   /* hover: 既存パターン */
+  border-color: var(--background-modifier-border-hover);
+  color: var(--icon-color-hover);
+}
+.cb-quickreply-btn svg {
+  width: 12px;
+  height: 12px;
+  display: block;
 }
 .cb-quickreply-btn.cb-hidden { display: none; }
 .cb-quickreply-btn[data-cb-qr-1] {
