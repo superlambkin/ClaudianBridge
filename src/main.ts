@@ -13,7 +13,7 @@ import { setupMdSaveButton } from './features/memory/md-save-button';
 import { setupMessageMdSaveButtons } from './features/memory/message-md-save-button';
 import { polishInstruction } from './features/llm/claude-cli';
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
-import { setupQuickReplyButtons } from './features/quick-reply/toolbar-buttons';
+import { setupQuickReplyButtons } from './features/quick-reply/nav-buttons';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { initEdgeTtsLocal } from './features/tts/edge-tts-local';
 import { migrateFromLegacy } from './legacy/migration';
