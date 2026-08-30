@@ -17,7 +17,7 @@ applied_rules_version: 2.15.0
 ---
 
 > 📂 **パス**: `80_POC_Projects/POC_017_ClaudianBridge/README.md`
-> 📍 **ソース**: `D:\AI-Agent\ClaudianBridge\`（git main · v0.27.3）
+> 📍 **ソース**: `D:\AI-Agent\ClaudianBridge\`（git main · v0.28.0）
 
 # 🎙️ POC_017 Claudian Bridge
 
@@ -27,14 +27,14 @@ applied_rules_version: 2.15.0
 
 | 項目 | 内容 |
 |------|------|
-| **現在バージョン** | **v0.27.3**（2026-08-30 リリース） |
+| **現在バージョン** | **v0.28.0**（2026-08-30 リリース） |
 | **統合元** | Claudian Selection Bridge, 拡張子WhiteList, Vault Office Bridge, Chroma Inspector, claude-tts-settings |
-| **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.27.3） |
+| **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.28.0） |
 | **設定画面** | 8タブ（一般 / テキスト挿入 / テキスト読み上げ / ファイル変換 / 拡張子フィルタ / 残量検知 / Chroma / Memory） |
 | **データ移行** | 初回起動時に旧 data.json を自動取り込み（リセット可能） |
 | **旧プラグイン無効化** | 初回起動時に一括（community-plugins.json 除外 + `_disabled__` リネーム） |
 | **旧プラグイン削除** | P5 で不在確認済み（完全削除） |
-| **テスト実績** | **790 passed / 1 skipped**（vitest ・ 74 ファイル・v0.27.3 時点） |
+| **テスト実績** | **807 passed / 1 skipped**（vitest ・ 75 ファイル・v0.28.0 時点） |
 | **POC 状態** | **P5 完了**（全サブプロジェクト ✅） |
 
 ---
@@ -68,6 +68,7 @@ applied_rules_version: 2.15.0
 | F023 | 方案検出パターン拡張 | 「案N」「第一選択 N」「best option N」等の推奨語彙を追加 | v0.26.0 |
 | F024 | TTS エンジン変更 | edge_tts 完全同梱（pip 依存ゼロ）+ クラウド HTTPS プロキシ + 言語モード切替 + Linux 対応 | v0.27.0 |
 | F025 | Thought 読上げ除外強化 | `THINKING_BLOCK_SELECTOR` を複数クラス OR に拡張（realclaudian v2.2.4+ 対応） | v0.27.1 |
+| F026 | 完了報告読上げスクリプト整形 | 完了報告を ヘッダー/結論/次のアクション提案 のサマリーのみ読上げ（`tts.autoReadReportScript`・既定 ON） | v0.28.0 |
 
 ---
 
