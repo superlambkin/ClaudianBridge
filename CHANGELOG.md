@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.27.2] - 2026-08-30 — TTS チャンク分割時の言語切替不具合修正 🌐
+
+### Fixed
+
+- **チャンク分割時の言語統一**: 長文読上げ時にチャンクごとに言語 auto 判定を実行していたため、区切り方次第で英語のみ・漢字のみのチャンクが発生し、読上げ途中で音声（言語）が切り替わる不具合を修正
+  - `addTextToTTS` で分割**前**の全文に対して 1 回だけ `pickLang` を実行し、全チャンクに同一の言語・音声を適用
+  - `edgeCloudHttpSpeak` / `localEdgeTtsSpeak` / `webSpeechSpeak` に optional `lang` 引数を追加（未指定時は従来どおりチャンク単位の auto 判定・後方互換）
+  - `lang.ts` に `TtsLang` 型をエクスポート
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **788 件 PASS**（v0.27.1 の 787 件 + 新規 1 件） |
+| 新規テスト | `tests/features/tts/core-lang-consistency.test.ts`（全文 ja 判定の長文＋英語区間で全チャンクの音声が ja 統一されることを検証） |
+| 影響範囲 | `src/features/tts/core.ts` / `edge-tts-local.ts` / `lang.ts`（既存 API は optional 引数追加のみで後方互換） |
+
 ## [0.27.1] - 2026-08-27 — Thought 読上げ除外の防御的強化 🛡️
 
 ### Fixed
