@@ -409,34 +409,42 @@ setupRecommendDetection(app, (state: RecommendState) => { ... });
 | 3 | ツールバー: 0 件 → ✅❌のみ / 3 件 → 3 ボタン表示 | `toolbar-buttons.test.ts` |
 | 4 | 状態変化（選択肢あり→なし）でボタンが再描画される | 同上 |
 
-### 10.7 配置（上の行・右寄せ）
+### 10.7 配置（nav-actions 内 NewTab の左隣）— v0.29.0 更新
 
-`.claudian-input-toolbar` は `display: flex; flex-wrap: wrap` のため、クイック返信グループを包む **全幅の `.cb-quickreply-row` をツールバー先頭に挿入** する。
+`.claudian-input-nav-actions` 内に配置された **NewTab ボタンの左隣** にクイック返信ボタンを挿入する。
+`.claudian-input-toolbar`（既存ツールバー）とは別コンテナで、残量インジケータと同じ「NewTab 左隣」パターン。
 
 ```html
-<div class="claudian-input-toolbar">          <!-- flex-wrap: wrap -->
-  <div class="cb-quickreply-row">             <!-- 全幅・右寄せ → 1行目 -->
+<div class="claudian-input-nav-actions">      <!-- flex row -->
+  <div class="cb-quota-indicator">...</div>   <!-- 既存残量インジケータ -->
+  <div class="cb-quickreply-row">             <!-- インライン化（v0.29.0） -->
     <span class="cb-quickreply-group">✅ ❌ 1️⃣2️⃣3️⃣</span>
   </div>
-  [🔊 ミュート] [📖 全文] [📝 保存] ...       <!-- 既存ボタン → 2行目 -->
+  <button class="claudian-new-tab-btn"></button>
+</div>
+<div class="claudian-input-toolbar">          <!-- flex-wrap: wrap -->
+  [🔊 ミュート] [📖 全文] [📝 保存] ...       <!-- 既存ボタン（クイック返信はここから移動） -->
 </div>
 ```
 
-CSS:
+CSS（v0.29.0）:
 
 ```css
 .cb-quickreply-row {
-  width: 100%;               /* 全幅 → 1行目を占有 */
-  display: flex;
-  justify-content: flex-end; /* 右寄せ */
+  display: inline-flex;      /* インライン化（NewTab と横並び） */
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 ```
 
-実装:
-- `toolbar-buttons.ts`: `toolbar.appendChild(group)` → `toolbar.insertBefore(row, toolbar.firstChild)`
-- `cleanup` は `[data-cb-quickreply-row]` も削除対象に含める
+実装（v0.29.0）:
+- ファイル名: `src/features/quick-reply/toolbar-buttons.ts` → `nav-buttons.ts`
+- `TOOLBAR_SELECTOR` → `NAV_SELECTOR` (`.claudian-input-nav-actions`)
+- 新定数: `NEWTAB_SELECTOR` (`.claudian-new-tab-btn, [aria-label="New tab"]`)
+- `inject`: `nav.insertBefore(row, newTab)` — NewTab 不在時は非注入
+- `cleanup` は `[data-cb-quickreply-row]` も削除対象に含める（変更なし）
+- 関連: `02_設計文書/2026-08-30-quick-reply-nav-actions-design.md`
+```
 
 ---
 

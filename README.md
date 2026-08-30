@@ -1,7 +1,7 @@
 ---
 title: "POC_017 Claudian Bridge プロジェクト README"
 type: project-readme
-version: 1.10.0
+version: 1.11.0
 status: ✅ 完成（P5 完了）
 created: 2026-08-10
 modified: 2026-08-30
@@ -27,14 +27,14 @@ applied_rules_version: 2.15.0
 
 | 項目 | 内容 |
 |------|------|
-| **現在バージョン** | **v0.28.0**（2026-08-30 リリース） |
+| **現在バージョン** | **v0.29.0**（2026-08-30 リリース） |
 | **統合元** | Claudian Selection Bridge, 拡張子WhiteList, Vault Office Bridge, Chroma Inspector, claude-tts-settings |
 | **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.28.0） |
 | **設定画面** | 8タブ（一般 / テキスト挿入 / テキスト読み上げ / ファイル変換 / 拡張子フィルタ / 残量検知 / Chroma / Memory） |
 | **データ移行** | 初回起動時に旧 data.json を自動取り込み（リセット可能） |
 | **旧プラグイン無効化** | 初回起動時に一括（community-plugins.json 除外 + `_disabled__` リネーム） |
 | **旧プラグイン削除** | P5 で不在確認済み（完全削除） |
-| **テスト実績** | **807 passed / 1 skipped**（vitest ・ 75 ファイル・v0.28.0 時点） |
+| **テスト実績** | **811 passed / 1 skipped**（vitest ・ 75 ファイル・v0.29.0 時点） |
 | **POC 状態** | **P5 完了**（全サブプロジェクト ✅） |
 
 ---
@@ -64,7 +64,7 @@ applied_rules_version: 2.15.0
 | F019 | 右クリックバックアップ | ファイルツリー右クリック → 保存先ダイアログ → タイムスタンプ付きコピー | v0.21.0 |
 | F020 | アンダースコアフォルダ非表示 | `_` プレフィックスフォルダをエクスプローラから非表示 | v0.22.0 |
 | F021 | クイック返信方案ボタン常時表示 | `general.quickReplyShowAllOptions` で 1️⃣〜5️⃣ を常時表示 | v0.24.0 |
-| F022 | クイック返信ボタン全体の ON/OFF | `general.quickReplyEnabled` で ✅ ❌ 1️⃣〜5️⃣ 全体を有効/無効 | v0.25.0 |
+| F022 | クイック返信ボタン全体の ON/OFF | `general.quickReplyEnabled` で ✅ ❌ 1️⃣〜5️⃣ 全体を有効/無効（v0.29.0 で nav-actions NewTab 左隣へ配置変更） | v0.25.0 |
 | F023 | 方案検出パターン拡張 | 「案N」「第一選択 N」「best option N」等の推奨語彙を追加 | v0.26.0 |
 | F024 | TTS エンジン変更 | edge_tts 完全同梱（pip 依存ゼロ）+ クラウド HTTPS プロキシ + 言語モード切替 + Linux 対応 | v0.27.0 |
 | F025 | Thought 読上げ除外強化 | `THINKING_BLOCK_SELECTOR` を複数クラス OR に拡張（realclaudian v2.2.4+ 対応） | v0.27.1 |
@@ -176,6 +176,7 @@ applied_rules_version: 2.15.0
 |------|------|---------|--------|
 | v1.6.0 | 2026-08-18 | **v0.22.0 実態へ更新**：F015-F020 追加（TTS 仕様統一 / EdgeTTS 上限 / 最終回答ゲート / Chroma-fs / Backup / アンダースコア非表示）・テスト 740 件反映・Quick Reply（v0.23.0 予定）モジュール追記・POC_016 リンク修正 | MiuMiu 🐾 |
 | v1.7.0 | 2026-08-18 | **v0.24.0 反映**：F021（方案ボタン常時表示設定）+ テスト 742 件・quick-reply モジュール v0.23.0 実装済み | MiuMiu 🐾 |
+| v1.11.0 | 2026-08-30 | **v0.29.0 反映**：クイック返信ボタン配置を nav-actions NewTab 左隣へ移動・テスト 807 → 811 件 | MiuMiu 🐾 |
 | v1.8.0 | 2026-08-18 | **v0.25.0 反映**：F022（クイック返信ボタン全体の ON/OFF）+ テスト 744 件 | MiuMiu 🐾 |
 | v1.5.0 | 2026-08-17 | **v0.19.0 実態へ全面更新**：設定 8タブ・TTS/Quota/Chroma/Object/Memory 機能・P5 完了・F013/F014 追加 | MiuMiu 🐾 |
 | v1.4.0 | 2026-08-10 | P3 実機 UAT 完了を反映（Office 変換統合 ✅） | MiuMiu 🐾 |
@@ -186,4 +187,4 @@ applied_rules_version: 2.15.0
 
 ---
 
-*📚 POC_017 Claudian Bridge README v1.8.0 · v0.25.0 · MiuMiu 🐾*
+*📚 POC_017 Claudian Bridge README v1.11.0 · v0.29.0 · MiuMiu 🐾*
