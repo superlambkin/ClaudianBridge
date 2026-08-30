@@ -4,7 +4,7 @@ type: feature-master
 project_id: POC_017_ClaudianBridge
 status: stable
 created: 2026-08-29
-modified: 2026-08-29
+modified: 2026-08-30
 tags:
   - F-番号
   - マスター
