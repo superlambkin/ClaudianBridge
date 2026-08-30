@@ -444,7 +444,6 @@ CSS（v0.29.0）:
 - `inject`: `nav.insertBefore(row, newTab)` — NewTab 不在時は非注入
 - `cleanup` は `[data-cb-quickreply-row]` も削除対象に含める（変更なし）
 - 関連: `02_設計文書/2026-08-30-quick-reply-nav-actions-design.md`
-```
 
 ---
 
