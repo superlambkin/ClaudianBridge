@@ -26,6 +26,8 @@ const RECOMMEND_PATTERNS: RegExp[] = [
   /recommend(?:ed|ation)?\s*:?\s*(?:(?:option|choice|pick)\s*)?([1-5])(?!\d)/i,
   /best\s*(?:(?:option|choice|pick)\s*)?([1-5])(?!\d)/i,
   /prefer(?:red)?\s*(?:(?:option|choice|pick)\s*)?([1-5])(?!\d)/i,
+  // v0.30.2: 完了報告（次のアクション提案）の 👑 推奨マーカー（👑N）
+  /👑\s*([1-5])(?!\d)/,
 ];
 
 /**
@@ -168,6 +170,20 @@ export function extractMaxOptionCount(text: string): number {
   const singleRe = /(?:方案|案)\s*(\d{1,2})(?!\d)/g;
   while ((m = singleRe.exec(text)) !== null) {
     nums.push(Number(m[1]));
+  }
+  // v0.30.2: 完了報告（次のアクション提案）の選択肢検出
+  // 👑N マーカー（推奨行の番号）を追加
+  const crownRe = /👑\s*(\d{1,2})(?!\d)/g;
+  while ((m = crownRe.exec(text)) !== null) {
+    nums.push(Number(m[1]));
+  }
+  // 選択プロンプト「数字（1/2/3）」→ 全数値の最大（範囲/個別どちらもカバー）
+  const promptRe = /数字\s*[（(]\s*(\d{1,2})(?:\s*\/\s*(\d{1,2}))*\s*[）)]/g;
+  while ((m = promptRe.exec(text)) !== null) {
+    nums.push(Number(m[1]));
+    for (let i = 2; i < m.length; i++) {
+      if (m[i]) nums.push(Number(m[i]));
+    }
   }
   if (nums.length === 0) return 0;
   return Math.min(Math.max(...nums), 99);

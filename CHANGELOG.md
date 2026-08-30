@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.30.2] - 2026-08-31 — 完了報告（次のアクション）の推奨検出強化（F023）
+
+### Added
+
+- **完了報告の 👑 推奨マーカー検出**: `extractRecommendedOption` が「👑N」形式（次のアクション提案表の推奨行）を認識
+- **完了報告の選択肢数検出**: `extractMaxOptionCount` が「数字（1/2/3）」プロンプト + 「👑N」マーカーから選択肢数を抽出
+  - 完了報告（テンプレート準拠）でクイック返信の番号ボタン ①-③ が表示され、👑 行がハイライトされる
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **830 件 PASS**（v0.30.1 の 825 件 + 新規 5 件） |
+| 影響範囲 | `src/features/quick-reply/recommend-detector.ts` / `tests/features/quick-reply/recommend-detector.test.ts` |
+
 ## [0.30.1] - 2026-08-31 — トークン速度表示の実機調整（F027）
 
 ### Fixed
