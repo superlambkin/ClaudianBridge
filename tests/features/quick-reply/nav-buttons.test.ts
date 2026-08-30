@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
-// POC_017 / ClaudianBridge v0.29.0
+// POC_017 / ClaudianBridge v0.29.1
 // Design: 80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-08-30-quick-reply-nav-actions-design.md
-// RED: this test imports from src/features/quick-reply/nav-buttons which does not exist yet.
-// It will be created by Task 2. Tests are expected to FAIL with "Cannot find module".
+// v0.29.1: ボタンを NewTab と同じ SVG アイコンスタイルに置換
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupQuickReplyButtons } from '../../../src/features/quick-reply/nav-buttons';
 import type { RecommendState } from '../../../src/features/quick-reply/recommend-detector';
@@ -17,6 +16,10 @@ let capturedOnChange: ((state: RecommendState) => void) | null = null;
 vi.mock('obsidian', () => ({
   Notice: class { constructor(_m: string) {} },
   moment: { locale: () => 'ja' },
+  // setIcon: Lucide icon を <svg class="lucide-${name}"> として挿入
+  setIcon: (el: HTMLElement, name: string) => {
+    el.innerHTML = `<svg class="lucide lucide-${name}" data-test-icon="${name}"></svg>`;
+  },
 }));
 
 vi.mock('../../../src/features/quick-reply/core', () => ({
@@ -48,6 +51,20 @@ async function waitForGroup(parent: HTMLElement): Promise<HTMLElement> {
   return group as unknown as HTMLElement;
 }
 
+/** ボタンの識別子リスト（OK/NG + 方案1〜5） */
+const BUTTON_MARKS = ['ok', 'ng', '1', '2', '3', '4', '5'] as const;
+
+/** ボタンの「アイコン名」識別（OK/NG = Lucide、方案 = custom number） */
+function getIconSignature(btn: HTMLButtonElement): string {
+  // OK/NG: Lucide icon を setIcon が挿入（data-test-icon 属性で識別）
+  const lucide = btn.querySelector('[data-test-icon]');
+  if (lucide) return lucide.getAttribute('data-test-icon') ?? '';
+  // 方案: カスタム SVG（text 要素に数字）
+  const text = btn.querySelector('svg text');
+  if (text) return `number-${text.textContent}`;
+  return '';
+}
+
 describe('setupQuickReplyButtons (nav-actions 配置)', () => {
   let cleanup: (() => void) | undefined;
   beforeEach(() => {
@@ -62,14 +79,32 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
   });
   afterEach(() => { cleanup?.(); cleanup = undefined; vi.restoreAllMocks(); });
 
-  it('✅ ❌ 1️⃣〜5️⃣ が順に注入される（初期は方案ボタン非表示）', async () => {
+  it('7 ボタンが順に注入される（OK/NG は SVG Lucide icon、方案1〜5 は SVG 数字バッジ）', async () => {
     cleanup = setupQuickReplyButtons({} as never);
     const { nav } = addNavWithNewTab();
     const group = await waitForGroup(nav);
-    const icons = Array.from(group.querySelectorAll('button')).map((b) => b.textContent);
-    expect(icons).toEqual(['✅', '❌', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']);
-    const visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
-    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌']);
+    const buttons = Array.from(group.querySelectorAll('button'));
+    expect(buttons.length).toBe(7);
+    expect(buttons.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1', 'number-2', 'number-3', 'number-4', 'number-5',
+    ]);
+    // 初期状態では方案ボタンは hidden
+    const visible = buttons.filter((b) => !b.classList.contains('cb-hidden'));
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual(['check', 'x']);
+  });
+
+  it('各ボタンには SVG が含まれ、絵文字 text ノードは無い', async () => {
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    const buttons = Array.from(group.querySelectorAll('button')) as HTMLButtonElement[];
+    for (const b of buttons) {
+      // 各ボタンに SVG が 1 つ含まれる
+      expect(b.querySelector('svg')).not.toBeNull();
+      // ボタン直下のテキストノードは無し（SVG の text 要素内の数字は OK）
+      const directText = Array.from(b.childNodes).filter((n) => n.nodeType === 3);
+      expect(directText).toEqual([]);
+    }
   });
 
   it('行が nav-actions 内の NewTab の左に配置される', async () => {
@@ -77,13 +112,10 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
     const { nav, newTab } = addNavWithNewTab();
     const group = await waitForGroup(nav);
 
-    // 行（data-cb-quickreply-row）は NewTab の前の要素
     const row = newTab.previousElementSibling as HTMLElement;
     expect(row).not.toBeNull();
     expect(row.getAttribute('data-cb-quickreply-row')).toBe('true');
     expect(row.classList.contains('cb-quickreply-row')).toBe(true);
-
-    // グループは行の中に含まれる
     expect(row.contains(group)).toBe(true);
   });
 
@@ -105,7 +137,6 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
     const { nav } = addNavWithNewTab();
     await waitForGroup(nav);
     expect(nav.querySelector('[data-cb-quickreply]')).not.toBeNull();
-
     cleanup!();
     cleanup = undefined;
     expect(nav.querySelector('[data-cb-quickreply]')).toBeNull();
@@ -116,24 +147,17 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
     const nav = document.createElement('div');
     nav.className = 'claudian-input-nav-actions';
     document.body.appendChild(nav);
-
-    // scan は即座に呼ばれるため、待機せず確認
     await vi.waitFor(() => {
-      // MutationObserver の非同期性を考慮して 1 フレーム待機
       expect(nav.querySelector('[data-cb-quickreply]')).toBeNull();
     }, { timeout: 200 });
   });
 
   it('nav-actions 不在時は非注入', async () => {
     cleanup = setupQuickReplyButtons({} as never);
-    // nav-actions を一切作成しない
     document.body.innerHTML = '';
-
-    // 既存ツールバーがあっても無視される（旧実装との互換性切断）
     const toolbar = document.createElement('div');
     toolbar.className = 'claudian-input-toolbar';
     document.body.appendChild(toolbar);
-
     await vi.waitFor(() => {
       expect(document.querySelector('[data-cb-quickreply]')).toBeNull();
       expect(document.querySelector('[data-cb-quickreply-row]')).toBeNull();
@@ -142,25 +166,25 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
 
   it('aria-label="New tab" の NewTab を fallback 検出', async () => {
     cleanup = setupQuickReplyButtons({} as never);
-    // クラス無し・aria-label のみで NewTab を表現（旧 realclaudian 互換）
     const nav = document.createElement('div');
     nav.className = 'claudian-input-nav-actions';
     const newTab = document.createElement('button');
     newTab.setAttribute('aria-label', 'New tab');
     nav.appendChild(newTab);
     document.body.appendChild(nav);
-
     const group = await waitForGroup(nav);
     expect(newTab.previousElementSibling).toBe(group.parentElement);
   });
 
-  it('maxOptionCount=3 → 1️⃣2️⃣3️⃣ 表示、4️⃣5️⃣ 非表示', async () => {
+  it('maxOptionCount=3 → 方案1〜3 表示、4〜5 非表示', async () => {
     cleanup = setupQuickReplyButtons({} as never);
     const { nav } = addNavWithNewTab();
     const group = await waitForGroup(nav);
     capturedOnChange?.({ recommended: null, maxOptionCount: 3 });
     const visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
-    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌', '1️⃣', '2️⃣', '3️⃣']);
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1', 'number-2', 'number-3',
+    ]);
   });
 
   it('maxOptionCount=7 → 5 を超える分はクランプ', async () => {
@@ -169,7 +193,9 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
     const group = await waitForGroup(nav);
     capturedOnChange?.({ recommended: null, maxOptionCount: 7 });
     const visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
-    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']);
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1', 'number-2', 'number-3', 'number-4', 'number-5',
+    ]);
   });
 
   it('選択肢あり → なし で 方案ボタンが再表示・再非表示', async () => {
@@ -178,10 +204,12 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
     const group = await waitForGroup(nav);
     capturedOnChange?.({ recommended: null, maxOptionCount: 3 });
     let visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
-    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌', '1️⃣', '2️⃣', '3️⃣']);
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1', 'number-2', 'number-3',
+    ]);
     capturedOnChange?.({ recommended: null, maxOptionCount: 0 });
     visible = Array.from(group.querySelectorAll('button')).filter((b) => !b.classList.contains('cb-hidden'));
-    expect(visible.map((b) => b.textContent)).toEqual(['✅', '❌']);
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual(['check', 'x']);
   });
 
   it('推奨方案が変わると該当ボタンに .is-recommended が付与・解除', async () => {
@@ -197,7 +225,6 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
 
   it('NewTab が複数存在する場合は先頭のものを基準に挿入', async () => {
     cleanup = setupQuickReplyButtons({} as never);
-    // nav-actions 内に NewTab が 2 つある異常系（querySelector は先頭一致）
     const nav = document.createElement('div');
     nav.className = 'claudian-input-nav-actions';
     const newTab1 = document.createElement('button');
@@ -206,11 +233,11 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
     newTab2.className = 'claudian-new-tab-btn';
     nav.append(newTab1, newTab2);
     document.body.appendChild(nav);
-
     const group = await waitForGroup(nav);
-    // クイック返信行は newTab1 の左（=先頭 NewTab の左）に挿入される
     expect(newTab1.previousElementSibling).toBe(group.parentElement);
-    // newTab2 の左ではない（querySelector は先頭一致のため）
     expect(newTab2.previousElementSibling).not.toBe(group.parentElement);
   });
 });
+
+// BUTTON_MARKS を export することで型チェック用途にも使える
+export { BUTTON_MARKS };
