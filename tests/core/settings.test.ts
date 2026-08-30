@@ -825,4 +825,19 @@ describe('TtsLanguageMode / TtsEdgeCloudSettings', () => {
     } as unknown);
     expect(out.engine).toBe('edge-local');
   });
+
+  describe('normalizeTtsSettings autoReadReportScript (v0.28.0)', () => {
+    it('未設定時は既定 true', () => {
+      const tts = normalizeTtsSettings({});
+      expect(tts.autoReadReportScript).toBe(true);
+    });
+    it('false を指定した場合は false を保持', () => {
+      const tts = normalizeTtsSettings({ autoReadReportScript: false });
+      expect(tts.autoReadReportScript).toBe(false);
+    });
+    it('boolean 以外は既定 true', () => {
+      const tts = normalizeTtsSettings({ autoReadReportScript: 'yes' as unknown as boolean });
+      expect(tts.autoReadReportScript).toBe(true);
+    });
+  });
 });
