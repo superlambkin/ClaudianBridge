@@ -1,12 +1,28 @@
 .cb-token-rate {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  font-size: 12px;
+  gap: 4px;
+  margin-left: auto;   /* 右寄せ */
+  padding: 0 6px;
+  font-size: 11px;
   color: var(--text-muted);
-  border-top: 1px solid var(--background-modifier-border);
+  white-space: nowrap;
   transition: opacity 500ms ease-out;
+}
+.cb-token-rate-value,
+.cb-token-rate-avg,
+.cb-token-rate-max {
+  font-variant-numeric: tabular-nums;
+}
+.cb-token-rate-avg,
+.cb-token-rate-max {
+  opacity: 0.75;
+}
+.cb-token-rate-unit {
+  opacity: 0.6;
+}
+.cb-token-rate-sep {
+  opacity: 0.4;
 }
 .cb-token-rate.is-streaming .cb-token-rate-dot {
   background: var(--color-accent);

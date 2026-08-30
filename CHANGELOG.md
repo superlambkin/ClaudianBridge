@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.30.1] - 2026-08-31 — トークン速度表示の実機調整（F027）
+
+### Fixed
+
+- **表示位置の修正**: 入力画面下部 → **YOLO トグルの左**（AddExternalContext の右）
+  - コンテナセレクタを `.claudian-input-container`（実在確認）に修正
+  - `.claudian-permission-toggle` の直前に挿入、右寄せ（`margin-left: auto`）
+- **TTFT（首タイム）の実測化**: ユーザーメッセージ送信 → 最初のアシスタントトークンまでを計測（従来は要素出現起点で常に 0）
+  - セレクタを `:last-of-type` → `querySelectorAll().at(-1)` に変更（兄弟依存の不安定さを解消）
+- **自己フィードバック修正**: counter 自身の DOM 更新を MutationObserver が拾い `isStreaming` が常時 true になるバグを修正
+- **CSS ロード修正**: `counter.css` が独立ファイルで未ロード → ルート `styles.css` に追記（スタイル未適用バグ解消）
+
+### Changed
+
+- **表示を 3 値 → 4 値に拡張**: `首 0.0s · 現在 X tok/s · 平均 X tok/s · 最大 X tok/s`
+- **更新周期を 250ms → 500ms に変更**
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **825 件 PASS**（v0.30.0 の 822 件 + 新規 3 件） |
+| 影響範囲 | `src/features/token-rate/` / `styles.css` / `tests/features/token-rate/` |
+
 ## [0.30.0] - 2026-08-30 — トークン速度（tok/s）表示 (F027)
 
 ### Added
