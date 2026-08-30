@@ -4,6 +4,7 @@
  * 抽出と同時に重複防止マーク（data-cb-tts-read）を付与する。
  */
 import type { SpeechFilterOptions } from '../../core/settings';
+import { isCompletionReport, buildReportScript } from './report-script';
 
 export type AutoReadScope = 'header' | 'full';
 
@@ -210,7 +211,7 @@ function extractTextBlocks(source: Element, excludeSel: string): string {
 export function extractReportText(
   messagesEl: Element,
   scope: AutoReadScope,
-  opts?: { excludeCallouts?: boolean; filter?: SpeechFilterOptions },
+  opts?: { excludeCallouts?: boolean; filter?: SpeechFilterOptions; reportScript?: boolean },
 ): string | null {
   const filter: SpeechFilterOptions = opts?.filter ?? {
     emoji: true, kaomoji: true, ascii_emoticon: true, emoji_shortcode: true,
@@ -231,6 +232,11 @@ export function extractReportText(
     if (last.hasAttribute(AUTO_READ_MARK)) return null;
     last.setAttribute(AUTO_READ_MARK, '1');
     const source = last.querySelector('.claudian-message-content') ?? last;
+    // v0.28.0 (F026): 完了報告は読上げ用スクリプトに整形（失敗時は従来の全文へフォールバック）
+    if (opts?.reportScript && isCompletionReport(source)) {
+      const script = buildReportScript(source, speechExclude);
+      if (script !== null && script !== '') return script;
+    }
     const text = extractTextBlocks(source, speechExclude);
     return text === '' ? null : text;
   }

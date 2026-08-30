@@ -5,6 +5,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { isCompletionReport, buildReportScript } from '../../../src/features/tts/report-script';
+import { extractReportText } from '../../../src/features/tts/extract-report';
 
 /**
  * 報告 1 件分の DOM を組み立てるヘルパー。
@@ -84,5 +85,46 @@ describe('buildReportScript', () => {
     const root = document.createElement('div');
     root.innerHTML = '<h2>✅ 完了 · タスク · 2026-08-30 · 🟢 S</h2><p>本文のみ。</p>';
     expect(buildReportScript(root, '')).toBe(null);
+  });
+});
+
+/** extractReportText へ渡す .claudian-messages 相当のラッパ */
+function makeMessages(report: HTMLElement): Element {
+  const messages = document.createElement('div');
+  const assistant = document.createElement('div');
+  assistant.className = 'claudian-message-assistant';
+  const content = document.createElement('div');
+  content.className = 'claudian-message-content';
+  const block = document.createElement('div');
+  block.className = 'claudian-text-block';
+  while (report.firstChild) block.appendChild(report.firstChild);
+  content.appendChild(block);
+  assistant.appendChild(content);
+  messages.appendChild(assistant);
+  return messages;
+}
+
+describe('extractReportText reportScript オプション', () => {
+  it('reportScript: true + 完了報告 → スクリプトを返す', () => {
+    const messages = makeMessages(makeReport());
+    const text = extractReportText(messages, 'full', { reportScript: true });
+    expect(text).toContain('タスク完了です。');
+    expect(text).toContain('結論。');
+  });
+
+  it('reportScript: false → 従来どおり全文を返す', () => {
+    const messages = makeMessages(makeReport());
+    const text = extractReportText(messages, 'full', { reportScript: false });
+    expect(text).toContain('成果物');
+    expect(text).not.toContain('タスク完了です。');
+  });
+
+  it('完了報告でない通常回答は reportScript: true でも全文を返す', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<h3>🎯 結論</h3><p>普通の回答です。</p>';
+    const messages = makeMessages(root);
+    const text = extractReportText(messages, 'full', { reportScript: true });
+    expect(text).toContain('普通の回答です。');
+    expect(text).not.toContain('タスク完了です。');
   });
 });
