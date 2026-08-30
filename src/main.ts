@@ -14,6 +14,7 @@ import { setupMessageMdSaveButtons } from './features/memory/message-md-save-but
 import { polishInstruction } from './features/llm/claude-cli';
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
 import { setupQuickReplyButtons } from './features/quick-reply/nav-buttons';
+import { setupTokenRate } from './features/token-rate';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { initEdgeTtsLocal } from './features/tts/edge-tts-local';
 import { migrateFromLegacy } from './legacy/migration';
@@ -43,6 +44,7 @@ diag('module loaded', { importDone: true });
 export default class ClaudianBridgePlugin extends Plugin {
   private store!: ConfigStore;
   private quotaHandle: Awaited<ReturnType<typeof registerClaudeQuota>> = null;
+  private offTokenRate: (() => void) | null = null;
 
   /** Convenience accessor for views that want a settings snapshot. */
   get cbSettings(): import('./core/settings').ClaudianBridgeSettings {
@@ -224,6 +226,10 @@ export default class ClaudianBridgePlugin extends Plugin {
       this.register(setupQuickReplyButtons(this.app));
       diag('quick-reply buttons registered');
 
+      // ★ v0.30.0: トークン速度表示（入力画面下のライブ表示）
+      this.offTokenRate = setupTokenRate(this.app, this.store);
+      diag('token-rate wired');
+
       // ★ v0.14.0: メッセージ結果欄の読上げボタン（コピーボタン左隣）
       this.register(setupMessageReadButtons({
         app: this.app,
@@ -357,6 +363,7 @@ export default class ClaudianBridgePlugin extends Plugin {
         await unregisterClaudeQuota();
         this.quotaHandle = null;
       }
+      this.offTokenRate?.();
       this.store.close();
       console.log('[claudian-bridge] unloaded');
       diag('onunload COMPLETE');

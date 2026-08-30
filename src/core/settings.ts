@@ -473,6 +473,8 @@ export interface ClaudianBridgeSettings {
     quickReplyShowAllOptions: boolean;
     // === v0.25.0: クイック返信ボタン全体の ON/OFF ===
     quickReplyEnabled: boolean;
+    // === v0.30.0: トークン速度表示 ===
+    tokenRateEnabled: boolean;
   };
   quota: QuotaSettings;
   selection: {
@@ -525,7 +527,7 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
@@ -616,6 +618,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       quickReplyShowAllOptions: typeof r.general?.quickReplyShowAllOptions === 'boolean' ? r.general.quickReplyShowAllOptions : false,
       // v0.25.0: クイック返信ボタン全体の ON/OFF（既定 ON）
       quickReplyEnabled: typeof r.general?.quickReplyEnabled === 'boolean' ? r.general.quickReplyEnabled : true,
+      // v0.30.0: トークン速度表示
+      tokenRateEnabled: typeof r.general?.tokenRateEnabled === 'boolean' ? r.general.tokenRateEnabled : false,
     },
     quota: {
       claudeSettingsPath: typeof r.quota?.claudeSettingsPath === 'string' && r.quota.claudeSettingsPath.trim() !== ''
@@ -896,6 +900,7 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.general.backupAutoClose !== 'boolean') return 'general.backupAutoClose は boolean である必要があります';
   if (typeof cfg.general.quickReplyShowAllOptions !== 'boolean') return 'general.quickReplyShowAllOptions は boolean である必要があります';
   if (typeof cfg.general.quickReplyEnabled !== 'boolean') return 'general.quickReplyEnabled は boolean である必要があります';
+  if (typeof cfg.general.tokenRateEnabled !== 'boolean') return 'general.tokenRateEnabled は boolean である必要があります';
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';
