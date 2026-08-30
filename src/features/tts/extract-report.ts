@@ -108,10 +108,10 @@ function buildHeaderSpeechExclude(filter: SpeechFilterOptions): string {
 }
 
 /** 見出し要素（markdown 見出し） */
-const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+export const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
 
 /** ヘッダースコープの「結果全体まとめ」マーカー（✅・📢 で始まる） */
-function isSummaryMarker(text: string): boolean {
+export function isSummaryMarker(text: string): boolean {
   const t = text.trim();
   return t.startsWith('📢') || t.startsWith('✅');
 }
