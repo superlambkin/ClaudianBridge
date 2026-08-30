@@ -16,6 +16,9 @@ describe('createTokenRateCounter', () => {
     const s = c.getState();
     expect(s.startTime).toBeNull();
     expect(s.rate).toBe(0);
+    expect(s.avgRate).toBe(0);
+    expect(s.maxRate).toBe(0);
+    expect(s.ttftMs).toBeNull();
     expect(s.isStreaming).toBe(false);
     c.destroy();
   });
@@ -29,7 +32,7 @@ describe('createTokenRateCounter', () => {
   });
 
   it('DOM テキスト追加で currentChars が増える', async () => {
-    const c = createTokenRateCounter(container);
+    const c = createTokenRateCounter(container, { intervalMs: 250 });
     c.start();
     const target = document.createElement('div');
     target.className = 'claudian-message';
@@ -61,6 +64,40 @@ describe('createTokenRateCounter', () => {
     const c = createTokenRateCounter(container);
     c.start();
     expect(Number.isNaN(c.getState().rate)).toBe(false);
+    expect(Number.isNaN(c.getState().avgRate)).toBe(false);
+    expect(Number.isNaN(c.getState().maxRate)).toBe(false);
+    c.destroy();
+  });
+
+  it('速度計算: 平均・最大・TTFT も更新され、DOM に 4 値が描画される', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    // ユーザーメッセージ送信 → TTFT サイクル開始
+    const user = document.createElement('div');
+    user.className = 'claudian-message-user';
+    user.textContent = 'hello';
+    document.body.appendChild(user);
+    vi.advanceTimersByTime(250);
+    // アシスタントの最初のトークン到着
+    const asst = document.createElement('div');
+    asst.className = 'claudian-message-assistant';
+    asst.setAttribute('data-role', 'assistant');
+    document.body.appendChild(asst);
+    asst.textContent = 'A'.repeat(60);
+    vi.advanceTimersByTime(250);
+    const s = c.getState();
+    expect(s.rate).toBeGreaterThan(70);
+    expect(s.avgRate).toBeGreaterThan(0);
+    expect(s.maxRate).toBeGreaterThan(70);
+    expect(s.ttftMs).toBeGreaterThan(0);
+    const msg = container.querySelector('.cb-token-rate')!.textContent ?? '';
+    expect(msg).toContain('首');
+    expect(msg).toContain('現在');
+    expect(msg).toContain('平均');
+    expect(msg).toContain('最大');
+    expect(msg).toContain('tok/s');
+    vi.useRealTimers();
     c.destroy();
   });
 
@@ -81,5 +118,14 @@ describe('createTokenRateCounter', () => {
     expect(container.querySelector('.cb-token-rate')).not.toBeNull();
     c.destroy();
     expect(container.querySelector('.cb-token-rate')).toBeNull();
+  });
+
+  it('insertBefore 指定で指定要素の直前に挿入される', () => {
+    const anchor = document.createElement('div');
+    anchor.className = 'yolo';
+    container.appendChild(anchor);
+    const c = createTokenRateCounter(container, { insertBefore: anchor });
+    expect(anchor.previousElementSibling?.classList.contains('cb-token-rate')).toBe(true);
+    c.destroy();
   });
 });

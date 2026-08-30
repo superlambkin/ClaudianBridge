@@ -490,3 +490,51 @@
   border: none;
   padding: 4px 0;
 }
+
+/* v0.30.0: トークン速度（tok/s）表示 */
+.cb-token-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;   /* 右寄せ */
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: opacity 500ms ease-out;
+}
+.cb-token-rate-value,
+.cb-token-rate-avg,
+.cb-token-rate-max,
+.cb-token-rate-ttft {
+  font-variant-numeric: tabular-nums;
+}
+.cb-token-rate-avg,
+.cb-token-rate-max,
+.cb-token-rate-ttft {
+  opacity: 0.75;
+}
+.cb-token-rate-unit,
+.cb-token-rate-label {
+  opacity: 0.6;
+}
+.cb-token-rate-sep {
+  opacity: 0.4;
+}
+.cb-token-rate.is-streaming .cb-token-rate-dot {
+  background: var(--color-accent);
+  animation: cb-token-rate-pulse 1s ease-in-out infinite;
+}
+.cb-token-rate.is-fading {
+  opacity: 0;
+}
+.cb-token-rate-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+@keyframes cb-token-rate-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
