@@ -409,16 +409,23 @@ setupRecommendDetection(app, (state: RecommendState) => { ... });
 | 3 | ツールバー: 0 件 → ✅❌のみ / 3 件 → 3 ボタン表示 | `toolbar-buttons.test.ts` |
 | 4 | 状態変化（選択肢あり→なし）でボタンが再描画される | 同上 |
 
-### 10.7 配置（nav-actions 内 NewTab の左隣）— v0.29.0 更新
+### 10.7 配置（nav-actions 内 NewTab の左隣）— v0.29.0 更新 / v0.29.1 SVG アイコン化
 
 `.claudian-input-nav-actions` 内に配置された **NewTab ボタンの左隣** にクイック返信ボタンを挿入する。
 `.claudian-input-toolbar`（既存ツールバー）とは別コンテナで、残量インジケータと同じ「NewTab 左隣」パターン。
+
+**v0.29.1**: 絵文字 textContent を **SVG アイコン** に置換し、NewTab（`.clickable-icon`）と同型・同サイズに揃えた。
 
 ```html
 <div class="claudian-input-nav-actions">      <!-- flex row -->
   <div class="cb-quota-indicator">...</div>   <!-- 既存残量インジケータ -->
   <div class="cb-quickreply-row">             <!-- インライン化（v0.29.0） -->
-    <span class="cb-quickreply-group">✅ ❌ 1️⃣2️⃣3️⃣</span>
+    <span class="cb-quickreply-group">         <!-- v0.29.1: SVG アイコン -->
+      <button class="cb-quickreply-btn"><svg class="lucide-check"/></button>
+      <button class="cb-quickreply-btn"><svg class="lucide-x"/></button>
+      <button class="cb-quickreply-btn"><svg><circle/><text>1</text></svg></button>
+      ...
+    </span>
   </div>
   <button class="claudian-new-tab-btn"></button>
 </div>
@@ -427,13 +434,29 @@ setupRecommendDetection(app, (state: RecommendState) => { ... });
 </div>
 ```
 
-CSS（v0.29.0）:
+CSS（v0.29.1）:
 
 ```css
 .cb-quickreply-row {
   display: inline-flex;      /* インライン化（NewTab と横並び） */
   align-items: center;
-  gap: 2px;
+  gap: 1px;                  /* v0.29.1: 2px → 1px */
+  margin-right: 6px;         /* v0.29.1: NewTab との間隔 */
+}
+.cb-quickreply-btn {         /* v0.29.1: NewTab と同型（20x20 + 灰色枠）*/
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  color: var(--icon-color);
+}
+.cb-quickreply-btn:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+}
+.cb-quickreply-btn svg {
+  width: 12px;
+  height: 12px;
 }
 ```
 
@@ -443,6 +466,11 @@ CSS（v0.29.0）:
 - 新定数: `NEWTAB_SELECTOR` (`.claudian-new-tab-btn, [aria-label="New tab"]`)
 - `inject`: `nav.insertBefore(row, newTab)` — NewTab 不在時は非注入
 - `cleanup` は `[data-cb-quickreply-row]` も削除対象に含める（変更なし）
+
+実装（v0.29.1）:
+- `import { setIcon } from 'obsidian'` を追加
+- OK/NG: `setIcon(btn, 'check' | 'x')` で Lucide SVG を挿入
+- 方案1〜5: `createNumberedBadge(n)` ヘルパーで `<svg><circle/><text>N</text></svg>` を生成
 - 関連: `02_設計文書/2026-08-30-quick-reply-nav-actions-design.md`
 
 ---

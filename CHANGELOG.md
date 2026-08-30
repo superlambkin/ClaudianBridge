@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.29.1] - 2026-08-30 — クイック返信ボタンを SVG アイコン化（NewTab と同スタイル）
+
+### Changed
+
+- **クイック返信ボタンを SVG アイコンに置換**: 絵文字 textContent（✅❌1️⃣〜5️⃣）を NewTab（`.clickable-icon`）と同型の SVG アイコンに変更
+  - OK = Lucide `check` / NG = Lucide `x`（`obsidian.setIcon` API 使用）
+  - 方案1〜5 = カスタム SVG（`<circle>` + `<text>` 数字バッジ）
+- **スタイル調整**: ボタンサイズ 20x20、アイコン 12x12、灰色枠（`--background-modifier-border`）、透明背景、ホバーで `--background-modifier-hover`
+- **間隔調整**: ボタン間ギャップ 2px → 1px、NewTab との間隔 6px（`margin-right`）
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **812 件 PASS**（v0.29.0 の 811 件 + 新規 1 件「SVG 存在 + 直接テキストノード無し」）|
+| 影響範囲 | `src/features/quick-reply/nav-buttons.ts`（SVG 生成）/ `src/styles.css`（`.cb-quickreply-btn` 全面書き換え）/ `tests/features/quick-reply/nav-buttons.test.ts`（13 件）|
+
 ## [0.29.0] - 2026-08-30 — クイック返信ボタンの配置を NewTab 左隣へ移動
 
 ### Changed
