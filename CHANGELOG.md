@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.30.0] - 2026-08-30 — トークン速度（tok/s）表示 (F027)
+
+### Added
+
+- **トークン速度のライブ表示**: LLM 応答のトークン生成速度（tok/s）を Claudian 入力画面下部にライブ表示
+  - `.claudian-input-container` 内のレスポンスエリア（`.claudian-messages`）直後に挿入
+  - MutationObserver で応答 DOM のテキスト長を追跡、250ms ごとに `chars / 3 / 0.25s` で tok/s 算出
+  - ストリーミング中は `12.3 tok/s ●` のライブ更新、終了後 3 秒でフェードアウト
+  - 設定 `general.tokenRateEnabled`（既定 OFF）で明示オプトイン
+  - トークン推定: 文字数 / 3（混合 CJK/English のヒューリスティック）
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **822 件 PASS**（v0.29.1 の 812 件 + 新規 10 件） |
+| 影響範囲 | `src/features/token-rate/`（新規 3 ファイル）/ `src/core/settings.ts` / `src/core/i18n.ts` / `src/settings/SettingTabGeneral.ts` / `src/main.ts` |
+
 ## [0.29.1] - 2026-08-30 — クイック返信ボタンを SVG アイコン化（NewTab と同スタイル）
 
 ### Changed
