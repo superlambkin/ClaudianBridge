@@ -1,0 +1,27 @@
+.cb-token-rate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--background-modifier-border);
+  transition: opacity 500ms ease-out;
+}
+.cb-token-rate.is-streaming .cb-token-rate-dot {
+  background: var(--color-accent);
+  animation: cb-token-rate-pulse 1s ease-in-out infinite;
+}
+.cb-token-rate.is-fading {
+  opacity: 0;
+}
+.cb-token-rate-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+@keyframes cb-token-rate-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
