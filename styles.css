@@ -422,12 +422,12 @@
 .cb-setting-hint { color: var(--text-muted); font-size: 0.85em; }
 
 /* v0.23.0: クイック返信ボタン */
+/* v0.29.0: ツールバー先頭行 → nav-actions NewTab 左隣へ移動。
+   インライン化で NewTab と横並びにする。 */
 .cb-quickreply-row {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
+  display: inline-flex;      /* インライン化（NewTab と横並び） */
   align-items: center;
-  gap: 4px;
+  gap: 2px;                  /* コンパクト化 */
 }
 .cb-quickreply-group {
   display: inline-flex;
