@@ -17,7 +17,7 @@ applied_rules_version: 2.15.0
 ---
 
 > 📂 **パス**: `80_POC_Projects/POC_017_ClaudianBridge/README.md`
-> 📍 **ソース**: `D:\AI-Agent\ClaudianBridge\`（git main · v0.27.2）
+> 📍 **ソース**: `D:\AI-Agent\ClaudianBridge\`（git main · v0.27.3）
 
 # 🎙️ POC_017 Claudian Bridge
 
@@ -27,14 +27,14 @@ applied_rules_version: 2.15.0
 
 | 項目 | 内容 |
 |------|------|
-| **現在バージョン** | **v0.27.2**（2026-08-30 リリース） |
+| **現在バージョン** | **v0.27.3**（2026-08-30 リリース） |
 | **統合元** | Claudian Selection Bridge, 拡張子WhiteList, Vault Office Bridge, Chroma Inspector, claude-tts-settings |
-| **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.27.2） |
+| **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.27.3） |
 | **設定画面** | 8タブ（一般 / テキスト挿入 / テキスト読み上げ / ファイル変換 / 拡張子フィルタ / 残量検知 / Chroma / Memory） |
 | **データ移行** | 初回起動時に旧 data.json を自動取り込み（リセット可能） |
 | **旧プラグイン無効化** | 初回起動時に一括（community-plugins.json 除外 + `_disabled__` リネーム） |
 | **旧プラグイン削除** | P5 で不在確認済み（完全削除） |
-| **テスト実績** | **788 passed / 1 skipped**（vitest ・ 74 ファイル・v0.27.2 時点） |
+| **テスト実績** | **790 passed / 1 skipped**（vitest ・ 74 ファイル・v0.27.3 時点） |
 | **POC 状態** | **P5 完了**（全サブプロジェクト ✅） |
 
 ---
