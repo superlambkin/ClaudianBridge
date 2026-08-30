@@ -13,3 +13,6 @@ data.json
 
 # SDD scratch (ledger, briefs, review packages)
 .superpowers/
+
+# local POC dev directory (untracked gitlink side effect; kept out of index)
+MyPOC*

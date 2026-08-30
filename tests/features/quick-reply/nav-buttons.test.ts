@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // POC_017 / ClaudianBridge v0.29.0
-// Design: docs/superpowers/specs/2026-08-30-quick-reply-nav-actions-design.md
+// Design: 80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-08-30-quick-reply-nav-actions-design.md
 // RED: this test imports from src/features/quick-reply/nav-buttons which does not exist yet.
 // It will be created by Task 2. Tests are expected to FAIL with "Cannot find module".
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
