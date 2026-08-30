@@ -513,6 +513,8 @@ export interface ClaudianBridgeSettings {
     addToTtsLanguageMode?: TtsLanguageMode;
     /** v0.27.0: 言語モード — AI 自動読上げ系（任意: normalize で補填される） */
     autoReadLanguageMode?: TtsLanguageMode;
+    /** v0.28.0 (F026): 完了報告を読上げ用スクリプトに整形（既定 ON） */
+    autoReadReportScript?: boolean;
     /** v0.27.0: クラウド EdgeTTS プロキシ設定（任意: normalize で補填される） */
     edgeCloud?: TtsEdgeCloudSettings;
   };
@@ -566,6 +568,8 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     // v0.27.0: 言語モード既定 + クラウド EdgeTTS プロキシ設定
     addToTtsLanguageMode: 'auto' as TtsLanguageMode,
     autoReadLanguageMode: 'auto' as TtsLanguageMode,
+    // v0.28.0 (F026): 完了報告の読上げ用スクリプト整形（既定 ON）
+    autoReadReportScript: true,
     edgeCloud: { ...DEFAULT_TTS_EDGE_CLOUD },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
@@ -768,6 +772,7 @@ export function normalizeTtsSettings(raw: unknown): {
   speechFilter: TtsSpeechFilters;
   addToTtsLanguageMode: TtsLanguageMode;
   autoReadLanguageMode: TtsLanguageMode;
+  autoReadReportScript: boolean;
   edgeCloud: TtsEdgeCloudSettings;
 } {
   const r = (raw ?? {}) as Partial<{
@@ -784,6 +789,7 @@ export function normalizeTtsSettings(raw: unknown): {
     speechFilter: TtsSpeechFilters;
     addToTtsLanguageMode: unknown;
     autoReadLanguageMode: unknown;
+    autoReadReportScript: boolean;
     edgeCloud: Partial<TtsEdgeCloudSettings>;
   }>;
   // v0.27.0: 言語モードの正規化
@@ -820,6 +826,8 @@ export function normalizeTtsSettings(raw: unknown): {
     },
     addToTtsLanguageMode,
     autoReadLanguageMode,
+    // v0.28.0 (F026): 完了報告の読上げ用スクリプト整形（未設定 / boolean 以外は既定 true）
+    autoReadReportScript: typeof r.autoReadReportScript === 'boolean' ? r.autoReadReportScript : true,
     edgeCloud,
   };
 }
