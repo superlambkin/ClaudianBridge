@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.29.0] - 2026-08-30 — クイック返信ボタンの配置を NewTab 左隣へ移動
+
+### Changed
+
+- **クイック返信ボタンの配置変更**: `.claudian-input-toolbar` の先頭全幅行から `.claudian-input-nav-actions` 内 **NewTab ボタンの左隣**へ完全移動（v0.23.0 以来の初期配置を撤廃）
+  - NewTab / nav-actions 不在時は非注入（残量インジケータと同じ防御パターン）
+  - 設定トグルなし（完全移行・破壊的変更だが機能損失なし）
+  - `toolbar-buttons.ts` → `nav-buttons.ts` へリネーム + セレクタ変更
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **811 件 PASS**（v0.28.0 の 807 件 + 新規 4 件） |
+| 影響範囲 | `src/features/quick-reply/nav-buttons.ts`（リネーム）/ `src/styles.css`（`.cb-quickreply-row` インライン化） / `src/main.ts`（import パス） |
+
 ## [0.28.0] - 2026-08-30 — 完了報告の読上げ用スクリプト整形（F026）
 
 ### Added
