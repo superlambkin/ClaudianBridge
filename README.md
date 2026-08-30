@@ -1,7 +1,7 @@
 ---
 title: "POC_017 Claudian Bridge プロジェクト README"
 type: project-readme
-version: 1.14.0
+version: 1.15.0
 status: ✅ 完成（P5 完了）
 created: 2026-08-10
 modified: 2026-08-30
@@ -27,14 +27,14 @@ applied_rules_version: 2.15.0
 
 | 項目 | 内容 |
 |------|------|
-| **現在バージョン** | **v0.30.1**（2026-08-31 リリース） |
+| **現在バージョン** | **v0.30.2**（2026-08-31 リリース） |
 | **統合元** | Claudian Selection Bridge, 拡張子WhiteList, Vault Office Bridge, Chroma Inspector, claude-tts-settings |
 | **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.28.0） |
 | **設定画面** | 8タブ（一般 / テキスト挿入 / テキスト読み上げ / ファイル変換 / 拡張子フィルタ / 残量検知 / Chroma / Memory） |
 | **データ移行** | 初回起動時に旧 data.json を自動取り込み（リセット可能） |
 | **旧プラグイン無効化** | 初回起動時に一括（community-plugins.json 除外 + `_disabled__` リネーム） |
 | **旧プラグイン削除** | P5 で不在確認済み（完全削除） |
-| **テスト実績** | **825 passed / 1 skipped**（vitest ・ 77 ファイル・v0.30.1 時点） |
+| **テスト実績** | **830 passed / 1 skipped**（vitest ・ 77 ファイル・v0.30.2 時点） |
 | **POC 状態** | **P5 完了**（全サブプロジェクト ✅） |
 
 ---
@@ -178,6 +178,7 @@ applied_rules_version: 2.15.0
 | v1.6.0 | 2026-08-18 | **v0.22.0 実態へ更新**：F015-F020 追加（TTS 仕様統一 / EdgeTTS 上限 / 最終回答ゲート / Chroma-fs / Backup / アンダースコア非表示）・テスト 740 件反映・Quick Reply（v0.23.0 予定）モジュール追記・POC_016 リンク修正 | MiuMiu 🐾 |
 | v1.7.0 | 2026-08-18 | **v0.24.0 反映**：F021（方案ボタン常時表示設定）+ テスト 742 件・quick-reply モジュール v0.23.0 実装済み | MiuMiu 🐾 |
 | v1.12.0 | 2026-08-30 | **v0.29.1 反映**：クイック返信ボタンを SVG アイコン化（NewTab と同スタイル）・テスト 811 → 812 件 | MiuMiu 🐾 |
+| v1.15.0 | 2026-08-31 | **v0.30.2 反映**：完了報告（次のアクション）の推奨検出強化（👑N / 数字（1/2/3）認識）・テスト 825 → 830 件 | MiuMiu 🐾 |
 | v1.14.0 | 2026-08-31 | **v0.30.1 反映**：トークン速度表示の実機調整（YOLO 左・4 値化・TTFT 実測・0.5s 周期）・テスト 822 → 825 件 | MiuMiu 🐾 |
 | v1.13.0 | 2026-08-30 | **v0.30.0 反映**：トークン速度（tok/s）表示を追加 (F027)・テスト 812 → 822 件 | MiuMiu 🐾 |
 | v1.11.0 | 2026-08-30 | **v0.29.0 反映**：クイック返信ボタン配置を nav-actions NewTab 左隣へ移動・テスト 807 → 811 件 | MiuMiu 🐾 |
@@ -191,4 +192,4 @@ applied_rules_version: 2.15.0
 
 ---
 
-*📚 POC_017 Claudian Bridge README v1.14.0 · v0.30.1 · MiuMiu 🐾*
+*📚 POC_017 Claudian Bridge README v1.15.0 · v0.30.2 · MiuMiu 🐾*

@@ -66,6 +66,13 @@ describe('extractRecommendedOption', () => {
   it('ja: 「案10」→ null（桁境界）', () => {
     expect(extractRecommendedOption('案10')).toBeNull();
   });
+  // === v0.30.2: 完了報告（次のアクション提案）の 👑 推奨マーカー ===
+  it('完了報告: 「👑1」→ 1（推奨マーカー）', () => {
+    expect(extractRecommendedOption('| 👑1 | 感想文を書く | 🔴 P0 | |')).toBe(1);
+  });
+  it('完了報告: 「推奨は案2」があれば 方案 優先 → 2', () => {
+    expect(extractRecommendedOption('推奨は案2です。| 👑3 | 別案 |')).toBe(2);
+  });
 });
 
 function makeAppWithMessages(messagesEl: HTMLElement | null | (() => HTMLElement | null)) {
@@ -212,6 +219,18 @@ describe('extractMaxOptionCount', () => {
   });
   it('範囲表記: 案1〜4 → 4', () => {
     expect(extractMaxOptionCount('案1〜4 を比較した結果')).toBe(4);
+  });
+  // === v0.30.2: 完了報告（次のアクション提案）の選択肢検出 ===
+  it('完了報告: 「👑1」「数字（1/2/3）」→ 3', () => {
+    expect(extractMaxOptionCount(
+      '| 👑1 | 感想文 | 🔴 P0 |\n| 2 | 志望動機 | 🟡 P1 |\n| 3 | 添削 | 🟡 P1 |\n数字（1/2/3）でご指示ください。'
+    )).toBe(3);
+  });
+  it('完了報告: 👑 マーカーなし・数字（1/2）→ 2', () => {
+    expect(extractMaxOptionCount('数字（1/2）でご指示ください。')).toBe(2);
+  });
+  it('完了報告: 数字プロンプトなし → 0（他表の番号は誤検出しない）', () => {
+    expect(extractMaxOptionCount('| 1 | 検証 | ✅ |\n| 2 | 検証 | ✅ |')).toBe(0);
   });
 });
 
