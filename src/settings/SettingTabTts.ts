@@ -625,6 +625,15 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
           store.save({ ...latest, tts: { ...latest.tts, excludeCallouts: v } });
           draw();
         }));
+
+      new Setting(arBox)
+        .setName(s.ttsReportScript)
+        .setDesc(s.ttsReportScriptDesc)
+        .addToggle((t) => t.setValue(cfg.tts.autoReadReportScript ?? true).onChange((v) => {
+          const latest = store.load();
+          store.save({ ...latest, tts: { ...latest.tts, autoReadReportScript: v } });
+          draw();
+        }));
     }
 
     // 5. 削除注意文（旧 minimax 設定について）

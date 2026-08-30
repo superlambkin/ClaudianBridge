@@ -116,6 +116,8 @@ export interface LocaleStrings {
   // v0.15.0: コールアウト除外
   ttsExcludeCallouts: string;
   ttsExcludeCalloutsDesc: string;
+  ttsReportScript: string;
+  ttsReportScriptDesc: string;
   // v0.12.0: ツールバーボタン
   ttsMuteBtnIdle: string;
   ttsMuteBtnPlaying: string;
@@ -426,6 +428,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsAutoReadScopeFull: '📄 メッセージ全文',
     ttsExcludeCallouts: 'コールアウトを読み上げ対象から除外',
     ttsExcludeCalloutsDesc: '「> [!type]」形式のコールアウト（成功・注意等）を読み上げません',
+    ttsReportScript: '完了報告を読み上げ用スクリプトに整形',
+    ttsReportScriptDesc: '✅ 完了報告の自動読上げ時に、報告ヘッダー・結論・次のアクション提案のサマリーのみを読み上げます（成果物・検証結果・参照文献は読み上げません）',
     ttsMuteBtnIdle: '🔊 ミュート',
     ttsMuteBtnPlaying: '⏹ ミュート',
     ttsMuteBtnMuted: '🔇 ミュート',
@@ -728,6 +732,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsAutoReadScopeFull: '📄 Full message',
     ttsExcludeCallouts: 'Exclude callouts from reading',
     ttsExcludeCalloutsDesc: 'Skip "> [!type]" callouts (success, note, etc.) when reading',
+    ttsReportScript: 'Shape completion reports into a speech script',
+    ttsReportScriptDesc: 'When auto-reading a ✅ completion report, read only the header, conclusion, and next-action summaries (deliverables, verification, and references are skipped)',
     ttsMuteBtnIdle: '🔊 Mute',
     ttsMuteBtnPlaying: '⏹ Mute',
     ttsMuteBtnMuted: '🔇 Mute',
@@ -1025,6 +1031,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsAutoReadScopeFull: '📄 全文',
     ttsExcludeCallouts: '朗读时排除 Callout',
     ttsExcludeCalloutsDesc: '不朗读「> [!type]」形式的 Callout（成功、注意等）',
+    ttsReportScript: '将任务完成报告整形为朗读脚本',
+    ttsReportScriptDesc: '自动朗读 ✅ 完成报告时，仅朗读报告头部、结论与下一步建议的摘要（成果物、验证结果与参考文献不朗读）',
     ttsMuteBtnIdle: '🔊 静音',
     ttsMuteBtnPlaying: '⏹ 静音',
     ttsMuteBtnMuted: '🔇 静音',
