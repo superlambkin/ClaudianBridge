@@ -4,6 +4,7 @@ import { spawn, execFileSync } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import type { TtsSettings } from './core';
 import { pickLang } from './lang';
+import type { TtsLang } from './lang';
 import { playObjectUrl } from './plachta-tts';
 import { registerPlayback } from './playback-registry';
 
@@ -179,12 +180,13 @@ export function localEdgeTtsSpeak(
   text: string,
   settings: TtsSettings,
   noticeFn: (m: string) => void,
+  lang?: TtsLang,
 ): Promise<boolean> {
   return new Promise((resolve) => {
     // v0.27.0: 言語モードを pickLang に渡す
-    const langMode = settings.addToTtsLanguageMode ?? 'auto';
-    const lang = pickLang(text, langMode);
-    const voice = resolveEdgeVoiceFull(settings.voices.edge[lang], lang);
+    // v0.27.1: lang 明示時はそれを優先（チャンク分割時に全文判定結果を統一適用）
+    const resolvedLang = lang ?? pickLang(text, settings.addToTtsLanguageMode ?? 'auto');
+    const voice = resolveEdgeVoiceFull(settings.voices.edge[resolvedLang], resolvedLang);
     const configured = (settings.edgeTtsModulePath ?? '').trim();
     const modulePath = resolveEdgeTtsModulePath(configured);
 

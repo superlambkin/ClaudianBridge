@@ -67,14 +67,30 @@ export const SAMPLE_TEXT: Record<'zh' | 'ja' | 'en', string> = {
  * 旧 claudettsHttpSpeak（POC_015 依存・固定パス spawn 実装）は完全削除。
  * ~/.claude/skills/claude-tts/scripts/commands.py ハードコード呼び出しも撤廃。
  */
-export async function edgeCloudHttpSpeak(text: string, settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
+/**
+ * v0.27.0: クラウド EdgeTTS（HTTPS POST プロキシ方式）。
+ * settings.edgeCloud.serverUrl へ POST。body は { text, voice, lang } 標準プロトコル。
+ * レスポンスは audio/mpeg (or audio/wav) の Blob を想定し、playObjectUrl で再生。
+ *
+ * 旧 claudettsHttpSpeak（POC_015 依存・固定パス spawn 実装）は完全削除。
+ * ~/.claude/skills/claude-tts/scripts/commands.py ハードコード呼び出しも撤廃。
+ *
+ * v0.27.1: lang を明示渡しできる（チャンク分割時に全文判定結果を全チャンクへ統一適用）。
+ * 未指定時は従来どおり text から auto 判定する。
+ */
+export async function edgeCloudHttpSpeak(
+  text: string,
+  settings: TtsSettings,
+  noticeFn: NoticeFn,
+  lang?: TtsLang,
+): Promise<boolean> {
   const cloud = settings.edgeCloud;
   if (!cloud?.serverUrl) {
     noticeFn('⚠️ クラウドサーバ URL 未設定。設定タブで edgeCloud.serverUrl を入力してください');
     return false;
   }
 
-  const lang = pickLang(text, settings.addToTtsLanguageMode ?? 'auto');
+  const resolvedLang = lang ?? pickLang(text, settings.addToTtsLanguageMode ?? 'auto');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (cloud.authToken) headers['Authorization'] = `Bearer ${cloud.authToken}`;
 
@@ -87,8 +103,8 @@ export async function edgeCloudHttpSpeak(text: string, settings: TtsSettings, no
       headers,
       body: JSON.stringify({
         text,
-        voice: settings.voices.edge[lang],
-        lang,
+        voice: settings.voices.edge[resolvedLang],
+        lang: resolvedLang,
       }),
       signal: ctrl.signal,
     });
@@ -115,9 +131,20 @@ export async function edgeCloudHttpSpeak(text: string, settings: TtsSettings, no
 // v0.27.0: pickLang(text, mode) も共用（edgeCloudHttpSpeak / localEdgeTtsSpeak）。
 // re-export で既存 import を維持しつつ、webSpeechSpeak 内部でも使うため import も行う。
 import { pickLang, pickWebSpeechLang } from './lang';
+import type { TtsLang } from './lang';
 export { pickLang, pickWebSpeechLang } from './lang';
+export type { TtsLang } from './lang';
 
-export async function webSpeechSpeak(text: string, settings: TtsSettings, noticeFn: NoticeFn): Promise<boolean> {
+/**
+ * v0.27.1: lang を明示渡しできる（チャンク分割時に全文判定結果を全チャンクへ統一適用）。
+ * 未指定時は従来どおり text から auto 判定する。
+ */
+export async function webSpeechSpeak(
+  text: string,
+  settings: TtsSettings,
+  noticeFn: NoticeFn,
+  lang?: TtsLang,
+): Promise<boolean> {
   if (typeof window === 'undefined' || !window || !('speechSynthesis' in window)) {
     noticeFn('⚠️ Web SpeechSynthesis API が利用できません');
     return false;
@@ -135,15 +162,15 @@ export async function webSpeechSpeak(text: string, settings: TtsSettings, notice
       onerror?: ((e: unknown) => void) | null;
     };
     // Priority: 選択中エンジンの voices[lang] → matched voice → lang fallback
-    const lang = pickWebSpeechLang(text);
-    const voiceName = settings.voices.webspeech[lang as 'zh' | 'ja' | 'en'];
+    const detected = lang ?? pickWebSpeechLang(text);
+    const voiceName = settings.voices.webspeech[detected];
     if (voiceName) {
       const voices = synth.getVoices();
       const matched = voices.find((v) => v.name === voiceName);
       if (matched) u.voice = matched;
-      else u.lang = lang;
+      else u.lang = detected;
     } else if (!u.voice && !u.lang) {
-      u.lang = lang;
+      u.lang = detected;
     }
     return await new Promise<boolean>((resolve) => {
       let settled = false;
@@ -230,9 +257,12 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   const engineForChunk = settings.engine === 'edge-local' ? 'edge' : settings.engine;
   const engineDefault = engineForChunk === 'edge' ? DEFAULT_EDGE_CHUNK_MAX_CHARS : DEFAULT_CHUNK_MAX_CHARS;
   const limit = settings.chunkMaxChars?.[engineForChunk] ?? engineDefault;
+  // v0.27.1: 言語は分割前の全文で 1 回だけ判定する。
+  // チャンクごとに auto 判定すると、区切り方次第で英語/中国語チャンクが生まれ音声が途中で変わるため。
+  const readLang = pickLang(trimmed, settings.addToTtsLanguageMode ?? 'auto');
   const chunks = limit > 0 && trimmed.length > limit ? chunkText(trimmed, limit) : [trimmed];
   if (chunks.length > 1) {
-    console.log(`[claudian-bridge TTS] chunking: ${trimmed.length} chars → ${chunks.length} chunks (engine: ${settings.engine})`);
+    console.log(`[claudian-bridge TTS] chunking: ${trimmed.length} chars → ${chunks.length} chunks (engine: ${settings.engine}, lang: ${readLang})`);
   }
 
   // v0.10.0 UAT: plachta はパイプライン再生（次チャンクを先行合成してギャップ解消）
@@ -256,12 +286,12 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   showProgress(progressMsg);
   const result = await speakChunks(chunks, async (chunk) => {
     if (settings.engine === 'edge') {
-      return edgeCloudHttpSpeak(chunk, settings, noticeFn);  // v0.27.0: claudettsHttpSpeak → edgeCloudHttpSpeak
+      return edgeCloudHttpSpeak(chunk, settings, noticeFn, readLang);  // v0.27.0: claudettsHttpSpeak → edgeCloudHttpSpeak
     }
     if (settings.engine === 'edge-local') {
-      return localEdgeTtsSpeak(chunk, settings, noticeFn);
+      return localEdgeTtsSpeak(chunk, settings, noticeFn, readLang);
     }
-    return webSpeechSpeak(chunk, settings, noticeFn);
+    return webSpeechSpeak(chunk, settings, noticeFn, readLang);
   });
   showProgress(null);
   // v0.18.x (F1): 後続の外部停止（後勝ち中断）で失敗してもエラー扱いしない

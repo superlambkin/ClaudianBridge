@@ -5,8 +5,11 @@
 
 import type { TtsLanguageMode } from '../../core/settings';
 
+/** v0.27.1: TTS 言語コード型（pickLang / pickWebSpeechLang の戻り値・resolveTtsLang の受け渡しに使用） */
+export type TtsLang = 'zh' | 'ja' | 'en';
+
 /** Detect a likely IETF language code for the given text (best-effort). */
-export function pickWebSpeechLang(text: string): 'zh' | 'ja' | 'en' {
+export function pickWebSpeechLang(text: string): TtsLang {
   const counts = { kana: 0, cjk: 0, latin: 0 };
   for (const ch of text) {
     const cp = ch.codePointAt(0) ?? 0;
@@ -20,7 +23,7 @@ export function pickWebSpeechLang(text: string): 'zh' | 'ja' | 'en' {
 }
 
 /** v0.27.0: 言語モードに応じた言語を解決 */
-export function pickLang(text: string, mode: TtsLanguageMode): 'zh' | 'ja' | 'en' {
+export function pickLang(text: string, mode: TtsLanguageMode): TtsLang {
   if (mode === 'auto') return pickWebSpeechLang(text);
   return mode;
 }
