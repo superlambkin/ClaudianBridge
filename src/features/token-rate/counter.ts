@@ -88,13 +88,15 @@ export function createTokenRateCounter(
   let lastAssistantEl: Element | null = null;
   let lastUserEl: Element | null = null;
   let cycleStartTime: number | null = null;
+  let rateAnchorEl: Element | null = null;
 
-  const getAssistant = (): { el: Element | null; chars: number } => {
+  const getAssistant = (): { el: Element | null; chars: number | null } => {
     let list = document.querySelectorAll('[data-role="assistant"].claudian-message-assistant, [data-role="assistant"]');
     if (list.length === 0) list = document.querySelectorAll('.claudian-message-assistant, .claudian-message');
     const target = list.length ? list[list.length - 1] : null;
     if (target) return { el: target, chars: target.textContent?.length ?? 0 };
-    return { el: null, chars: (document.body.textContent?.length ?? 0) - (el.textContent?.length ?? 0) };
+    // フォールバック（body 全文字数）は廃止: 偽スパイク防止のため null を返す
+    return { el: null, chars: null };
   };
 
   const getLastUserEl = (): Element | null => {
@@ -118,26 +120,39 @@ export function createTokenRateCounter(
       cycleStartTime = now;
     }
     lastAssistantEl = assistantEl;
-    const tokens = chars / opts.charPerToken;
+    const tokens = chars !== null ? chars / opts.charPerToken : state.lastTokens;
     if (state.startTime === null) {
       state.startTime = now;
-      state.startChars = chars;
+      state.startChars = chars ?? 0;
       state.lastTokens = tokens;
       state.lastUpdateTime = now;
-    } else {
+      rateAnchorEl = assistantEl;
+    } else if (chars !== null) {
+      // 初回アンカー確立（rateAnchorEl === null）は計算対象。既存アンカーからの
+      // 要素交代は前メッセージとの差分スパイク防止のため計算対象外とする
+      const elementChanged = rateAnchorEl !== null && assistantEl !== rateAnchorEl;
       const dt = (now - state.lastUpdateTime) / 1000;
       const dTokens = tokens - state.lastTokens;
-      state.rate = dt > 0 ? dTokens / dt : 0;
-      if (state.rate > state.maxRate) state.maxRate = state.rate;
+      if (!elementChanged && dTokens >= 0 && dt > 0) {
+        state.rate = dTokens / dt;
+        if (state.rate > state.maxRate) state.maxRate = state.rate;
+      }
+      // dTokens < 0（DOM 再構成による減少）・要素交代のときは
+      // rate を前回値維持・maxRate 更新なしとし、ベースラインのみ更新する
       state.lastTokens = tokens;
       state.lastUpdateTime = now;
+      rateAnchorEl = assistantEl;
+    } else {
+      // アシスタント要素が消失した窓: レート計算はスキップし
+      // 次回計算の dt 基準（lastUpdateTime）の更新のみ行う
+      state.lastUpdateTime = now;
     }
-    state.currentChars = chars;
+    state.currentChars = chars ?? state.currentChars;
     // 平均 = 累積トークン / 経過秒
     const elapsed = state.startTime !== null ? (now - state.startTime) / 1000 : 0;
     state.avgRate = elapsed > 0 ? tokens / elapsed : 0;
     // TTFT = サイクル開始（ユーザー送信）から最初のアシスタントコンテンツまで
-    if (state.ttftMs === null && cycleStartTime !== null && assistantEl !== null && chars > 0) {
+    if (state.ttftMs === null && cycleStartTime !== null && assistantEl !== null && (chars ?? 0) > 0) {
       state.ttftMs = Math.max(0, now - cycleStartTime);
     }
     state.isStreaming = now - lastChangeTime < 2500;

@@ -50,6 +50,8 @@ describe('createTokenRateCounter', () => {
     const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
     c.start();
     const target = document.createElement('div');
+    target.className = 'claudian-message';
+    target.setAttribute('data-role', 'assistant');
     document.body.appendChild(target);
     target.textContent = 'A'.repeat(60);
     vi.advanceTimersByTime(250);
@@ -154,6 +156,76 @@ describe('createTokenRateCounter', () => {
     expect(el.querySelectorAll('.cb-token-rate-sep')).toHaveLength(0);
     expect(el.querySelector('.cb-token-rate-dot')).not.toBeNull();
     expect(el.getAttribute('data-visible')).toBe('');
+    c.destroy();
+  });
+
+  it('アシスタント要素が消失した窓ではレート計算をスキップする（body フォールバック廃止）', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    asst.textContent = 'A'.repeat(90);
+    document.body.appendChild(asst);
+    vi.advanceTimersByTime(250); // ベースライン設定
+    asst.textContent = 'A'.repeat(120);
+    vi.advanceTimersByTime(250); // rate = (40-30)/0.25 = 40
+    const peak = c.getState().maxRate;
+    expect(peak).toBeGreaterThan(0);
+    asst.remove(); // 要素消失 → 旧実装では body 全文字数に急増してスパイク
+    vi.advanceTimersByTime(250);
+    expect(c.getState().maxRate).toBe(peak);
+    expect(Number.isNaN(c.getState().rate)).toBe(false);
+    vi.useRealTimers();
+    c.destroy();
+  });
+
+  it('文字数減少の窓では maxRate を更新しない（ベースライン再設定）', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    document.body.appendChild(asst);
+    asst.textContent = 'A'.repeat(30);
+    vi.advanceTimersByTime(250); // ベースライン
+    asst.textContent = 'A'.repeat(90);
+    vi.advanceTimersByTime(250); // rate = (30-10)/0.25 = 80
+    const peak = c.getState().maxRate;
+    expect(peak).toBeGreaterThan(70);
+    asst.textContent = 'A'.repeat(10); // DOM 再構成で一時減少
+    vi.advanceTimersByTime(250);
+    expect(c.getState().maxRate).toBe(peak); // 減少窓で最大値は更新されない
+    asst.textContent = 'A'.repeat(40); // 回復
+    vi.advanceTimersByTime(250);
+    // 回復分 (10→40 chars: +10 tokens / 0.25s = 40) は 40 < 80 なので最大値は不変
+    expect(c.getState().maxRate).toBe(peak);
+    vi.useRealTimers();
+    c.destroy();
+  });
+
+  it('アシスタント要素交代時に前メッセージとの差分でスパイクしない', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    const asst1 = document.createElement('div');
+    asst1.setAttribute('data-role', 'assistant');
+    document.body.appendChild(asst1);
+    asst1.textContent = 'A'.repeat(30);
+    vi.advanceTimersByTime(250); // ベースライン
+    asst1.textContent = 'A'.repeat(60);
+    vi.advanceTimersByTime(250); // rate = 40
+    const peak = c.getState().maxRate;
+    expect(peak).toBeGreaterThan(0);
+    // 新メッセージ: 前メッセージより遥かに長いテキストを既に持つ新要素が出現
+    const asst2 = document.createElement('div');
+    asst2.setAttribute('data-role', 'assistant');
+    asst2.textContent = 'B'.repeat(300);
+    document.body.appendChild(asst2);
+    vi.advanceTimersByTime(250);
+    // 旧実装では (100-20) tokens / 0.25s = 320 tok/s の偽スパイクが記録された
+    expect(c.getState().maxRate).toBe(peak);
+    vi.useRealTimers();
     c.destroy();
   });
 });
