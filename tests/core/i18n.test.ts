@@ -180,3 +180,13 @@ describe('i18n', () => {
     }
   });
 });
+describe('tokenRateShow* ラベル（表示項目選択）', () => {
+  it('全ロケールで 4 キーが文字列として定義される', () => {
+    for (const loc of SUPPORTED_LOCALES) {
+      expect(typeof STRINGS[loc].tokenRateShowTtft).toBe('string');
+      expect(typeof STRINGS[loc].tokenRateShowCurrent).toBe('string');
+      expect(typeof STRINGS[loc].tokenRateShowAvg).toBe('string');
+      expect(typeof STRINGS[loc].tokenRateShowMax).toBe('string');
+    }
+  });
+});

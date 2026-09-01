@@ -320,6 +320,10 @@ export interface LocaleStrings {
   tokenRateLabel: string;
   tokenRateDesc: string;
   tokenRateSuffix: string;
+  tokenRateShowTtft: string;
+  tokenRateShowCurrent: string;
+  tokenRateShowAvg: string;
+  tokenRateShowMax: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -630,6 +634,10 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateLabel: 'トークン速度を表示',
     tokenRateDesc: 'レスポンス生成速度を入力画面の下にライブ表示します',
     tokenRateSuffix: 'tok/s',
+    tokenRateShowTtft: '首（TTFT）を表示',
+    tokenRateShowCurrent: '現在速度を表示',
+    tokenRateShowAvg: '平均速度を表示',
+    tokenRateShowMax: '最大速度を表示',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -938,6 +946,10 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateLabel: 'Show token rate',
     tokenRateDesc: 'Display live token generation rate below input',
     tokenRateSuffix: 'tok/s',
+    tokenRateShowTtft: 'Show TTFT',
+    tokenRateShowCurrent: 'Show current rate',
+    tokenRateShowAvg: 'Show average rate',
+    tokenRateShowMax: 'Show max rate',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -1246,6 +1258,10 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateLabel: '显示令牌速率',
     tokenRateDesc: '在输入框下方实时显示响应生成速率',
     tokenRateSuffix: 'tok/s',
+    tokenRateShowTtft: '显示首字延迟',
+    tokenRateShowCurrent: '显示当前速率',
+    tokenRateShowAvg: '显示平均速率',
+    tokenRateShowMax: '显示最大速率',
   },
 };
 
