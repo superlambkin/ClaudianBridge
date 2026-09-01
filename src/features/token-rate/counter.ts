@@ -73,6 +73,7 @@ export function createTokenRateCounter(
     visibleSegments.map((sg) => sg.html).join('<span class="cb-token-rate-sep">·</span>') +
     '<span class="cb-token-rate-dot"></span>';
   el.setAttribute('data-visible', visibleSegments.map((sg) => sg.key).join(','));
+  el.setAttribute('data-interval', String(opts.intervalMs));
   if (opts.insertAfter) {
     opts.insertAfter.insertAdjacentElement('afterend', el);
   } else if (opts.insertBefore) {

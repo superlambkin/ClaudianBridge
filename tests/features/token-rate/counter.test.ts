@@ -2,6 +2,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createTokenRateCounter } from '../../../src/features/token-rate/counter';
 
+// counter.ts の内部 DEFAULTS 詳細に依存しないためのフォールバック定数。
+// Task 4 で counter.ts の DEFAULTS.intervalMs を 500→250 に変更するときに
+// 同時にこの定数も 250 に揃えること。
+const DEFAULTS_INTERVAL_FALLBACK = 500;
+
 describe('createTokenRateCounter', () => {
   let container: HTMLElement;
   beforeEach(() => {
@@ -279,6 +284,19 @@ describe('createTokenRateCounter', () => {
     // 旧実装では (100-20) tokens / 0.25s = 320 tok/s の偽スパイクが記録された
     expect(c.getState().maxRate).toBe(peak);
     vi.useRealTimers();
+    c.destroy();
+  });
+
+  it('data-interval 属性が intervalMs の値と一致して出力される', () => {
+    const c = createTokenRateCounter(container, { intervalMs: 750 });
+    expect(container.querySelector('.cb-token-rate')?.getAttribute('data-interval')).toBe('750');
+    c.destroy();
+  });
+
+  it('intervalMs 未指定時の data-interval は DEFAULTS.intervalMs', () => {
+    const c = createTokenRateCounter(container);
+    const expected = String(DEFAULTS_INTERVAL_FALLBACK);
+    expect(container.querySelector('.cb-token-rate')?.getAttribute('data-interval')).toBe(expected);
     c.destroy();
   });
 });
