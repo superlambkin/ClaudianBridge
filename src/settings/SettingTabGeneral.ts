@@ -2,6 +2,7 @@ import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
+import { ALLOWED_TOKEN_RATE_INTERVALS } from '../core/settings';
 import manifest from '../manifest.json';
 
 /** プラグインバージョン（SSOT: src/manifest.json — バンドル時に esbuild が埋め込む） */
@@ -128,12 +129,43 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
           const latest = store.load();
           store.save({ ...latest, general: { ...latest.general, tokenRateEnabled: v } });
           new Notice(s.noticeSaved);
-          draw(); // 子トグルの有効/無効を即時反映
+          draw(); // 子トグル + interval ドロップダウンの有効/無効を即時反映
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           draw();
         }
       }));
+
+    // === v0.32.0: トークン速度表示の更新周期 ===
+    new Setting(containerEl)
+      .setName(s.tokenRateIntervalLabel)
+      .setDesc(s.tokenRateIntervalDesc)
+      .addDropdown((d) => {
+        const labelOf = (ms: number): string => {
+          switch (ms) {
+            case 100: return s.tokenRateInterval100;
+            case 250: return s.tokenRateInterval250;
+            case 500: return s.tokenRateInterval500;
+            case 1000: return s.tokenRateInterval1000;
+            case 2000: return s.tokenRateInterval2000;
+            default: return `${ms} ms`;
+          }
+        };
+        for (const ms of ALLOWED_TOKEN_RATE_INTERVALS) d.addOption(String(ms), labelOf(ms));
+        d.setValue(String(cfg.general.tokenRateIntervalMs))
+          .setDisabled(!cfg.general.tokenRateEnabled)
+          .onChange(async (v) => {
+            try {
+              const latest = store.load();
+              const num = Number(v);
+              store.save({ ...latest, general: { ...latest.general, tokenRateIntervalMs: num } });
+              new Notice(s.noticeSaved);
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          });
+      });
 
     // === v0.31.0: トークン速度表示の表示項目選択 ===
     const tokenRateShowDefs: Array<{ key: 'tokenRateShowTtft' | 'tokenRateShowCurrent' | 'tokenRateShowAvg' | 'tokenRateShowMax'; label: string }> = [
