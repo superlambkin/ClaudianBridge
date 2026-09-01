@@ -32,7 +32,7 @@ export interface CounterOptions {
 
 const DEFAULTS: Required<CounterOptions> = {
   charPerToken: 3,
-  intervalMs: 500,
+  intervalMs: 250,  // v0.32.0: 500→250
   fadeOutMs: 3000,
   insertAfter: null,
   insertBefore: null,

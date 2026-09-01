@@ -5,7 +5,7 @@ import { createTokenRateCounter } from '../../../src/features/token-rate/counter
 // counter.ts の内部 DEFAULTS 詳細に依存しないためのフォールバック定数。
 // Task 4 で counter.ts の DEFAULTS.intervalMs を 500→250 に変更するときに
 // 同時にこの定数も 250 に揃えること。
-const DEFAULTS_INTERVAL_FALLBACK = 500;
+const DEFAULTS_INTERVAL_FALLBACK = 250; // v0.32.0 で既定を 500→250 に変更
 
 describe('createTokenRateCounter', () => {
   let container: HTMLElement;
