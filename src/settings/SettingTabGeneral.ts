@@ -128,11 +128,37 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
           const latest = store.load();
           store.save({ ...latest, general: { ...latest.general, tokenRateEnabled: v } });
           new Notice(s.noticeSaved);
+          draw(); // 子トグルの有効/無効を即時反映
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           draw();
         }
       }));
+
+    // === v0.31.0: トークン速度表示の表示項目選択 ===
+    const tokenRateShowDefs: Array<{ key: 'tokenRateShowTtft' | 'tokenRateShowCurrent' | 'tokenRateShowAvg' | 'tokenRateShowMax'; label: string }> = [
+      { key: 'tokenRateShowTtft', label: s.tokenRateShowTtft },
+      { key: 'tokenRateShowCurrent', label: s.tokenRateShowCurrent },
+      { key: 'tokenRateShowAvg', label: s.tokenRateShowAvg },
+      { key: 'tokenRateShowMax', label: s.tokenRateShowMax },
+    ];
+    for (const { key, label } of tokenRateShowDefs) {
+      new Setting(containerEl)
+        .setName(label)
+        .addToggle((t) => t
+          .setValue(cfg.general[key])
+          .setDisabled(!cfg.general.tokenRateEnabled)
+          .onChange(async (v) => {
+            try {
+              const latest = store.load();
+              store.save({ ...latest, general: { ...latest.general, [key]: v } });
+              new Notice(s.noticeSaved);
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          }));
+    }
 
     containerEl.createEl('h3', { text: s.migratedFrom });
     const ul = containerEl.createEl('ul');
