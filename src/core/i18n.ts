@@ -324,6 +324,13 @@ export interface LocaleStrings {
   tokenRateShowCurrent: string;
   tokenRateShowAvg: string;
   tokenRateShowMax: string;
+  tokenRateIntervalLabel: string;
+  tokenRateIntervalDesc: string;
+  tokenRateInterval100: string;
+  tokenRateInterval250: string;
+  tokenRateInterval500: string;
+  tokenRateInterval1000: string;
+  tokenRateInterval2000: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -638,6 +645,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateShowCurrent: '現在速度を表示',
     tokenRateShowAvg: '平均速度を表示',
     tokenRateShowMax: '最大速度を表示',
+    tokenRateIntervalLabel: '更新周期',
+    tokenRateIntervalDesc: '表示の更新頻度（短いほど滑らか・CPU負荷増）',
+    tokenRateInterval100: '0.1 秒（高頻度）',
+    tokenRateInterval250: '0.25 秒（既定・推奨）',
+    tokenRateInterval500: '0.5 秒',
+    tokenRateInterval1000: '1 秒（省 CPU）',
+    tokenRateInterval2000: '2 秒（最低負荷）',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -950,6 +964,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateShowCurrent: 'Show current rate',
     tokenRateShowAvg: 'Show average rate',
     tokenRateShowMax: 'Show max rate',
+    tokenRateIntervalLabel: 'Update interval',
+    tokenRateIntervalDesc: 'Display refresh rate (shorter = smoother, more CPU)',
+    tokenRateInterval100: '0.1 sec (frequent)',
+    tokenRateInterval250: '0.25 sec (default)',
+    tokenRateInterval500: '0.5 sec',
+    tokenRateInterval1000: '1 sec (low CPU)',
+    tokenRateInterval2000: '2 sec (minimal)',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -1262,6 +1283,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateShowCurrent: '显示当前速率',
     tokenRateShowAvg: '显示平均速率',
     tokenRateShowMax: '显示最大速率',
+    tokenRateIntervalLabel: '更新周期',
+    tokenRateIntervalDesc: '显示更新频率（越短越流畅・CPU 负载越高）',
+    tokenRateInterval100: '0.1 秒（高频）',
+    tokenRateInterval250: '0.25 秒（默认）',
+    tokenRateInterval500: '0.5 秒',
+    tokenRateInterval1000: '1 秒（低 CPU）',
+    tokenRateInterval2000: '2 秒（最低负载）',
   },
 };
 
