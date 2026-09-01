@@ -19,14 +19,6 @@ export function setupTokenRate(
   store: ConfigStore,
 ): () => void {
   const counters = new Map<Element, CounterHandle>();
-  const loadEnabled = (): boolean => {
-    try {
-      const cfg = store.load() as { general?: { tokenRateEnabled?: boolean } } | null;
-      return cfg?.general?.tokenRateEnabled ?? false;
-    } catch {
-      return false;
-    }
-  };
 
   interface TokenRateVisibleFlags {
     ttft: boolean;
@@ -35,33 +27,51 @@ export function setupTokenRate(
     max: boolean;
   }
 
-  const loadVisible = (): TokenRateVisibleFlags => {
+  interface TokenRateConfig {
+    enabled: boolean;
+    visible: TokenRateVisibleFlags;
+  }
+
+  // store.load() は同期 fs 読み込みのため 1 回の呼び出しで enabled / visible を両方取る
+  //（rescan が body 変異ごとに発火するため I/O 回数を最小化）
+  const loadConfig = (): TokenRateConfig => {
     try {
       const cfg = store.load() as { general?: Record<string, unknown> } | null;
       const g = cfg?.general ?? {};
-      const b = (k: string): boolean => (typeof g[k] === 'boolean' ? (g[k] as boolean) : true);
+      const b = (k: string, fallback: boolean): boolean =>
+        typeof g[k] === 'boolean' ? (g[k] as boolean) : fallback;
       return {
-        ttft: b('tokenRateShowTtft'),
-        current: b('tokenRateShowCurrent'),
-        avg: b('tokenRateShowAvg'),
-        max: b('tokenRateShowMax'),
+        enabled: b('tokenRateEnabled', false),
+        visible: {
+          ttft: b('tokenRateShowTtft', true),
+          current: b('tokenRateShowCurrent', true),
+          avg: b('tokenRateShowAvg', true),
+          max: b('tokenRateShowMax', true),
+        },
       };
     } catch {
-      return { ttft: true, current: true, avg: true, max: true };
+      return { enabled: false, visible: { ttft: true, current: true, avg: true, max: true } };
     }
   };
+
+  const loadEnabled = (): boolean => loadConfig().enabled;
+
+  /** cfg を渡された場合はそれを使い（追加の store.load を回避）、無ければ読み込む */
+  const loadVisible = (cfg?: TokenRateConfig): TokenRateVisibleFlags =>
+    (cfg ?? loadConfig()).visible;
 
   const visibleKey = (v: TokenRateVisibleFlags): string =>
     (['ttft', 'current', 'avg', 'max'] as const).filter((k) => v[k]).join(',');
 
-  const injectInto = (container: Element): void => {
+  const injectInto = (container: Element, cfg?: TokenRateConfig): void => {
     if (counters.has(container)) return;
+    const visible = loadVisible(cfg);
     // 優先: YOLO トグル（.claudian-permission-toggle）の左に表示
     const toggle = findPermissionToggle(container);
     if (toggle && toggle.parentElement) {
       const counter = createTokenRateCounter(
         toggle.parentElement as HTMLElement,
-        { insertBefore: toggle, visible: loadVisible() },
+        { insertBefore: toggle, visible },
       );
       counter.start();
       counters.set(container, counter);
@@ -72,15 +82,16 @@ export function setupTokenRate(
     if (!messages) return;
     const counter = createTokenRateCounter(
       messages.parentElement as HTMLElement,
-      { insertAfter: messages, visible: loadVisible() },
+      { insertAfter: messages, visible },
     );
     counter.start();
     counters.set(container, counter);
   };
 
-  const injectAll = (): void => {
-    if (!loadEnabled()) return;
-    document.querySelectorAll(CONTAINER_SELECTOR).forEach(injectInto);
+  const injectAll = (cfg?: TokenRateConfig): void => {
+    const c = cfg ?? loadConfig();
+    if (!c.enabled) return;
+    document.querySelectorAll(CONTAINER_SELECTOR).forEach((el) => injectInto(el, c));
   };
 
   const removeAll = (): void => {
@@ -89,8 +100,10 @@ export function setupTokenRate(
   };
 
   const rescan = (): void => {
-    if (!loadEnabled()) { removeAll(); return; }
-    const expected = visibleKey(loadVisible());
+    // store.load()（同期 fs 読み込み）は 1 回のみ: enabled / visible を同じ結果から判定
+    const cfg = loadConfig();
+    if (!cfg.enabled) { removeAll(); return; }
+    const expected = visibleKey(cfg.visible);
     // コンテナが消えた / counter 要素が React 再レンダーで外れた /
     // 表示項目設定が変わった（data-visible 不一致）→ 破棄して再注入
     counters.forEach((handle, el) => {
@@ -100,7 +113,7 @@ export function setupTokenRate(
         counters.delete(el);
       }
     });
-    injectAll();
+    injectAll(cfg);
   };
 
   injectAll();

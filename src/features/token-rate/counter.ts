@@ -89,6 +89,9 @@ export function createTokenRateCounter(
   let lastUserEl: Element | null = null;
   let cycleStartTime: number | null = null;
   let rateAnchorEl: Element | null = null;
+  // 縮小窓（dTokens < 0）検出後の隔離フラグ: 次の 1 窓を baseline-only にする
+  //（縮小 → 復帰の 2 窓で全文字数が一括計上される偽スパイク防止）
+  let quarantine = false;
 
   const getAssistant = (): { el: Element | null; chars: number | null } => {
     let list = document.querySelectorAll('[data-role="assistant"].claudian-message-assistant, [data-role="assistant"]');
@@ -134,19 +137,26 @@ export function createTokenRateCounter(
       const elementChanged = assistantEl !== rateAnchorEl;
       const dt = (now - state.lastUpdateTime) / 1000;
       const dTokens = tokens - state.lastTokens;
-      if (!elementChanged && dTokens >= 0 && dt > 0) {
+      if (quarantine || elementChanged) {
+        // 縮小窓の直後の復帰窓（quarantine）・初回アンカー確立 / 要素交代は
+        // baseline-only: rate/maxRate を更新せずベースラインのみ引き直す
+        quarantine = false;
+      } else if (dTokens >= 0 && dt > 0) {
         state.rate = dTokens / dt;
         if (state.rate > state.maxRate) state.maxRate = state.rate;
       }
-      // dTokens < 0（DOM 再構成による減少）・要素交代のときは
-      // rate を前回値維持・maxRate 更新なしとし、ベースラインのみ更新する
+      // dTokens < 0（DOM 再構成による減少）のときは次の 1 窓も baseline-only にする。
+      // 要素交代のときは baseline-only 済みなのでフラグは立てない
+      quarantine = dTokens < 0;
       state.lastTokens = tokens;
       state.lastUpdateTime = now;
       rateAnchorEl = assistantEl;
     } else {
       // アシスタント要素が消失した窓: レート計算はスキップし
-      // 次回計算の dt 基準（lastUpdateTime）の更新のみ行う
+      // 次回計算の dt 基準（lastUpdateTime）の更新のみ行う。
+      // アンカーも解除し、同一要素の再 attach 時も初回確立（baseline-only）扱いにする
       state.lastUpdateTime = now;
+      rateAnchorEl = null;
     }
     state.currentChars = chars ?? state.currentChars;
     // 平均 = 累積トークン / 経過秒

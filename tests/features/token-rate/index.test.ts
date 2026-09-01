@@ -99,4 +99,29 @@ describe('setupTokenRate', () => {
     }, { timeout: 1000 });
     cleanup();
   });
+
+  it('rescan 1 回あたり store.load は最小回数（enabled と visible を同一 load から判定）', async () => {
+    storeMock.load.mockReturnValue({ general: { tokenRateEnabled: true, tokenRateShowMax: true } });
+    const cleanup = setupTokenRate({} as never, storeMock as never);
+    const container = buildFixture();
+    // buildFixture → wrappedAppendChild 経由の初回注入分をカウント対象外にする
+    storeMock.load.mockClear();
+    storeMock.load.mockReturnValue({ general: { tokenRateEnabled: true, tokenRateShowMax: false } });
+    // body 直下への appendChild は wrappedAppendChild フックで load が 1 回走るため
+    // body サブツリー内の変異で rescan を発火させる
+    container.appendChild(document.createElement('div'));
+    await vi.waitFor(() => {
+      expect((container.querySelector('.cb-token-rate') as HTMLElement).getAttribute('data-visible')).toBe('ttft,current,avg');
+    }, { timeout: 1000 });
+    // rescan 収束待ち（counter 再注入が再帰 rescan を起こり得る）
+    await new Promise((r) => setTimeout(r, 50));
+    const settled = storeMock.load.mock.calls.length;
+    await new Promise((r) => setTimeout(r, 50));
+    expect(storeMock.load.mock.calls.length).toBe(settled); // それ以上増えない（収束）
+    // 修正後は rescan 1 pass = 1 load。再注入による再帰 rescan 分を含め最大 2 回
+    //（修正前は 1 pass = 2 load のためこの上限を超える）
+    expect(settled).toBeLessThanOrEqual(2);
+    expect(settled).toBeGreaterThanOrEqual(1);
+    cleanup();
+  });
 });

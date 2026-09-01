@@ -210,6 +210,53 @@ describe('createTokenRateCounter', () => {
     c.destroy();
   });
 
+  it('縮小窓の直後の復帰窓で偽スパイクが再記録されない', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 500, charPerToken: 3 });
+    c.start();
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    document.body.appendChild(asst);
+    asst.textContent = 'A'.repeat(60);
+    vi.advanceTimersByTime(500); // ベースライン（20 tokens）
+    asst.textContent = 'A'.repeat(120);
+    vi.advanceTimersByTime(500); // rate = (40-20)/0.5 = 40
+    const peak = c.getState().maxRate;
+    expect(peak).toBeGreaterThan(35);
+    asst.textContent = ''; // 縮小窓（React 再レンダーで一時 0 chars）→ quarantine 設定
+    vi.advanceTimersByTime(500);
+    expect(c.getState().maxRate).toBe(peak);
+    asst.textContent = 'A'.repeat(6000); // 復帰窓: 旧実装では (2000-0)/0.5 = 4000 tok/s を記録
+    vi.advanceTimersByTime(500);
+    expect(c.getState().maxRate).toBe(peak);
+    vi.useRealTimers();
+    c.destroy();
+  });
+
+  it('消失後に同一要素が再 attach された場合も初回確立扱いでスパイクしない', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    asst.textContent = 'A'.repeat(90);
+    document.body.appendChild(asst);
+    vi.advanceTimersByTime(250); // ベースライン（30 tokens）
+    asst.textContent = 'A'.repeat(120);
+    vi.advanceTimersByTime(250); // rate = (40-30)/0.25 = 40
+    const peak = c.getState().maxRate;
+    expect(peak).toBeGreaterThan(35);
+    asst.remove(); // 消失窓
+    vi.advanceTimersByTime(250);
+    expect(c.getState().maxRate).toBe(peak);
+    // 同一要素が再 attach（大量テキスト付き）→ 初回確立扱いで baseline-only
+    document.body.appendChild(asst);
+    vi.advanceTimersByTime(250);
+    expect(c.getState().maxRate).toBe(peak);
+    vi.useRealTimers();
+    c.destroy();
+  });
+
   it('アシスタント要素交代時に前メッセージとの差分でスパイクしない', () => {
     vi.useFakeTimers();
     const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
