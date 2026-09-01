@@ -53,6 +53,9 @@ describe('createTokenRateCounter', () => {
     target.className = 'claudian-message';
     target.setAttribute('data-role', 'assistant');
     document.body.appendChild(target);
+    // 初回 tick はベースライン設定（再注入スパイク防止のため rate 計算対象外）
+    vi.advanceTimersByTime(250);
+    // 成長窓: 250ms で 60 chars 追加 (0 → 20 tokens) → 約 80 tok/s
     target.textContent = 'A'.repeat(60);
     vi.advanceTimersByTime(250);
     const rate = c.getState().rate;
@@ -86,6 +89,9 @@ describe('createTokenRateCounter', () => {
     asst.className = 'claudian-message-assistant';
     asst.setAttribute('data-role', 'assistant');
     document.body.appendChild(asst);
+    // 初回 tick はベースライン設定（再注入スパイク防止のため rate 計算対象外）
+    vi.advanceTimersByTime(250);
+    // 成長窓: 250ms で 60 chars 追加 (0 → 20 tokens) → 約 80 tok/s
     asst.textContent = 'A'.repeat(60);
     vi.advanceTimersByTime(250);
     const s = c.getState();
