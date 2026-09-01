@@ -841,3 +841,27 @@ describe('TtsLanguageMode / TtsEdgeCloudSettings', () => {
     });
   });
 });
+
+describe('normalizeClaudianBridgeSettings - tokenRateShow* (表示項目選択)', () => {
+  it('既定は全 ON', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.general.tokenRateShowTtft).toBe(true);
+    expect(cfg.general.tokenRateShowCurrent).toBe(true);
+    expect(cfg.general.tokenRateShowAvg).toBe(true);
+    expect(cfg.general.tokenRateShowMax).toBe(true);
+  });
+
+  it('欠落キーは true で補完（後方互換）', () => {
+    const cfg = normalizeClaudianBridgeSettings({ general: { tokenRateShowCurrent: false } });
+    expect(cfg.general.tokenRateShowCurrent).toBe(false);
+    expect(cfg.general.tokenRateShowTtft).toBe(true);
+    expect(cfg.general.tokenRateShowAvg).toBe(true);
+    expect(cfg.general.tokenRateShowMax).toBe(true);
+  });
+
+  it('validate: boolean 以外はエラーメッセージ', () => {
+    const base = DEFAULT_CLAUDIAN_BRIDGE_SETTINGS;
+    const cfg = { ...base, general: { ...base.general, tokenRateShowMax: 'yes' } } as typeof base;
+    expect(validateClaudianBridgeSettings(cfg)).toContain('tokenRateShowMax');
+  });
+});
