@@ -152,6 +152,14 @@ export interface LocaleStrings {
   ttsSpeechFilterThinking: string;
   // v0.18.1: ツール呼び出し除外
   ttsSpeechFilterToolCommands: string;
+  // v0.31.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
+  ttsMdReadHighlightEnabled: string;
+  ttsMdReadHighlightHighlightColor: string;
+  ttsMdReadOverlayPause: string;
+  ttsMdReadOverlayResume: string;
+  ttsMdReadOverlaySkipToHeading: string;
+  ttsMdReadOverlayMute: string;
+  ttsMdReadOverlayNoPreview: string;
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -475,6 +483,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterCode: 'コードブロック',
     ttsSpeechFilterThinking: '思考ブロック',
     ttsSpeechFilterToolCommands: 'ツール呼び出し',
+    // v0.31.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
+    ttsMdReadHighlightEnabled: 'MD 読み上げ時にチャンク位置をハイライト',
+    ttsMdReadHighlightHighlightColor: 'ハイライト色',
+    ttsMdReadOverlayPause: '一時停止',
+    ttsMdReadOverlayResume: '再開',
+    ttsMdReadOverlaySkipToHeading: '次の見出しへ',
+    ttsMdReadOverlayMute: 'ミュート',
+    ttsMdReadOverlayNoPreview: 'Preview モードで表示中のみハイライトできます',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -794,6 +810,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterCode: 'Code block',
     ttsSpeechFilterThinking: 'Thinking block',
     ttsSpeechFilterToolCommands: 'Tool calls',
+    // v0.31.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
+    ttsMdReadHighlightEnabled: 'Highlight reading position in MD Preview',
+    ttsMdReadHighlightHighlightColor: 'Highlight color',
+    ttsMdReadOverlayPause: 'Pause',
+    ttsMdReadOverlayResume: 'Resume',
+    ttsMdReadOverlaySkipToHeading: 'Skip to next heading',
+    ttsMdReadOverlayMute: 'Mute',
+    ttsMdReadOverlayNoPreview: 'Highlight only works in Preview mode',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -1108,6 +1132,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterCode: '代码块',
     ttsSpeechFilterThinking: '思考块',
     ttsSpeechFilterToolCommands: '工具调用',
+    // v0.31.0 (F-028): MD 读取位置高亮 / Floating Overlay
+    ttsMdReadHighlightEnabled: '在 MD 朗读时高亮当前分块位置',
+    ttsMdReadHighlightHighlightColor: '高亮颜色',
+    ttsMdReadOverlayPause: '暂停',
+    ttsMdReadOverlayResume: '继续',
+    ttsMdReadOverlaySkipToHeading: '跳到下一标题',
+    ttsMdReadOverlayMute: '静音',
+    ttsMdReadOverlayNoPreview: '仅在 Preview 模式下可高亮显示',
     ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
     ttsVoiceZh: '中文 (zh)',
     ttsVoiceJa: '日语 (ja)',
