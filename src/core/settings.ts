@@ -52,6 +52,11 @@ export {
 } from '../features/chroma/defaults';
 import { MAX_QUERY_RESULTS, MIN_QUERY_RESULTS, MAX_PREVIEW_LENGTH, MIN_PREVIEW_LENGTH } from '../features/chroma/defaults';
 
+// === v0.32.0: トークン速度表示の更新周期 ===
+export const ALLOWED_TOKEN_RATE_INTERVALS = [100, 250, 500, 1000, 2000] as const;
+export const DEFAULT_TOKEN_RATE_INTERVAL_MS = 250;
+export type TokenRateIntervalMs = typeof ALLOWED_TOKEN_RATE_INTERVALS[number];
+
 export interface OfficeSettings {
   enabled: boolean;
   pythonPath: string;
@@ -480,6 +485,8 @@ export interface ClaudianBridgeSettings {
     tokenRateShowCurrent: boolean;
     tokenRateShowAvg: boolean;
     tokenRateShowMax: boolean;
+    // === v0.32.0: トークン速度表示の更新周期 ===
+    tokenRateIntervalMs: number;
   };
   quota: QuotaSettings;
   selection: {
@@ -532,7 +539,7 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
@@ -630,6 +637,13 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       tokenRateShowCurrent: typeof r.general?.tokenRateShowCurrent === 'boolean' ? r.general.tokenRateShowCurrent : true,
       tokenRateShowAvg: typeof r.general?.tokenRateShowAvg === 'boolean' ? r.general.tokenRateShowAvg : true,
       tokenRateShowMax: typeof r.general?.tokenRateShowMax === 'boolean' ? r.general.tokenRateShowMax : true,
+      // v0.32.0: トークン速度表示の更新周期（プリセット外は既定にフォールバック）
+      tokenRateIntervalMs: (() => {
+        const raw = r.general?.tokenRateIntervalMs;
+        return ALLOWED_TOKEN_RATE_INTERVALS.includes(raw as TokenRateIntervalMs)
+          ? (raw as TokenRateIntervalMs)
+          : DEFAULT_TOKEN_RATE_INTERVAL_MS;
+      })(),
     },
     quota: {
       claudeSettingsPath: typeof r.quota?.claudeSettingsPath === 'string' && r.quota.claudeSettingsPath.trim() !== ''
@@ -915,6 +929,7 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.general.tokenRateShowCurrent !== 'boolean') return 'general.tokenRateShowCurrent は boolean である必要があります';
   if (typeof cfg.general.tokenRateShowAvg !== 'boolean') return 'general.tokenRateShowAvg は boolean である必要があります';
   if (typeof cfg.general.tokenRateShowMax !== 'boolean') return 'general.tokenRateShowMax は boolean である必要があります';
+  if (!ALLOWED_TOKEN_RATE_INTERVALS.includes(cfg.general.tokenRateIntervalMs as TokenRateIntervalMs)) return `general.tokenRateIntervalMs は ${ALLOWED_TOKEN_RATE_INTERVALS.join(' / ')} のいずれかである必要があります`;
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';

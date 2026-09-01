@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState, TTS_LANGUAGE_MODES, DEFAULT_TTS_EDGE_CLOUD, normalizeTtsSettings, TtsLanguageMode } from '../../src/core/settings';
+import { ALLOWED_TOKEN_RATE_INTERVALS, DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, DEFAULT_TOKEN_RATE_INTERVAL_MS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState, TTS_LANGUAGE_MODES, DEFAULT_TTS_EDGE_CLOUD, normalizeTtsSettings, TtsLanguageMode } from '../../src/core/settings';
 
 describe('settings', () => {
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS は全フィールドを持つ', () => {
@@ -863,5 +863,35 @@ describe('normalizeClaudianBridgeSettings - tokenRateShow* (表示項目選択)'
     const base = DEFAULT_CLAUDIAN_BRIDGE_SETTINGS;
     const cfg = { ...base, general: { ...base.general, tokenRateShowMax: 'yes' } } as typeof base;
     expect(validateClaudianBridgeSettings(cfg)).toContain('tokenRateShowMax');
+  });
+});
+
+describe('tokenRateIntervalMs (更新周期設定)', () => {
+  it('既定は 250ms', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.general.tokenRateIntervalMs).toBe(250);
+  });
+
+  it('不正値（プリセット外）は 250 にフォールバック', () => {
+    const cfg = normalizeClaudianBridgeSettings({ general: { tokenRateIntervalMs: 300 } });
+    expect(cfg.general.tokenRateIntervalMs).toBe(250);
+  });
+
+  it('プリセット値（100/500/1000/2000）はそのまま通る', () => {
+    for (const v of [100, 500, 1000, 2000]) {
+      expect(normalizeClaudianBridgeSettings({ general: { tokenRateIntervalMs: v } })
+        .general.tokenRateIntervalMs).toBe(v);
+    }
+  });
+
+  it('validate: プリセット外はエラー', () => {
+    const base = DEFAULT_CLAUDIAN_BRIDGE_SETTINGS;
+    const cfg = { ...base, general: { ...base.general, tokenRateIntervalMs: 333 } } as typeof base;
+    expect(validateClaudianBridgeSettings(cfg)).toContain('tokenRateIntervalMs');
+  });
+
+  it('export 定数: ALLOWED は 5 値・DEFAULT は 250', () => {
+    expect(ALLOWED_TOKEN_RATE_INTERVALS).toEqual([100, 250, 500, 1000, 2000]);
+    expect(DEFAULT_TOKEN_RATE_INTERVAL_MS).toBe(250);
   });
 });
