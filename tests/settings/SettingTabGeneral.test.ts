@@ -1,9 +1,18 @@
 // @vitest-environment jsdom
 // Task 6 (v0.31.0): 一般タブにトークン速度表示の表示項目 4 トグルを描画することを検証
+// Task 6 (v0.32.0): 更新周期ドロップダウンが描画される（既定 250ms）/変更時にストアに保存される
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 // トグルハンドラを記録するストア
 const toggleHandlers: Array<{
+  name: string;
+  value: unknown;
+  disabled: boolean | null;
+  onChange: ((v: unknown) => void) | null;
+}> = [];
+
+// ドロップダウンハンドラを記録するストア（v0.32.0 で追加）
+const dropdownHandlers: Array<{
   name: string;
   value: unknown;
   disabled: boolean | null;
@@ -34,6 +43,23 @@ vi.mock('obsidian', () => {
         };
         cb(t);
         toggleHandlers.push(captured);
+        return this;
+      }
+      addDropdown(cb: (d: unknown) => unknown) {
+        const captured: { name: string; value: unknown; disabled: boolean | null; onChange: ((v: unknown) => void) | null } = {
+          name: this._name,
+          value: undefined,
+          disabled: null,
+          onChange: null,
+        };
+        const d = {
+          addOption: function () { return this; },
+          setValue: function (v: unknown) { captured.value = v; return this; },
+          setDisabled: function (v: boolean) { captured.disabled = v; return this; },
+          onChange: function (h: (v: unknown) => void) { captured.onChange = h; return this; },
+        };
+        cb(d);
+        dropdownHandlers.push(captured);
         return this;
       }
       addButton(cb: (b: unknown) => unknown) {
@@ -84,6 +110,7 @@ function makeStore(generalOverrides: Record<string, unknown> = {}): ConfigStore 
       quickReplyShowAllOptions: false,
       quickReplyEnabled: true,
       tokenRateEnabled: true,
+      tokenRateIntervalMs: 250,
       tokenRateShowTtft: true,
       tokenRateShowCurrent: true,
       tokenRateShowAvg: true,
@@ -126,5 +153,32 @@ describe('renderGeneralTab - tokenRateShow* トグル', () => {
     const toggles = toggleHandlers.filter((t) => [s.tokenRateShowTtft, s.tokenRateShowCurrent, s.tokenRateShowAvg, s.tokenRateShowMax].includes(t.name));
     expect(toggles).toHaveLength(4);
     expect(toggles.every((t) => t.disabled === true)).toBe(true);
+  });
+});
+
+// v0.32.0: トークン速度表示の更新周期 dropdown
+describe('renderGeneralTab - tokenRateIntervalMs ドロップダウン', () => {
+  let containerEl: HTMLElement;
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    toggleHandlers.length = 0;
+    dropdownHandlers.length = 0;
+    containerEl = document.createElement('div');
+    document.body.appendChild(containerEl);
+  });
+
+  it('更新周期ドロップダウンが描画される（既定 250ms）', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const interval = dropdownHandlers.find((d) => d.name === getLocaleStrings('ja').tokenRateIntervalLabel);
+    expect(interval).toBeDefined();
+    expect(interval!.value).toBe('250');
+  });
+
+  it('更新周期変更時にストアに保存される', async () => {
+    const store = makeStore();
+    renderGeneralTab({} as never, containerEl, store);
+    const interval = dropdownHandlers.find((d) => d.name === getLocaleStrings('ja').tokenRateIntervalLabel)!;
+    await interval.onChange?.(500);
+    expect((store.save as ReturnType<typeof vi.fn>).mock.calls[0][0].general.tokenRateIntervalMs).toBe(500);
   });
 });
