@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.32.0] - 2026-09-01 — トークン速度表示の更新周期設定
+
+### Added
+- 設定 → ClaudianBridge → 一般タブに「更新周期」ドロップダウンを追加（0.1 / 0.25 / 0.5 / 1 / 2 秒から選択）
+- 既定値は 250 ms（v0.31.0 の 500 ms から変更・既存設定は normalize で 250 に補完）
+
+### Fixed
+- 設定変更は即時反映（counter の破棄・再注入で intervalId が新周期で再生成）
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **859 件 PASS**（v0.31.0 の 847 件 + 新規 12 件） |
+| 影響範囲 | `src/features/token-rate/` / `src/core/settings.ts` / `src/core/i18n.ts` / `src/settings/SettingTabGeneral.ts` / `tests/features/token-rate/` |
+
 ## [0.31.0] - 2026-09-01 — トークン速度表示の表示項目選択 + 最大 tok/s 偽スパイク修正
 
 ### Added
