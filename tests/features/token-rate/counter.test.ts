@@ -128,4 +128,32 @@ describe('createTokenRateCounter', () => {
     expect(anchor.previousElementSibling?.classList.contains('cb-token-rate')).toBe(true);
     c.destroy();
   });
+
+  it('visible 指定で対応セグメントが生成されない', () => {
+    const c = createTokenRateCounter(container, { visible: { max: false, avg: false } });
+    const el = container.querySelector('.cb-token-rate')!;
+    expect(el.querySelector('.cb-token-rate-max')).toBeNull();
+    expect(el.querySelector('.cb-token-rate-avg')).toBeNull();
+    expect(el.querySelector('.cb-token-rate-ttft')).not.toBeNull();
+    expect(el.querySelector('.cb-token-rate-value')).not.toBeNull();
+    expect(el.getAttribute('data-visible')).toBe('ttft,current');
+    c.destroy();
+  });
+
+  it('区切り · は表示セグメント間のみ', () => {
+    const c = createTokenRateCounter(container, { visible: { ttft: false, current: true, avg: false, max: true } });
+    const el = container.querySelector('.cb-token-rate')!;
+    expect(el.querySelectorAll('.cb-token-rate-sep')).toHaveLength(1);
+    expect(el.getAttribute('data-visible')).toBe('current,max');
+    c.destroy();
+  });
+
+  it('全 OFF でも要素は存続（ドットのみ・区切りなし）', () => {
+    const c = createTokenRateCounter(container, { visible: { ttft: false, current: false, avg: false, max: false } });
+    const el = container.querySelector('.cb-token-rate')!;
+    expect(el.querySelectorAll('.cb-token-rate-sep')).toHaveLength(0);
+    expect(el.querySelector('.cb-token-rate-dot')).not.toBeNull();
+    expect(el.getAttribute('data-visible')).toBe('');
+    c.destroy();
+  });
 });

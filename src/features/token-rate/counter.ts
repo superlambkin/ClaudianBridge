@@ -11,6 +11,13 @@ export interface TokenRateState {
   isStreaming: boolean;
 }
 
+export interface TokenRateVisible {
+  ttft: boolean;
+  current: boolean;
+  avg: boolean;
+  max: boolean;
+}
+
 export interface CounterOptions {
   charPerToken?: number;
   intervalMs?: number;
@@ -19,6 +26,8 @@ export interface CounterOptions {
   insertAfter?: Element | null;
   /** 指定時はこの要素の直前に .cb-token-rate を挿入する（insertAfter より優先） */
   insertBefore?: Element | null;
+  /** 表示項目の選択（既定: 全 true） */
+  visible?: Partial<TokenRateVisible>;
 }
 
 const DEFAULTS: Required<CounterOptions> = {
@@ -27,7 +36,10 @@ const DEFAULTS: Required<CounterOptions> = {
   fadeOutMs: 3000,
   insertAfter: null,
   insertBefore: null,
+  visible: {},
 };
+
+const DEFAULT_VISIBLE: TokenRateVisible = { ttft: true, current: true, avg: true, max: true };
 
 export function createTokenRateCounter(
   containerEl: HTMLElement,
@@ -49,17 +61,18 @@ export function createTokenRateCounter(
 
   const el = document.createElement('div');
   el.className = 'cb-token-rate';
+  const vis: TokenRateVisible = { ...DEFAULT_VISIBLE, ...opts.visible };
+  const SEGMENTS: Array<{ key: keyof TokenRateVisible; html: string }> = [
+    { key: 'ttft', html: '<span class="cb-token-rate-ttft">首 0.0s</span>' },
+    { key: 'current', html: '<span class="cb-token-rate-label">現在</span><span class="cb-token-rate-value">0.0</span><span class="cb-token-rate-unit">tok/s</span>' },
+    { key: 'avg', html: '<span class="cb-token-rate-avg">平均 0.0 tok/s</span>' },
+    { key: 'max', html: '<span class="cb-token-rate-max">最大 0.0 tok/s</span>' },
+  ];
+  const visibleSegments = SEGMENTS.filter((sg) => vis[sg.key]);
   el.innerHTML =
-    '<span class="cb-token-rate-ttft">首 0.0s</span>' +
-    '<span class="cb-token-rate-sep">·</span>' +
-    '<span class="cb-token-rate-label">現在</span>' +
-    '<span class="cb-token-rate-value">0.0</span>' +
-    '<span class="cb-token-rate-unit">tok/s</span>' +
-    '<span class="cb-token-rate-sep">·</span>' +
-    '<span class="cb-token-rate-avg">平均 0.0 tok/s</span>' +
-    '<span class="cb-token-rate-sep">·</span>' +
-    '<span class="cb-token-rate-max">最大 0.0 tok/s</span>' +
+    visibleSegments.map((sg) => sg.html).join('<span class="cb-token-rate-sep">·</span>') +
     '<span class="cb-token-rate-dot"></span>';
+  el.setAttribute('data-visible', visibleSegments.map((sg) => sg.key).join(','));
   if (opts.insertAfter) {
     opts.insertAfter.insertAdjacentElement('afterend', el);
   } else if (opts.insertBefore) {
@@ -129,11 +142,14 @@ export function createTokenRateCounter(
     }
     state.isStreaming = now - lastChangeTime < 2500;
     el.classList.toggle('is-streaming', state.isStreaming);
-    el.querySelector('.cb-token-rate-ttft')!.textContent =
-      `首 ${(state.ttftMs !== null ? state.ttftMs / 1000 : 0).toFixed(1)}s`;
-    el.querySelector('.cb-token-rate-value')!.textContent = state.rate.toFixed(1);
-    el.querySelector('.cb-token-rate-avg')!.textContent = `平均 ${state.avgRate.toFixed(1)} tok/s`;
-    el.querySelector('.cb-token-rate-max')!.textContent = `最大 ${state.maxRate.toFixed(1)} tok/s`;
+    const setText = (selector: string, text: string): void => {
+      const target = el.querySelector(selector);
+      if (target) target.textContent = text;
+    };
+    setText('.cb-token-rate-ttft', `首 ${(state.ttftMs !== null ? state.ttftMs / 1000 : 0).toFixed(1)}s`);
+    setText('.cb-token-rate-value', state.rate.toFixed(1));
+    setText('.cb-token-rate-avg', `平均 ${state.avgRate.toFixed(1)} tok/s`);
+    setText('.cb-token-rate-max', `最大 ${state.maxRate.toFixed(1)} tok/s`);
   };
 
   const handleMutation = (mutations: MutationRecord[]): void => {
