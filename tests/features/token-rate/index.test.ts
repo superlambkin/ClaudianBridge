@@ -100,6 +100,27 @@ describe('setupTokenRate', () => {
     cleanup();
   });
 
+  it('設定の intervalMs が counter の data-interval に反映される', () => {
+    storeMock.load.mockReturnValue({ general: { tokenRateEnabled: true, tokenRateIntervalMs: 1000 } });
+    const cleanup = setupTokenRate({} as never, storeMock as never);
+    const container = buildFixture();
+    expect(container.querySelector('.cb-token-rate')?.getAttribute('data-interval')).toBe('1000');
+    cleanup();
+  });
+
+  it('interval 変更時に rescan で破棄・再注入される', async () => {
+    storeMock.load.mockReturnValue({ general: { tokenRateEnabled: true, tokenRateIntervalMs: 250 } });
+    const cleanup = setupTokenRate({} as never, storeMock as never);
+    const container = buildFixture();
+    expect(container.querySelector('.cb-token-rate')?.getAttribute('data-interval')).toBe('250');
+    storeMock.load.mockReturnValue({ general: { tokenRateEnabled: true, tokenRateIntervalMs: 500 } });
+    document.body.appendChild(document.createElement('div'));
+    await vi.waitFor(() => {
+      expect(container.querySelector('.cb-token-rate')?.getAttribute('data-interval')).toBe('500');
+    }, { timeout: 1000 });
+    cleanup();
+  });
+
   it('rescan 1 回あたり store.load は最小回数（enabled と visible を同一 load から判定）', async () => {
     storeMock.load.mockReturnValue({ general: { tokenRateEnabled: true, tokenRateShowMax: true } });
     const cleanup = setupTokenRate({} as never, storeMock as never);
