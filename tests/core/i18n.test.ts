@@ -190,3 +190,14 @@ describe('tokenRateShow* ラベル（表示項目選択）', () => {
     }
   });
 });
+describe('tokenRateInterval* ラベル（更新周期設定）', () => {
+  it('全ロケールで 7 キーが文字列', () => {
+    const keys = ['tokenRateIntervalLabel','tokenRateIntervalDesc','tokenRateInterval100','tokenRateInterval250','tokenRateInterval500','tokenRateInterval1000','tokenRateInterval2000'] as const;
+    for (const loc of SUPPORTED_LOCALES) {
+      for (const k of keys) {
+        expect(typeof STRINGS[loc][k]).toBe('string');
+        expect((STRINGS[loc][k] as string).length).toBeGreaterThan(0);
+      }
+    }
+  });
+});
