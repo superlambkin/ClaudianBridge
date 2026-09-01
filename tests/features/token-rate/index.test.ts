@@ -75,4 +75,28 @@ describe('setupTokenRate', () => {
     expect(messages.nextElementSibling?.classList.contains('cb-token-rate')).toBe(true);
     cleanup();
   });
+
+  it('表示項目設定が counter の data-visible に反映される', () => {
+    storeMock.load.mockReturnValue({ general: { tokenRateEnabled: true, tokenRateShowTtft: false } });
+    const cleanup = setupTokenRate({} as never, storeMock as never);
+    const container = buildFixture();
+    const rate = container.querySelector('.cb-token-rate') as HTMLElement;
+    expect(rate.getAttribute('data-visible')).toBe('current,avg,max');
+    expect(rate.querySelector('.cb-token-rate-ttft')).toBeNull();
+    cleanup();
+  });
+
+  it('visible 変更時に rescan で再注入される', async () => {
+    storeMock.load.mockReturnValue({ general: { tokenRateEnabled: true, tokenRateShowMax: true } });
+    const cleanup = setupTokenRate({} as never, storeMock as never);
+    const container = buildFixture();
+    expect((container.querySelector('.cb-token-rate') as HTMLElement).getAttribute('data-visible')).toBe('ttft,current,avg,max');
+    // 設定変更をシミュレート → body 変化で既存 MutationObserver 経由の rescan が走る
+    storeMock.load.mockReturnValue({ general: { tokenRateEnabled: true, tokenRateShowMax: false } });
+    document.body.appendChild(document.createElement('div'));
+    await vi.waitFor(() => {
+      expect((container.querySelector('.cb-token-rate') as HTMLElement).getAttribute('data-visible')).toBe('ttft,current,avg');
+    }, { timeout: 1000 });
+    cleanup();
+  });
 });
