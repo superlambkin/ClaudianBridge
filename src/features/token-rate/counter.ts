@@ -128,9 +128,10 @@ export function createTokenRateCounter(
       state.lastUpdateTime = now;
       rateAnchorEl = assistantEl;
     } else if (chars !== null) {
-      // 初回アンカー確立（rateAnchorEl === null）は計算対象。既存アンカーからの
-      // 要素交代は前メッセージとの差分スパイク防止のため計算対象外とする
-      const elementChanged = rateAnchorEl !== null && assistantEl !== rateAnchorEl;
+      // 初回アンカー確立（rateAnchorEl === null）・既存アンカーからの要素交代は
+      // いずれも baseline-only（再注入時の全文字数一括計上スパイク防止のため
+      // rate/maxRate を更新せず lastTokens / lastUpdateTime / rateAnchorEl のみ設定）
+      const elementChanged = assistantEl !== rateAnchorEl;
       const dt = (now - state.lastUpdateTime) / 1000;
       const dTokens = tokens - state.lastTokens;
       if (!elementChanged && dTokens >= 0 && dt > 0) {
