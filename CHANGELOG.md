@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.31.0] - 2026-09-01 — トークン速度表示の表示項目選択 + 最大 tok/s 偽スパイク修正
+
+### Added
+
+- **トークン速度表示の表示項目選択**: 設定 → 一般タブに 4 トグル（首 / 現在 / 平均 / 最大）を追加
+  - `general.tokenRateShowTtft` / `tokenRateShowCurrent` / `tokenRateShowAvg` / `tokenRateShowMax`（既定: 全 ON）
+  - 親トグル（`general.tokenRateEnabled`）OFF で表示項目選択ごと無効化
+  - counter は表示セグメントのみを描画し `data-visible` 属性に選択状態を反映、設定変更時は rescan で再注入
+
+### Fixed
+
+- **最大 tok/s の偽スパイク修正**:
+  - DOM フォールバック（body 全文字数）を廃止し、アシスタント要素消失時はレート計算をスキップ
+  - 縮小窓（文字数減少）と要素交代は baseline-only で処理し、縮小窓の直後の復帰窓も 1 窓隔離（quarantine）して再記録を防止
+  - 要素消失時にアンカーを解除し、同一要素の再 attach 時も初回確立（baseline-only）扱いに変更
+  - 再注入時の初回 tick を baseline-only にし、全文字数の一括計上スパイクを遮断
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **847 件 PASS**（v0.30.2 の 830 件 + 新規 17 件） |
+| 影響範囲 | `src/features/token-rate/` / `src/core/settings.ts` / `src/core/i18n.ts` / `src/settings/SettingTabGeneral.ts` / `tests/features/token-rate/` |
+
 ## [0.30.2] - 2026-08-31 — 完了報告（次のアクション）の推奨検出強化（F023）
 
 ### Added
