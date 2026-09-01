@@ -28,6 +28,32 @@ export function setupTokenRate(
     }
   };
 
+  interface TokenRateVisibleFlags {
+    ttft: boolean;
+    current: boolean;
+    avg: boolean;
+    max: boolean;
+  }
+
+  const loadVisible = (): TokenRateVisibleFlags => {
+    try {
+      const cfg = store.load() as { general?: Record<string, unknown> } | null;
+      const g = cfg?.general ?? {};
+      const b = (k: string): boolean => (typeof g[k] === 'boolean' ? (g[k] as boolean) : true);
+      return {
+        ttft: b('tokenRateShowTtft'),
+        current: b('tokenRateShowCurrent'),
+        avg: b('tokenRateShowAvg'),
+        max: b('tokenRateShowMax'),
+      };
+    } catch {
+      return { ttft: true, current: true, avg: true, max: true };
+    }
+  };
+
+  const visibleKey = (v: TokenRateVisibleFlags): string =>
+    (['ttft', 'current', 'avg', 'max'] as const).filter((k) => v[k]).join(',');
+
   const injectInto = (container: Element): void => {
     if (counters.has(container)) return;
     // 優先: YOLO トグル（.claudian-permission-toggle）の左に表示
@@ -35,7 +61,7 @@ export function setupTokenRate(
     if (toggle && toggle.parentElement) {
       const counter = createTokenRateCounter(
         toggle.parentElement as HTMLElement,
-        { insertBefore: toggle },
+        { insertBefore: toggle, visible: loadVisible() },
       );
       counter.start();
       counters.set(container, counter);
@@ -46,7 +72,7 @@ export function setupTokenRate(
     if (!messages) return;
     const counter = createTokenRateCounter(
       messages.parentElement as HTMLElement,
-      { insertAfter: messages },
+      { insertAfter: messages, visible: loadVisible() },
     );
     counter.start();
     counters.set(container, counter);
@@ -64,9 +90,12 @@ export function setupTokenRate(
 
   const rescan = (): void => {
     if (!loadEnabled()) { removeAll(); return; }
-    // コンテナが消えた / counter 要素が React 再レンダーで外れた → 破棄して再注入
+    const expected = visibleKey(loadVisible());
+    // コンテナが消えた / counter 要素が React 再レンダーで外れた /
+    // 表示項目設定が変わった（data-visible 不一致）→ 破棄して再注入
     counters.forEach((handle, el) => {
-      if (!document.contains(el) || !el.querySelector('.cb-token-rate')) {
+      const rate = el.querySelector('.cb-token-rate');
+      if (!document.contains(el) || !rate || rate.getAttribute('data-visible') !== expected) {
         handle.destroy();
         counters.delete(el);
       }
