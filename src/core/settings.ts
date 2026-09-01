@@ -475,6 +475,11 @@ export interface ClaudianBridgeSettings {
     quickReplyEnabled: boolean;
     // === v0.30.0: トークン速度表示 ===
     tokenRateEnabled: boolean;
+    // === v0.31.0: トークン速度表示の表示項目選択 ===
+    tokenRateShowTtft: boolean;
+    tokenRateShowCurrent: boolean;
+    tokenRateShowAvg: boolean;
+    tokenRateShowMax: boolean;
   };
   quota: QuotaSettings;
   selection: {
@@ -527,7 +532,7 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
@@ -620,6 +625,11 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       quickReplyEnabled: typeof r.general?.quickReplyEnabled === 'boolean' ? r.general.quickReplyEnabled : true,
       // v0.30.0: トークン速度表示
       tokenRateEnabled: typeof r.general?.tokenRateEnabled === 'boolean' ? r.general.tokenRateEnabled : false,
+      // v0.31.0: トークン速度表示の表示項目選択（既定 ON）
+      tokenRateShowTtft: typeof r.general?.tokenRateShowTtft === 'boolean' ? r.general.tokenRateShowTtft : true,
+      tokenRateShowCurrent: typeof r.general?.tokenRateShowCurrent === 'boolean' ? r.general.tokenRateShowCurrent : true,
+      tokenRateShowAvg: typeof r.general?.tokenRateShowAvg === 'boolean' ? r.general.tokenRateShowAvg : true,
+      tokenRateShowMax: typeof r.general?.tokenRateShowMax === 'boolean' ? r.general.tokenRateShowMax : true,
     },
     quota: {
       claudeSettingsPath: typeof r.quota?.claudeSettingsPath === 'string' && r.quota.claudeSettingsPath.trim() !== ''
@@ -901,6 +911,10 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.general.quickReplyShowAllOptions !== 'boolean') return 'general.quickReplyShowAllOptions は boolean である必要があります';
   if (typeof cfg.general.quickReplyEnabled !== 'boolean') return 'general.quickReplyEnabled は boolean である必要があります';
   if (typeof cfg.general.tokenRateEnabled !== 'boolean') return 'general.tokenRateEnabled は boolean である必要があります';
+  if (typeof cfg.general.tokenRateShowTtft !== 'boolean') return 'general.tokenRateShowTtft は boolean である必要があります';
+  if (typeof cfg.general.tokenRateShowCurrent !== 'boolean') return 'general.tokenRateShowCurrent は boolean である必要があります';
+  if (typeof cfg.general.tokenRateShowAvg !== 'boolean') return 'general.tokenRateShowAvg は boolean である必要があります';
+  if (typeof cfg.general.tokenRateShowMax !== 'boolean') return 'general.tokenRateShowMax は boolean である必要があります';
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';
