@@ -51,6 +51,39 @@ describe('extractMdText: 記号正規化（v0.32.1 ハッシュタグ等を読�
     expect(out).toContain('data test file');
     expect(out).not.toContain('/');
   });
+
+  it('ハイフン・ダッシュ（- ‐ – — ―）を読まない（空白に置換）', () => {
+    const out = extractMdText('東京‐大阪間の e-mail とサブ—タイトル、A–B、C―D、スター‐', T);
+    expect(out).not.toMatch(/[-‐‒–—―]/);
+    expect(out).toContain('東京 大阪間');
+    expect(out).toContain('e mail');
+  });
+
+  it('インラインコードのバッククォート ` を読まない', () => {
+    const out = extractMdText('変数は `config` です', T);
+    expect(out).toContain('config');
+    expect(out).not.toContain('`');
+  });
+
+  it('引用の行頭 > を読まない', () => {
+    const out = extractMdText('> 引用文です\n本文', T);
+    expect(out).toContain('引用文です');
+    expect(out).not.toMatch(/>/);
+  });
+
+  it('パイプ | を読まない（空白に置換）', () => {
+    const out = extractMdText('A | B の表', T);
+    expect(out).toContain('A B の表');
+    expect(out).not.toContain('|');
+  });
+
+  it('残存記号（* _ ~）を読まない', () => {
+    const out = extractMdText('snake_case と star* と wave~ です', T);
+    expect(out).toContain('snake case');
+    expect(out).toContain('star');
+    expect(out).toContain('wave');
+    expect(out).not.toMatch(/[*_~]/);
+  });
 });
 
 describe('extractMdText', () => {
