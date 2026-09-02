@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.33.2] - 2026-09-02 — MD 読み上げハイライト DOM 配線バグ修正（F-028）
+
+### Fixed
+
+- **MD 読み上げ時のマーカー・オーバーレイが表示されない重大バグ修正**:
+  v0.33.0/v0.33.1 で `mdReadState.setActiveIdx(idx)` が呼ばれても、Preview DOM に `<span>` を注入する配線と Floating Overlay を mount する配線が `setup.ts` に欠落していた。state 単体テストは通っていたが**統合層が未配線** だった。
+  - `setupMdReadHighlight` の `mdReadState.subscribe` を拡張し、以下を配線：
+    - `register(filePath, chunks)` → 該当 MD view の Preview に `mountOverlay`
+    - `setActiveIdx(idx)` 変化 → `highlightChunkInPreview(view, chunk)` + overlay の `N/M` 進捗更新
+    - `phase='completed'/'cleared'` → overlay unmount + state cleanup
+    - ⏸/▶/⏭/🔇 ハンドラ実装（🔇は `stopAllPlayback`、⏭は `nextHeadingIndex` A 案）
+- **SettingTab UI の version バンプ反映漏れ修正**:
+  v0.33.1 でソースに追加した SettingTab UI（「MD 読み上げハイライト」セクション・色 hex 入力・CSS 変数バインド）が `manifest.json` / `package.json` の version 同期とれず未デプロイだった。v0.33.2 で `--cb-md-read-highlight` CSS 変数経由で色反映を有効化。
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **910 件 PASS**（v0.33.0 の 901 件 + 新規 9 件：setup.test.ts に DOM 配線テスト 2 件追加 + captureApp mock 拡張） |
+| 影響範囲 | `src/features/tts/md-read-highlight/setup.ts`（主な修正）/ `tests/features/tts/md-read-highlight/setup.test.ts` |
+| F-番号 | F-028（変更なし）|
+| バージョン | `0.33.0/0.33.1` → `0.33.2` |
+
+---
+
 ## [0.33.0] - 2026-09-02 — MD 読み上げ位置ハイライト（F-028）
 
 ### Added
