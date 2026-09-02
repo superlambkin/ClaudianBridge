@@ -100,7 +100,7 @@ describe('setupMdReadHighlight', () => {
     expect(mockedClearAllForFile).not.toHaveBeenCalled();
   });
 
-  it('mdReadState.subscribe(handler) を呼び、handler は state.phase="completed" で clearAllForFile を発火', () => {
+  it('mdReadState.subscribe(handler) を呼び、phase="playing"/"paused" で clearAllForFile は呼ばれない', () => {
     const subscribeSpy = vi.spyOn(mdReadState, 'subscribe');
     const captured = captureApp();
     setupMdReadHighlight(captured.app as never, makeStore() as never);
@@ -109,14 +109,11 @@ describe('setupMdReadHighlight', () => {
     // subscribe した handler を取り出す
     const registeredHandler = subscribeSpy.mock.calls[0][0] as (s: { phase: string }) => void;
 
-    // phase="completed" のとき clearAllForFile 発火
-    registeredHandler({ phase: 'completed' });
-    expect(mockedClearAllForFile).toHaveBeenCalledTimes(1);
-
-    // phase="playing" / "paused" などは no-op
-    mockedClearAllForFile.mockClear();
+    // phase="playing" / "paused" / "completed" のいずれも clearAllForFile は呼ばれない
+    // （v0.33.3 修正: 完了しても overlay は残し、layout-change または cleared で閉じる）
     registeredHandler({ phase: 'playing' });
     registeredHandler({ phase: 'paused' });
+    registeredHandler({ phase: 'completed' });
     expect(mockedClearAllForFile).not.toHaveBeenCalled();
   });
 
