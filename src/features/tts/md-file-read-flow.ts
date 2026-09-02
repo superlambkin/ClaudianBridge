@@ -16,12 +16,15 @@ import type { ConfigStore } from '../../core/config-store';
 import type { ClaudianBridgeSettings } from '../../core/settings';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import { speakText, resolveSpeechFilter } from './speak';
+import { filterSpeechText } from './speech-filter';
+import { chunkText } from './chunking';
 import { extractMdText } from './md-file-read';
 import {
-  prepareMdRead,
   finalizeMdRead,
   createChunkStartHook,
 } from './md-read-highlight/runtime';
+import { mdReadState } from './md-read-highlight/state';
+import { normalizeForMatch } from './md-read-highlight/match';
 import { openInPreview } from './md-read-highlight/open-in-preview-flow';
 
 export { openInPreview };
@@ -53,11 +56,31 @@ export async function addMdToTts(
   const text = extractMdText(content, filter);
 
   // 3. F-028: state 登録（ハイライトが enabled の場合のみ）
+  // v0.32.9 修正: これまで buildChunks（行パッキング分割）で chunks を作って
+  // いたが、TTS 本体（core.ts）は filterSpeechText + chunkText（句点区切り
+  // パッキング）で別アルゴリズム分割するため、500 字超の文書で index が
+  // ズレ／範囲外になり下線が止まっていた。TTS と完全に同一の分割結果から
+  // chunks を生成し、onChunkStart の index を完全一致させる。
   const hlEnabled = cfg.tts.mdReadHighlight?.enabled !== false;
   if (hlEnabled) {
     const engineForChunk = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
     const chunkMax = cfg.tts.chunkMaxChars?.[engineForChunk] ?? (engineForChunk === 'edge' ? 500 : 140);
-    prepareMdRead({ enabled: hlEnabled, filePath, content, filteredText: text, chunkMax });
+    // speakText と同じフィルタを適用（最終的に core に渡るテキストを再現）
+    const optimized = filterSpeechText(text.trim(), filter);
+    const ttsChunks = chunkMax > 0 && optimized.length > chunkMax
+      ? chunkText(optimized, chunkMax)
+      : [optimized];
+    const anchors = ttsChunks.map((t) => {
+      const a = normalizeForMatch(t);
+      return (a || t).slice(0, 24);
+    });
+    mdReadState.register(filePath, anchors.map((anchor, i) => ({
+      index: i,
+      startLine: 0,
+      anchor,
+      text: ttsChunks[i],
+      headingLevel: 0 as const,
+    })));
   }
 
   // 4. speakText 実行（onChunkStart でハイライト連動）
