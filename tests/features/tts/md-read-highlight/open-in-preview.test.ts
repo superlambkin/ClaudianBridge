@@ -24,7 +24,7 @@ describe('openInPreview (v0.33.4)', () => {
     return { view, setState, getMode };
   }
 
-  it('openLinkText でファイルを開く → 該当 view の Live Preview モードに切替（source → live）', async () => {
+  it('openLinkText でファイルを開く → 該当 view の Preview（読書）モードに切替（source → preview）', async () => {
     const { view, setState } = makeView('source');
 
     const app = {
@@ -44,12 +44,12 @@ describe('openInPreview (v0.33.4)', () => {
     expect(app.workspace.openLinkText).toHaveBeenCalledWith('/a.md', '', false);
     // 2. setActiveLeaf で焦点
     expect(app.workspace.setActiveLeaf).toHaveBeenCalled();
-    // 3. setState で Live Preview モードへ
-    expect(setState).toHaveBeenCalledWith({ state: 'live' }, expect.anything());
+    // 3. setState で Preview モードへ
+    expect(setState).toHaveBeenCalledWith({ state: 'preview' }, expect.anything());
   });
 
-  it('既に live モードなら setState は呼ばない（不要な再 render を防ぐ）', async () => {
-    const { view, setState } = makeView('live');
+  it('既に preview モードなら setState は呼ばない（不要な再 render を防ぐ）', async () => {
+    const { view, setState } = makeView('preview');
 
     const app = {
       workspace: {
