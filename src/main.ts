@@ -10,7 +10,8 @@ import { setupMessageReadButtons } from './features/tts/message-read-button';
 import { setupInputAiReadButton } from './features/tts/input-ai-read-button';
 import { setupMdFileRead } from './features/tts/md-file-read';
 import { setupMdReadHighlight } from './features/tts/md-read-highlight';
-import { mdReadEditorHighlight } from './features/tts/md-read-highlight/editor-highlight';
+// v0.33.10 緊急無効化: registerEditorExtension が MD オープン失敗を引き起こすため
+// import { mdReadEditorHighlight } from './features/tts/md-read-highlight/editor-highlight';
 import { setupMdSaveButton } from './features/memory/md-save-button';
 import { setupMessageMdSaveButtons } from './features/memory/message-md-save-button';
 import { polishInstruction } from './features/llm/claude-cli';
@@ -312,9 +313,12 @@ export default class ClaudianBridgePlugin extends Plugin {
       this.register(setupMdReadHighlight(this.app, this.store));
       diag('md-read-highlight setup registered');
 
-      // ★ v0.33.8 (F-028): Live Preview / Source 用・検索ハイライト方式の装飾
-      this.registerEditorExtension([mdReadEditorHighlight]);
-      diag('md-read-highlight editor extension registered');
+      // 🚨 v0.33.10 緊急無効化: registerEditorExtension で MD が開けなくなる
+      // 重大不具合が発生（CM6 モジュール二重バンドルが原因の疑い）。
+      // Live Preview ハイライトは将来、@codemirror の externals 設定を
+      // 検証した上で再導入する。
+      // this.registerEditorExtension([mdReadEditorHighlight]);
+      // diag('md-read-highlight editor extension registered');
 
       // 6. Chroma Inspector 統合: registerView + ribbon/command
       // chroma-inspector プラグインは disableLegacyPluginsOnce() で先に無効化済みなので
