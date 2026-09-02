@@ -21,7 +21,12 @@ interface MarkdownViewLike {
   file?: { path?: string } | null;
   previewMode?: { containerEl?: HTMLElement };
   getMode?: () => string;
-  setState?: (state: { state?: string }, opts?: { focus?: boolean }) => void;
+}
+
+/** leaf の最小 shape（setViewState で読書モードを強制する） */
+interface LeafLike {
+  view: MarkdownViewLike;
+  setViewState?: (state: unknown) => Promise<void>;
 }
 
 export async function openInPreview(app: App, filePath: string): Promise<void> {
@@ -40,22 +45,31 @@ export async function openInPreview(app: App, filePath: string): Promise<void> {
     .find((l) => {
       const v = (l.view as unknown as MarkdownViewLike);
       return v?.file?.path === filePath;
-    });
+    }) as unknown as LeafLike | undefined;
   if (!targetLeaf) return;
 
   // 3. 前面化
   app.workspace.setActiveLeaf(targetLeaf as never, { focus: true } as never);
 
-  // 4. Preview（読書）モードに切替（v0.33.7 確定: Live Preview では
-  // previewMode.containerEl が空のためハイライト不可）
-  const view = (targetLeaf.view as unknown) as MarkdownViewLike;
+  // 4. 読書（Preview）モードに切替。
+  // v0.32.7 修正: これまで使っていた view.setState({state:'preview'}) は
+  // Obsidian の正式な状態キー（state.markdown / setViewState の mode）と
+  // 異なるため実機では切替が効かず、Live Preview のまま → previewMode が空
+  // → 下線が表示されない原因だった。正式 API の leaf.setViewState を使う。
+  const view = targetLeaf.view;
   if (view.getMode && view.getMode() !== 'preview') {
-    view.setState?.({ state: 'preview' }, { focus: true });
+    try {
+      await targetLeaf.setViewState?.({
+        type: 'markdown',
+        state: { file: filePath, mode: 'preview' },
+      });
+    } catch (e) {
+      console.warn('[cb-md-read-highlight] setViewState failed:', e);
+    }
   }
 
-  // 5. Preview DOM の render 待ち（v0.32.4 強化: 最大 2.5 秒ポーリング）
+  // 5. Preview DOM の render 待ち（最大 2.5 秒ポーリング）
   // previewMode.containerEl 内に実コンテンツ（p/h1/h2/li 等）が出るまで待つ。
-  // 固定 200ms では大文書の render に追いつかず、初回ハイライトが無かった。
   const container = view.previewMode?.containerEl;
   if (container) {
     const deadline = Date.now() + 2500;

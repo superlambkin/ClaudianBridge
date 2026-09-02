@@ -24,13 +24,15 @@ describe('openInPreview (v0.33.4)', () => {
     return { view, setState, getMode };
   }
 
-  it('openLinkText でファイルを開く → 該当 view の Preview（読書）モードに切替（source → preview）', async () => {
+  it('openLinkText でファイルを開く → leaf.setViewState で読書モード（preview）に切替（v0.32.7 正式 API）', async () => {
     const { view, setState } = makeView('source');
+    const setViewState = vi.fn().mockResolvedValue(undefined);
+    const leaf = { view, setViewState };
 
     const app = {
       workspace: {
         openLinkText: vi.fn().mockResolvedValue(undefined),
-        getLeavesOfType: vi.fn(() => [{ view }]),
+        getLeavesOfType: vi.fn(() => [leaf]),
         setActiveLeaf: vi.fn(),
       },
       vault: {
@@ -44,8 +46,15 @@ describe('openInPreview (v0.33.4)', () => {
     expect(app.workspace.openLinkText).toHaveBeenCalledWith('/a.md', '', false);
     // 2. setActiveLeaf で焦点
     expect(app.workspace.setActiveLeaf).toHaveBeenCalled();
-    // 3. setState で Preview モードへ
-    expect(setState).toHaveBeenCalledWith({ state: 'preview' }, expect.anything());
+    // 3. v0.32.7: setState（無効キーの疑い）ではなく leaf.setViewState を使用
+    expect(setViewState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'markdown',
+        state: expect.objectContaining({ file: '/a.md', mode: 'preview' }),
+      }),
+    );
+    // setState は廃止
+    expect(setState).not.toHaveBeenCalled();
   });
 
   it('既に preview モードなら setState は呼ばない（不要な再 render を防ぐ）', async () => {

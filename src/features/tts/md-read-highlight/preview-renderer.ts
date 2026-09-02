@@ -102,6 +102,11 @@ export function highlightChunkInPreview(view: PreviewLike, chunk: MdReadChunkAnc
   if (!anchor) return false;
 
   const { norm, map, nodes } = buildDomIndex(container);
+  if (nodes.length === 0) {
+    // v0.32.7: コンテナにテキスト無し → 読書モード以外で再生している疑い
+    console.log('[cb-md-read-highlight] container has no text nodes — is the view in Reading mode?');
+    return false;
+  }
   const pos = norm.indexOf(anchor);
   if (pos < 0 || pos + anchor.length > map.length) {
     // v0.32.6: 不一致時の診断ログ（実機確認用）
