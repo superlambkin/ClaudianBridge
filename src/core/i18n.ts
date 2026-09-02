@@ -152,7 +152,7 @@ export interface LocaleStrings {
   ttsSpeechFilterThinking: string;
   // v0.18.1: ツール呼び出し除外
   ttsSpeechFilterToolCommands: string;
-  // v0.31.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
+  // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
   ttsMdReadHighlightEnabled: string;
   ttsMdReadHighlightHighlightColor: string;
   ttsMdReadOverlayPause: string;
@@ -483,7 +483,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterCode: 'コードブロック',
     ttsSpeechFilterThinking: '思考ブロック',
     ttsSpeechFilterToolCommands: 'ツール呼び出し',
-    // v0.31.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
+    // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
     ttsMdReadHighlightEnabled: 'MD 読み上げ時にチャンク位置をハイライト',
     ttsMdReadHighlightHighlightColor: 'ハイライト色',
     ttsMdReadOverlayPause: '一時停止',
@@ -810,7 +810,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterCode: 'Code block',
     ttsSpeechFilterThinking: 'Thinking block',
     ttsSpeechFilterToolCommands: 'Tool calls',
-    // v0.31.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
+    // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
     ttsMdReadHighlightEnabled: 'Highlight reading position in MD Preview',
     ttsMdReadHighlightHighlightColor: 'Highlight color',
     ttsMdReadOverlayPause: 'Pause',
@@ -1132,7 +1132,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterCode: '代码块',
     ttsSpeechFilterThinking: '思考块',
     ttsSpeechFilterToolCommands: '工具调用',
-    // v0.31.0 (F-028): MD 读取位置高亮 / Floating Overlay
+    // v0.33.0 (F-028): MD 读取位置高亮 / Floating Overlay
     ttsMdReadHighlightEnabled: '在 MD 朗读时高亮当前分块位置',
     ttsMdReadHighlightHighlightColor: '高亮颜色',
     ttsMdReadOverlayPause: '暂停',
