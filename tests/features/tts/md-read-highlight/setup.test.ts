@@ -15,12 +15,13 @@ interface AppMock {
   workspace: {
     on: ReturnType<typeof vi.fn>;
     offref: ReturnType<typeof vi.fn>;
+    getLeavesOfType: ReturnType<typeof vi.fn>;
   };
 }
 
 function makeApp(): AppMock {
   return {
-    workspace: { on: vi.fn(), offref: vi.fn() },
+    workspace: { on: vi.fn(), offref: vi.fn(), getLeavesOfType: vi.fn().mockReturnValue([]) },
   };
 }
 
@@ -49,6 +50,7 @@ function captureApp(): CaptureResult {
         return ref;
       }),
       offref: offrefs,
+      getLeavesOfType: vi.fn().mockReturnValue([]),
     },
   };
   return { app, handlers, eventRefs, offrefs };
@@ -141,5 +143,81 @@ describe('setupMdReadHighlight', () => {
 
     // 1 番目の引数として渡された app が captured.app と一致
     expect(mockedClearAllForFile).toHaveBeenCalledWith(captured.app);
+  });
+
+  /** 以下、F-028 ハイライト・overlay 配線のバグ修正 RED テスト */
+
+  function makePreviewContainer(): HTMLElement {
+    document.body.innerHTML = '';
+    const c = document.createElement('div');
+    document.body.appendChild(c);
+    return c;
+  }
+
+  it('mdReadState.setActiveIdx → Preview DOM に chunk span が作られる（ハイライト配線）', () => {
+    const container = makePreviewContainer();
+    container.innerHTML = '<p>Hello world. This is a test paragraph.</p>';
+
+    // getLeavesOfType がこの preview を持つ leaf を返すよう mock
+    const app = {
+      workspace: {
+        on: vi.fn().mockReturnValue({}),
+        offref: vi.fn(),
+        getLeavesOfType: vi.fn((type: string) => {
+          if (type !== 'markdown') return [];
+          return [{
+            view: {
+              previewMode: { containerEl: container },
+              file: { path: '/a.md' },
+            },
+          }];
+        }),
+      },
+    };
+
+    setupMdReadHighlight(app as never, makeStore() as never);
+
+    // filePath / chunk[0].anchor = 'Hello world.' で overlay + chunk span が作られる
+    mdReadState.register('/a.md', [
+      { index: 0, startLine: 0, anchor: 'Hello world.', text: 'Hello world. This is a test paragraph.', headingLevel: 0 },
+      { index: 1, startLine: 1, anchor: 'another', text: 'another paragraph', headingLevel: 0 },
+    ]);
+    mdReadState.setActiveIdx(0);
+
+    expect(container.querySelector('.cb-md-read-overlay')).not.toBeNull();
+    expect(container.querySelector('.cb-md-read-chunk.is-active')).not.toBeNull();
+  });
+
+  it('overlay の [data-cb-md-read-progress] に "currentIndex/total" が反映される', () => {
+    const container = makePreviewContainer();
+    container.innerHTML = '<p>Hello world. This is a test paragraph.</p>';
+
+    const app = {
+      workspace: {
+        on: vi.fn().mockReturnValue({}),
+        offref: vi.fn(),
+        getLeavesOfType: vi.fn((type: string) =>
+          type === 'markdown' ? [{
+            view: { previewMode: { containerEl: container }, file: { path: '/a.md' } },
+          }] : [],
+        ),
+      },
+    };
+
+    setupMdReadHighlight(app as never, makeStore() as never);
+    mdReadState.register('/a.md', [
+      { index: 0, startLine: 0, anchor: 'Hello', text: 'Hello world. This is paragraph 1.', headingLevel: 0 },
+      { index: 1, startLine: 1, anchor: 'world.', text: 'world. This is paragraph 2.', headingLevel: 0 },
+      { index: 2, startLine: 2, anchor: 'third', text: 'third paragraph', headingLevel: 0 },
+    ]);
+
+    mdReadState.setActiveIdx(0);
+    expect(container.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('1/3');
+
+    mdReadState.setActiveIdx(1);
+    expect(container.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('2/3');
+
+    mdReadState.setActiveIdx(2);
+    expect(container.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('3/3');
   });
 });
