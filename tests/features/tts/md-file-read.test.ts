@@ -6,6 +6,53 @@ import type { SpeechFilterOptions } from '../../../src/core/settings';
 
 const T: SpeechFilterOptions = { ...DEFAULT_SPEECH_FILTER_OPTIONS }; // table=true 他 false
 
+describe('extractMdText: 記号正規化（v0.32.1 ハッシュタグ等を読まない）', () => {
+  it('見出しの # を除去する', () => {
+    const out = extractMdText('# 大見出し\n本文', T);
+    expect(out).toContain('大見出し');
+    expect(out).not.toMatch(/#/);
+  });
+
+  it('ハッシュタグ（#タグ）を除去する', () => {
+    const out = extractMdText('本文です #タグ名 #日本語タグ 続き', T);
+    expect(out).toContain('本文です');
+    expect(out).toContain('続き');
+    expect(out).not.toContain('#タグ名');
+    expect(out).not.toContain('#日本語タグ');
+  });
+
+  it('wikilink はエイリアス（またはファイル名）だけ読む', () => {
+    expect(extractMdText('参考は [[ノート|エイリアス]] です', T)).toContain('エイリアス');
+    expect(extractMdText('参考は [[ノート]] です', T)).toContain('ノート');
+    expect(extractMdText('参考は [[ノート|エイリアス]] です', T)).not.toContain('[[');
+  });
+
+  it('markdown リンクはテキストだけ読む（URL を読まない）', () => {
+    const out = extractMdText('詳細は [Google](https://example.com/a/b) 参照', T);
+    expect(out).toContain('Google');
+    expect(out).not.toContain('https://');
+  });
+
+  it('強調記号（** と ~~）を除去する', () => {
+    const out = extractMdText('**重要**と~~取消~~です', T);
+    expect(out).toContain('重要');
+    expect(out).toContain('取消');
+    expect(out).not.toMatch(/\*\*|~~/);
+  });
+
+  it('リストマーカー（- ）を除去する', () => {
+    const out = extractMdText('- 項目1\n- 項目2', T);
+    expect(out).toContain('項目1');
+    expect(out).not.toMatch(/^-/m);
+  });
+
+  it('スラッシュ / を読まない（空白に置換）', () => {
+    const out = extractMdText('パスは data/test/file です', T);
+    expect(out).toContain('data test file');
+    expect(out).not.toContain('/');
+  });
+});
+
 describe('extractMdText', () => {
   it('frontmatter を除去する', () => {
     const md = '---\ntitle: テスト\n---\n本文です';
