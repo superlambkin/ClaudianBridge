@@ -160,6 +160,8 @@ export interface LocaleStrings {
   ttsMdReadOverlaySkipToHeading: string;
   ttsMdReadOverlayMute: string;
   ttsMdReadOverlayNoPreview: string;
+  // v0.33.6: 互換用（旧キー参照が残る場合に備え noPreview → noLivePreview 追加）
+  // 既存 ttsMdReadOverlayNoPreview を流用
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;

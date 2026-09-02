@@ -46,10 +46,10 @@ export async function openInPreview(app: App, filePath: string): Promise<void> {
   // 3. 前面化
   app.workspace.setActiveLeaf(targetLeaf as never, { focus: true } as never);
 
-  // 4. Preview モードに切替（既に preview なら何もしない）
+  // 4. Live Preview モードに切替（v0.33.6: ご主人様指示）
   const view = (targetLeaf.view as unknown) as MarkdownViewLike;
-  if (view.getMode && view.getMode() !== 'preview') {
-    view.setState?.({ state: 'preview' }, { focus: true });
+  if (view.getMode && view.getMode() !== 'live') {
+    view.setState?.({ state: 'live' }, { focus: true });
   }
 
   // 5. 1 tick 待って preview DOM の render を待つ
