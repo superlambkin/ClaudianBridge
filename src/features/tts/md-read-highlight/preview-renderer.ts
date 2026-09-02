@@ -10,6 +10,23 @@ interface PreviewLike {
   previewMode?: { containerEl: HTMLElement };
 }
 
+/**
+ * v0.32.9: 失敗原因を 1 セッション 1 回だけ Notice で通知する。
+ * （毎回だと読み上げ中にトーストが連発するため初回のみ。DevTools を開かなくても
+ * ご主人様が原因カテゴリを報告できるようにする目的）
+ */
+let failureNoticeShown = false;
+function notifyOnce(msg: string): void {
+  if (failureNoticeShown) return;
+  failureNoticeShown = true;
+  try {
+    // 遅延 import を避けるため動的 import（Obsidian 環境では同梱済み）
+    void import('obsidian').then(({ Notice }) => new Notice(msg, 8000));
+  } catch {
+    /* Notice 不可環境では console ログのみ */
+  }
+}
+
 /** 既存のアクティブ span を全て非アクティブ化 */
 function deactivateAll(container: HTMLElement): void {
   container
@@ -105,12 +122,14 @@ export function highlightChunkInPreview(view: PreviewLike, chunk: MdReadChunkAnc
   if (nodes.length === 0) {
     // v0.32.7: コンテナにテキスト無し → 読書モード以外で再生している疑い
     console.log('[cb-md-read-highlight] container has no text nodes — is the view in Reading mode?');
+    notifyOnce('⚠️ 下線表示: 読書モードで開けていない可能性があります（Console: no text nodes）');
     return false;
   }
   const pos = norm.indexOf(anchor);
   if (pos < 0 || pos + anchor.length > map.length) {
     // v0.32.6: 不一致時の診断ログ（実機確認用）
     console.log('[cb-md-read-highlight] anchor not matched:', JSON.stringify(anchor.slice(0, 20)), 'norm head:', JSON.stringify(norm.slice(0, 40)));
+    notifyOnce('⚠️ 下線表示: テキスト照合に失敗しました（Console: anchor not matched）');
     return false;
   }
 
