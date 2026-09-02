@@ -57,13 +57,15 @@ describe('openInPreview (v0.33.4)', () => {
     expect(setState).not.toHaveBeenCalled();
   });
 
-  it('既に preview モードなら setState は呼ばない（不要な再 render を防ぐ）', async () => {
+  it('既に preview モードなら setViewState も呼ばない（不要な再 render を防ぐ）', async () => {
     const { view, setState } = makeView('preview');
+    const setViewState = vi.fn().mockResolvedValue(undefined);
+    const leaf = { view, setViewState };
 
     const app = {
       workspace: {
         openLinkText: vi.fn().mockResolvedValue(undefined),
-        getLeavesOfType: vi.fn(() => [{ view }]),
+        getLeavesOfType: vi.fn(() => [leaf]),
         setActiveLeaf: vi.fn(),
       },
       vault: {
@@ -73,7 +75,46 @@ describe('openInPreview (v0.33.4)', () => {
 
     await openInPreview(app as never, '/a.md');
 
+    expect(setViewState).not.toHaveBeenCalled();
     expect(setState).not.toHaveBeenCalled();
+  });
+
+  it('setViewState 後に view が再生成されても、新しい containerEl の render を待つ（v0.32.8）', async () => {
+    const oldView = makeView('source').view;
+    // setViewState 呼び出し後に leaf.view を新しいインスタンスへ差し替え
+    const newContainer = document.createElement('div');
+    newContainer.innerHTML = '<p>新ビューのコンテンツ</p>';
+    const newView = {
+      file: { path: '/a.md' },
+      previewMode: { containerEl: newContainer },
+      getMode: () => 'preview',
+      setState: vi.fn(),
+    };
+    const setViewState = vi.fn().mockImplementation(async () => {
+      leaf.view = newView;
+    });
+    const leaf: { view: unknown; setViewState: ReturnType<typeof vi.fn> } = {
+      view: oldView,
+      setViewState,
+    };
+
+    const app = {
+      workspace: {
+        openLinkText: vi.fn().mockResolvedValue(undefined),
+        getLeavesOfType: vi.fn(() => [leaf]),
+        setActiveLeaf: vi.fn(),
+      },
+      vault: {
+        getAbstractFileByPath: vi.fn().mockReturnValue({ path: '/a.md' }),
+      },
+    };
+
+    const start = Date.now();
+    await openInPreview(app as never, '/a.md');
+    const elapsed = Date.now() - start;
+
+    // 新 containerEl の render を検出して即抜ける（2.5 秒待たない）
+    expect(elapsed).toBeLessThan(2000);
   });
 
   it('ファイルが見つからないとき Notice を表示して早期 return', async () => {
