@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.33.0] - 2026-09-02 — MD 読み上げ位置ハイライト（F-028）
+
+### Added
+
+- **MD 読み上げ位置ハイライト**: MD ファイル右クリック「Add to TTS」で本文を読み上げる際、**Obsidian Preview 表示中のチャンク位置に背景色ハイライト**を表示
+- **フローティングオーバーレイ**: Preview 右上に再生コントロール（⏸ 一時停止 / ▶ 再開 / ⏭ 次の見出しスキップ / 🔇 ミュート / N-M 進捗）を表示
+- **見出しスキップ**: ⏭ クリックで「最後の見出し境界」へジャンプ（A 案・テスト優先で確定）
+- **設定スキーマ**: `tts.mdReadHighlight: { enabled: boolean, highlightColor: string }` を追加（既定 ON）
+
+### Changed
+
+- `speakChunks(chunks, speakFn, onCancel?, onChunkStart?)` に onChunkStart hook を追加（既存呼び出しは後方互換）
+- `speakText(...).SpeakTextOpts.onChunkStart` と `addTextToTTS` の第 4 引数で連動（既存経路を壊さずチャンク単位コールバックを追加）
+- `workspace.on('layout-change')` でレイアウト変化時（タブクローズ等）に state とハイライトをクリア（`file-close` は Obsidian 型定義に無いため代替）
+
+### Fixed
+
+- なし（purely additive）
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **901 件 PASS**（v0.32.0 の 887 件 + 新規 14 件） |
+| 影響範囲 | `src/features/tts/md-read-highlight/`（types / state / anchor / preview-renderer / floating-overlay / heading-skip / runtime / cleanup / setup / index）/ `src/features/tts/{chunking,speak,core,md-file-read}.ts` / `src/main.ts` / `styles.css` |
+| F-番号 | **F-028**（F-027 の次）|
+| 関連文書 | [[../../Obsidian Vault/80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-09-02-md-read-position-highlight-design\|設計書]] / [[../../Obsidian Vault/80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/2026-09-02-md-read-position-highlight-plan\|実装計画]] |
+
 ## [0.32.0] - 2026-09-02 — トークン速度表示の更新周期設定
 
 ### Added
