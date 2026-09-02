@@ -26,13 +26,46 @@ const CALLOUT_BLOCK_RE = />\s*\[![\s\S]*?(?=\r?\n(?!\s*>)|$)/g;
 /** テーブル行（| 区切りの連続行 + 区切り行）。各行の終端は改行または行末（$）のどちらも許容 */
 const TABLE_BLOCK_RE = /^\s*\|.*\|[ \t]*(?:\r?\n|$)(?:^\s*\|[\s:|-]*\|[ \t]*(?:\r?\n|$))?(?:^\s*\|.*\|[ \t]*(?:\r?\n|$))*/gm;
 
-/** MD 本文を抽出（filter の false 項目を除去） */
+/* ============================================================================
+ * v0.33.9: 記号正規化（ハッシュタグ・記号を読み上げない）
+ * ========================================================================== */
+
+/** 見出し行頭の #（#### タイトル → タイトル） */
+const HEADING_MARK_RE = /^\s{0,3}#{1,6}\s+/gm;
+/** ハッシュタグ（#タグ・#日本語タグ → 除去） */
+const HASHTAG_RE = /(^|\s)#[^\s#、。！？]+/g;
+/** wikilink [[path|alias]] → alias / [[path]] → path */
+const WIKILINK_RE = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+/** markdown link [text](url) → text */
+const MD_LINK_RE = /\[([^\]]+)\]\([^)]*\)/g;
+/** 強調記号（**bold** / ~~strike~~ / *em* / _em_） */
+const EMPHASIS_RE = /\*\*([^*]+)\*\*|~~([^~]+)~~|\*([^*]+)\*|_([^_]+)_/g;
+/** リストマーカー（行頭 "- " / "* "） */
+const LIST_MARKER_RE = /^\s{0,3}[-*]\s+/gm;
+/** スラッシュ（読み上げ防止 → 空白） */
+const SLASH_RE = /\//g;
+
+/** 読み上げ用に MD 記号を正規化する（v0.33.9） */
+export function normalizeMdForSpeech(t: string): string {
+  return t
+    .replace(WIKILINK_RE, (_m, path: string, alias?: string) => alias ?? path)
+    .replace(MD_LINK_RE, '$1')
+    .replace(HEADING_MARK_RE, '')
+    .replace(HASHTAG_RE, '$1')
+    .replace(EMPHASIS_RE, (_m, b?: string, s?: string, e1?: string, e2?: string) => b ?? s ?? e1 ?? e2 ?? '')
+    .replace(LIST_MARKER_RE, '')
+    .replace(SLASH_RE, ' ');
+}
+
+/** MD 本文を抽出（filter の false 項目を除去 + 記号正規化） */
 export function extractMdText(md: string, filter: SpeechFilterOptions): string {
   let t = md;
   t = t.replace(FRONTMATTER_RE, '');
   if (!filter.code) t = t.replace(CODE_FENCE_RE, ' ');
   if (!filter.callout) t = t.replace(CALLOUT_BLOCK_RE, ' ');
   if (!filter.table) t = t.replace(TABLE_BLOCK_RE, ' ');
+  // v0.33.9: ハッシュタグ・記号を読み上げない
+  t = normalizeMdForSpeech(t);
   return t.trim();
 }
 
