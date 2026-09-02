@@ -93,17 +93,21 @@ function wrapRange(node: Text, from: number, to: number, chunkIndex: number): HT
  * anchor（記号フィルタ後テキスト）を、DOM 側も同じ正規化を施した上で検索し、
  * 見つかった範囲（複数ノード跨ぎ対応）に is-active span を注入する。
  */
-export function highlightChunkInPreview(view: PreviewLike, chunk: MdReadChunkAnchor): void {
+export function highlightChunkInPreview(view: PreviewLike, chunk: MdReadChunkAnchor): boolean {
   const container = view.previewMode?.containerEl;
-  if (!container) return;
+  if (!container) return false;
   deactivateAll(container);
 
   const anchor = normalizeForMatch(chunk.anchor);
-  if (!anchor) return;
+  if (!anchor) return false;
 
   const { norm, map, nodes } = buildDomIndex(container);
   const pos = norm.indexOf(anchor);
-  if (pos < 0 || pos + anchor.length > map.length) return;
+  if (pos < 0 || pos + anchor.length > map.length) {
+    // v0.32.6: 不一致時の診断ログ（実機確認用）
+    console.log('[cb-md-read-highlight] anchor not matched:', JSON.stringify(anchor.slice(0, 20)), 'norm head:', JSON.stringify(norm.slice(0, 40)));
+    return false;
+  }
 
   const startEntry = map[pos];
   const endEntry = map[Math.min(pos + anchor.length - 1, map.length - 1)];
@@ -126,6 +130,9 @@ export function highlightChunkInPreview(view: PreviewLike, chunk: MdReadChunkAnc
   if (firstSpan && typeof firstSpan.scrollIntoView === 'function') {
     firstSpan.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
+  // v0.32.6: 一致時の診断ログ（実機確認用）
+  console.log('[cb-md-read-highlight] matched chunk', chunk.index, 'anchor:', JSON.stringify(anchor.slice(0, 20)));
+  return firstSpan !== null;
 }
 
 /** 全アクティブ + 全 wrapper を除去 */

@@ -114,7 +114,9 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
     // ハイライト + 進捗反映
     const view = findPreviewViewForFile(app, s.filePath);
     if (view && s.activeIdx >= 0 && s.chunks[s.activeIdx]) {
-      highlightChunkInPreview(view as never, s.chunks[s.activeIdx]);
+      const matched = highlightChunkInPreview(view as never, s.chunks[s.activeIdx]);
+      // v0.32.6: 診断ログ（実機確認用）
+      console.log('[cb-md-read-highlight] chunk', s.activeIdx, 'of', s.chunks.length - 1, matched ? 'underline applied' : 'NOT matched');
     }
     // v0.33.5: 進捗更新は overlay の document.body 上 span を直接 query
     // 進捗は overlay 全体の表示なので view に依存しない
