@@ -68,18 +68,23 @@ export async function openInPreview(app: App, filePath: string): Promise<void> {
     }
   }
 
-  // 5. Preview DOM の render 待ち（最大 2.5 秒ポーリング）
-  // previewMode.containerEl 内に実コンテンツ（p/h1/h2/li 等）が出るまで待つ。
-  const container = view.previewMode?.containerEl;
-  if (container) {
-    const deadline = Date.now() + 2500;
-    while (Date.now() < deadline) {
-      const hasContent = container.querySelector('p, h1, h2, h3, h4, li, td, .markdown-preview-section');
-      if (hasContent) break;
-      await new Promise<void>((r) => setTimeout(r, 50));
+  // 5. Preview DOM の render 待ち（最大 2.5 秒ポーリング）。
+  // v0.32.8 修正: setViewState 後は leaf.view が「再生成」されるため、
+  // 切替前に掴んだ古い containerEl を見ていても render が来ない。
+  // 毎ポーリングで leaf → view → containerEl を再取得する。
+  const deadline = Date.now() + 2500;
+  for (;;) {
+    const leaf = app.workspace
+      .getLeavesOfType('markdown')
+      .find((l) => {
+        const v = (l.view as unknown as MarkdownViewLike);
+        return v?.file?.path === filePath;
+      }) as unknown as LeafLike | undefined;
+    const container = leaf?.view?.previewMode?.containerEl;
+    if (container && container.querySelector('p, h1, h2, h3, h4, li, td, .markdown-preview-section')) {
+      break;
     }
-  } else {
-    // containerEl 未取得でも最低 1 tick は待つ（後続 chunk で回復するため）
-    await new Promise<void>((r) => setTimeout(r, 200));
+    if (Date.now() >= deadline) break;
+    await new Promise<void>((r) => setTimeout(r, 50));
   }
 }
