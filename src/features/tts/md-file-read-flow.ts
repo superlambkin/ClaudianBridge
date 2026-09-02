@@ -22,46 +22,9 @@ import {
   finalizeMdRead,
   createChunkStartHook,
 } from './md-read-highlight/runtime';
+import { openInPreview } from './md-read-highlight/open-in-preview-flow';
 
-/** Markdown view に対する最小 shape */
-interface MarkdownViewLike {
-  file?: { path?: string } | null;
-  previewMode?: { containerEl?: HTMLElement };
-  getMode?: () => string;
-  setState?: (state: { state?: string }, opts?: object) => void;
-}
-
-/**
- * ファイルを Preview モードで開く（既存 leaf があればそれ、なければ新 leaf）。
- * 既に preview なら setState は呼ばない（不要な re-render を防ぐ）。
- */
-export async function openInPreview(app: App, filePath: string): Promise<void> {
-  // 必ず leaf 経由で open（未 open なら新 leaf を作成）
-  const abstractFile = app.vault.getAbstractFileByPath(filePath);
-  if (!abstractFile) {
-    new Notice(`⚠️ ファイルが見つかりません: ${filePath}`);
-    return;
-  }
-  // Obsidian の MarkdownView を持つ leaf を getLeaf(false) で取得して openFile
-  const leaf = app.workspace.getLeaf(false);
-  await (leaf as unknown as { openFile: (f: typeof abstractFile) => Promise<void> }).openFile(
-    abstractFile as TFile,
-  );
-
-  // 該当 filePath の MarkdownView を探す
-  const targetLeaf = app.workspace
-    .getLeavesOfType('markdown')
-    .find((l) => ((l.view as unknown) as MarkdownViewLike)?.file?.path === filePath);
-  if (!targetLeaf) return;
-
-  app.workspace.setActiveLeaf(targetLeaf as never, { focus: true } as never);
-
-  const view = (targetLeaf.view as unknown) as MarkdownViewLike;
-  // 既に preview なら何もしない
-  if (view.getMode && view.getMode() !== 'preview') {
-    view.setState?.({ state: 'preview' }, { history: false });
-  }
-}
+export { openInPreview };
 
 /** play selection flow 経由で再生（テスト可能関数） */
 export async function addMdToTts(
@@ -79,7 +42,7 @@ export async function addMdToTts(
     return false;
   }
 
-  // 1. ファイルを開く（Preview モードへ）
+  // 1. ファイルを開く（Preview モードへ）— v0.33.4: openLinkText ベース
   await openInPreview(app, filePath);
 
   // 2. 本文取得 + フィルタ
