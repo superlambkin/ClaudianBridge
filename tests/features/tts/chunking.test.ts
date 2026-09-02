@@ -69,4 +69,34 @@ describe('speakChunks', () => {
     expect(ok).toBe(false);
     expect(speak).toHaveBeenCalledTimes(1);
   });
+
+  // v0.31.0 (F-028): 各 chunk speak 開始前に onChunkStart(idx) が呼ばれる
+  it('onChunkStart が各 chunk 開始前に index 付きで呼ばれる', async () => {
+    const speak = vi.fn().mockResolvedValue(true);
+    const hook = vi.fn();
+    const ok = await speakChunks(['a', 'b', 'c'], speak, undefined, hook);
+    expect(ok).toBe(true);
+    expect(hook).toHaveBeenCalledTimes(3);
+    expect(hook.mock.calls.map((c) => c[0])).toEqual([0, 1, 2]);
+    // speak より先に hook が呼ばれること（順序保証）
+    expect(hook.mock.invocationCallOrder[0]).toBeLessThan(speak.mock.invocationCallOrder[0]!);
+  });
+
+  it('onChunkStart 未指定でも正常動作（後方互換）', async () => {
+    const speak = vi.fn().mockResolvedValue(true);
+    const ok = await speakChunks(['a', 'b'], speak);
+    expect(ok).toBe(true);
+    expect(speak).toHaveBeenCalledTimes(2);
+  });
+
+  it('speak が false を返したら以降の onChunkStart は呼ばれない', async () => {
+    const speak = vi.fn()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    const hook = vi.fn();
+    const ok = await speakChunks(['a', 'b', 'c'], speak, undefined, hook);
+    expect(ok).toBe(false);
+    expect(hook).toHaveBeenCalledTimes(2); // 2 番目の chunk で中断
+    expect(hook.mock.calls.map((c) => c[0])).toEqual([0, 1]);
+  });
 });
