@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.32.9] - 2026-09-03 — TTS/ハイライト チャンク index 一致化 + 不一致 Notice
+
+### Fixed
+
+- **チャンク分割不一致（下線原因⑤）**: register chunks を `buildChunks`（行パッキング）から TTS 本体と同一の `filterSpeechText + chunkText` 分割に変更。500 字超の文書で index がズレて下線が停止する問題を解消
+- anchor はチャンク先頭 24 正規化文字（誤マッチ耐性）
+- **不一致時 Notice**: anchor 不一致・空コンテナ時に 1 セッション 1 回 Notice で原因カテゴリを通知（DevTools 不要）
+
+### テスト
+
+- E2E 追加: 登録 chunks = TTS 同一分割（長文 1087 字 → 3 チャンク一致）
+- **945 件 PASS** / typecheck 0
+
+## [0.32.8] - 2026-09-03 — setViewState 後の view 再生成対応（下線原因④）
+
+- `leaf.setViewState()` 後は Obsidian が `leaf.view` を再生成するため、切替前の古い `containerEl` をポーリングしても render を検出できなかった → ポーリング毎に leaf/view/containerEl を再取得
+- テスト: view 差し替えシミュレーション +1 / **944 件 PASS**
+
+## [0.32.7] - 2026-09-03 — 読書モード切替を正式 API 化（下線原因③）
+
+- `view.setState({state:'preview'})` は正式な状態キーと異なり実機で無視されていた（Live Preview 残留 → previewMode 空 → 下線なし）
+- `leaf.setViewState({type:'markdown', state:{file, mode:'preview'}})`（正式 API）に置換
+- 空コンテナ時の診断ログ追加 / **943 件 PASS**
+
+## [0.32.6] - 2026-09-03 — 下線チェーン E2E テスト + 診断ログ
+
+- E2E 統合テスト新設: addMdToTts → register → onChunkStart → mdReadState → setup subscriber → preview-renderer で「is-active 下線 span が正しい段落に生成・移動」を自動証明 + styles.css の amber 下線定義を検証
+- 診断ログ `[cb-md-read-highlight] chunk N of M underline applied / NOT matched` 追加
+- **943 件 PASS**
+
+## [0.32.5] - 2026-09-03 — quota workspace.trigger this 束縛修正
+
+- `emit()` が `workspace.trigger` を非バインド呼び出ししており、Obsidian 内部 `this._` 参照で `TypeError` が Console に出続ける問題を修正（メソッド呼び出し形式で this 束縛）
+- this 束縛検証テスト +1 / **941 件 PASS**
+
+## [0.32.4] - 2026-09-03 — 下線が出ない根本原因①②を修正
+
+- **anchor 不一致（原因①）**: anchor は記号フィルタ後テキスト、Preview DOM は元テキスト → `indexOf` 恒久不一致 → **正規化マッチング**（`match.ts` 新設・空白/記号完全除去・複数ノード跨ぎ span 対応）
+- **render 待ち不足（原因②）**: 固定 200ms → 最大 2.5 秒のコンテンツ出現ポーリング
+- `match.test.ts` +7 件 / **941 件 PASS**
+
+## [0.32.3] - 2026-09-03 — 読み上げ位置を下線表示に変更
+
+- `.cb-md-read-chunk.is-active` を背景色 → **amber `#ffb300` 下線（3px・offset 5px）** に変更（is-paused は破線）
+- F-028 安定部分（v0.33.10 = CM6 拡張無効化済み）を v0.32.2 ベースにマージ
+- **933 件 PASS**
+
+---
+
 ## [0.33.2] - 2026-09-02 — MD 読み上げハイライト DOM 配線バグ修正（F-028）
 
 ### Fixed
