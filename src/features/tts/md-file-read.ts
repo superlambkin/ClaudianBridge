@@ -41,7 +41,19 @@ const LIST_MARKER_RE = /^\s{0,3}[-*]\s+/gm;
 /** スラッシュ（読み上げ防止 → 空白） */
 const SLASH_RE = /\//g;
 
-/** 読み上げ用に MD 記号を正規化する（v0.32.1） */
+/* v0.32.2 追加: 記号類を読み上げない */
+/** ハイフン・ダッシュ類（- ‐ ‑ ‒ – — ― → 空白） */
+const DASH_RE = /[-‐‑‒–—―]/g;
+/** インラインコードのバッククォート */
+const BACKTICK_RE = /`/g;
+/** 引用の行頭 > */
+const BLOCKQUOTE_MARK_RE = /^\s{0,3}>\s?/gm;
+/** パイプ（テーブル残骸・表内区切り → 空白） */
+const PIPE_RE = /\|/g;
+/** 残存記号（* _ ~ → 空白） */
+const RESIDUAL_SYMBOL_RE = /[*_~]+/g;
+
+/** 読み上げ用に MD 記号を正規化する（v0.32.1 → v0.32.2 記号類拡張） */
 export function normalizeMdForSpeech(t: string): string {
   return t
     .replace(WIKILINK_RE, (_m, path: string, alias?: string) => alias ?? path)
@@ -50,7 +62,13 @@ export function normalizeMdForSpeech(t: string): string {
     .replace(HASHTAG_RE, '$1')
     .replace(EMPHASIS_RE, (_m, b?: string, s?: string, e1?: string, e2?: string) => b ?? s ?? e1 ?? e2 ?? '')
     .replace(LIST_MARKER_RE, '')
-    .replace(SLASH_RE, ' ');
+    .replace(BLOCKQUOTE_MARK_RE, '')
+    .replace(BACKTICK_RE, '')
+    .replace(SLASH_RE, ' ')
+    .replace(DASH_RE, ' ')
+    .replace(PIPE_RE, ' ')
+    .replace(RESIDUAL_SYMBOL_RE, ' ')
+    .replace(/[ \t]{2,}/g, ' ');
 }
 
 /** MD 本文を抽出（filter の false 項目を除去 + 記号正規化） */
