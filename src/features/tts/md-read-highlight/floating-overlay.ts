@@ -28,8 +28,11 @@ export function mountOverlay(
   view: PreviewLike,
   handlers: OverlayHandlers
 ): () => void {
-  const container = view.previewMode?.containerEl;
-  if (!container) return () => undefined;
+  // v0.33.5: overlay は document.body 直下に append
+  // （previewMode.containerEl は mode 切替時に再生成されるため
+  // overlay が孤立しやすい。position: fixed で位置は viewport 基準なので
+  // 親 DOM に依存しない → document.body 直下が堅牢）
+  void view; // 引数は将来の拡張用に保持（pre-existing API 互換）
 
   const overlay = el('div', { class: OVERLAY_CLASS });
   const pauseBtn = el('button', { 'data-cb-md-read-pause': 'true' }, '⏸');
@@ -45,7 +48,7 @@ export function mountOverlay(
   skipBtn.addEventListener('click', () => handlers.onSkip());
   muteBtn.addEventListener('click', () => handlers.onMute());
 
-  container.appendChild(overlay);
+  document.body.appendChild(overlay);
 
   return () => {
     overlay.remove();

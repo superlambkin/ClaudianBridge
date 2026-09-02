@@ -6,8 +6,11 @@
  * （overlay mount / chunk highlight / progress 更新）を行う。
  *
  * 注: 当初 design.md では 'file-close' だったが、Obsidian の Workspace.on は
- * 'file-close' を公開していない（API 型に存在しない）。タブクローズも含む
- * 'layout-change' で代替し、state が残っているときだけクリアする安全側実装。
+ * 'file-close' を公開していない（API 型に存在しない）。
+ *
+ * v0.33.5 修正: layout-change は**ファイルタブが消失した時のみ** clearAllForFile
+ * を呼ぶ。フォーカス切替や他タブオープン等の軽微な layout 変化では
+ * overlay が消えないようにする（過剰発火抑制）。
  */
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../../../core/config-store';
@@ -23,7 +26,7 @@ interface PreviewViewLike {
   file?: { path?: string } | null;
 }
 
-/** 指定 filePath の MD Preview view を探す（先頭一致）。なければ null。 */
+/** 指定 filePath の MD Preview view を探す。なければ null。 */
 function findPreviewViewForFile(app: App, filePath: string): PreviewViewLike | null {
   const leaves = app.workspace.getLeavesOfType('markdown');
   for (const leaf of leaves) {
@@ -37,10 +40,10 @@ function findPreviewViewForFile(app: App, filePath: string): PreviewViewLike | n
 
 /** overlay の [data-cb-md-read-progress] テキストを `idx+1/total` で更新 */
 function updateOverlayProgress(view: PreviewViewLike, idx: number, total: number): void {
-  const span = view.previewMode?.containerEl?.querySelector<HTMLElement>(
-    '[data-cb-md-read-progress]',
-  );
-  if (span) span.textContent = `${idx + 1}/${total}`;
+  // v0.33.5: overlay は document.body 直下にある（previewMode に依存しない）。
+  // 進捗 span は querySelector で取得。
+  const progressSpan = document.querySelector<HTMLElement>('[data-cb-md-read-progress]');
+  if (progressSpan) progressSpan.textContent = `${idx + 1}/${total}`;
 }
 
 /**
@@ -48,12 +51,24 @@ function updateOverlayProgress(view: PreviewViewLike, idx: number, total: number
  * 返り値の cleanup 関数でイベントリスナを解除する。
  */
 export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
-  // layout-change: レイアウト変化（タブクローズ等）で state があればクリア
+  // layout-change: ファイルタブ消失時のみクリア（過剰発火抑制・v0.33.5 修正）
   const layoutChangeRef = app.workspace.on('layout-change', () => {
-    if (mdReadState.get()) clearAllForFile(app);
+    const s = mdReadState.get();
+    if (!s) return;
+    const fileStillOpen = app.workspace
+      .getLeavesOfType('markdown')
+      .some((leaf) => {
+        const v = (leaf.view as unknown as PreviewViewLike);
+        return v?.file?.path === s.filePath;
+      });
+    if (!fileStillOpen) {
+      // 対象 MD のタブが完全に閉じた → state とハイライトを破棄
+      clearAllForFile(app);
+    }
+    // タブが他所に移動しただけの layout 変化では何もしない（overlay を維持）
   });
 
-  // overlay の unmount ハンドル（state.filePath 変化時・終了時に使い回す）
+  // overlay の unmount ハンドル
   let overlayCleanup: (() => void) | null = null;
   let mountedFilePath: string | null = null;
 
@@ -71,48 +86,47 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
       overlayCleanup?.();
       overlayCleanup = null;
       const view = findPreviewViewForFile(app, s.filePath);
-      if (view) {
-        overlayCleanup = mountOverlay(view as never, {
-          // v0.33.x: pause/resume は state のみ更新（実 TTS の pause は Edge系で未対応のため将来課題）
-          onPause: () => {
-            mdReadState.pause();
-          },
-          onResume: () => {
-            mdReadState.resume();
-          },
-          // A 案: 最後の見出し境界へ（隣接チャンクのみなら no-op）
-          onSkip: () => {
-            const cur = mdReadState.get();
-            if (!cur) return;
-            const nextIdx = nextHeadingIndex(cur.chunks, cur.activeIdx);
-            if (nextIdx !== cur.activeIdx) mdReadState.setActiveIdx(nextIdx);
-          },
-          // ミュート: 全 TTS 停止 + state クリア
-          onMute: () => {
-            stopAllPlayback();
-            clearAllForFile(app);
-          },
-        });
-        mountedFilePath = s.filePath;
-      }
+      // mountOverlay は常に cleanup 関数を返す（実 DOM がないときは no-op 関数）
+      overlayCleanup = mountOverlay(view as never, {
+        // v0.33.x: pause/resume は state のみ更新（実 TTS の pause は Edge系で未対応のため将来課題）
+        onPause: () => {
+          mdReadState.pause();
+        },
+        onResume: () => {
+          mdReadState.resume();
+        },
+        // A 案: 最後の見出し境界へ（隣接チャンクのみなら no-op）
+        onSkip: () => {
+          const cur = mdReadState.get();
+          if (!cur) return;
+          const nextIdx = nextHeadingIndex(cur.chunks, cur.activeIdx);
+          if (nextIdx !== cur.activeIdx) mdReadState.setActiveIdx(nextIdx);
+        },
+        // ミュート: 全 TTS 停止 + state クリア
+        onMute: () => {
+          stopAllPlayback();
+          clearAllForFile(app);
+        },
+      });
+      mountedFilePath = s.filePath;
     }
 
-    // 該当 view が見つかればハイライト + 進捗反映
+    // ハイライト + 進捗反映
     const view = findPreviewViewForFile(app, s.filePath);
-    if (view) {
-      if (s.activeIdx >= 0 && s.chunks[s.activeIdx]) {
-        highlightChunkInPreview(view as never, s.chunks[s.activeIdx]);
-      }
-      updateOverlayProgress(view, s.activeIdx, s.chunks.length);
+    if (view && s.activeIdx >= 0 && s.chunks[s.activeIdx]) {
+      highlightChunkInPreview(view as never, s.chunks[s.activeIdx]);
     }
-
-    // v0.33.3 修正: phase='completed' では overlay を unmount しない
-    // UX: 読了後も最終チャンク位置にオーバーレイを残し、進捗が N/N で「完了」を示す
-    // 閉じるのは layout-change（タブ切替等）または clear（次の再生開始）のみ
+    // v0.33.5: 進捗更新は overlay の document.body 上 span を直接 query
+    // 進捗は overlay 全体の表示なので view に依存しない
+    if (overlayCleanup) {
+      const progressSpan = document.querySelector<HTMLElement>('[data-cb-md-read-progress]');
+      if (progressSpan && s.chunks) {
+        progressSpan.textContent = `${s.activeIdx + 1}/${s.chunks.length}`;
+      }
+    }
   });
 
   return () => {
-    // Obsidian の EventRef は関数ではない（offref で解除）
     app.workspace.offref(layoutChangeRef);
     offState();
     overlayCleanup?.();
