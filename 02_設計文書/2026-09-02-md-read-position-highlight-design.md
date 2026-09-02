@@ -398,7 +398,7 @@ interface MdReadState {
 | `clear()` | 全 spans 削除・overlay unmount・state cleared |
 | `unmount()` (plugin unload) | clear と同じ |
 | `onSettingChange('mdReadHighlight.enabled', false)` 再生中に OFF | 現チャンクを話終わったら `clear()` を実行（即停止は UX 配慮で避ける） |
-| MD ファイルのタブが閉じられた場合 | `workspace.on('file-close')` で検知 → `clear()` |
+| MD ファイルのタブが閉じられた場合 | `workspace.on('layout-change')` で検知 → `clear()`（**補訂 2026-09-02**: 当初 design では `'file-close'` を想定していたが、Obsidian の `Workspace.on` API 型には `file-close` が存在しない。タブクローズも含む `layout-change` で代替し、`state` が残っているときだけクリアする安全側実装に変更） |
 | 他 MD に切替（再生中 MD が裏に） | ハイライト・overlay は **保持**（裏で見えなくなるだけ）。戻ってきたらハイライト表示復帰 |
 
 ### 10.3 同時再生の取り扱い（latest-wins）
@@ -554,3 +554,5 @@ MD A 再生中 → MD B を Add to TTS
 | 版 | 日付 | 変更 | 担当 |
 | ---- | ---- | ---- | ---- |
 | draft | 2026-09-02 | 初版（10_Input/Check 格納） | MiuMiu 🐾 |
+| 1.0 | 2026-09-02 | 👑承認済・v0.33.0 化・F-028 採番 | MiuMiu 🐾 |
+| 1.1 | 2026-09-02 | §10.2 の `file-close` → `layout-change` 補訂（Obsidian 型制約対応）+ 承認後 v0.33.1 で SettingTab UI 補完 | MiuMiu 🐾 |
