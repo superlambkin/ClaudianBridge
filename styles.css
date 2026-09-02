@@ -538,3 +538,68 @@
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
 }
+
+/* ============================================================
+ * v0.31.0 (F-028): MD 読み上げ位置ハイライト
+ * ============================================================ */
+.cb-md-read-chunk {
+  background-color: transparent;
+  border-radius: 2px;
+  transition: background-color 200ms ease;
+}
+.cb-md-read-chunk.is-active {
+  background-color: var(--cb-md-read-highlight, rgba(100, 180, 255, 0.35));
+}
+.cb-md-read-chunk.is-paused {
+  background-color: var(--cb-md-read-highlight-paused, rgba(255, 180, 80, 0.30));
+  animation: cb-md-read-pulse 1.5s ease-in-out infinite;
+}
+@keyframes cb-md-read-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1.0; }
+}
+.cb-md-read-overlay {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(40, 40, 40, 0.85);
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+}
+.cb-md-read-overlay button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.cb-md-read-overlay button:hover {
+  opacity: 0.8;
+}
+.cb-md-read-overlay [data-cb-md-read-progress] {
+  min-width: 32px;
+  text-align: center;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * v0.33.8 (F-028): Live Preview / Source 用・検索ハイライト方式
+ * （Obsidian の検索ハイライトと同等の視覚スタイル）
+ * ============================================================ */
+.cm-s-obsidian .cb-md-read-chunk.is-active,
+.markdown-preview-view .cb-md-read-chunk.is-active {
+  background-color: var(--cb-md-read-highlight, rgba(255, 208, 0, 0.4));
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 170, 0, 0.25);
+  transition: background-color 200ms ease;
+}

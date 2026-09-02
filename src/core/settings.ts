@@ -460,6 +460,16 @@ export function normalizeMemorySettings(raw: unknown): MemorySettings {
   };
 }
 
+/**
+ * v0.31.0 (F-028): MD ファイル「Add to TTS」読み上げ中の Preview ハイライト設定。
+ */
+export interface MdReadHighlightSettings {
+  /** ハイライト機能の有効化（デフォルト true） */
+  enabled: boolean;
+  /** チャンクのアクティブ背景色（CSS color 文字列）。空文字ならデフォルト色 */
+  highlightColor: string;
+}
+
 export interface ClaudianBridgeSettings {
   general: {
     enabled: boolean;
@@ -531,6 +541,8 @@ export interface ClaudianBridgeSettings {
     autoReadReportScript?: boolean;
     /** v0.27.0: クラウド EdgeTTS プロキシ設定（任意: normalize で補填される） */
     edgeCloud?: TtsEdgeCloudSettings;
+    /** v0.31.0 (F-028): MD ファイル「Add to TTS」読み上げ中の Preview ハイライト設定。 */
+    mdReadHighlight: MdReadHighlightSettings;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -585,6 +597,11 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     // v0.28.0 (F026): 完了報告の読上げ用スクリプト整形（既定 ON）
     autoReadReportScript: true,
     edgeCloud: { ...DEFAULT_TTS_EDGE_CLOUD },
+    // v0.31.0 (F-028): MD ファイル「Add to TTS」読み上げ中の Preview ハイライト
+    mdReadHighlight: {
+      enabled: true,
+      highlightColor: '',
+    },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -758,10 +775,16 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       // 呼び出し元で個別に上書きしないため、ここでは v0.27 フィールドのみ採用。
       ...(() => {
         const v027 = normalizeTtsSettings(r.tts);
+        // v0.31.0 (F-028): MD 読み上げ位置ハイライト（旧 data.json には存在しないため補填）
+        const rawHighlight = (r.tts?.mdReadHighlight ?? {}) as Partial<MdReadHighlightSettings>;
         return {
           addToTtsLanguageMode: v027.addToTtsLanguageMode,
           autoReadLanguageMode: v027.autoReadLanguageMode,
           edgeCloud: v027.edgeCloud,
+          mdReadHighlight: {
+            enabled: typeof rawHighlight.enabled === 'boolean' ? rawHighlight.enabled : true,
+            highlightColor: typeof rawHighlight.highlightColor === 'string' ? rawHighlight.highlightColor : '',
+          },
         };
       })(),
     },
