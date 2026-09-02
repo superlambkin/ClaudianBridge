@@ -9,6 +9,11 @@ import type { ConfigStore } from '../../core/config-store';
 import type { SpeechFilterOptions } from '../../core/settings';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import { speakText, resolveSpeechFilter } from './speak';
+import {
+  prepareMdRead,
+  finalizeMdRead,
+  createChunkStartHook,
+} from './md-read-highlight/runtime';
 
 /** frontmatter（先頭 --- 〜 ---） */
 const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
@@ -49,7 +54,21 @@ export function setupMdFileRead(app: App, store: ConfigStore): () => void {
             const content = await app.vault.cachedRead(file as TFile);
             const filter = resolveSpeechFilter(cfg, 'md');
             const text = extractMdText(content, filter);
-            await speakText('md', text, cfg, { noticeOnEmpty: true });
+
+            // v0.31.0 (F-028): MD 読み上げ位置ハイライト機能
+            const hlEnabled = cfg.tts.mdReadHighlight?.enabled !== false;
+            const filePath = (file as TFile).path;
+            // TTS と同じ chunkMax を使って chunks[] と TTS のチャンク境界を揃える
+            const engineForChunk = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
+            const chunkMax = cfg.tts.chunkMaxChars?.[engineForChunk] ?? (engineForChunk === 'edge' ? 500 : 140);
+            prepareMdRead({ enabled: hlEnabled, filePath, content, filteredText: text, chunkMax });
+
+            const ok = await speakText('md', text, cfg, {
+              noticeOnEmpty: true,
+              onChunkStart: createChunkStartHook(hlEnabled),
+            });
+
+            finalizeMdRead(!!ok);
           } catch (e) {
             console.warn('[cb-md-read] failed:', e);
             new Notice(`⚠️ MD 読み上げ失敗: ${(e as Error).message}`);
