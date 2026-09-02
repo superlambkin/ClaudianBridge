@@ -53,3 +53,11 @@ export const mdReadState = {
     return () => subs.delete(fn);
   },
 };
+
+/**
+ * テスト用: 全 subscriber を解除（テスト isolation 用）。
+ * 本番コードから呼ばないこと。
+ */
+export function __resetMdReadSubscribersForTesting(): void {
+  subs.clear();
+}

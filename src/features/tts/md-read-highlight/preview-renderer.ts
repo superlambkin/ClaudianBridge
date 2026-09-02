@@ -56,7 +56,7 @@ export function highlightChunkInPreview(view: PreviewLike, chunk: MdReadChunkAnc
   parent.removeChild(textNode);
 
   if (typeof matched.scrollIntoView === 'function') {
-    matched.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    matched.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 }
 

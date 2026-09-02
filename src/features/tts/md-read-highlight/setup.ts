@@ -106,13 +106,9 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
       updateOverlayProgress(view, s.activeIdx, s.chunks.length);
     }
 
-    // phase='completed' → overlay を unmount して state クリア
-    if (s.phase === 'completed') {
-      overlayCleanup?.();
-      overlayCleanup = null;
-      mountedFilePath = null;
-      clearAllForFile(app);
-    }
+    // v0.33.3 修正: phase='completed' では overlay を unmount しない
+    // UX: 読了後も最終チャンク位置にオーバーレイを残し、進捗が N/N で「完了」を示す
+    // 閉じるのは layout-change（タブ切替等）または clear（次の再生開始）のみ
   });
 
   return () => {

@@ -2,18 +2,17 @@
  * v0.17.0: MD ファイル右クリック「Add to TTS」。
  * 本文（frontmatter・コードブロックを除く）を抽出して読み上げる。
  * コールアウト・テーブルはタイプ別フィルタ（selection を共有）に従う。
+ *
+ * v0.33.3 (F-028): 自動 Preview オープン・ハイライト連動を
+ *   `addMdToTts` (./md-file-read-flow.ts) に集約。menu click handler は
+ *   そちらに移譲するだけにした（Surgical Change）。
  */
 import { Notice } from 'obsidian';
-import type { App, TFile, Menu } from 'obsidian';
+import type { App, Menu } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import type { SpeechFilterOptions } from '../../core/settings';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
-import { speakText, resolveSpeechFilter } from './speak';
-import {
-  prepareMdRead,
-  finalizeMdRead,
-  createChunkStartHook,
-} from './md-read-highlight/runtime';
+import { addMdToTts } from './md-file-read-flow';
 
 /** frontmatter（先頭 --- 〜 ---） */
 const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
@@ -41,8 +40,8 @@ export function setupMdFileRead(app: App, store: ConfigStore): () => void {
   const s = getLocaleStrings(getUILanguage());
   // TFile の instanceof は信頼しにくいため extension で判定（main.ts のフォルダ「Add to Claudian」も同方式）
   const handler = (menu: Menu, file: unknown): void => {
-    const f = file as { extension?: string } | null;
-    if (!f || f.extension !== 'md') return;
+    const f = file as { extension?: string; path?: string } | null;
+    if (!f || f.extension !== 'md' || !f.path) return;
     menu.addItem((item) => item
       .setTitle(s.ttsAddToTts)
       .setIcon('volume-2')
@@ -50,25 +49,7 @@ export function setupMdFileRead(app: App, store: ConfigStore): () => void {
         void (async () => {
           try {
             const cfg = store.load();
-            if (!cfg.tts.enabled) { new Notice('🔇 ミュート中です'); return; }
-            const content = await app.vault.cachedRead(file as TFile);
-            const filter = resolveSpeechFilter(cfg, 'md');
-            const text = extractMdText(content, filter);
-
-            // v0.31.0 (F-028): MD 読み上げ位置ハイライト機能
-            const hlEnabled = cfg.tts.mdReadHighlight?.enabled !== false;
-            const filePath = (file as TFile).path;
-            // TTS と同じ chunkMax を使って chunks[] と TTS のチャンク境界を揃える
-            const engineForChunk = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
-            const chunkMax = cfg.tts.chunkMaxChars?.[engineForChunk] ?? (engineForChunk === 'edge' ? 500 : 140);
-            prepareMdRead({ enabled: hlEnabled, filePath, content, filteredText: text, chunkMax });
-
-            const ok = await speakText('md', text, cfg, {
-              noticeOnEmpty: true,
-              onChunkStart: createChunkStartHook(hlEnabled),
-            });
-
-            finalizeMdRead(!!ok);
+            await addMdToTts(app, { path: f.path as string, extension: 'md' }, cfg);
           } catch (e) {
             console.warn('[cb-md-read] failed:', e);
             new Notice(`⚠️ MD 読み上げ失敗: ${(e as Error).message}`);
