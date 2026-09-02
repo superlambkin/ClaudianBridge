@@ -74,20 +74,34 @@ describe('setupMdReadHighlight', () => {
     expect(captured.app.workspace.on).toHaveBeenCalledWith('layout-change', expect.any(Function));
   });
 
-  it('layout-change 発火 → 登録 state が あるとき clearAllForFile(app) を呼ぶ', () => {
+  it('layout-change 発火 → state.filePath のタブが消失したとき clearAllForFile を呼ぶ', () => {
+    // 1 回目: ファイル残存 → clear しない
+    // 2 回目: getLeavesOfType が空 → clear する
+    const leavesByType: Record<string, Array<{ view: unknown }>> = {
+      'markdown-1': [{ view: { file: { path: '/a.md' } } }],
+      'markdown-empty': [],
+    };
+    let currentLeaves = leavesByType['markdown-1'];
     const captured = captureApp();
+    captured.app.workspace.getLeavesOfType = vi.fn((_type: string) => currentLeaves);
+
     setupMdReadHighlight(captured.app as never, makeStore() as never);
 
-    // state を登録 → layout-change handler が発動する条件を満たす
+    // state 登録
     mdReadState.register('/a.md', [
       { index: 0, startLine: 0, anchor: 'a', text: 'a', headingLevel: 0 },
     ]);
 
     const layoutChangeHandler = captured.handlers.get('layout-change');
     expect(layoutChangeHandler).toBeDefined();
-    layoutChangeHandler!();
 
-    // clearAllForFile はモック（実 clear しない）が、呼ばれたことだけ検証
+    // 1) まだ開いている → clearAllForFile は呼ばれない
+    layoutChangeHandler!();
+    expect(mockedClearAllForFile).not.toHaveBeenCalled();
+
+    // 2) タブが閉じた → clearAllForFile が呼ばれる
+    currentLeaves = leavesByType['markdown-empty'];
+    layoutChangeHandler!();
     expect(mockedClearAllForFile).toHaveBeenCalledTimes(1);
   });
 
@@ -152,8 +166,10 @@ describe('setupMdReadHighlight', () => {
   }
 
   it('mdReadState.setActiveIdx → Preview DOM に chunk span が作られる（ハイライト配線）', () => {
-    const container = makePreviewContainer();
+    document.body.innerHTML = '';
+    const container = document.createElement('div');
     container.innerHTML = '<p>Hello world. This is a test paragraph.</p>';
+    document.body.appendChild(container);
 
     // getLeavesOfType がこの preview を持つ leaf を返すよう mock
     const app = {
@@ -181,13 +197,16 @@ describe('setupMdReadHighlight', () => {
     ]);
     mdReadState.setActiveIdx(0);
 
-    expect(container.querySelector('.cb-md-read-overlay')).not.toBeNull();
+    // v0.33.5: overlay は document.body 直下
+    expect(document.body.querySelector('.cb-md-read-overlay')).not.toBeNull();
     expect(container.querySelector('.cb-md-read-chunk.is-active')).not.toBeNull();
   });
 
   it('overlay の [data-cb-md-read-progress] に "currentIndex/total" が反映される', () => {
-    const container = makePreviewContainer();
+    document.body.innerHTML = '';
+    const container = document.createElement('div');
     container.innerHTML = '<p>Hello world. This is a test paragraph.</p>';
+    document.body.appendChild(container);
 
     const app = {
       workspace: {
@@ -209,12 +228,12 @@ describe('setupMdReadHighlight', () => {
     ]);
 
     mdReadState.setActiveIdx(0);
-    expect(container.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('1/3');
+    expect(document.body.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('1/3');
 
     mdReadState.setActiveIdx(1);
-    expect(container.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('2/3');
+    expect(document.body.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('2/3');
 
     mdReadState.setActiveIdx(2);
-    expect(container.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('3/3');
+    expect(document.body.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('3/3');
   });
 });
