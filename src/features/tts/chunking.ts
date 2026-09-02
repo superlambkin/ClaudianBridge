@@ -61,15 +61,19 @@ export function chunkText(text: string, maxChunkSize: number, delimiters: string
 /**
  * チャンク配列を順に speak し、全チャンク成功で true を返す。
  * speakFn が false を返すか onCancel() が true を返したら中断して false。
+ *
+ * v0.31.0 (F-028): 各 chunk speak 直前に onChunkStart(idx) を呼ぶ（MD ハイライト連動用）。
  */
 export async function speakChunks(
   chunks: string[],
   speakFn: (text: string) => Promise<boolean>,
   onCancel?: () => boolean,
+  onChunkStart?: (idx: number) => void,
 ): Promise<boolean> {
-  for (const chunk of chunks) {
+  for (let i = 0; i < chunks.length; i++) {
     if (onCancel?.()) return false;
-    const ok = await speakFn(chunk);
+    onChunkStart?.(i);
+    const ok = await speakFn(chunks[i]);
     if (!ok) return false;
   }
   return true;
