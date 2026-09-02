@@ -190,6 +190,26 @@ describe('tokenRateShow* ラベル（表示項目選択）', () => {
     }
   });
 });
+
+describe('F-028: ttsMdReadHighlight* / ttsMdReadOverlay* ラベル', () => {
+  it('全ロケールで 7 キーが空でない文字列として定義される', () => {
+    const keys = [
+      'ttsMdReadHighlightEnabled',
+      'ttsMdReadHighlightHighlightColor',
+      'ttsMdReadOverlayPause',
+      'ttsMdReadOverlayResume',
+      'ttsMdReadOverlaySkipToHeading',
+      'ttsMdReadOverlayMute',
+      'ttsMdReadOverlayNoPreview',
+    ] as const;
+    for (const loc of SUPPORTED_LOCALES) {
+      for (const k of keys) {
+        expect(typeof STRINGS[loc][k], `${loc}.${k} not string`).toBe('string');
+        expect((STRINGS[loc][k] as string).length, `${loc}.${k} empty`).toBeGreaterThan(0);
+      }
+    }
+  });
+});
 describe('tokenRateInterval* ラベル（更新周期設定）', () => {
   it('全ロケールで 7 キーが文字列', () => {
     const keys = ['tokenRateIntervalLabel','tokenRateIntervalDesc','tokenRateInterval100','tokenRateInterval250','tokenRateInterval500','tokenRateInterval1000','tokenRateInterval2000'] as const;

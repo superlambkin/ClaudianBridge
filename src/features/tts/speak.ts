@@ -16,6 +16,8 @@ export interface SpeakTextOpts {
   noticeOnEmpty?: boolean;
   /** 失敗時に再試行する元テキスト（⑤AI のみ使用） */
   fallbackText?: string;
+  /** v0.31.0 (F-028): 各チャンク speak 直前に呼ばれる hook。MD ハイライト等のチャンク単位 UI 連動用 */
+  onChunkStart?: (idx: number) => void;
 }
 
 /** 読み上げタイプ → フィルタ設定を解決。md は selection を共有（設計書 7 章） */
@@ -61,7 +63,7 @@ export async function speakText(
   if (!optimized.trim()) return true; // フィルタ後空なら読まない（エラー扱いしない）
 
   const settings = toTtsSettings(cfg, type);
-  const ok = await addTextToTTS(null, optimized, settings);
+  const ok = await addTextToTTS(null, optimized, settings, opts?.onChunkStart);
   if (ok) return true;
 
   // 失敗時: fallbackText があれば元文で再試行（⑤）、なければエラー Notice

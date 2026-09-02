@@ -20,6 +20,7 @@ import type { TtsLanguageMode } from '../core/settings';
 import { CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, DEFAULT_CHUNK_MAX_CHARS, EDGE_CHUNK_MAX_CHARS_MIN, EDGE_CHUNK_MAX_CHARS_MAX, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../core/settings';
 import type { TtsChunkMaxChars } from '../core/settings';
 import type { TtsSpeechFilterSection, SpeechFilterOptions } from '../core/settings';
+import { applyHighlightColor } from '../features/tts/md-read-highlight/highlight-style';
 
 const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   zh: ['xiaoxiao', 'yunxi', 'yunyang', 'yunjian', 'xiaoyi', 'yunxia'],
@@ -641,6 +642,52 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
     noteBox.createEl('p', {
       text: s.ttsMinimaxRemovalNote,
     });
+
+    // 6. v0.33.0 (F-028): MD 読み上げ位置ハイライト
+    containerEl.createEl('h3', { text: 'MD 読み上げハイライト' });
+    new Setting(containerEl)
+      .setName(s.ttsMdReadHighlightEnabled)
+      .setDesc(s.ttsMdReadOverlayNoPreview)
+      .addToggle((t) =>
+        t
+          .setValue(cfg.tts.mdReadHighlight?.enabled ?? true)
+          .onChange((v) => {
+            const latest = store.load();
+            store.save({
+              ...latest,
+              tts: {
+                ...latest.tts,
+                mdReadHighlight: {
+                  ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '' }),
+                  enabled: v,
+                },
+              },
+            });
+          }),
+      );
+    new Setting(containerEl)
+      .setName(s.ttsMdReadHighlightHighlightColor)
+      .setDesc('例: #a0c4ff（空文字でデフォルト色 rgba(100, 180, 255, 0.35)）')
+      .addText((text) =>
+        text
+          .setPlaceholder('#a0c4ff')
+          .setValue(cfg.tts.mdReadHighlight?.highlightColor ?? '')
+          .onChange((v) => {
+            const latest = store.load();
+            const newColor = v ?? '';
+            store.save({
+              ...latest,
+              tts: {
+                ...latest.tts,
+                mdReadHighlight: {
+                  ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '' }),
+                  highlightColor: newColor,
+                },
+              },
+            });
+            applyHighlightColor(newColor);
+          }),
+      );
   };
 
   draw();

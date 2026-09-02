@@ -226,7 +226,12 @@ export { filterSpeechText } from './speech-filter';
  * Dispatcher
  * ========================================================================== */
 
-export async function addTextToTTS(_app: App | null, text: string, settings: TtsSettings): Promise<boolean> {
+export async function addTextToTTS(
+  _app: App | null,
+  text: string,
+  settings: TtsSettings,
+  onChunkStart?: (idx: number) => void,
+): Promise<boolean> {
   const noticeFn = (m: string): void => { new Notice(m); };
 
   // v0.17.0: テキスト最適化（speech_filter）は speakText 側で適用済み。ここでは適用しない（二重フィルタ防止）。
@@ -292,7 +297,7 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
       return localEdgeTtsSpeak(chunk, settings, noticeFn, readLang);
     }
     return webSpeechSpeak(chunk, settings, noticeFn, readLang);
-  });
+  }, undefined, onChunkStart);
   showProgress(null);
   // v0.18.x (F1): 後続の外部停止（後勝ち中断）で失敗してもエラー扱いしない
   if (!result && getStopEpoch() > stopEpochAtStart) return true;

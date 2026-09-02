@@ -1,5 +1,58 @@
 # Changelog
 
+## [0.33.2] - 2026-09-02 — MD 読み上げハイライト DOM 配線バグ修正（F-028）
+
+### Fixed
+
+- **MD 読み上げ時のマーカー・オーバーレイが表示されない重大バグ修正**:
+  v0.33.0/v0.33.1 で `mdReadState.setActiveIdx(idx)` が呼ばれても、Preview DOM に `<span>` を注入する配線と Floating Overlay を mount する配線が `setup.ts` に欠落していた。state 単体テストは通っていたが**統合層が未配線** だった。
+  - `setupMdReadHighlight` の `mdReadState.subscribe` を拡張し、以下を配線：
+    - `register(filePath, chunks)` → 該当 MD view の Preview に `mountOverlay`
+    - `setActiveIdx(idx)` 変化 → `highlightChunkInPreview(view, chunk)` + overlay の `N/M` 進捗更新
+    - `phase='completed'/'cleared'` → overlay unmount + state cleanup
+    - ⏸/▶/⏭/🔇 ハンドラ実装（🔇は `stopAllPlayback`、⏭は `nextHeadingIndex` A 案）
+- **SettingTab UI の version バンプ反映漏れ修正**:
+  v0.33.1 でソースに追加した SettingTab UI（「MD 読み上げハイライト」セクション・色 hex 入力・CSS 変数バインド）が `manifest.json` / `package.json` の version 同期とれず未デプロイだった。v0.33.2 で `--cb-md-read-highlight` CSS 変数経由で色反映を有効化。
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **910 件 PASS**（v0.33.0 の 901 件 + 新規 9 件：setup.test.ts に DOM 配線テスト 2 件追加 + captureApp mock 拡張） |
+| 影響範囲 | `src/features/tts/md-read-highlight/setup.ts`（主な修正）/ `tests/features/tts/md-read-highlight/setup.test.ts` |
+| F-番号 | F-028（変更なし）|
+| バージョン | `0.33.0/0.33.1` → `0.33.2` |
+
+---
+
+## [0.33.0] - 2026-09-02 — MD 読み上げ位置ハイライト（F-028）
+
+### Added
+
+- **MD 読み上げ位置ハイライト**: MD ファイル右クリック「Add to TTS」で本文を読み上げる際、**Obsidian Preview 表示中のチャンク位置に背景色ハイライト**を表示
+- **フローティングオーバーレイ**: Preview 右上に再生コントロール（⏸ 一時停止 / ▶ 再開 / ⏭ 次の見出しスキップ / 🔇 ミュート / N-M 進捗）を表示
+- **見出しスキップ**: ⏭ クリックで「最後の見出し境界」へジャンプ（A 案・テスト優先で確定）
+- **設定スキーマ**: `tts.mdReadHighlight: { enabled: boolean, highlightColor: string }` を追加（既定 ON）
+
+### Changed
+
+- `speakChunks(chunks, speakFn, onCancel?, onChunkStart?)` に onChunkStart hook を追加（既存呼び出しは後方互換）
+- `speakText(...).SpeakTextOpts.onChunkStart` と `addTextToTTS` の第 4 引数で連動（既存経路を壊さずチャンク単位コールバックを追加）
+- `workspace.on('layout-change')` でレイアウト変化時（タブクローズ等）に state とハイライトをクリア（`file-close` は Obsidian 型定義に無いため代替）
+
+### Fixed
+
+- なし（purely additive）
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **901 件 PASS**（v0.32.0 の 887 件 + 新規 14 件） |
+| 影響範囲 | `src/features/tts/md-read-highlight/`（types / state / anchor / preview-renderer / floating-overlay / heading-skip / runtime / cleanup / setup / index）/ `src/features/tts/{chunking,speak,core,md-file-read}.ts` / `src/main.ts` / `styles.css` |
+| F-番号 | **F-028**（F-027 の次）|
+| 関連文書 | [[../../Obsidian Vault/80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-09-02-md-read-position-highlight-design\|設計書]] / [[../../Obsidian Vault/80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/2026-09-02-md-read-position-highlight-plan\|実装計画]] |
+
 ## [0.32.0] - 2026-09-02 — トークン速度表示の更新周期設定
 
 ### Added
