@@ -260,7 +260,7 @@ stateDiagram-v2
 
 | 層 | ファイル | 主要ケース |
 |---|---|---|
-| Unit | `tests/features/self-update/backup-manager.test.ts` | 退避成功・復元、対象3 ファイル確認、`<pluginDir>/.backup/<ISO>` パス生成、既存 backup 保持 |
+| Unit | `tests/features/self-update/backup-manager.test.ts` | 退避成功・復元、対象3 ファイル確認、`<pluginDir>/.backup/<ISO>` パス生成、既存 `<ISO>` と衝突時の別名採番（`-001` 等） |
 | Unit | `tests/features/self-update/update-checker.test.ts` | semver 比較（同値・上位・下位）、タグ `v` プレフィックス除去、404/403 ハンドリング |
 | Unit | `tests/features/self-update/update-downloader.test.ts` | 3 ファイル上書き、部分的 DL 失敗時の throw |
 | Integration | `tests/features/self-update/self-update-flow.test.ts` | mock requestUrl + mock app.vault.adapter で「古い→新しい→リロード成功」「DL失敗→backup保持」 |
@@ -275,7 +275,8 @@ stateDiagram-v2
 
 ## 移行手順（実装フェーズでの順序）
 
-1. **ロールバック**: `git reset --hard v0.32.2` → version を `0.32.2` に揃える
+1. **ロールバック**: `git reset --hard v0.32.2` で v0.32.2 に着地 → version を `0.32.2` に揃える
+   - **補足**: 本仕様書コミット (441c326) も `reset` で消えるため、`git cherry-pick 441c326` で再適用する（または reflog から復元）
 2. **テスト先行**: `tests/features/self-update/` を vitest 仮実装込みで作成（RED）
 3. **Build 修正**: `esbuild.config.mjs` の `outfile` を `Plugin/main.js` に変更
 4. **deploy.mjs 修正**: Plugin/ から Vault プラグインフォルダへコピー（Python/RAG は従来通り）
