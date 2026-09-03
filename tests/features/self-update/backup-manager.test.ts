@@ -9,7 +9,12 @@ function makeAdapter() {
     put(name: string, content: string) {
       files.set(name, new TextEncoder().encode(content).buffer as ArrayBuffer);
     },
-    async exists(p: string) { return files.has(p); },
+    async exists(p: string) {
+      if (files.has(p)) return true;
+      // ディレクトリ指定も配下ファイルがあれば true（実 DataAdapter 準拠）
+      for (const k of files.keys()) if (k.startsWith(`${p}/`)) return true;
+      return false;
+    },
     async mkdir(p: string) { /* no-op */ },
     async list(_p: string) { return { files: [...files.keys()], folders: [] }; },
     async readBinary(p: string) {
