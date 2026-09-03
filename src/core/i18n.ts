@@ -341,6 +341,15 @@ export interface LocaleStrings {
   tokenRateInterval500: string;
   tokenRateInterval1000: string;
   tokenRateInterval2000: string;
+  // === v0.32.10: 自己更新機能 ===
+  updateCheckButton: string;
+  updateChecking: string;
+  updateUpToDate: string;
+  updateSuccess: string;
+  updateCheckFailed: string;
+  updateBackupFailed: string;
+  updateDownloadFailed: string;
+  updateReloadFailed: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -670,6 +679,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateInterval500: '0.5 秒',
     tokenRateInterval1000: '1 秒（省 CPU）',
     tokenRateInterval2000: '2 秒（最低負荷）',
+    // v0.32.10: 自己更新機能
+    updateCheckButton: '更新を確認',
+    updateChecking: '🔄 更新を確認中...',
+    updateUpToDate: '✅ 最新版です',
+    updateSuccess: '✅ {version} に更新しました',
+    updateCheckFailed: '❌ 更新確認に失敗: {msg}',
+    updateBackupFailed: '❌ バックアップ作成失敗。中断します: {msg}',
+    updateDownloadFailed: '❌ ダウンロード失敗。バックアップから手動復元できます: {msg}',
+    updateReloadFailed: '❌ 再起動失敗。手動で復元してください: {msg}',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -997,6 +1015,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateInterval500: '0.5 sec',
     tokenRateInterval1000: '1 sec (low CPU)',
     tokenRateInterval2000: '2 sec (minimal)',
+    // v0.32.10: self-update
+    updateCheckButton: 'Check for Updates',
+    updateChecking: '🔄 Checking for updates...',
+    updateUpToDate: '✅ Up to date',
+    updateSuccess: '✅ Updated to {version}',
+    updateCheckFailed: '❌ Update check failed: {msg}',
+    updateBackupFailed: '❌ Backup failed. Aborting: {msg}',
+    updateDownloadFailed: '❌ Download failed. Restore manually from backup: {msg}',
+    updateReloadFailed: '❌ Reload failed. Restore manually: {msg}',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -1324,6 +1351,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateInterval500: '0.5 秒',
     tokenRateInterval1000: '1 秒（低 CPU）',
     tokenRateInterval2000: '2 秒（最低负载）',
+    // v0.32.10: 自我更新功能
+    updateCheckButton: '检查更新',
+    updateChecking: '🔄 正在检查更新...',
+    updateUpToDate: '✅ 已是最新版本',
+    updateSuccess: '✅ 已更新到 {version}',
+    updateCheckFailed: '❌ 检查更新失败: {msg}',
+    updateBackupFailed: '❌ 备份创建失败，已中止: {msg}',
+    updateDownloadFailed: '❌ 下载失败，可从备份手动恢复: {msg}',
+    updateReloadFailed: '❌ 重启失败，请手动恢复: {msg}',
   },
 };
 

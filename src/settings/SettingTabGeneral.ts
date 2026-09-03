@@ -1,8 +1,9 @@
 import { Notice, Setting } from 'obsidian';
-import type { App } from 'obsidian';
+import type { App, DataAdapter } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { ALLOWED_TOKEN_RATE_INTERVALS } from '../core/settings';
+import { runSelfUpdate } from '../features/self-update';
 import manifest from '../manifest.json';
 
 /** プラグインバージョン（SSOT: src/manifest.json — バンドル時に esbuild が埋め込む） */
@@ -17,10 +18,26 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
 
     containerEl.createEl('h2', { text: s.tabGeneral });
 
-    // バージョン情報
+    // バージョン情報 + 更新確認ボタン（v0.32.10 自己更新機能）
     const versionRow = containerEl.createDiv('cb-version-row');
     versionRow.createEl('span', { text: 'Claudian Bridge', cls: 'cb-version-row__name' });
     versionRow.createEl('span', { text: `v${PLUGIN_VERSION}`, cls: 'cb-version-row__version' });
+    const updateBtn = versionRow.createEl('button', { text: s.updateCheckButton, cls: 'cb-version-row__update-btn' });
+    updateBtn.addEventListener('click', () => {
+      void (async () => {
+        updateBtn.disabled = true;
+        try {
+          const app = _app as unknown as { vault?: { adapter?: DataAdapter & { basePath?: string } } } | null;
+          const adapter = app?.vault?.adapter;
+          if (app && pluginId && adapter?.basePath) {
+            const pluginDir = `${adapter.basePath}/.obsidian/plugins/${pluginId}`;
+            await runSelfUpdate(app as App, pluginId, PLUGIN_VERSION, pluginDir, adapter);
+          }
+        } finally {
+          updateBtn.disabled = false;
+        }
+      })();
+    });
 
     new Setting(containerEl)
       .setName(s.generalEnabled)
