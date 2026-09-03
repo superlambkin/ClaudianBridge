@@ -1,5 +1,146 @@
 # Changelog
 
+
+## [0.32.9] - 2026-09-03 — TTS/ハイライト チャンク index 一致化 + 不一致 Notice
+
+### Fixed
+
+- **チャンク分割不一致（下線原因⑤）**: register chunks を `buildChunks`（行パッキング）から TTS 本体と同一の `filterSpeechText + chunkText` 分割に変更。500 字超の文書で index がズレて下線が停止する問題を解消
+- anchor はチャンク先頭 24 正規化文字（誤マッチ耐性）
+- **不一致時 Notice**: anchor 不一致・空コンテナ時に 1 セッション 1 回 Notice で原因カテゴリを通知（DevTools 不要）
+
+### テスト
+
+- E2E 追加: 登録 chunks = TTS 同一分割（長文 1087 字 → 3 チャンク一致）
+- **945 件 PASS** / typecheck 0
+
+## [0.32.8] - 2026-09-03 — setViewState 後の view 再生成対応（下線原因④）
+
+- `leaf.setViewState()` 後は Obsidian が `leaf.view` を再生成するため、切替前の古い `containerEl` をポーリングしても render を検出できなかった → ポーリング毎に leaf/view/containerEl を再取得
+- テスト: view 差し替えシミュレーション +1 / **944 件 PASS**
+
+## [0.32.7] - 2026-09-03 — 読書モード切替を正式 API 化（下線原因③）
+
+- `view.setState({state:'preview'})` は正式な状態キーと異なり実機で無視されていた（Live Preview 残留 → previewMode 空 → 下線なし）
+- `leaf.setViewState({type:'markdown', state:{file, mode:'preview'}})`（正式 API）に置換
+- 空コンテナ時の診断ログ追加 / **943 件 PASS**
+
+## [0.32.6] - 2026-09-03 — 下線チェーン E2E テスト + 診断ログ
+
+- E2E 統合テスト新設: addMdToTts → register → onChunkStart → mdReadState → setup subscriber → preview-renderer で「is-active 下線 span が正しい段落に生成・移動」を自動証明 + styles.css の amber 下線定義を検証
+- 診断ログ `[cb-md-read-highlight] chunk N of M underline applied / NOT matched` 追加
+- **943 件 PASS**
+
+## [0.32.5] - 2026-09-03 — quota workspace.trigger this 束縛修正
+
+- `emit()` が `workspace.trigger` を非バインド呼び出ししており、Obsidian 内部 `this._` 参照で `TypeError` が Console に出続ける問題を修正（メソッド呼び出し形式で this 束縛）
+- this 束縛検証テスト +1 / **941 件 PASS**
+
+## [0.32.4] - 2026-09-03 — 下線が出ない根本原因①②を修正
+
+- **anchor 不一致（原因①）**: anchor は記号フィルタ後テキスト、Preview DOM は元テキスト → `indexOf` 恒久不一致 → **正規化マッチング**（`match.ts` 新設・空白/記号完全除去・複数ノード跨ぎ span 対応）
+- **render 待ち不足（原因②）**: 固定 200ms → 最大 2.5 秒のコンテンツ出現ポーリング
+- `match.test.ts` +7 件 / **941 件 PASS**
+
+## [0.32.3] - 2026-09-03 — 読み上げ位置を下線表示に変更
+
+- `.cb-md-read-chunk.is-active` を背景色 → **amber `#ffb300` 下線（3px・offset 5px）** に変更（is-paused は破線）
+- F-028 安定部分（v0.33.10 = CM6 拡張無効化済み）を v0.32.2 ベースにマージ
+- **933 件 PASS**
+
+---
+
+
+### Fixed
+
+- **MD 読み上げ時のマーカー・オーバーレイが表示されない重大バグ修正**:
+  v0.33.0/v0.33.1 で `mdReadState.setActiveIdx(idx)` が呼ばれても、Preview DOM に `<span>` を注入する配線と Floating Overlay を mount する配線が `setup.ts` に欠落していた。state 単体テストは通っていたが**統合層が未配線** だった。
+  - `setupMdReadHighlight` の `mdReadState.subscribe` を拡張し、以下を配線：
+    - `register(filePath, chunks)` → 該当 MD view の Preview に `mountOverlay`
+    - `setActiveIdx(idx)` 変化 → `highlightChunkInPreview(view, chunk)` + overlay の `N/M` 進捗更新
+    - `phase='completed'/'cleared'` → overlay unmount + state cleanup
+    - ⏸/▶/⏭/🔇 ハンドラ実装（🔇は `stopAllPlayback`、⏭は `nextHeadingIndex` A 案）
+- **SettingTab UI の version バンプ反映漏れ修正**:
+  v0.33.1 でソースに追加した SettingTab UI（「MD 読み上げハイライト」セクション・色 hex 入力・CSS 変数バインド）が `manifest.json` / `package.json` の version 同期とれず未デプロイだった。v0.33.2 で `--cb-md-read-highlight` CSS 変数経由で色反映を有効化。
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **910 件 PASS**（v0.33.0 の 901 件 + 新規 9 件：setup.test.ts に DOM 配線テスト 2 件追加 + captureApp mock 拡張） |
+| 影響範囲 | `src/features/tts/md-read-highlight/setup.ts`（主な修正）/ `tests/features/tts/md-read-highlight/setup.test.ts` |
+| F-番号 | F-028（変更なし）|
+| バージョン | `0.33.0/0.33.1` → `0.33.2` |
+
+---
+
+
+### Added
+
+- **MD 読み上げ位置ハイライト**: MD ファイル右クリック「Add to TTS」で本文を読み上げる際、**Obsidian Preview 表示中のチャンク位置に背景色ハイライト**を表示
+- **フローティングオーバーレイ**: Preview 右上に再生コントロール（⏸ 一時停止 / ▶ 再開 / ⏭ 次の見出しスキップ / 🔇 ミュート / N-M 進捗）を表示
+- **見出しスキップ**: ⏭ クリックで「最後の見出し境界」へジャンプ（A 案・テスト優先で確定）
+- **設定スキーマ**: `tts.mdReadHighlight: { enabled: boolean, highlightColor: string }` を追加（既定 ON）
+
+### Changed
+
+- `speakChunks(chunks, speakFn, onCancel?, onChunkStart?)` に onChunkStart hook を追加（既存呼び出しは後方互換）
+- `speakText(...).SpeakTextOpts.onChunkStart` と `addTextToTTS` の第 4 引数で連動（既存経路を壊さずチャンク単位コールバックを追加）
+- `workspace.on('layout-change')` でレイアウト変化時（タブクローズ等）に state とハイライトをクリア（`file-close` は Obsidian 型定義に無いため代替）
+
+### Fixed
+
+- なし（purely additive）
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **901 件 PASS**（v0.32.0 の 887 件 + 新規 14 件） |
+| 影響範囲 | `src/features/tts/md-read-highlight/`（types / state / anchor / preview-renderer / floating-overlay / heading-skip / runtime / cleanup / setup / index）/ `src/features/tts/{chunking,speak,core,md-file-read}.ts` / `src/main.ts` / `styles.css` |
+| F-番号 | **F-028**（F-027 の次）|
+| 関連文書 | [[../../Obsidian Vault/80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-09-02-md-read-position-highlight-design\|設計書]] / [[../../Obsidian Vault/80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/2026-09-02-md-read-position-highlight-plan\|実装計画]] |
+
+## [0.32.0] - 2026-09-02 — トークン速度表示の更新周期設定
+
+### Added
+- 設定 → ClaudianBridge → 一般タブに「更新周期」ドロップダウンを追加（0.1 / 0.25 / 0.5 / 1 / 2 秒から選択）
+- 既定値は 250 ms（v0.31.0 の 500 ms から変更・既存設定は normalize で 250 に補完）
+
+### Fixed
+- 設定変更は即時反映（counter の破棄・再注入で intervalId が新周期で再生成）
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **859 件 PASS**（v0.31.0 の 847 件 + 新規 12 件） |
+| 影響範囲 | `src/features/token-rate/` / `src/core/settings.ts` / `src/core/i18n.ts` / `src/settings/SettingTabGeneral.ts` / `tests/features/token-rate/` |
+
+## [0.31.0] - 2026-09-01 — トークン速度表示の表示項目選択 + 最大 tok/s 偽スパイク修正
+
+### Added
+
+- **トークン速度表示の表示項目選択**: 設定 → 一般タブに 4 トグル（首 / 現在 / 平均 / 最大）を追加
+  - `general.tokenRateShowTtft` / `tokenRateShowCurrent` / `tokenRateShowAvg` / `tokenRateShowMax`（既定: 全 ON）
+  - 親トグル（`general.tokenRateEnabled`）OFF で表示項目選択ごと無効化
+  - counter は表示セグメントのみを描画し `data-visible` 属性に選択状態を反映、設定変更時は rescan で再注入
+
+### Fixed
+
+- **最大 tok/s の偽スパイク修正**:
+  - DOM フォールバック（body 全文字数）を廃止し、アシスタント要素消失時はレート計算をスキップ
+  - 縮小窓（文字数減少）と要素交代は baseline-only で処理し、縮小窓の直後の復帰窓も 1 窓隔離（quarantine）して再記録を防止
+  - 要素消失時にアンカーを解除し、同一要素の再 attach 時も初回確立（baseline-only）扱いに変更
+  - 再注入時の初回 tick を baseline-only にし、全文字数の一括計上スパイクを遮断
+
+### テスト
+
+| 項目 | 値 |
+|------|------|
+| TypeScript テスト | **847 件 PASS**（v0.30.2 の 830 件 + 新規 17 件） |
+| 影響範囲 | `src/features/token-rate/` / `src/core/settings.ts` / `src/core/i18n.ts` / `src/settings/SettingTabGeneral.ts` / `tests/features/token-rate/` |
+
 ## [0.30.2] - 2026-08-31 — 完了報告（次のアクション）の推奨検出強化（F023）
 
 ### Added
