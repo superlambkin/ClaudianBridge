@@ -19,3 +19,12 @@ MyPOC*
 
 # build artifacts published to GitHub Releases (Git tracked intentionally)
 !Plugin/
+01_要件定義/
+02_設計文書/
+03_開発文書/
+04_テスト文書/
+05_デプロイ運用/
+06_振り返り/
+08_説明書/
+09_対話まとめ/
+01_移行ガイド.md
