@@ -419,6 +419,15 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     expect(vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0].length).toBe(1);
   });
 
+  it('v0.32.10: plachta 経路でも onChunkStart が plachtaSpeakChunksPipelined に伝播する（下線原因⑥）', async () => {
+    const onChunkStart = vi.fn();
+    await addTextToTTS(null as never, 'あ'.repeat(300), makePlachtaSettings(), onChunkStart);
+    expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
+    const args = vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0];
+    // 第 5 引数（index 4）として onChunkStart が渡される
+    expect(args[4]).toBe(onChunkStart);
+  });
+
   it('TC-L04: webspeech 450字 → 4チャンク(140/140/140/30)で連続再生（v0.17.0）', async () => {
     const { synth, fireEnd } = mockWindowWithSpeech();
     const notice = vi.fn();
