@@ -1,0 +1,616 @@
+/* Claudian Bridge スタイル — 各機能のスタイルは features/<feature>/styles.module.css に分割 */
+.cb-empty { color: var(--text-muted); padding: 1em; text-align: center; }
+
+/* Selection popup */
+.cb-popup {
+  position: fixed;
+  z-index: 9999;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.cb-action-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+}
+.cb-action-btn:hover { opacity: 0.85; }
+
+/* Office conversion modal */
+.cb-modal { padding: 1em; }
+.cb-progress { margin-bottom: 12px; }
+.cb-progress-track {
+  height: 8px;
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cb-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--interactive-accent);
+  transition: width 0.3s ease;
+}
+.cb-progress-fill.cb-progress-done { background: var(--color-green); }
+.cb-progress-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block; }
+.cb-stage { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 13px; }
+.cb-stage-icon { width: 16px; text-align: center; }
+.cb-stage-icon.cb-st-running { color: var(--interactive-accent); }
+.cb-stage-icon.cb-st-ok { color: var(--color-green); }
+.cb-stage-icon.cb-st-fail { color: var(--color-red); }
+.cb-log {
+  width: 100%;
+  min-height: 120px;
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  margin: 8px 0;
+}
+.cb-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.cb-close-btn { margin-left: auto; }
+
+/* Whitelist tags */
+.cb-whitelist-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+}
+.cb-whitelist-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: var(--font-monospace);
+  transition: opacity 0.15s;
+}
+.cb-whitelist-tag:hover { opacity: 0.85; }
+.cb-whitelist-tag-remove {
+  cursor: pointer;
+  font-size: 0.75em;
+  opacity: 0.7;
+  padding: 0 2px;
+  line-height: 1;
+}
+.cb-whitelist-tag-remove:hover { opacity: 1; color: var(--text-error); }
+
+/* Object context menu exclude selectors */
+.cb-object-exclude-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+}
+.cb-object-exclude-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: var(--font-monospace);
+  transition: opacity 0.15s;
+}
+.cb-object-exclude-tag:hover { opacity: 0.85; }
+.cb-object-exclude-tag-remove {
+  cursor: pointer;
+  font-size: 0.75em;
+  opacity: 0.7;
+  padding: 0 2px;
+  line-height: 1;
+}
+.cb-object-exclude-tag-remove:hover { opacity: 1; color: var(--text-error); }
+
+/* Preset cards */
+.cb-whitelist-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.cb-whitelist-preset-card {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--background-secondary);
+  transition: background 0.15s;
+}
+.cb-whitelist-preset-card:hover { background: var(--background-modifier-hover); }
+.cb-whitelist-preset-card button {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 0.8em;
+  transition: opacity 0.15s;
+}
+.cb-whitelist-preset-card button:hover { opacity: 0.85; }
+
+/* Settings 5-tab switcher */
+.cb-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 1em;
+  flex-wrap: wrap;
+}
+.cb-tab-btn {
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+.cb-tab-btn:hover { background: var(--background-modifier-hover); }
+.cb-tab-btn.is-active {
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  border-color: var(--background-modifier-border);
+  font-weight: 600;
+}
+.cb-tab-content { padding-top: 0.5em; }
+
+/* === Quota Detection (v0.3.0) === */
+.claudian-quota-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+.claudian-quota-bar__main,
+.claudian-quota-bar__sub {
+  display: inline-flex;
+  align-items: center;
+}
+.claudian-quota-bar__label,
+.claudian-quota-bar__sub-label {
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+.claudian-quota-bar__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.claudian-quota-bar__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+.claudian-quota-bar__dot[data-color="green"]  { background: #4caf50; }
+.claudian-quota-bar__dot[data-color="orange"] { background: #ff9800; }
+.claudian-quota-bar__dot[data-color="red"]    { background: #f44336; }
+.claudian-quota-bar__dot[data-color="gray"]   { background: #9e9e9e; }
+.claudian-quota-bar__countdown {
+  margin-left: 4px;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+.claudian-quota-bar__refresh {
+  margin-left: auto;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.claudian-quota-bar:hover .claudian-quota-bar__refresh {
+  opacity: 1;
+}
+.claudian-quota-bar[data-status="fetching"] .claudian-quota-bar__dot {
+  animation: claudian-quota-pulse 1.2s ease-in-out infinite;
+}
+@keyframes claudian-quota-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1.0; }
+}
+
+/* === Version row (v0.5.0) === */
+.cb-version-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 4px 0 16px 0;
+  padding: 6px 12px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.cb-version-row__name {
+  font-weight: bold;
+}
+.cb-version-row__version {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+}
+
+/* === Multi-provider quota indicator (v0.4.0) === */
+.cb-quota-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: default;
+  white-space: nowrap;
+}
+.cb-quota-indicator__label { font-weight: bold; }
+.cb-quota-indicator__model {
+  font-family: var(--font-monospace);
+  font-size: 10px;
+  color: #2196f3;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cb-quota-indicator__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: bold;
+}
+.cb-quota-indicator__value[data-level="safe"]    { color: #4caf50; }
+.cb-quota-indicator__value[data-level="caution"] { color: #ff9800; }
+.cb-quota-indicator__value[data-level="danger"]  { color: #f44336; }
+.cb-quota-indicator__value[data-level="unknown"] { color: var(--text-muted); }
+.cb-quota-indicator[data-status="fetching"] .cb-quota-indicator__dot {
+  animation: cb-quota-pulse 1.2s ease-in-out infinite;
+}
+@keyframes cb-quota-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1.0; }
+}
+
+/* === LLM 残量検出タブ (v0.5.0) === */
+.cb-llm-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+}
+.cb-llm-info__row {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+.cb-llm-info__key {
+  color: var(--text-muted);
+  min-width: 90px;
+}
+.cb-llm-info__value {
+  font-family: var(--font-monospace);
+  word-break: break-all;
+}
+.cb-llm-result {
+  margin: 6px 0 0 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--background-secondary);
+}
+.cb-llm-result__text {
+  font-size: 13px;
+  font-weight: 600;
+}
+.cb-llm-safe    { color: #4caf50; }
+.cb-llm-caution { color: #ff9800; }
+.cb-llm-danger  { color: #f44336; }
+.cb-llm-unknown { color: var(--text-muted); }
+
+/* v0.12.0: ツールバーボタン（ミュート/全文） */
+.claude-tts-mute-btn.is-playing {
+  animation: cb-tts-blink 1s ease-in-out infinite;
+}
+/* v0.18.1: ミュート中の背景色を赤にする（ユーザー改良要望） */
+.claude-tts-mute-btn.is-muted {
+  background: var(--color-red) !important;
+  border-color: var(--color-red) !important;
+}
+
+@keyframes cb-tts-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.claude-tts-mute-btn,
+.claude-tts-fulltext-btn,
+.cb-input-ai-btn {
+  /* v0.12.4: アイコンのみ表示に合わせてコンパクト化 */
+  min-width: 2em;
+  padding: 0 0.35em;
+  justify-content: center;
+}
+
+/* v0.14.0: メッセージ結果欄の読上げボタン（コピーボタン左隣） */
+.claudian-text-tts-btn {
+  position: absolute;
+  bottom: 0;
+  inset-inline-end: 22px;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.claudian-text-tts-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.claudian-text-block:hover .claudian-text-tts-btn {
+  opacity: 1;
+}
+.claudian-text-tts-btn:hover {
+  color: var(--text-normal);
+}
+
+/* v0.16.0: AI読み上げボタン（既存ボタンの直後に配置・右端寄せしない） */
+
+/* v0.17.0: MD保存ボタン（メモリフォルダ保存） */
+.cb-md-save-btn {
+  min-width: 2em;
+  padding: 0 0.35em;
+  justify-content: center;
+}
+.claudian-text-md-save-btn {
+  position: absolute;
+  bottom: 0;
+  inset-inline-end: 44px;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.claudian-text-md-save-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.claudian-text-block:hover .claudian-text-md-save-btn {
+  opacity: 1;
+}
+.claudian-text-md-save-btn:hover {
+  color: var(--text-normal);
+}
+
+/* v0.17.0: 読み上げ内容フィルタ表 */
+.cb-speech-filter-table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+.cb-speech-filter-table th, .cb-speech-filter-table td {
+  border: 1px solid var(--background-modifier-border);
+  padding: 4px 8px;
+  text-align: center;
+  font-size: 0.85em;
+}
+.cb-speech-filter-table td:first-child { text-align: left; }
+.cb-speech-filter-cell .setting-item { padding: 0; border: none; }
+.cb-setting-hint { color: var(--text-muted); font-size: 0.85em; }
+
+/* v0.23.0: クイック返信ボタン */
+/* v0.29.0: ツールバー先頭行 → nav-actions NewTab 左隣へ移動。
+   インライン化で NewTab と横並びにする。 */
+.cb-quickreply-row {
+  display: inline-flex;      /* インライン化（NewTab と横並び） */
+  align-items: center;
+  gap: 1px;                  /* コンパクト化（v0.29.1: 2px → 1px）*/
+  margin-right: 6px;         /* v0.29.1: NewTab との間隔 */
+}
+.cb-quickreply-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;                  /* v0.29.1: 2px → 1px */
+  margin-left: 6px;
+}
+/* v0.29.1: SVG アイコン化（NewTab = .clickable-icon, 24x24 square）と同サイズに揃える。
+   背景 = 白（テーマ変数で light/dark 対応）、枠 = 灰色。
+   v0.29.1 微調整: 24x24 → 20x20 */
+.cb-quickreply-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  background: transparent;                       /* 透明背景 */
+  border: 1px solid var(--background-modifier-border); /* 灰色枠 */
+  color: var(--icon-color);
+  cursor: var(--cursor-clickable, pointer);
+  transition: background-color 80ms ease-out;
+}
+.cb-quickreply-btn:hover {
+  background: var(--background-modifier-hover);   /* hover: 既存パターン */
+  border-color: var(--background-modifier-border-hover);
+  color: var(--icon-color-hover);
+}
+.cb-quickreply-btn svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+.cb-quickreply-btn.cb-hidden { display: none; }
+.cb-quickreply-btn[data-cb-qr-1] {
+  margin-left: 4px;
+  border-left: 1px solid var(--background-modifier-border);
+}
+.cb-quickreply-btn.is-recommended {
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+}
+.cb-quickreply-btn.is-recommended:hover {
+  background: var(--color-accent-hover, var(--color-accent));
+}
+
+/* v0.27.0: TTS エンジン変更 — edgeCloud プロキシ設定グループ */
+.cb-tts-edge-cloud {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--interactive-accent);
+  background: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.cb-tts-edge-cloud .setting-item {
+  border: none;
+  padding: 4px 0;
+}
+
+/* v0.30.0: トークン速度（tok/s）表示 */
+.cb-token-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;   /* 右寄せ */
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: opacity 500ms ease-out;
+}
+.cb-token-rate-value,
+.cb-token-rate-avg,
+.cb-token-rate-max,
+.cb-token-rate-ttft {
+  font-variant-numeric: tabular-nums;
+}
+.cb-token-rate-avg,
+.cb-token-rate-max,
+.cb-token-rate-ttft {
+  opacity: 0.75;
+}
+.cb-token-rate-unit,
+.cb-token-rate-label {
+  opacity: 0.6;
+}
+.cb-token-rate-sep {
+  opacity: 0.4;
+}
+.cb-token-rate.is-streaming .cb-token-rate-dot {
+  background: var(--color-accent);
+  animation: cb-token-rate-pulse 1s ease-in-out infinite;
+}
+.cb-token-rate.is-fading {
+  opacity: 0;
+}
+.cb-token-rate-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+@keyframes cb-token-rate-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* ============================================================
+ * v0.31.0 (F-028): MD 読み上げ位置ハイライト
+ * ============================================================ */
+/* v0.32.3: 下線表示方式（ご主人様指示 — 読み上げ位置を下線で示す） */
+.cb-md-read-chunk {
+  background-color: transparent;
+  border-radius: 0;
+  transition: text-decoration-color 200ms ease;
+}
+.cb-md-read-chunk.is-active {
+  background-color: transparent;
+  text-decoration: underline;
+  text-decoration-color: var(--cb-md-read-highlight, #ffb300);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+}
+.cb-md-read-chunk.is-paused {
+  background-color: transparent;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: var(--cb-md-read-highlight-paused, rgba(255, 180, 80, 0.9));
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+  animation: cb-md-read-pulse 1.5s ease-in-out infinite;
+}
+@keyframes cb-md-read-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1.0; }
+}
+.cb-md-read-overlay {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(40, 40, 40, 0.85);
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+}
+.cb-md-read-overlay button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.cb-md-read-overlay button:hover {
+  opacity: 0.8;
+}
+.cb-md-read-overlay [data-cb-md-read-progress] {
+  min-width: 32px;
+  text-align: center;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * v0.32.3: Live Preview / Source 用も下線方式に統一
+ * （registerEditorExtension は無効のため Preview モード適用のみ有効）
+ * ============================================================ */
+.cm-s-obsidian .cb-md-read-chunk.is-active,
+.markdown-preview-view .cb-md-read-chunk.is-active {
+  background-color: transparent;
+  text-decoration: underline;
+  text-decoration-color: var(--cb-md-read-highlight, #ffb300);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+}

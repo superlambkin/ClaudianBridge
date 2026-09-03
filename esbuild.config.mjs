@@ -1,8 +1,22 @@
 import esbuild from 'esbuild';
 import process from 'process';
 import builtins from 'builtin-modules';
+import { copyFileSync, mkdirSync } from 'fs';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+
+// Copy manifest.json / styles.css into Plugin/ so Release assets stay current.
+const copyPluginExtras = {
+  name: 'copy-plugin-extras',
+  setup(build) {
+    build.onEnd((result) => {
+      if (result.errors.length > 0) return;
+      mkdirSync('Plugin', { recursive: true });
+      copyFileSync('src/manifest.json', 'Plugin/manifest.json');
+      copyFileSync('styles.css', 'Plugin/styles.css');
+    });
+  },
+};
 
 const prod = process.argv[2] === 'production';
 
@@ -34,12 +48,13 @@ const options = {
   treeShaking: true,
   minify: prod,
   logLevel: 'info',
-  outfile: 'main.js',
+  outfile: 'Plugin/main.js',
 };
 
 if (!prod) {
   options.plugins = [deployPlugin];
 }
+options.plugins = [...(options.plugins ?? []), copyPluginExtras];
 
 const ctx = await esbuild.context(options);
 

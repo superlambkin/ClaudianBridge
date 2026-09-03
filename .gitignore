@@ -16,3 +16,6 @@ data.json
 
 # local POC dev directory (untracked gitlink side effect; kept out of index)
 MyPOC*
+
+# build artifacts published to GitHub Releases (Git tracked intentionally)
+!Plugin/
