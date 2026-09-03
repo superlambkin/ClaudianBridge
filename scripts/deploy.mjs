@@ -7,18 +7,10 @@
  * the repo's python/ directory and are copied flat into the deployed plugin folder,
  * because at runtime the plugin resolves them from <pluginDir>.
  */
-import { spawnSync } from "child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { resolveVaultPath } from "../../_devtools/obsidian-deploy.mjs";
-
-const shared = fileURLToPath(new URL("../../_devtools/obsidian-deploy.mjs", import.meta.url));
-const result = spawnSync(
-  process.execPath,
-  [shared, "ClaudianBridge", "--markers", "Claudian Bridge,ClaudianBridge"],
-  { stdio: "inherit" }
-);
 
 // Deploy the Python helper scripts so the plugin folder is self-contained.
 const PY_FILES = [
@@ -46,6 +38,34 @@ const RAG_FILES = [
 ];
 const dest = join(resolveVaultPath(), ".obsidian", "plugins", "ClaudianBridge");
 mkdirSync(dest, { recursive: true });
+
+// --- Plugin 3 ファイル: Plugin/ (SSOT) から Vault へコピー ---
+const pluginDir = join(process.cwd(), "Plugin");
+const PLUGIN_FILES = ["main.js", "manifest.json", "styles.css"];
+let pluginOk = true;
+for (const f of PLUGIN_FILES) {
+  const src = join(pluginDir, f);
+  if (!existsSync(src)) {
+    console.error(`❌ Plugin file missing: ${src} (run: npm run build)`);
+    pluginOk = false;
+    continue;
+  }
+  const target = join(dest, f);
+  copyFileSync(src, target);
+  console.log(`✅ Plugin/${f} -> ${target}`);
+}
+// マーカー検証
+const deployedMain = join(dest, "main.js");
+if (pluginOk && existsSync(deployedMain)) {
+  const content = readFileSync(deployedMain, "utf-8");
+  const missing = ["Claudian Bridge", "ClaudianBridge"].filter((m) => !content.includes(m));
+  if (missing.length > 0) {
+    console.error(`❌ Deploy FAILED: markers not found in deployed main.js: ${missing.join(", ")}`);
+    pluginOk = false;
+  } else {
+    console.log("🔍 Markers verified: Claudian Bridge, ClaudianBridge");
+  }
+}
 
 /** Recursively copy a directory. Returns false if source does not exist. */
 function copyDirSync(src, dest) {
@@ -101,4 +121,4 @@ if (!copyDirSync(edgeTtsSrc, edgeTtsDest)) {
   console.log(`✅ py/edge_tts -> ${edgeTtsDest}`);
 }
 
-process.exit(result.status === 0 && pyOk ? 0 : 1);
+process.exit(pluginOk && pyOk ? 0 : 1);
