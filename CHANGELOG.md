@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.32.10] - 2026-09-04 — 自己更新機能（F-029）
+
+### Added
+
+- **自己更新機能**: 設定一般タブのバージョン行右に「更新を確認」ボタンを追加。GitHub Releases の最新版を semver 比較で検知し、バックアップ（`.backup/<UTC-ISO>/`）→ 3 ファイル DL → disable/enable 自動リロード
+- `Plugin/` ディレクトリ新設（main.js / manifest.json / styles.css の Git tracked 配布源・`gh release create` で手動アップロード）
+- `scripts/deploy.mjs` を Plugin/ からのコピー方式に改修（デプロイ SSOT 化）
+
+### テスト
+
+- self-update 単体 + 統合テスト 19 件追加（update-checker 9 / backup-manager 3 / update-downloader 2 / reloader 2 / flow 3）
+
+### 既知の問題
+
+- `tests/features/tts/core.test.ts` の plachta 伝播テスト 1 件が本機能以前から失敗（`ee25827` で混入・無関係）
+
 ## [0.32.9] - 2026-09-03 — TTS/ハイライト チャンク index 一致化 + 不一致 Notice
 
 ### Fixed
