@@ -49,13 +49,44 @@ describe('checkForUpdate', () => {
     expect((await checkForUpdate('1.0.0')).updateAvailable).toBe(false);
   });
 
-  it('404 で例外を投げる', async () => {
+  it('requestUrl が 404 でも fetch フォールバックで取得できる', async () => {
     httpGetMock.mockResolvedValue({ status: 404, ok: false, json: async () => ({}) });
-    await expect(checkForUpdate('0.32.9')).rejects.toThrow(/404/);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => apiResponse,
+      text: async () => '',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const r = await checkForUpdate('0.32.9');
+    expect(r.updateAvailable).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('フォールバックも 404 ならレスポンス本文付きで例外を投げる', async () => {
+    httpGetMock.mockResolvedValue({ status: 404, ok: false, json: async () => ({}) });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ message: 'Not Found' }),
+      text: async () => '{"message":"Not Found"}',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(checkForUpdate('0.32.9')).rejects.toThrow(/Not Found/);
+    vi.unstubAllGlobals();
   });
 
   it('403（レート制限）で例外を投げる', async () => {
     httpGetMock.mockResolvedValue({ status: 403, ok: false, json: async () => ({}) });
+    // フォールバック fetch も 403 を返すよう固定（実ネットワークを叩かない）
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ message: 'rate limit' }),
+      text: async () => '',
+    }));
     await expect(checkForUpdate('0.32.9')).rejects.toThrow(/403/);
+    vi.unstubAllGlobals();
   });
 });

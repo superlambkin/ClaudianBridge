@@ -34,13 +34,51 @@ interface GithubLatestRelease {
   assets?: Array<{ name?: string; browser_download_url?: string }>;
 }
 
+interface RawResponse {
+  status: number;
+  ok: boolean;
+  json(): Promise<unknown>;
+}
+
+/**
+ * 最新 Release の JSON を取得する。
+ * requestUrl 経由で 404 等の場合は fetch（GitHub API は CORS 許可）へフォールバックする。
+ */
+async function fetchReleaseJson(): Promise<GithubLatestRelease> {
+  const attempt = async (): Promise<RawResponse> => {
+    const res = await httpGet(RELEASES_LATEST_URL, GH_HEADERS);
+    return { status: res.status, ok: res.ok, json: () => res.json() };
+  };
+  let res: RawResponse = await attempt();
+  if (!res.ok && typeof fetch === 'function') {
+    // requestUrl 経路の失敗（404 等）は環境固有の可能性があるため fetch で再試行
+    try {
+      const fres = await fetch(RELEASES_LATEST_URL, { headers: GH_HEADERS });
+      res = { status: fres.status, ok: fres.ok, json: () => fres.json() };
+    } catch {
+      /* fetch 失敗時は元のレスポンスで処理 */
+    }
+  }
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+  if (res.status === 404) {
+    const detail = body ? ` — ${JSON.stringify(body).slice(0, 200)}` : '';
+    throw new Error(`GitHub API 404: Release が見つかりません${detail}`);
+  }
+  if (res.status === 403) throw new Error('GitHub API 403: レート制限です。1 時間後に再試行してください');
+  if (!res.ok || typeof body !== 'object' || body === null) {
+    throw new Error(`GitHub API error: HTTP ${res.status} — ${JSON.stringify(body).slice(0, 200)}`);
+  }
+  return body as GithubLatestRelease;
+}
+
 /** 最新 Release を取得してローカルバージョンと比較する */
 export async function checkForUpdate(localVersion: string): Promise<UpdateCheckResult> {
-  const res = await httpGet(RELEASES_LATEST_URL, GH_HEADERS);
-  if (res.status === 404) throw new Error(`GitHub API 404: Release が見つかりません (${RELEASES_LATEST_URL})`);
-  if (res.status === 403) throw new Error('GitHub API 403: レート制限です。1 時間後に再試行してください');
-  if (!res.ok) throw new Error(`GitHub API error: HTTP ${res.status}`);
-  const body = (await res.json()) as GithubLatestRelease;
+  const body = await fetchReleaseJson();
   const tagName = body.tag_name ?? '';
   const assets: ReleaseAsset[] = (body.assets ?? [])
     .filter((a): a is { name: string; browser_download_url: string } =>
