@@ -118,7 +118,7 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
     if (view && s.activeIdx >= 0 && s.chunks[s.activeIdx]) {
       // v0.35.0: スクロール位置設定（%）を反映（store が無いテスト環境では既定 40）
       const pct = store?.load?.()?.tts?.mdReadHighlight?.scrollPositionPct ?? 40;
-      const matched = highlightChunkInPreview(view as never, s.chunks[s.activeIdx], pct);
+      const matched = highlightChunkInPreview(view as never, s.chunks[s.activeIdx], pct, s.chunks[s.activeIdx + 1]);
       // v0.32.6: 診断ログ（実機確認用）
       console.log('[cb-md-read-highlight] chunk', s.activeIdx, 'of', s.chunks.length - 1, matched ? 'underline applied' : 'NOT matched');
     }
