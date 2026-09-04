@@ -47,7 +47,7 @@ class PlaybackController {
     this.releaseAll();
   }
 
-  /** 読み上げ全体を中止（reset 後再有効化可能） */
+  /** 読み上げ開始ごとの初期化 */
   reset(): void {
     this.audio = null;
     this.paused = false;
