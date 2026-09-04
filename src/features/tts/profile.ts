@@ -150,12 +150,12 @@ function transformClassroom(text: string, termsMap: Map<string, string>): string
   return t;
 }
 
-/** 上司: 🎯 結論 見出し前にマーカー付与 + 数字漢数字（並び順は呼び出し側チャンクで実施） */
+/** 上司: 🎯 結論/他見出しの直前に口頭キューを挿入 + 数字漢数字（並び順は呼び出し側で実施） */
 function transformBoss(text: string): string {
-  // 必ず行頭で判定するため `m` フラグ＋^ で行頭一致にする。
-  // 注: 日本語の直後に \b（単語境界）は機能しない（\w は ASCII のみ）ため使用しない
-  let t = text.replace(/^## 🎯 結論([^\n]*)/gm, '結論：## 🎯 結論$1');
-  t = t.replace(/^## (?!🎯 )([^\n]*)/gm, '詳細：## $1');
+  // v0.37.1 (M2): 見出し行は「## …」のまま維持（chunkTextNatural の境界判定と # 除去に必要）。
+  // その直前の行に口頭キュー（結論。/詳細。）を挿入する。\b は日本語で機能しないため使わない。
+  let t = text.replace(/^## 🎯 結論[^\n]*$/gm, '結論。\n$&');
+  t = t.replace(/^## (?!🎯 )[^\n]*$/gm, '詳細。\n$&');
   t = t.replace(/\d+/g, (m) => toKanjiNumber(Number(m)));
   return t;
 }

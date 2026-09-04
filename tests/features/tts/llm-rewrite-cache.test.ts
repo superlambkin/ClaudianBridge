@@ -5,8 +5,15 @@ import * as path from 'path';
 import { rewriteCacheKey, RewriteCache, MAX_CACHE_ENTRIES } from '../../../src/features/tts/llm-rewrite-cache';
 
 describe('rewriteCacheKey', () => {
-  it('filePath|contentLength|profile 形式', () => {
-    expect(rewriteCacheKey('a.md', 100, 'boss')).toBe('a.md|100|boss');
+  it('filePath|contentLength|hash|profile 形式（内容ハッシュで鮮度を担保）', () => {
+    const k1 = rewriteCacheKey('a.md', 'AAA 本文', 'boss');
+    const k2 = rewriteCacheKey('a.md', 'BBB 本文', 'boss');
+    expect(k1).toContain('a.md');
+    expect(k1).toContain('|boss');
+    // 同長でなくとも内容が異なればキーも異なる
+    expect(k1).not.toBe(k2);
+    // 同一内容なら同一キー
+    expect(rewriteCacheKey('a.md', 'AAA 本文', 'boss')).toBe(k1);
   });
 });
 

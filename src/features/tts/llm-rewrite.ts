@@ -35,36 +35,47 @@ export function splitLongBody(bodyText: string, max = SECTION_MAX_CHARS): string
 export function parseSections(rawContent: string): MdSection[] {
   const text = rawContent.replace(FRONTMATTER_RE, '').replace(CODE_FENCE_RE, ' ');
   const lines = text.split('\n');
-  const sections: MdSection[] = [];
-  let cur: MdSection | null = null;
+  const rawSections: Array<{ heading: string; bodyText: string }> = [];
+  let cur: { heading: string; bodyText: string } | null = null;
+  const prelude: string[] = [];
   for (const line of lines) {
     HEADING_LINE_RE.lastIndex = 0;
     const m = HEADING_LINE_RE.exec(line);
     if (m) {
-      if (cur) sections.push(cur);
-      cur = { index: sections.length, heading: m[2].trim(), bodyText: '' };
+      if (cur) rawSections.push(cur);
+      cur = { heading: m[2].trim(), bodyText: '' };
       continue;
     }
     if (cur) cur.bodyText += (cur.bodyText ? '\n' : '') + line;
+    else if (line.trim() !== '') prelude.push(line);
   }
-  if (cur) sections.push(cur);
-  // 見出しが 1 つも無い場合：全文を 1 Section にする
-  if (sections.length === 0) {
-    const trimmed = text.trim();
-    if (trimmed) sections.push({ index: 0, heading: '', bodyText: trimmed });
-  }
+  if (cur) rawSections.push(cur);
+
+  const sections: MdSection[] = [];
+  const push = (heading: string, bodyText: string): void => {
+    if (!bodyText.trim()) return; // v0.37.1 (H2): 空/見出しのみセクションはスキップ
+    sections.push({ index: sections.length, heading, bodyText });
+  };
+  // v0.37.1 (LOW-3): 先頭見出しより前の序文を保持（heading='' の Section）
+  const preludeText = prelude.join('\n').trim();
+  if (preludeText) push('', preludeText);
+  for (const s of rawSections) push(s.heading, s.bodyText);
+  // 見出しが無く prelude も無い場合は全文 1 Section
+  if (sections.length === 0 && text.trim()) push('', text.trim());
   return sections;
 }
 
 export function buildRewritePrompt(section: MdSection, profile: ProfileId): string {
-  return [
+  const lines = [
     `あなたは技術文書を「${profile}」向けの読み上げ原稿に書き換えるアシスタントです。`,
     '- 口頭で自然に読める形にする（記号・コード・表は言葉で説明 or 省略）',
     profileInstruction(profile),
     '- 出力は元の言語で。見出し・装飾・前置きは不要。',
-    '--- 本文 ---',
-    section.bodyText,
-  ].join('\n');
+  ];
+  // v0.37.1 (LOW): 見出し文脈を付与（空セクションの捏造防止にも寄与）
+  if (section.heading) lines.push(`[このセクションの見出し] ${section.heading}`);
+  lines.push('--- 本文 ---', section.bodyText);
+  return lines.join('\n');
 }
 
 function profileInstruction(profile: ProfileId): string {

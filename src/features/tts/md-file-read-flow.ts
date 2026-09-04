@@ -3,20 +3,14 @@
  * 抽出した関数。setupMdFileRead の menu click handler から呼ばれ、
  * テストからも直接 invoke できる。
  *
- * やること:
- *   1. ファイルを leaf で open する（未 open の場合）
- *   2. Markdown view を Preview モードに切替（Source の場合のみ）
- *   3. mdReadHighlight が enabled なら mdReadState を register（chunks 構築）
- *   4. speakText を onChunkStart 付きで実行
- *   5. 完了 / 失敗で finalizeMdRead
- *
  * v0.37.0 (F-033): プロファイル非 original のとき、各セクションを Claude CLI で
  * 聞き手向け口頭原稿に書き換えてから読み上げる。失敗時はトークン変換（F-032）へ
  * フォールバック。書き換え時は見出し単位の粗ハイライト。
+ * v0.37.1 (F-033 修正): LLM 生成のキャンセル/世代ガード・空セクション除外・
+ * DR マーカー除去・キャッシュ鮮度(内容ハッシュ)・フォールバック時の原文 anchor。
  */
 import { Notice } from 'obsidian';
 import type { App, TFile } from 'obsidian';
-import * as path from 'path';
 import type { ConfigStore } from '../../core/config-store';
 import type { ClaudianBridgeSettings } from '../../core/settings';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
@@ -39,36 +33,35 @@ import { loadTermsDict } from './terms-dict';
 import { playBeep } from './audio-beep';
 import { parseSections, rewriteSections, type MdSection } from './llm-rewrite';
 import { rewriteCacheKey, RewriteCache } from './llm-rewrite-cache';
+import { beginLlmSession, endLlmSession, isCurrent, type LlmSession } from './llm-session';
 import { runClaudePrompt } from '../llm/claude-cli';
 
 export { openInPreview };
 
 /**
  * v0.37.0: LLM 原稿書き換えの実行。成功時 { origSections, speakBodies } を返す。
- * 失敗・キャッシュ無効時は null（呼び出し側がトークン変換へフォールバック）。
+ * 失敗・キャッシュ無効・中断時は null（呼び出し側が従来経路/中断へ）。
  */
 async function tryLlmRewrite(
   app: App,
   filePath: string,
   content: string,
   cfg: ClaudianBridgeSettings,
+  session: LlmSession,
 ): Promise<{ origSections: MdSection[]; speakBodies: string[] } | null> {
   const profile = cfg.tts.mdReadProfile ?? 'original';
   if (profile === 'original') return null;
-  let cache: RewriteCache;
-  try {
-    cache = new RewriteCache(getPluginDir(app, manifest));
-  } catch {
-    return null; // プラグインディレクトリ解決不可 → LLM 経路は使わない
-  }
-  const key = rewriteCacheKey(filePath, content.length, profile);
   const cacheEnabled = cfg.tts.llmRewriteCache !== false;
+  const key = rewriteCacheKey(filePath, content, profile);
 
   const origSections = parseSections(content);
   if (origSections.length === 0) return null;
 
+  // v0.37.1 (LOW-1): キャッシュ無効時は RewriteCache を構築しない（同期 I/O 回避）
+  const cache = cacheEnabled ? new RewriteCache(getPluginDir(app, manifest)) : null;
+
   // 1) キャッシュ確認
-  if (cacheEnabled) {
+  if (cache) {
     const cached = await cache.get(key);
     if (cached) {
       try {
@@ -80,20 +73,25 @@ async function tryLlmRewrite(
     }
   }
 
-  // 2) LLM 生成（進行 Notice）
+  // 2) LLM 生成（進行 Notice・abort 可能）
   const progress = new Notice('📝 原稿生成中…', 0);
+  const runFn = async (p: string): Promise<string | null> => {
+    if (session.signal.aborted) return null;
+    return runClaudePrompt(p, { signal: session.signal });
+  };
   const res = await rewriteSections(
     origSections,
     profile,
-    runClaudePrompt,
+    runFn,
     (done, total) => { try { progress.setMessage(`📝 原稿生成中 ${done}/${total}…`); } catch { /* ignore */ } },
   );
-  try { progress.hide(); } catch { /* mock/非表示環境は無視 */ }
+  try { progress.hide(); } catch { /* ignore */ }
 
+  if (session.signal.aborted || !isCurrent(session.gen)) return null;
   if (res.failed) return null;
 
   const speakBodies = res.rewritten.map((s) => s.bodyText);
-  if (cacheEnabled) {
+  if (cache) {
     try { await cache.put(key, JSON.stringify(speakBodies)); } catch { /* ignore */ }
   }
   return { origSections, speakBodies };
@@ -126,10 +124,10 @@ export async function addMdToTts(
 
   const profile = cfg.tts.mdReadProfile ?? 'original';
   const hlEnabled = cfg.tts.mdReadHighlight?.enabled !== false;
-  // v0.35.x: 読み上げ開始ごとに再生制御を初期化（前回中断の abort フラグを解除）
+  // v0.35.x: 読み上げ開始ごとに再生制御を初期化
   if (hlEnabled) getPlaybackController().reset();
 
-  // v0.35.x: ファイル名を先に読み上げる（本文の前・ハイライト対象外）
+  // v0.35.x: ファイル名を先に読み上げる
   const basename = (tFile as TFile | null)?.basename
     ?? filePath.split('/').pop()?.replace(/\.md$/i, '')
     ?? '';
@@ -138,63 +136,65 @@ export async function addMdToTts(
     await speakText('md', filenameText, cfg, { noticeOnEmpty: false });
   }
 
-  // v0.37.0 (F-033): LLM 原稿書き換え（非 original）。失敗・環境非対応は null → 従来経路へ
-  const llm = profile !== 'original'
-    ? await tryLlmRewrite(app, filePath, content, cfg).catch(() => null)
-    : null;
+  // v0.37.0: 原文（DOM 照合用）を先に抽出。ハイライト anchor は常に原文ベース。
+  const originalText = extractMdText(content, filter);
 
-  // v0.36.0 (F-032): トークン変換（LLM 成功時は使わないフォールバック用に確保）
-  let fallbackText: string | null = null;
+  // v0.37.0 (F-033): LLM 原稿書き換え（非 original）。失敗/中断は null → 従来経路 or 中断
+  let llm: { origSections: MdSection[]; speakBodies: string[] } | null = null;
+  let session: LlmSession | null = null;
+  if (profile !== 'original') {
+    session = beginLlmSession();
+    llm = await tryLlmRewrite(app, filePath, content, cfg, session).catch(() => null);
+    if (session.signal.aborted || !isCurrent(session.gen)) {
+      endLlmSession();
+      // 新しい読み上げが始まった/中断された場合はこの読み上げを静かに終了
+      return true;
+    }
+  }
 
-  // 3. F-028: state 登録（ハイライトが enabled の場合のみ）
-  // v0.32.9 修正: これまで buildChunks（行パッキング分割）で chunks を作って
-  // いたが、TTS 本体（core.ts）は filterSpeechText + chunkText（句点区切り
-  // パッキング）で別アルゴリズム分割するため、500 字超の文書で index が
-  // ズレ／範囲外になり下線が止まっていた。TTS と完全に同一の分割結果から
-  // chunks を生成し、onChunkStart の index を完全一致させる。
   const engineForChunk = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
   const chunkMax = cfg.tts.chunkMaxChars?.[engineForChunk] ?? (engineForChunk === 'edge' ? 500 : 140);
 
-  if (hlEnabled && llm) {
-    // v0.37.0: 書き換え時は「見出し単位の粗ハイライト」
-    mdReadState.register(filePath, llm.origSections.map((s, i) => ({
-      index: i,
-      startLine: 0,
-      anchor: anchorPrefix(normalizeForMatch(s.heading) || s.heading, 24),
-      text: s.bodyText,
-      headingLevel: 0 as const,
-    })));
-  } else if (hlEnabled) {
-    let text = extractMdText(content, filter);
-    if (profile !== 'original') {
-      const termsMap = await loadTermsDict(app, cfg.tts.termsDict ?? '');
-      fallbackText = applyProfileTransform(text, profile, termsMap);
-      text = fallbackText;
+  // 3. F-028: state 登録（ハイライトが enabled の場合のみ）
+  if (hlEnabled) {
+    if (llm) {
+      // v0.37.0: 書き換え時は「見出し単位の粗ハイライト」（anchor は原文 DOM 用）
+      mdReadState.register(filePath, llm.origSections.map((s, i) => ({
+        index: i,
+        startLine: 0,
+        anchor: anchorPrefix(normalizeForMatch(s.heading) || s.bodyText, 24),
+        text: s.bodyText,
+        headingLevel: 0 as const,
+      })));
+    } else {
+      // v0.37.1 (M4): anchor は常に原文ベース（トークン変換後では DOM と不一致のため）
+      const optimized = filterSpeechText(originalText.trim(), filter);
+      const ttsChunks = chunkMax > 0 && optimized.length > chunkMax
+        ? chunkTextNatural(optimized, chunkMax)
+        : [optimized];
+      const anchors = ttsChunks.map((t) => {
+        const a = normalizeForMatch(t);
+        return anchorPrefix(a || t, 24);
+      });
+      mdReadState.register(filePath, anchors.map((anchor, i) => ({
+        index: i,
+        startLine: 0,
+        anchor,
+        text: ttsChunks[i],
+        headingLevel: 0 as const,
+      })));
     }
-    const optimized = filterSpeechText(text.trim(), filter);
-    const ttsChunks = chunkMax > 0 && optimized.length > chunkMax
-      ? chunkTextNatural(optimized, chunkMax)
-      : [optimized];
-    const anchors = ttsChunks.map((t) => {
-      const a = normalizeForMatch(t);
-      return anchorPrefix(a || t, 24);
-    });
-    mdReadState.register(filePath, anchors.map((anchor, i) => ({
-      index: i,
-      startLine: 0,
-      anchor,
-      text: ttsChunks[i],
-      headingLevel: 0 as const,
-    })));
   }
 
   // 4. speakText 実行
   let ok: boolean;
-  if (llm) {
+  if (llm && session) {
     // v0.37.0: セクションごとに読み上げ。各セクション開始で activeIdx = sectionIdx
     ok = true;
     for (let sIdx = 0; sIdx < llm.speakBodies.length; sIdx++) {
-      if (getPlaybackController().isAborted()) { ok = false; break; }
+      if (!isCurrent(session.gen) || session.signal.aborted || getPlaybackController().isAborted()) {
+        ok = false; break;
+      }
       const body = llm.speakBodies[sIdx];
       if (!body.trim()) continue;
       if (hlEnabled) mdReadState.setActiveIdx(sIdx);
@@ -205,21 +205,26 @@ export async function addMdToTts(
       }
     }
   } else {
-    // 従来: 本文を 1 度に読み上げ（fallbackText は抽出済みトークン変換文 or null）
-    let text = fallbackText ?? extractMdText(content, filter);
-    if (profile !== 'original' && fallbackText === null) {
+    // 従来: 原文 or トークン変換文を 1 度に読み上げ
+    let text = originalText;
+    if (profile !== 'original') {
       const termsMap = await loadTermsDict(app, cfg.tts.termsDict ?? '');
-      text = applyProfileTransform(text, profile, termsMap);
+      text = applyProfileTransform(originalText, profile, termsMap);
     }
     const baseHook = createChunkStartHook(hlEnabled);
-    const onChunkStart = profile === 'dr'
+    let drBeepChunks: string[] | null = null;
+    if (profile === 'dr') {
+      const optimized = filterSpeechText(text.trim(), filter);
+      drBeepChunks = chunkMax > 0 && optimized.length > chunkMax
+        ? chunkTextNatural(optimized, chunkMax)
+        : [optimized];
+      // v0.37.1 (M1): [BEEP] マーカーは TTS に渡さず、ビープ判定のみに使う
+      text = text.replace(/\[BEEP\]\s*/g, '');
+    }
+    const onChunkStart = drBeepChunks
       ? (idx: number) => {
           baseHook?.(idx);
-          const flat = (() => {
-            const optimized = filterSpeechText(text.trim(), filter);
-            return chunkMax > 0 && optimized.length > chunkMax ? chunkTextNatural(optimized, chunkMax) : [optimized];
-          })();
-          if (flat[idx]?.includes('[BEEP]')) playBeep();
+          if (drBeepChunks?.[idx]?.includes('[BEEP]')) playBeep();
         }
       : baseHook;
     ok = await speakText('md', text, cfg, {
@@ -229,6 +234,7 @@ export async function addMdToTts(
   }
 
   // 5. finalize
+  if (session) endLlmSession();
   if (hlEnabled) finalizeMdRead(ok);
 
   return ok;

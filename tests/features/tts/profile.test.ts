@@ -78,9 +78,11 @@ describe('classroom プロファイル', () => {
 });
 
 describe('boss プロファイル', () => {
-  it('🎯 結論 見出しに「結論：」マーカー・他見出しに「詳細：」を付与', () => {
+  it('🎯 結論/他見出しの直前に口頭キュー（結論。/詳細。）を挿入し # 見出しは維持', () => {
     const out = applyProfileTransform('## 🎯 結論\n要点\n## 詳細\n詳細', 'boss', new Map());
-    expect(out).toMatch(/結論：[\s\S]*要点[\s\S]*詳細：[\s\S]*詳細/);
+    expect(out).toContain('結論。');
+    expect(out).toContain('詳細。');
+    expect(out).toMatch(/^## 🎯 結論/m);
   });
 
   it('数値を漢数字にする', () => {

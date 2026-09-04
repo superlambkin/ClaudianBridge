@@ -12,6 +12,8 @@ import { spawn, execFileSync } from 'child_process';
 export interface ClaudeCliOptions {
   /** タイムアウト（ms）。既定 30000。超過で kill して null を返す */
   timeoutMs?: number;
+  /** v0.37.1: 中断シグナル。abort 時に子プロセスを kill し null を返す */
+  signal?: AbortSignal;
 }
 
 const DEFAULT_TIMEOUT_MS = 30000;
@@ -55,6 +57,17 @@ export async function runClaudePrompt(prompt: string, opts?: ClaudeCliOptions): 
       try { child.kill(); } catch { /* ignore */ }
       // kill により close が発火するのを待つ（settled ガードで二重解決なし）
     }, timeoutMs);
+
+    // v0.37.1: 外部 abort で子プロセスを kill（close → settle(null)）
+    const onAbort = (): void => {
+      try { child.kill(); } catch { /* ignore */ }
+      try { clearTimeout(timer); } catch { /* ignore */ }
+      settle(null);
+    };
+    if (opts?.signal) {
+      if (opts.signal.aborted) onAbort();
+      else opts.signal.addEventListener('abort', onAbort, { once: true });
+    }
 
     child.stdout?.on('data', (d) => (out += d.toString()));
     child.stderr?.on('data', (d) => console.warn('[cb-claude-cli] stderr:', d.toString().slice(0, 200)));

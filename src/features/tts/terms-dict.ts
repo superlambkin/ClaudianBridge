@@ -22,23 +22,30 @@ export async function loadTermsDict(app: App, filePath: string): Promise<Map<str
 }
 
 function parseTable(md: string, map: Map<string, string>): void {
-  for (const row of md.split('\n')) {
-    const line = row.trim();
-    if (!line.startsWith('|')) continue;
-    const cells = line.split('|').map((c) => c.trim());
-    // 先頭・末尾の空要素（| の外側）を除去
+  const lines = md.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('|'));
+  const isSeparator = (l: string): boolean => /^\|[\s:\-|]+\|$/.test(l);
+  for (let i = 0; i < lines.length; i++) {
+    if (isSeparator(lines[i])) continue;
+    // 区切り行の直前の行はヘッダ（見出し行）なのでスキップ
+    if (i + 1 < lines.length && isSeparator(lines[i + 1])) continue;
+    const cells = lines[i].split('|').map((c) => c.trim());
     if (cells[0] === '') cells.shift();
     if (cells[cells.length - 1] === '') cells.pop();
     if (cells.length < 2) continue;
-    // 区切り行（--- など）はスキップ
-    if (/^[-:\s]+$/.test(cells[0])) continue;
-    map.set(cells[0], cells[1]);
+    const term = cells[0];
+    const gloss = cells[1];
+    if (term === '' || gloss === '') continue; // v0.37.1 (M5): 空語釈は無視
+    map.set(term, gloss);
   }
 }
 
 function parseBulletList(md: string, map: Map<string, string>): void {
   for (const line of md.split('\n')) {
-    const m = line.match(/^[-*]\s+(\S+)\s*[→➡]\s*(.+)$/);
-    if (m) map.set(m[1], m[2].trim());
+    const m = line.match(/^[-*]\s+(.+?)\s*[→➡]\s*(.+)$/); // v0.37.1: 複合語対応（語尾まで取得）
+    if (m) {
+      const gloss = m[2].trim();
+      if (gloss === '') continue;
+      map.set(m[1].trim(), gloss);
+    }
   }
 }
