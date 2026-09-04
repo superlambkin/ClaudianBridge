@@ -299,3 +299,68 @@ describe('E2E: LLM 原稿書き換え (v0.37.0)', () => {
     expect(calls[1][1]).toContain('エー ピー アイ');
   });
 });
+
+describe('E2E: LLM 修正回帰 (v0.37.1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __resetMdReadSubscribersForTesting();
+    mdReadState.clear();
+    document.body.innerHTML = '';
+    mockRunPrompt.mockResolvedValue('rew');
+    mockAddTextToTTS.mockImplementation(async () => true);
+  });
+
+  function cfgWith(profile: string, cache: boolean) {
+    const cfg = makeCfg();
+    const t = cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } };
+    t.tts.mdReadProfile = profile;
+    t.tts.llmRewriteCache = cache;
+    return cfg;
+  }
+
+  it('空（見出しのみ）セクションは LLM に渡さない', async () => {
+    const md = '# A\n## B\n# C\n本文C。';
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>A</h1><h2>B</h2><h1>C</h1><p>本文C。</p>';
+    document.body.appendChild(container);
+    const built = makeApp(container, md);
+    const app = built.app as { vault: { configDir?: string; adapter?: unknown } & Record<string, unknown> } & Record<string, unknown>;
+    app.vault.configDir = '.obsidian-test';
+    app.vault.adapter = { getBasePath: () => os.tmpdir() };
+
+    setupMdReadHighlight(app as never, {} as never);
+    await addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfgWith('boss', false));
+
+    expect(mockRunPrompt).toHaveBeenCalledTimes(1); // C のみ
+    const state = mdReadState.get();
+    expect(state!.chunks.length).toBe(1);
+    expect(state!.chunks[0].heading ?? '').toBe('');
+  });
+
+  it('キャッシュヒット時は LLM を呼ばずキャッシュ原稿を読む', async () => {
+    // 実キャッシュを用意
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cb-llm-cache-hit-'));
+    const md = '# H1\n本文A。\n## H2\n本文B。';
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>H1</h1><p>本文A。</p><h2>H2</h2><p>本文B。</p>';
+    document.body.appendChild(container);
+    const built = makeApp(container, md);
+    const app = built.app as { vault: { configDir?: string; adapter?: unknown } & Record<string, unknown> } & Record<string, unknown>;
+    app.vault.configDir = '.obsidian-test';
+    app.vault.adapter = { getBasePath: () => tmp };
+
+    const { rewriteCacheKey, RewriteCache } = await import('../../../../src/features/tts/llm-rewrite-cache');
+    const cacheDir = `${tmp}/.obsidian-test/plugins/ClaudianBridge`;
+    fs.mkdirSync(cacheDir, { recursive: true });
+    const cache = new RewriteCache(cacheDir);
+    await cache.put(rewriteCacheKey('/a.md', md, 'boss'), JSON.stringify(['cached1', 'cached2']));
+
+    setupMdReadHighlight(app as never, {} as never);
+    await addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfgWith('boss', true));
+
+    expect(mockRunPrompt).not.toHaveBeenCalled();
+    const calls = mockAddTextToTTS.mock.calls;
+    expect(calls[1][1]).toContain('cached1');
+    expect(calls[2][1]).toContain('cached2');
+  });
+});

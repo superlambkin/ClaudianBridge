@@ -8,8 +8,18 @@ import * as path from 'path';
 
 export const MAX_CACHE_ENTRIES = 100;
 
-export function rewriteCacheKey(filePath: string, contentLength: number, profile: string): string {
-  return `${filePath}|${contentLength}|${profile}`;
+/** v0.37.1 (M3): 安定した簡易ハッシュ（FNV-1a）— 同長編集でも異なるキーになる */
+function contentHash(content: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < content.length; i++) {
+    h ^= content.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+export function rewriteCacheKey(filePath: string, content: string, profile: string): string {
+  return `${filePath}|${content.length}|${contentHash(content)}|${profile}`;
 }
 
 export class RewriteCache {

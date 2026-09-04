@@ -9,6 +9,15 @@ const MD = [
 ].join('\n');
 
 describe('parseSections', () => {
+  it('見出しのみ（本文空）セクションはスキップ・先頭序文は保持', () => {
+    const md = '序文テキスト。\n# A\n## B\n# C\n本文C。';
+    const s2 = parseSections(md);
+    expect(s2.length).toBe(2); // 序文 + C（B は空のため除外）
+    expect(s2[0].heading).toBe('');
+    expect(s2[1].heading).toBe('C');
+    expect(s2[1].bodyText).toContain('本文C');
+  });
+
   it('frontmatter を除き見出し境界で分割、コードを本文から除去', () => {
     const s = parseSections(MD);
     expect(s.length).toBe(2);
@@ -30,10 +39,11 @@ describe('splitLongBody', () => {
 });
 
 describe('buildRewritePrompt', () => {
-  it('profile 名と本文を含む', () => {
+  it('profile 名・本文・見出し文脈を含む', () => {
     const p = buildRewritePrompt({ index: 0, heading: 'H', bodyText: 'B' }, 'boss');
     expect(p).toContain('boss');
     expect(p).toContain('B');
+    expect(p).toContain('H');
   });
 });
 

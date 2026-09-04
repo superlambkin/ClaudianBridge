@@ -39,4 +39,33 @@ describe('loadTermsDict (v0.36.0)', () => {
     expect(map.get('CLI')).toBe('コマンド入力');
     expect(map.get('GUI')).toBe('画面操作');
   });
+
+  it('ヘッダ行・空語釈を無視し、複合語 bullet を正しく取る', async () => {
+    const md = [
+      '## 用語',
+      '',
+      '| 用語 | やさしい表現 |',
+      '| --- | --- |',
+      '| API | アプリと会話する仕組み |',
+      '| DB |  |',
+      '',
+      '- API キー → 秘密の文字列',
+      '- GUI →',
+    ].join('
+');
+    const file = { path: 'Tech_用語対照表.md' };
+    const app = {
+      vault: {
+        getAbstractFileByPath: (p: string) => (p.endsWith('Tech_用語対照表.md') ? file : null),
+        cachedRead: vi.fn().mockResolvedValue(md),
+      },
+    } as never;
+    const map = await loadTermsDict(app, 'Tech_用語対照表.md');
+    // ヘッダ行「用語」は入らない・空語釈 DB は入らない
+    expect(map.has('用語')).toBe(false);
+    expect(map.has('DB')).toBe(false);
+    // 複合語 bullet は語全体で入る・空 gloss は無視
+    expect(map.get('API キー')).toBe('秘密の文字列');
+    expect(map.has('GUI')).toBe(false);
+  });
 });

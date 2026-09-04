@@ -21,6 +21,7 @@ import { highlightChunkInPreview } from './preview-renderer';
 import { nextHeadingIndex } from './heading-skip';
 import { stopAllPlayback } from '../playback-registry';
 import { getPlaybackController } from '../playback-controller';
+import { abortCurrentLlm } from '../llm-session';
 
 interface PreviewViewLike {
   previewMode?: { containerEl?: HTMLElement };
@@ -75,6 +76,8 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
     const s = mdReadState.get();
     if (!s || !file) return;
     if (file.path !== s.filePath) {
+      // v0.37.1 (H1): LLM 原稿生成中も中断（claude 子プロセス kill）
+      abortCurrentLlm();
       getPlaybackController().stop();
       stopAllPlayback();
       clearAllForFile(app);
@@ -134,8 +137,9 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
           const nextIdx = nextHeadingIndex(cur.chunks, cur.activeIdx);
           if (nextIdx !== cur.activeIdx) mdReadState.setActiveIdx(nextIdx);
         },
-        // ミュート: 全 TTS 停止 + state クリア
+        // ミュート: LLM 生成中断 + 全 TTS 停止 + state クリア
         onMute: () => {
+          abortCurrentLlm();
           stopAllPlayback();
           clearAllForFile(app);
         },
