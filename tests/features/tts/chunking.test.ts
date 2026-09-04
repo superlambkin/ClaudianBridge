@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { chunkText, speakChunks, chunkTextNatural } from '../../../src/features/tts/chunking';
+import { getPlaybackController } from '../../../src/features/tts/playback-controller';
 
 describe('chunkText', () => {
   it('短文はそのまま返す', () => {
@@ -117,5 +118,26 @@ describe('chunkTextNatural (v0.35.0)', () => {
     const chunks = chunkTextNatural('# ' + 'あ'.repeat(300), 100);
     expect(chunks.every((c) => c.length <= 100 || c.length < 300)).toBe(true);
     expect(chunks.join('')).toContain('あ'.repeat(300));
+  });
+});
+
+describe('speakChunks 制御統合 (v0.35.0)', () => {
+  it('skip 要求で現チャンクを打ち切り次へ進む', async () => {
+    const pc = getPlaybackController();
+    const spoken: string[] = [];
+    const p = speakChunks(['aaa', 'bbb', 'ccc'], async (t) => {
+      spoken.push(t);
+      if (t === 'aaa') pc.skipNext(); // 1 チャンク目の再生中にスキップ要求
+      return true;
+    });
+    await expect(p).resolves.toBe(true);
+    expect(spoken).toEqual(['aaa', 'bbb', 'ccc']);
+  });
+
+  it('speakFn が false（外部停止等）なら false を返す', async () => {
+    const pc = getPlaybackController();
+    const p = speakChunks(['a', 'b'], async () => false);
+    await expect(p).resolves.toBe(false);
+    expect(pc.consumeSkip()).toBe(false);
   });
 });
