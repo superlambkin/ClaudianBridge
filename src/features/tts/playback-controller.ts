@@ -37,6 +37,11 @@ class PlaybackController {
     this.releaseAll();
   }
 
+  /** 🔇・別 MD オープン時: 読み上げ全体を中止する */
+  stop(): void {
+    this.skipNext();
+  }
+
   /** チャンク境界で speakChunks から呼ぶ。要求されたスキップを 1 回だけ消費する */
   consumeSkip(): boolean {
     if (!this.skipRequested) return false;

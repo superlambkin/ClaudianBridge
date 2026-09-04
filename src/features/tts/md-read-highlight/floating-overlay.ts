@@ -36,7 +36,7 @@ export function mountOverlay(
   void view; // 引数は将来の拡張用に保持（pre-existing API 互換）
 
   const overlay = el('div', { class: OVERLAY_CLASS });
-  const pauseBtn = el('button', { 'data-cb-md-read-pause': 'true' }, '⏸');
+  const pauseBtn = el('button', { 'data-cb-md-read-pause': 'true' }, '⏯️');
   const skipBtn = el('button', { 'data-cb-md-read-skip': 'true' }, '⏭');
   const muteBtn = el('button', { 'data-cb-md-read-mute': 'true' }, '🔇');
   const progress = el('span', { 'data-cb-md-read-progress': 'true' }, '-/-');
@@ -48,8 +48,7 @@ export function mountOverlay(
   // v0.35.0: ⏸/⏭ は PlaybackController 経由で音声本体を制御
   pauseBtn.addEventListener('click', () => {
     const paused = getPlaybackController().togglePause();
-    // v0.35.2: 状態に応じて ⏸/▶ を切替表示
-    pauseBtn.textContent = paused ? '▶' : '⏸';
+    // v0.35.2: アイコンは ⏯️ に統一（押下で再生/一時停止が切替わる）
     if (paused) handlers.onPause(); else handlers.onResume();
   });
   skipBtn.addEventListener('click', () => {

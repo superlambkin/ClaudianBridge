@@ -20,6 +20,7 @@ import { mountOverlay } from './floating-overlay';
 import { highlightChunkInPreview } from './preview-renderer';
 import { nextHeadingIndex } from './heading-skip';
 import { stopAllPlayback } from '../playback-registry';
+import { getPlaybackController } from '../playback-controller';
 
 interface PreviewViewLike {
   previewMode?: { containerEl?: HTMLElement };
@@ -66,6 +67,18 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
       clearAllForFile(app);
     }
     // タブが他所に移動しただけの layout 変化では何もしない（overlay を維持）
+  });
+
+  // v0.35.2: 読み上げ中（再生/一時停止/スキップ中を含む）に**別の MD を開いて表示した場合**は
+  // 現在の読み上げを中止する（新しい MD の表示を妨げない）
+  const fileOpenRef = app.workspace.on('file-open', (file) => {
+    const s = mdReadState.get();
+    if (!s || !file) return;
+    if (file.path !== s.filePath) {
+      getPlaybackController().stop();
+      stopAllPlayback();
+      clearAllForFile(app);
+    }
   });
 
   // overlay の unmount ハンドル
@@ -134,6 +147,7 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
 
   return () => {
     app.workspace.offref(layoutChangeRef);
+    app.workspace.offref(fileOpenRef);
     offState();
     overlayCleanup?.();
     overlayCleanup = null;
