@@ -8,6 +8,8 @@
  */
 
 /** デフォルト区切り文字（日本語・英語の句読点 + 改行） */
+import { getPlaybackController } from './playback-controller';
+
 export const DEFAULT_DELIMITERS = ['。', '！', '？', '.', '!', '?', '\n'];
 
 /**
@@ -66,15 +68,21 @@ export function chunkText(text: string, maxChunkSize: number, delimiters: string
  */
 export async function speakChunks(
   chunks: string[],
-  speakFn: (text: string) => Promise<boolean>,
+  speakFn: (text: string, idx: number) => Promise<boolean>,
   onCancel?: () => boolean,
   onChunkStart?: (idx: number) => void,
 ): Promise<boolean> {
+  const pc = getPlaybackController();
   for (let i = 0; i < chunks.length; i++) {
     if (onCancel?.()) return false;
     onChunkStart?.(i);
-    const ok = await speakFn(chunks[i]);
-    if (!ok) return false;
+    const ok = await speakFn(chunks[i], i);
+    if (!ok) {
+      // v0.35.0: スキップ要求（⏭）による中断なら次チャンクへ続行
+      if (pc.consumeSkip()) continue;
+      return false;
+    }
+    pc.consumeSkip(); // 正常完了時は残スキップ要求を破棄（次チャンクへ自然進行）
   }
   return true;
 }

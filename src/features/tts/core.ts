@@ -78,16 +78,20 @@ export const SAMPLE_TEXT: Record<'zh' | 'ja' | 'en', string> = {
  * v0.27.1: lang を明示渡しできる（チャンク分割時に全文判定結果を全チャンクへ統一適用）。
  * 未指定時は従来どおり text から auto 判定する。
  */
-export async function edgeCloudHttpSpeak(
+/**
+ * v0.35.0: Edge クラウドへテキストを送り音声 Blob を取得する（再生はしない）。
+ * 先行取得パイプライン（fetchEdgeBlobPipelined）から利用される。
+ */
+async function fetchEdgeBlob(
   text: string,
   settings: TtsSettings,
   noticeFn: NoticeFn,
   lang?: TtsLang,
-): Promise<boolean> {
+): Promise<Blob | null> {
   const cloud = settings.edgeCloud;
   if (!cloud?.serverUrl) {
     noticeFn('⚠️ クラウドサーバ URL 未設定。設定タブで edgeCloud.serverUrl を入力してください');
-    return false;
+    return null;
   }
 
   const resolvedLang = lang ?? pickLang(text, settings.addToTtsLanguageMode ?? 'auto');
@@ -111,16 +115,26 @@ export async function edgeCloudHttpSpeak(
     clearTimeout(timer);
     if (!res.ok) {
       noticeFn(`⚠️ クラウド EdgeTTS 失敗 (HTTP ${res.status})`);
-      return false;
+      return null;
     }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    return await playObjectUrl(url, noticeFn, 'edge');
+    return await res.blob();
   } catch (e) {
     clearTimeout(timer);
     noticeFn(`⚠️ クラウド EdgeTTS エラー: ${(e as Error).message}`);
-    return false;
+    return null;
   }
+}
+
+export async function edgeCloudHttpSpeak(
+  text: string,
+  settings: TtsSettings,
+  noticeFn: NoticeFn,
+  lang?: TtsLang,
+): Promise<boolean> {
+  const blob = await fetchEdgeBlob(text, settings, noticeFn, lang);
+  if (blob === null) return false;
+  const url = URL.createObjectURL(blob);
+  return await playObjectUrl(url, noticeFn, 'edge');
 }
 
 /* ============================================================================
@@ -293,9 +307,29 @@ export async function addTextToTTS(
     ? `⏳ [${engineLabels[settings.engine]}] 音声生成中…（読み上げ）`
     : `▶ [${engineLabels[settings.engine]}] 読み上げ中…`;
   showProgress(progressMsg);
-  const result = await speakChunks(chunks, async (chunk) => {
+  // v0.35.0: Edge 先行変換（plachta パイプラインと同型）
+  // チャンク i の再生中にチャンク i+1 の音声を fetch し、Blob URL を先に用意する。
+  let pendingEdge: Promise<string | null> | null = null;
+  const speakEdgeWithPrefetch = async (text: string, idx: number): Promise<boolean> => {
+    let url: string | null = null;
+    if (pendingEdge) {
+      url = await pendingEdge;
+      pendingEdge = null;
+    }
+    if (url === null) {
+      const blob = await fetchEdgeBlob(text, settings, noticeFn, readLang);
+      if (blob === null) return false;
+      url = URL.createObjectURL(blob);
+    }
+    if (idx + 1 < chunks.length) {
+      pendingEdge = fetchEdgeBlob(chunks[idx + 1], settings, noticeFn, readLang)
+        .then((b) => (b ? URL.createObjectURL(b) : null));
+    }
+    return await playObjectUrl(url, noticeFn, 'edge');
+  };
+  const result = await speakChunks(chunks, async (chunk, idx) => {
     if (settings.engine === 'edge') {
-      return edgeCloudHttpSpeak(chunk, settings, noticeFn, readLang);  // v0.27.0: claudettsHttpSpeak → edgeCloudHttpSpeak
+      return speakEdgeWithPrefetch(chunk, idx);  // v0.35.0: 先行取得パイプライン
     }
     if (settings.engine === 'edge-local') {
       return localEdgeTtsSpeak(chunk, settings, noticeFn, readLang);
