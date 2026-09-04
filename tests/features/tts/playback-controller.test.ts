@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getPlaybackController } from '../../../src/features/tts/playback-controller';
+import { registerPlayback } from '../../../src/features/tts/playback-registry';
 
 function fakeAudio() {
   return {
@@ -57,5 +58,17 @@ describe('PlaybackController (v0.35.0)', () => {
     pc.skipNext();
     pc.reset();
     expect(pc.consumeSkip()).toBe(false);
+  });
+});
+
+describe('PlaybackController skip 統合 (v0.35.1)', () => {
+  it('skipNext で最新の再生ハンドルにも停止が指示される', () => {
+    const pc = getPlaybackController();
+    const stop = vi.fn();
+    const unregister = registerPlayback({ engine: 'edge-local', stop });
+    pc.skipNext();
+    expect(stop).toHaveBeenCalled();
+    expect(pc.consumeSkip()).toBe(true);
+    unregister();
   });
 });

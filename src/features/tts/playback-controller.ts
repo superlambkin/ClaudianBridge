@@ -3,6 +3,8 @@
  * playObjectUrl が再生開始時に bindAudio() し、speakChunks ループが
  * チャンク境界で onChunkBoundary() を await する。
  */
+import { stopCurrentHandle } from './playback-registry';
+
 type AudioHandles = { pause(): void; resume(): void };
 
 class PlaybackController {
@@ -29,6 +31,9 @@ class PlaybackController {
   skipNext(): void {
     this.skipRequested = true;
     this.audio?.pause();
+    // v0.35.1: 合成中（spawn/fetch 待ち）でも即中断できるよう
+    // 最新の再生ハンドル（stop = 子プロセス kill 等）にも停止を指示
+    try { stopCurrentHandle(); } catch { /* ignore */ }
     this.releaseAll();
   }
 
