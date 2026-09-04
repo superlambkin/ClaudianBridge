@@ -77,6 +77,21 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
         }
       }));
 
+    // v0.33.0: チャット内 mermaid 自動描画
+    new Setting(containerEl)
+      .setName(s.generalMermaidRender)
+      .setDesc(s.generalMermaidRenderDesc)
+      .addToggle((t) => t.setValue(cfg.general.mermaidRender).onChange(async (v) => {
+        try {
+          const latest = store.load();
+          store.save({ ...latest, general: { ...latest.general, mermaidRender: v } });
+          new Notice(s.noticeSaved);
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+
     // v0.21.0: バックアップ機能（既定 ON）
     new Setting(containerEl)
       .setName(s.generalBackupEnabled)
