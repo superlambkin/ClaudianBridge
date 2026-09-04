@@ -103,12 +103,14 @@ const HEADING_STRIP_RE = /^[ \t]{0,3}#{1,6}[ \t]+/;
 export function chunkTextNatural(text: string, maxChunkSize: number): string[] {
   const sections: string[] = [];
   let last = 0;
+  let foundHeading = false;
   for (const m of text.matchAll(HEADING_LINE_RE)) {
+    foundHeading = true;
     const at = (m.index ?? 0) + m[1].length;
     if (at > last) sections.push(text.slice(last, at));
     last = at;
   }
-  if (sections.length === 0) return chunkText(text, maxChunkSize);
+  if (!foundHeading) return chunkText(text, maxChunkSize);
   sections.push(text.slice(last));
   const out: string[] = [];
   for (const s of sections) {

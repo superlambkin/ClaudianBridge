@@ -7,10 +7,10 @@ import type { SpeechFilterOptions } from '../../../src/core/settings';
 const T: SpeechFilterOptions = { ...DEFAULT_SPEECH_FILTER_OPTIONS }; // table=true 他 false
 
 describe('extractMdText: 記号正規化（v0.32.1 ハッシュタグ等を読まない）', () => {
-  it('見出しの # を除去する', () => {
+  it('見出しの # は保持する（章境界判定用・除去は chunkTextNatural 側）', () => {
     const out = extractMdText('# 大見出し\n本文', T);
     expect(out).toContain('大見出し');
-    expect(out).not.toMatch(/#/);
+    expect(out).toContain('#');
   });
 
   it('ハッシュタグ（#タグ）を除去する', () => {
