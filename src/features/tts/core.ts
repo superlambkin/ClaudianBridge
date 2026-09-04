@@ -344,5 +344,7 @@ export async function addTextToTTS(
   showProgress(null);
   // v0.18.x (F1): 後続の外部停止（後勝ち中断）で失敗してもエラー扱いしない
   if (!result && getStopEpoch() > stopEpochAtStart) return true;
+  // v0.35.2: 別 MD 切替時の abort もエラー扱いしない
+  if (!result && getPlaybackController().isAborted()) return true;
   return result;
 }
