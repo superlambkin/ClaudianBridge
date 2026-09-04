@@ -32,7 +32,7 @@ export function setupMermaidRender(
   /** チャット DOM から未処理の mermaid コードブロックを探して確定を待つ */
   const scan = (): void => {
     if (!store.load().general.mermaidRender) return;
-    for (const wrapper of document.querySelectorAll('.claudian-code-wrapper')) {
+    for (const wrapper of Array.from(document.querySelectorAll('.claudian-code-wrapper'))) {
       if (processed.has(wrapper)) continue;
       const code = wrapper.querySelector('pre code') ?? wrapper.querySelector('code');
       const label = wrapper.querySelector('.claudian-code-lang-label');
