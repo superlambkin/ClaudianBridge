@@ -116,7 +116,9 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
     // v0.34.0: 診断ログ（通知は届いているか・view は取れているかを区別する境界計装）
     console.log('[cb-md-read-highlight] state update idx=', s.activeIdx, 'phase=', s.phase, 'view found=', !!view);
     if (view && s.activeIdx >= 0 && s.chunks[s.activeIdx]) {
-      const matched = highlightChunkInPreview(view as never, s.chunks[s.activeIdx]);
+      // v0.35.0: スクロール位置設定（%）を反映（store が無いテスト環境では既定 40）
+      const pct = store?.load?.()?.tts?.mdReadHighlight?.scrollPositionPct ?? 40;
+      const matched = highlightChunkInPreview(view as never, s.chunks[s.activeIdx], pct);
       // v0.32.6: 診断ログ（実機確認用）
       console.log('[cb-md-read-highlight] chunk', s.activeIdx, 'of', s.chunks.length - 1, matched ? 'underline applied' : 'NOT matched');
     }
