@@ -78,3 +78,29 @@ export async function speakChunks(
   }
   return true;
 }
+
+/** 見出し行（markdown heading）の直前位置を検出する */
+const HEADING_LINE_RE = /(^|\n)([ \t]{0,3}#{1,6} [^\n]*)/g;
+
+/**
+ * v0.35.0: 見出し行で強制新チャンクし、各セクションを既存 chunkText で
+ * 文末（。！？\n 等）優先パックする。core.ts と md-file-read-flow.ts の
+ * 両方から使用することでハイライト index の完全一致を維持する。
+ */
+export function chunkTextNatural(text: string, maxChunkSize: number): string[] {
+  const sections: string[] = [];
+  let last = 0;
+  for (const m of text.matchAll(HEADING_LINE_RE)) {
+    const at = (m.index ?? 0) + m[1].length;
+    if (at > last) sections.push(text.slice(last, at));
+    last = at;
+  }
+  if (sections.length === 0) return chunkText(text, maxChunkSize);
+  sections.push(text.slice(last));
+  const out: string[] = [];
+  for (const s of sections) {
+    const trimmed = s.replace(/^\n+|\n+$/g, '');
+    if (trimmed) out.push(...chunkText(trimmed, maxChunkSize));
+  }
+  return out;
+}

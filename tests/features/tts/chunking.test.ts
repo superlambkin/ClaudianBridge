@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { chunkText, speakChunks } from '../../../src/features/tts/chunking';
+import { chunkText, speakChunks, chunkTextNatural } from '../../../src/features/tts/chunking';
 
 describe('chunkText', () => {
   it('短文はそのまま返す', () => {
@@ -98,5 +98,24 @@ describe('speakChunks', () => {
     expect(ok).toBe(false);
     expect(hook).toHaveBeenCalledTimes(2); // 2 番目の chunk で中断
     expect(hook.mock.calls.map((c) => c[0])).toEqual([0, 1]);
+  });
+});
+
+describe('chunkTextNatural (v0.35.0)', () => {
+  it('見出し行で強制新チャンク', () => {
+    const chunks = chunkTextNatural('# A\n\n本文A。\n# B\n\n本文B。', 100);
+    expect(chunks[0].startsWith('# A')).toBe(true);
+    expect(chunks[1].startsWith('# B')).toBe(true);
+  });
+
+  it('見出しがなく文末で区切れる場合は既存 chunkText と同一結果', () => {
+    const text = 'あ'.repeat(300) + '。' + 'い'.repeat(300) + '。';
+    expect(chunkTextNatural(text, 400)).toEqual(chunkText(text, 400));
+  });
+
+  it('見出し内の長文は途中分割にフォールバック', () => {
+    const chunks = chunkTextNatural('# ' + 'あ'.repeat(300), 100);
+    expect(chunks.every((c) => c.length <= 100 || c.length < 300)).toBe(true);
+    expect(chunks.join('')).toContain('あ'.repeat(300));
   });
 });
