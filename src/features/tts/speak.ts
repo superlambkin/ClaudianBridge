@@ -7,6 +7,8 @@ import { Notice } from 'obsidian';
 import type { ClaudianBridgeSettings, SpeechFilterOptions } from '../../core/settings';
 import type { TtsSettings } from './core';
 import { getPlaybackController } from './playback-controller';
+import { abortCurrentLlm } from './llm-session';
+import { mdReadState } from './md-read-highlight/state';
 import { addTextToTTS } from './core';
 import { filterSpeechText } from './speech-filter';
 
@@ -57,6 +59,13 @@ export async function speakText(
   if (!trimmed) {
     if (opts?.noticeOnEmpty) new Notice('入力がありません');
     return false;
+  }
+
+  // v0.37.1: 自動読上げなど MD(Add to TTS) 以外の読み上げ開始時は、
+  // 進行中の MD 読上げ/LLM 原稿生成を即停止・初期化する
+  if (type !== 'md') {
+    abortCurrentLlm();
+    if (mdReadState.get()) mdReadState.clear();
   }
 
   const filter = resolveSpeechFilter(cfg, type);
