@@ -136,7 +136,7 @@ describe('E2E: Add to TTS → amber 下線が付き、チャンク進行で移�
     expect(document.body.querySelector('[data-cb-md-read-progress]')!.textContent).toBe(`${total}/${total}`);
   });
 
-  it('v0.35.x: Add to TTS はファイル名を本文より先に読み上げる', async () => {
+  it('v0.37.1: ファイル名読みは廃止し、本文から直接読み上げる', async () => {
     const container = document.createElement('div');
     container.innerHTML = '<h1>大見出し</h1><p>本文です。</p>';
     document.body.appendChild(container);
@@ -146,11 +146,8 @@ describe('E2E: Add to TTS → amber 下線が付き、チャンク進行で移�
     await addMdToTts(app, { path: '/a.md', extension: 'md' }, makeCfg());
 
     const calls = mockAddTextToTTS.mock.calls;
-    expect(calls.length).toBeGreaterThanOrEqual(2);
-    // 1 回目がファイル名（basename が無いモックでは path から "a" を導出）
-    expect(calls[0][1]).toBe('a');
-    // 2 回目が本文（見出し # 除去後）
-    expect(calls[1][1]).toContain('大見出し');
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    expect(calls[0][1]).toContain('大見出し');
   });
 
   it('v0.32.9: 登録 chunks は TTS と同一の chunkText 分割と一致する（マルチチャンク整合）', async () => {
@@ -220,10 +217,10 @@ describe('E2E: 聴き手プロファイル変換 (v0.36.0)', () => {
     mockRunPrompt.mockResolvedValue(null); // LLM 失敗 → トークンフォールバック
     const result = await addMdToTts(app, { path: '/a.md', extension: 'md' }, cfg);
     expect(result).toBe(true);
-    // 1 回目 = ファイル名、2 回目 = 変換後本文（API がカタカナ展開される）
+    // 変換後本文（API がカタカナ展開される）
     const calls = mockAddTextToTTS.mock.calls;
-    expect(calls.length).toBeGreaterThanOrEqual(2);
-    expect(calls[1][1]).toContain('エー ピー アイ');
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    expect(calls[0][1]).toContain('エー ピー アイ');
   });
 
   it('original（既定）では変換されない', async () => {
@@ -235,8 +232,8 @@ describe('E2E: 聴き手プロファイル変換 (v0.36.0)', () => {
     setupMdReadHighlight(app, {} as never);
     await addMdToTts(app, { path: '/a.md', extension: 'md' }, makeCfg());
     const calls = mockAddTextToTTS.mock.calls;
-    expect(calls[1][1]).toContain('API');
-    expect(calls[1][1]).not.toContain('エー ピー アイ');
+    expect(calls[0][1]).toContain('API');
+    expect(calls[0][1]).not.toContain('エー ピー アイ');
   });
 });
 
@@ -269,10 +266,10 @@ describe('E2E: LLM 原稿書き換え (v0.37.0)', () => {
     expect(ok).toBe(true);
     // 2 セクション = LLM 呼び出し 2 回
     expect(mockRunPrompt).toHaveBeenCalledTimes(2);
-    // ファイル名 + 各セクション本文が読み上げられる
+    // 各セクション本文が読み上げられる（ファイル名読みは廃止）
     const calls = mockAddTextToTTS.mock.calls;
-    expect(calls.length).toBe(3);
-    expect(calls[1][1]).toContain('書き換え済みセクション');
+    expect(calls.length).toBe(2);
+    expect(calls[0][1]).toContain('書き換え済みセクション');
     // 粗ハイライト: セクション数だけ chunk 登録・最後に H2 を activeIdx
     const state = mdReadState.get();
     expect(state).not.toBeNull();
@@ -299,7 +296,7 @@ describe('E2E: LLM 原稿書き換え (v0.37.0)', () => {
     await addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfg);
 
     const calls = mockAddTextToTTS.mock.calls;
-    expect(calls[1][1]).toContain('エー ピー アイ');
+    expect(calls[0][1]).toContain('エー ピー アイ');
   });
 });
 
@@ -363,8 +360,8 @@ describe('E2E: LLM 修正回帰 (v0.37.1)', () => {
 
     expect(mockRunPrompt).not.toHaveBeenCalled();
     const calls = mockAddTextToTTS.mock.calls;
-    expect(calls[1][1]).toContain('cached1');
-    expect(calls[2][1]).toContain('cached2');
+    expect(calls[0][1]).toContain('cached1');
+    expect(calls[1][1]).toContain('cached2');
   });
 });
 

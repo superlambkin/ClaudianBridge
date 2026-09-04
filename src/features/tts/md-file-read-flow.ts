@@ -71,10 +71,6 @@ export async function addMdToTts(
   const originalText = extractMdText(content, filter);
   const engineForChunk = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
   const chunkMax = cfg.tts.chunkMaxChars?.[engineForChunk] ?? (engineForChunk === 'edge' ? 500 : 140);
-  const basename = (tFile as TFile | null)?.basename ?? filePath.split('/').pop()?.replace(/\.md$/i, '') ?? '';
-  const filenameText = basename.replace(/_/g, ' ').trim();
-  const speakFilename = (): Promise<boolean> =>
-    filenameText ? speakText('md', filenameText, cfg, { noticeOnEmpty: false }) : Promise.resolve(true);
 
   const registerOriginalChunks = (): void => {
     if (!hlEnabled) return;
@@ -131,7 +127,6 @@ export async function addMdToTts(
     const isCancelled = (): boolean => session.signal.aborted || !isCurrent(session.gen) || getPlaybackController().isAborted();
 
     if (orig.length === 0) {
-      await speakFilename();
       endLlmSession(session.gen);
       const okStd = await runStandard();
       if (hlEnabled) finalizeMdRead(okStd);
@@ -146,7 +141,6 @@ export async function addMdToTts(
         try {
           const bodies = JSON.parse(cached) as string[];
           if (Array.isArray(bodies) && bodies.length === orig.length) {
-            await speakFilename();
             let ok = true;
             for (let i = 0; i < bodies.length; i++) {
               if (isCancelled()) { ok = false; break; }
@@ -176,7 +170,6 @@ export async function addMdToTts(
       (done, total) => { try { progress.setMessage(progressMsg(done, total)); } catch { /* ignore */ } },
       concurrency, session.signal);
     const firstP = stream.next();      // 生成開始（並列で後続も走る）
-    await speakFilename();             // タイトル読上げと生成を並行
 
     let ok = true;
     let first = true;
@@ -215,7 +208,6 @@ export async function addMdToTts(
   }
 
   // === original ===
-  await speakFilename();
   const ok = await runStandard();
   if (hlEnabled) finalizeMdRead(ok);
   return ok;
