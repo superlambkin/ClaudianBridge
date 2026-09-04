@@ -30,7 +30,7 @@ import { loadTermsDict } from './terms-dict';
 import { playBeep } from './audio-beep';
 import { parseSections, rewriteSectionsStream, type MdSection } from './llm-rewrite';
 import { rewriteCacheKey, RewriteCache } from './llm-rewrite-cache';
-import { beginLlmSession, endLlmSession, isCurrent, abortIfOtherLlmActive, type LlmSession } from './llm-session';
+import { beginLlmSession, endLlmSession, isCurrent, abortIfOtherLlmActive, abortCurrentLlm, type LlmSession } from './llm-session';
 import { runClaudePrompt } from '../llm/claude-cli';
 
 export { openInPreview };
@@ -171,11 +171,29 @@ export async function addMdToTts(
       concurrency, session.signal);
     const firstP = stream.next();      // 生成開始（並列で後続も走る）
 
+    // v0.37.1: 最初の結果が 10 秒以内に得られない場合は LLM を中断し、
+    // フォールバック（原文/トークン変換）で確実に読み上げを開始する
+    const FIRST_RESULT_TIMEOUT_MS = 10_000;
+    let it;
+    try {
+      it = await Promise.race([
+        firstP,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('llm-first-timeout')), FIRST_RESULT_TIMEOUT_MS)),
+      ]);
+      console.log('[cb-md-read] LLM first part ready, start reading');
+    } catch {
+      console.warn('[cb-md-read] LLM first result timeout → fallback');
+      abortCurrentLlm();
+      endLlmSession(session.gen);
+      const okTimeout = await runStandard();
+      if (hlEnabled) finalizeMdRead(okTimeout);
+      return okTimeout;
+    }
+
     let ok = true;
     let firstHandled = false;
     let firstFailed = false;
     const segments: string[][] = orig.map(() => []);
-    let it = await firstP;             // 生成1 完了後、すぐに原稿1の読上げへ
     while (!it.done) {
       const item = it.value;
       if (isCancelled()) { ok = false; break; }
