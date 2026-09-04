@@ -367,6 +367,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalEnabledDesc: 'Claudian Bridge 全体を ON/OFF',
     generalCodeCopyFence: '🔧 コードコピー時にフェンス付与',
     generalCodeCopyFenceDesc: 'Claudian チャットのコードブロックをコピーするとき、``` のコードフェンスを自動で付与します（Mermaid 等の貼り付け崩れを防止）',
+    generalMermaidRender: '📊 Mermaid 自動描画',
+    generalMermaidRenderDesc: 'Claudian チャット内の mermaid コードブロックを自動的に図として描画します',
     // v0.21.0
     generalBackupEnabled: '💾 右クリックバックアップ',
     generalBackupEnabledDesc: 'ファイル/フォルダ右クリックメニューに「バックアップ」を追加（OFF で非表示）',
@@ -703,6 +705,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalEnabledDesc: 'Toggle Claudian Bridge globally',
     generalCodeCopyFence: '🔧 Add fences when copying code',
     generalCodeCopyFenceDesc: 'When copying a code block from Claudian chat, automatically wrap it in ``` fences (prevents broken pastes such as Mermaid diagrams).',
+    generalMermaidRender: '📊 Auto-render Mermaid',
+    generalMermaidRenderDesc: 'Automatically render mermaid code blocks in the Claudian chat as diagrams',
     // v0.21.0
     generalBackupEnabled: '💾 Right-click backup',
     generalBackupEnabledDesc: 'Add "Backup" to file/folder right-click menu (hide when OFF)',
@@ -1039,6 +1043,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalEnabledDesc: '全局开关 Claudian Bridge',
     generalCodeCopyFence: '🔧 复制代码时添加围栏',
     generalCodeCopyFenceDesc: '从 Claudian 聊天复制代码块时，自动补全 ``` 代码围栏（防止 Mermaid 等粘贴后无法渲染）',
+    generalMermaidRender: '📊 Mermaid 自动渲染',
+    generalMermaidRenderDesc: '自动将 Claudian 聊天中的 mermaid 代码块渲染为图形',
     // v0.21.0
     generalBackupEnabled: '💾 右键备份',
     generalBackupEnabledDesc: '在文件/文件夹右键菜单中添加"备份"（关闭时不显示）',
