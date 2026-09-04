@@ -121,7 +121,7 @@ describe('setupMdReadHighlight', () => {
 
     expect(subscribeSpy).toHaveBeenCalledTimes(1);
     // subscribe した handler を取り出す
-    const registeredHandler = subscribeSpy.mock.calls[0][0] as (s: { phase: string }) => void;
+    const registeredHandler = subscribeSpy.mock.calls[0][0] as (s: { phase: string; filePath?: string; activeIdx?: number; chunks?: { index: number; startLine: number; anchor: string; text: string; headingLevel: 0 }[] }) => void;
 
     // phase="playing" / "paused" / "completed" のいずれも clearAllForFile は呼ばれない
     // （v0.33.3 修正: 完了しても overlay は残し、layout-change または cleared で閉じる）
@@ -237,5 +237,99 @@ describe('setupMdReadHighlight', () => {
 
     mdReadState.setActiveIdx(2);
     expect(document.body.querySelector('[data-cb-md-read-progress]')!.textContent).toBe('3/3');
+  });
+});
+
+describe('読み上げ開始時のスクロール制御 (v0.35.2)', () => {
+  function makeAppWithScroller() {
+    document.body.innerHTML = '';
+    const container = document.createElement('div');
+    const scroller = document.createElement('div');
+    scroller.className = 'markdown-preview-view';
+    scroller.appendChild(container);
+    document.body.appendChild(scroller);
+    const handlers = new Map<string, () => void>();
+    const eventRefs = new Map<string, unknown>();
+    const offrefs = vi.fn();
+    const app: AppMock = {
+      workspace: {
+        on: vi.fn((event: string, handler: () => void) => {
+          handlers.set(event, handler);
+          const ref = { kind: 'eventRef', event };
+          eventRefs.set(event, ref);
+          return ref;
+        }),
+        offref: offrefs,
+        getLeavesOfType: vi.fn().mockReturnValue([{
+          view: { previewMode: { containerEl: container }, file: { path: '/a.md' } },
+        }]),
+      },
+    };
+    let subscribeHandler: ((s: unknown) => void) | undefined;
+    vi.spyOn(mdReadState, 'subscribe').mockImplementation((h) => {
+      subscribeHandler = h as (s: unknown) => void;
+      return () => {};
+    });
+    return {
+      app, container, scroller,
+      registeredHandler: (s: { phase?: string; filePath?: string; activeIdx?: number; chunks?: unknown[] }) => {
+        subscribeHandler?.({
+          filePath: '/a.md',
+          chunks: [{ index: 0, startLine: 0, anchor: 'aaa', text: 'aaa text', headingLevel: 0 }],
+          activeIdx: 0,
+          paused: false,
+          phase: 'playing',
+          ...s,
+        });
+      },
+    };
+  }
+
+  it('filePath 変化時に preview scroller を先頭へリセット', () => {
+    document.body.innerHTML = '';
+    const scroller = document.createElement('div');
+    scroller.style.overflow = 'auto';
+    document.body.appendChild(scroller);
+    // container が scroller の内側で markdown-preview-view クラス
+    const container = document.createElement('div');
+    container.className = 'markdown-preview-view';
+    scroller.appendChild(container);
+    const handlers = new Map<string, () => void>();
+    const offrefs = vi.fn();
+    const app: AppMock = {
+      workspace: {
+        on: vi.fn((event: string, handler: () => void) => {
+          handlers.set(event, handler);
+          return { kind: 'eventRef', event };
+        }),
+        offref: offrefs,
+        getLeavesOfType: vi.fn().mockReturnValue([{
+          view: { previewMode: { containerEl: container }, file: { path: '/a.md' } },
+        }]),
+      },
+    };
+    let subscribeHandler: ((s: unknown) => void) | undefined;
+    vi.spyOn(mdReadState, 'subscribe').mockImplementation((h) => {
+      subscribeHandler = h as (s: unknown) => void;
+      return () => {};
+    });
+    const cleanup = setupMdReadHighlight(app as never, makeStore() as never);
+    subscribeHandler?.({ filePath: '/a.md', chunks: [{ index: 0, startLine: 0, anchor: 'aaa', text: 'aaa', headingLevel: 0 }], activeIdx: 0, paused: false, phase: 'playing' });
+    scroller.scrollTop = 500;
+    const scrollToSpy = vi.spyOn(scroller, 'scrollTo');
+    subscribeHandler?.({ filePath: '/b.md', chunks: [{ index: 0, startLine: 0, anchor: 'い', text: 'い', headingLevel: 0 }], activeIdx: 0, paused: false, phase: 'playing' });
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0 });
+    scrollToSpy.mockRestore();
+    cleanup();
+  });
+
+  it('window.scrollTo(0,0) も同時に呼ばれる', () => {
+    const { app, registeredHandler } = makeAppWithScroller();
+    const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const cleanup = setupMdReadHighlight(app as never, makeStore() as never);
+    registeredHandler({ filePath: '/b.md', chunks: [{ index: 0, startLine: 0, anchor: 'い', text: 'い', headingLevel: 0 }], activeIdx: 0 });
+    expect(scrollSpy).toHaveBeenCalledWith({ top: 0 });
+    scrollSpy.mockRestore();
+    cleanup();
   });
 });
