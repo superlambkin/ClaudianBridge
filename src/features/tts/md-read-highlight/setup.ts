@@ -84,6 +84,7 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
   // overlay の unmount ハンドル
   let overlayCleanup: (() => void) | null = null;
   let mountedFilePath: string | null = null;
+  let lastHighlightIdx = -1; // v0.35.2: 同一チャンクの連続 DOM 更新（forced reflow）を抑制
 
   const offState = mdReadState.subscribe((s) => {
     // phase='cleared' → overlay を unmount して終了
@@ -91,8 +92,11 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
       overlayCleanup?.();
       overlayCleanup = null;
       mountedFilePath = null;
+      lastHighlightIdx = -1;
       return;
     }
+    // v0.35.2: 同一チャンクへの複数回発火（state reactive 通知）を抑制
+    if (s.activeIdx === lastHighlightIdx && s.phase !== 'cleared') return;
 
     // filePath 変化時 → overlay を再 mount（古いものは unmount）
     if (s.filePath !== mountedFilePath) {
@@ -148,6 +152,8 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
       // （スクロールバー先頭へ戻す → ここから順次%位置へ移る、という意図的な順序）
       const pct = s.activeIdx === 0 ? 0 : (store?.load?.()?.tts?.mdReadHighlight?.scrollPositionPct ?? 40);
       const matched = highlightChunkInPreview(view as never, s.chunks[s.activeIdx], pct, s.chunks[s.activeIdx + 1]);
+      // v0.35.2: ハイライト適用後に最終 idx を記録し、次回同一 idx 発火を抑止
+      lastHighlightIdx = s.activeIdx;
       // v0.32.6: 診断ログ（実機確認用）
       console.log('[cb-md-read-highlight] chunk', s.activeIdx, 'of', s.chunks.length - 1, matched ? 'underline applied' : 'NOT matched');
     }
