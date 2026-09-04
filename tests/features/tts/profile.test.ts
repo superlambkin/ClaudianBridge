@@ -19,3 +19,21 @@ describe('applyProfileTransform (v0.36.0)', () => {
     expect(out).toBe('API を 3 つ使います');
   });
 });
+
+describe('workplace プロファイル', () => {
+  it('略語を 1 文字ずつカタカナ読みに展開', () => {
+    const out = applyProfileTransform('API と URL が使えます', 'workplace', new Map());
+    expect(out).toBe('エー ピー アイ と ユー アール エル が使えます');
+  });
+
+  it('用語辞書の語が優先される', () => {
+    const map = new Map([['API', 'アプリケーション・プログラミング・インターフェース']]);
+    const out = applyProfileTransform('API を呼ぶ', 'workplace', map);
+    expect(out).toBe('アプリケーション・プログラミング・インターフェース を呼ぶ');
+  });
+
+  it('元々カタカナの語（エッジタ）はそのまま', () => {
+    const out = applyProfileTransform('エッジ で配信', 'workplace', new Map());
+    expect(out).toBe('エッジ で配信');
+  });
+});

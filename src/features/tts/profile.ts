@@ -18,6 +18,73 @@ export function applyProfileTransform(
   termsMap: Map<string, string>,
 ): string {
   if (profile === 'original') return text;
-  // 段階実装(Task 2-7)で switch 分岐を展開。v0.36.0 初回は original のみ動作。
-  return text;
+  switch (profile) {
+    case 'workplace':
+      return transformWorkplace(text, termsMap);
+    default:
+      return text;
+  }
+}
+
+/** 職場でよく出る略語の既定読みマップ */
+const DEFAULT_ABBREVIATIONS: Record<string, string> = {
+  api: 'エー ピー アイ',
+  url: 'ユー アール エル',
+  http: 'エー ティ ーティー ピー',
+  https: 'エー ティ ーティー ピー エス',
+  json: 'ジェイソン',
+  yaml: 'ヤムル',
+  cli: 'シー エル アイ',
+  gui: 'ジー ユー アイ',
+  ui: 'ユー アイ',
+  ux: 'ユー エックス',
+  css: 'シー エス エス',
+  html: 'エイチ ティー エム エル',
+  sql: 'エスキューエル',
+  db: 'ディービー',
+  os: 'オー エス',
+  pdf: 'ピー ディー エフ',
+  uri: 'ユー アー アイ',
+  ai: 'エー アイ',
+  ml: 'エム エル',
+  sso: 'エス エス オー',
+  oauth: 'オー オース',
+  tls: 'ティー エル エス',
+  ssl: 'エス エス エル',
+  vpn: 'ブイ ピー エヌ',
+  dns: 'ディー エヌ エス',
+  api: 'エー ピー アイ',
+};
+
+const ASCII_CHAR_KATAKANA: Record<string, string> = {
+  A: 'エー', B: 'ビー', C: 'シー', D: 'ディー', E: 'イー',
+  F: 'エフ', G: 'ジー', H: 'エイチ', I: 'アイ', J: 'ジェー',
+  K: 'ケー', L: 'エル', M: 'エム', N: 'エヌ', O: 'オー',
+  P: 'ピー', Q: 'キュー', R: 'アール', S: 'エス', T: 'ティー',
+  U: 'ユー', V: 'ブイ', W: 'ダブリュー', X: 'エックス',
+  Y: 'ワイ', Z: 'ズィー',
+};
+
+function toKatakanaChar(c: string): string {
+  return ASCII_CHAR_KATAKANA[c] ?? c;
+}
+
+/** ASCII 単語を略語置換（まず語全体、未登録で全大文字なら 1 文字ずつ） */
+function expandAbbreviation(word: string): string {
+  const lower = word.toLowerCase();
+  if (DEFAULT_ABBREVIATIONS[lower] !== undefined) {
+    return DEFAULT_ABBREVIATIONS[lower];
+  }
+  if (/^[A-Z]{2,}$/.test(word)) {
+    return word.split('').map(toKatakanaChar).join(' ');
+  }
+  return word;
+}
+
+/** 職場プロファイル: 略語を 1 文字ずつ読み（または用語辞書で置換） */
+function transformWorkplace(text: string, termsMap: Map<string, string>): string {
+  return text.replace(/[A-Za-z]+/g, (word) => {
+    if (termsMap.has(word)) return termsMap.get(word)!;
+    return expandAbbreviation(word);
+  });
 }
