@@ -37,3 +37,42 @@ describe('workplace プロファイル', () => {
     expect(out).toBe('エッジ で配信');
   });
 });
+
+describe('customer プロファイル', () => {
+  it('コードフェンス箇所を「コードブロック省略」に置換', () => {
+    const out = applyProfileTransform('ここに\n```python\nprint(1)\n```\nコード', 'customer', new Map());
+    expect(out).toContain('コードブロック省略');
+    expect(out).not.toContain('print(1)');
+  });
+
+  it('丁寧語化（だ → です）', () => {
+    const out = applyProfileTransform('これは動くだ。', 'customer', new Map());
+    expect(out).toContain('です');
+  });
+});
+
+describe('family プロファイル', () => {
+  it('数字を漢数字に変換', () => {
+    const out = applyProfileTransform('3 個の 100 円', 'family', new Map());
+    expect(out).toBe('三 個の 百 円');
+  });
+
+  it('コードフェンスを除外', () => {
+    const out = applyProfileTransform('前\n```\nprint(1)\n```\n後', 'family', new Map());
+    expect(out).not.toContain('print(1)');
+  });
+
+  it('用語辞書の語を口語置換', () => {
+    const map = new Map([['API', 'アプリと会話する仕組み']]);
+    const out = applyProfileTransform('API を説明します', 'family', map);
+    expect(out).toBe('アプリと会話する仕組み を説明します');
+  });
+});
+
+describe('classroom プロファイル', () => {
+  it('用語辞書の語直後に「とは 〇〇」を付記', () => {
+    const map = new Map([['API', 'アプリと会話する仕組み']]);
+    const out = applyProfileTransform('API を学ぶ', 'classroom', map);
+    expect(out).toContain('API とは アプリと会話する仕組み');
+  });
+});
