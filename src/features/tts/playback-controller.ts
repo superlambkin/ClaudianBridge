@@ -14,12 +14,11 @@ class PlaybackController {
   /** 再生開始時に playObjectUrl から呼ばれる */
   bindAudio(h: AudioHandles): void { this.audio = h; }
 
-  /** ⏸/▶: 一時停止⇔再開。true = 一時停止中になった */
+  /** ⏸/▶: 一時停止⇔再開。true = 一時停止中になった（audio 未 bind でも state は切替） */
   togglePause(): boolean {
-    if (!this.audio) return this.paused;
     this.paused = !this.paused;
-    if (this.paused) this.audio.pause();
-    else { this.audio.resume(); this.releaseAll(); }
+    if (this.paused) this.audio?.pause();
+    else { this.audio?.resume(); this.releaseAll(); }
     return this.paused;
   }
 

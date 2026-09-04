@@ -26,6 +26,7 @@ import {
 import { mdReadState } from './md-read-highlight/state';
 import { normalizeForMatch, anchorPrefix } from './md-read-highlight/match';
 import { openInPreview } from './md-read-highlight/open-in-preview-flow';
+import { getPlaybackController } from './playback-controller';
 
 export { openInPreview };
 
@@ -63,6 +64,8 @@ export async function addMdToTts(
   // chunks を生成し、onChunkStart の index を完全一致させる。
   const hlEnabled = cfg.tts.mdReadHighlight?.enabled !== false;
   if (hlEnabled) {
+    // v0.35.0: 読み上げ開始ごとに再生制御を初期化
+    getPlaybackController().reset();
     const engineForChunk = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
     const chunkMax = cfg.tts.chunkMaxChars?.[engineForChunk] ?? (engineForChunk === 'edge' ? 500 : 140);
     // speakText と同じフィルタを適用（最終的に core に渡るテキストを再現）
