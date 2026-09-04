@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.37.1] - 2026-09-05 — LLM 原稿です・ます調統一 + 並列生成（F-033 拡張・レビュー修正込み）
+
+### Added
+
+- LLM 原稿を全プロファイルで「です・ます調」に統一（プロンプト追記）
+- LLM 並列生成数（1〜8・既定 2）を設定画面で変更可能（`tts.llmRewriteConcurrency`）
+- 生成中断の堅牢化：llm-session（世代ガード）・file-open/mute での abort・新規 Add-to-TTS での中断
+- 空/見出しのみセクションの除外・DR [BEEP] マーカー除去・boss 口頭キュー化・キャッシュ内容ハッシュ・フォールバック原文 anchor・terms-dict ヘッダ/空語釈/複合語修正
+
+### テスト
+
+- 1058 件 PASS / typecheck 0（llm-session・並列・設定 clamp・回帰 e2e 追加）
+
+
 ## [0.37.0] - 2026-09-05 — MD 読み上げ LLM 原稿書き換え（F-033）
 
 ### Added

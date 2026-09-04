@@ -708,6 +708,19 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
         store.save({ ...latest, tts: { ...latest.tts, llmRewriteCache: v } });
       }));
 
+    // v0.37.1: LLM 並列生成数（1〜8）
+    new Setting(containerEl)
+      .setName(s.ttsLlmRewriteConcurrency)
+      .setDesc(s.ttsLlmRewriteConcurrencyDesc)
+      .addSlider((sl) =>
+        sl.setLimits(1, 8, 1)
+          .setValue(cfg.tts.llmRewriteConcurrency ?? 2)
+          .setDynamicTooltip()
+          .onChange(async (v) => {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, llmRewriteConcurrency: v } });
+          }));
+
     // v0.35.2: ハイライト色パレット（スウォッチ 16 色＋カスタムピッカー）
     new Setting(containerEl)
       .setName(s.mdReadColorPreset)

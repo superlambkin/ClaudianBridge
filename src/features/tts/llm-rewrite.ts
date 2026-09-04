@@ -71,6 +71,8 @@ export function buildRewritePrompt(section: MdSection, profile: ProfileId): stri
     '- 口頭で自然に読める形にする（記号・コード・表は言葉で説明 or 省略）',
     profileInstruction(profile),
     '- 出力は元の言語で。見出し・装飾・前置きは不要。',
+    // v0.37.1 (新要件): 全 profile でです・ます調に統一
+    '- 文末は必ず「です・ます調」に統一する。',
   ];
   // v0.37.1 (LOW): 見出し文脈を付与（空セクションの捏造防止にも寄与）
   if (section.heading) lines.push(`[このセクションの見出し] ${section.heading}`);
@@ -97,20 +99,45 @@ export async function rewriteSections(
   profile: ProfileId,
   runFn: RewriteRunFn = runClaudePrompt,
   onProgress?: (done: number, total: number) => void,
+  concurrency = 2,
 ): Promise<{ ok: boolean; rewritten: MdSection[]; failed: boolean }> {
+  const n = sections.length;
+  if (n === 0) return { ok: true, rewritten: [], failed: false };
+  const rewritten: MdSection[] = new Array(n);
   let failed = false;
-  const rewritten: MdSection[] = [];
-  for (let i = 0; i < sections.length; i++) {
+  let next = 0;
+  let done = 0;
+  let settled = false;
+  const c = Math.max(1, Math.min(concurrency, n));
+
+  const rewriteOne = async (i: number): Promise<void> => {
     const sec = sections[i];
-    onProgress?.(i + 1, sections.length);
     const parts = splitLongBody(sec.bodyText);
     let out = '';
+    let secFailed = false;
     for (const part of parts) {
       const res = await runFn(buildRewritePrompt({ ...sec, bodyText: part }, profile));
-      if (res === null) { failed = true; out = sec.bodyText; break; }
+      if (res === null) { secFailed = true; out = sec.bodyText; break; }
       out += (out ? '\n' : '') + res.trim();
     }
-    rewritten.push({ ...sec, bodyText: out || sec.bodyText });
-  }
+    rewritten[i] = { ...sec, bodyText: out || sec.bodyText };
+    if (secFailed) failed = true;
+    done += 1;
+    onProgress?.(done, n);
+  };
+
+  // v0.37.1: 並列ワーカー（concurrency 個）で生成。結果は元の順序で格納される
+  const worker = async (): Promise<void> => {
+    while (next < n) {
+      const i = next; next += 1;
+      await rewriteOne(i);
+    }
+    if (done === n && !settled) {
+      settled = true;
+    }
+  };
+  const workers: Promise<void>[] = [];
+  for (let w = 0; w < c; w++) workers.push(worker());
+  await Promise.all(workers);
   return { ok: !failed, rewritten, failed };
 }
