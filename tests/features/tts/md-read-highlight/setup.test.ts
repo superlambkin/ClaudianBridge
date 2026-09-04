@@ -131,13 +131,15 @@ describe('setupMdReadHighlight', () => {
     expect(mockedClearAllForFile).not.toHaveBeenCalled();
   });
 
-  it('cleanup() で workspace.offref を呼ぶ（layout-change 解除）', () => {
+  it('cleanup() で workspace.offref を呼ぶ（layout-change + file-open 解除）', () => {
     const captured = captureApp();
     const cleanup = setupMdReadHighlight(captured.app as never, makeStore() as never);
 
     cleanup();
-    expect(captured.offrefs).toHaveBeenCalledTimes(1);
+    // v0.35.2: layout-change に加え file-open（別 MD オープン時の中止）も解除
+    expect(captured.offrefs).toHaveBeenCalledTimes(2);
     expect(captured.offrefs).toHaveBeenCalledWith(captured.eventRefs.get('layout-change'));
+    expect(captured.offrefs).toHaveBeenCalledWith(captured.eventRefs.get('file-open'));
   });
 
   it('clearAllForFile の引数は setup で受け取った app と同じ', () => {
