@@ -63,7 +63,6 @@ const DEFAULT_ABBREVIATIONS: Record<string, string> = {
   ssl: 'エス エス エル',
   vpn: 'ブイ ピー エヌ',
   dns: 'ディー エヌ エス',
-  api: 'エー ピー アイ',
 };
 
 const ASCII_CHAR_KATAKANA: Record<string, string> = {
