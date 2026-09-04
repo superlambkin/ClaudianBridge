@@ -172,29 +172,28 @@ export async function addMdToTts(
     const firstP = stream.next();      // 生成開始（並列で後続も走る）
 
     let ok = true;
-    let first = true;
+    let firstHandled = false;
     let firstFailed = false;
-    let count = 0;
-    const generatedBodies: string[] = [];
+    const segments: string[][] = orig.map(() => []);
     let it = await firstP;             // 生成1 完了後、すぐに原稿1の読上げへ
     while (!it.done) {
       const item = it.value;
       if (isCancelled()) { ok = false; break; }
-      if (first) {
-        first = false;
+      if (!firstHandled) {
+        firstHandled = true;
         if (!item.ok) { firstFailed = true; ok = false; break; }
       }
       const script = finishScript(item.body, cfg);
-      generatedBodies.push(script);
-      count += 1;
+      if (item.ok) segments[item.index].push(item.body);
       const r = await readSection(item.index, script);
       if (!r) { ok = false; break; }
       it = await stream.next();
     }
     try { progress.hide(); } catch { /* ignore */ }
 
-    if (ok && !isCancelled() && count === orig.length && cache) {
-      try { await cache.put(key, JSON.stringify(generatedBodies)); } catch { /* ignore */ }
+    if (ok && !isCancelled() && cache) {
+      const sectionBodies = segments.map((arr) => arr.join('\n'));
+      try { await cache.put(key, JSON.stringify(sectionBodies)); } catch { /* ignore */ }
     }
     endLlmSession(session.gen);
 
