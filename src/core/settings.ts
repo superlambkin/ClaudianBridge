@@ -551,6 +551,8 @@ export interface ClaudianBridgeSettings {
     mdReadProfile?: 'original' | 'workplace' | 'customer' | 'family' | 'classroom' | 'boss' | 'dr';
     /** v0.36.0 (F-032): 用語辞書（Vault 内 MD パス。任意） */
     termsDict?: string;
+    /** v0.37.0 (F-033): LLM 原稿書き換え結果のキャッシュ（既定 ON） */
+    llmRewriteCache?: boolean;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -809,6 +811,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
             : 'original',
           // v0.36.0 (F-032): 用語辞書パス（任意）
           termsDict: typeof r.tts?.termsDict === 'string' ? r.tts.termsDict : '',
+          // v0.37.0 (F-033): LLM 原稿書き換えキャッシュ（既定 ON）
+          llmRewriteCache: r.tts?.llmRewriteCache !== false,
         };
       })(),
     },
