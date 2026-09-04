@@ -480,6 +480,8 @@ export interface ClaudianBridgeSettings {
     quotaSwitchSec: number;  // v0.4.0: provider rotation interval
     // v0.9.0: Claudian チャットのコードブロックコピー時に ``` フェンスを付与
     codeCopyFence: boolean;
+    // v0.33.0: チャット内 mermaid 自動描画
+    mermaidRender: boolean;
     // === v0.21.0: バックアップ機能 ===
     backupEnabled: boolean;
     // === v0.21.1: バックアップ完了時にダイアログを自動で閉じる ===
@@ -551,7 +553,7 @@ export interface ClaudianBridgeSettings {
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
@@ -639,6 +641,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       quotaRefreshSec: clampRefreshSec(r.general?.quotaRefreshSec),
       quotaSwitchSec: clampSwitchSec(r.general?.quotaSwitchSec),
       codeCopyFence: typeof r.general?.codeCopyFence === 'boolean' ? r.general.codeCopyFence : true,
+      // v0.33.0: チャット内 mermaid 自動描画
+      mermaidRender: typeof r.general?.mermaidRender === 'boolean' ? r.general.mermaidRender : true,
       // v0.21.0: バックアップ機能
       backupEnabled: typeof r.general?.backupEnabled === 'boolean' ? r.general.backupEnabled : true,
       // v0.21.1: バックアップ完了時にダイアログを自動で閉じる（既定 ON）
@@ -943,6 +947,7 @@ function normalizeTtsSpeechFilters(r: { tts?: unknown }): TtsSpeechFilters {
 export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): string | null {
   if (typeof cfg.general.enabled !== 'boolean') return 'general.enabled は boolean である必要があります';
   if (typeof cfg.general.codeCopyFence !== 'boolean') return 'general.codeCopyFence は boolean である必要があります';
+  if (typeof cfg.general.mermaidRender !== 'boolean') return 'general.mermaidRender は boolean である必要があります';
   if (typeof cfg.general.backupEnabled !== 'boolean') return 'general.backupEnabled は boolean である必要があります';
   if (typeof cfg.general.backupAutoClose !== 'boolean') return 'general.backupAutoClose は boolean である必要があります';
   if (typeof cfg.general.quickReplyShowAllOptions !== 'boolean') return 'general.quickReplyShowAllOptions は boolean である必要があります';

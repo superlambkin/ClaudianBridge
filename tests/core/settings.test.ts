@@ -895,3 +895,23 @@ describe('tokenRateIntervalMs (更新周期設定)', () => {
     expect(DEFAULT_TOKEN_RATE_INTERVAL_MS).toBe(250);
   });
 });
+
+describe('general.mermaidRender (チャット内 mermaid 自動描画)', () => {
+  it('既定は true', () => {
+    expect(normalizeClaudianBridgeSettings({}).general.mermaidRender).toBe(true);
+  });
+
+  it('保存済みの false を尊重する', () => {
+    expect(normalizeClaudianBridgeSettings({ general: { mermaidRender: false } }).general.mermaidRender).toBe(false);
+  });
+
+  it('異常値は true にフォールバック', () => {
+    expect(normalizeClaudianBridgeSettings({ general: { mermaidRender: 'yes' } }).general.mermaidRender).toBe(true);
+  });
+
+  it('validate: boolean 以外はエラー', () => {
+    const base = DEFAULT_CLAUDIAN_BRIDGE_SETTINGS;
+    const cfg = { ...base, general: { ...base.general, mermaidRender: 'yes' } } as unknown as typeof base;
+    expect(validateClaudianBridgeSettings(cfg)).toContain('mermaidRender');
+  });
+});
