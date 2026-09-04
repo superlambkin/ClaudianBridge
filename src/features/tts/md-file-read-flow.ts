@@ -163,12 +163,17 @@ export async function addMdToTts(
 
     // 2) ストリーミング生成。生成開始をタイトル読上げと並行させる
     const progress = new Notice('📝 原稿生成中…', 0);
+    const genStartedAt = Date.now();
+    const progressMsg = (done: number, total: number): string => {
+      const sec = Math.floor((Date.now() - genStartedAt) / 1000);
+      return `📝 原稿生成中 ${done}/${total}（${sec}s）…`;
+    };
     const runFn = async (p: string): Promise<string | null> => {
       if (session.signal.aborted) return null;
       return runClaudePrompt(p, { signal: session.signal, disableThinking: true });
     };
     const stream = rewriteSectionsStream(orig, profile, runFn,
-      (done, total) => { try { progress.setMessage(`📝 原稿生成中 ${done}/${total}…`); } catch { /* ignore */ } },
+      (done, total) => { try { progress.setMessage(progressMsg(done, total)); } catch { /* ignore */ } },
       concurrency, session.signal);
     const firstP = stream.next();      // 生成開始（並列で後続も走る）
     await speakFilename();             // タイトル読上げと生成を並行
