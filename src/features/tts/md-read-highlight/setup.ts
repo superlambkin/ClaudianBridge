@@ -98,6 +98,15 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
     if (s.filePath !== mountedFilePath) {
       overlayCleanup?.();
       overlayCleanup = null;
+      // v0.35.2: 新しい MD の読上げ開始前に**スクロールバーを先頭へ戻す**
+      // （下線/overlay が DOM に挿入されたあとに実行することで、リセット後の位置が上書きされない）
+      const resetView = findPreviewViewForFile(app, s.filePath);
+      const scroller = (resetView?.previewMode?.containerEl?.querySelector('.markdown-preview-view, .markdown-reading-view') as HTMLElement | null)
+        ?? (resetView?.previewMode?.containerEl as HTMLElement | null);
+      if (scroller && typeof scroller.scrollTo === 'function') {
+        scroller.scrollTo({ top: 0 });
+      }
+      window.scrollTo({ top: 0 });
       const view = findPreviewViewForFile(app, s.filePath);
       // mountOverlay は常に cleanup 関数を返す（実 DOM がないときは no-op 関数）
       overlayCleanup = mountOverlay(view as never, {
@@ -129,8 +138,9 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
     // v0.34.0: 診断ログ（通知は届いているか・view は取れているかを区別する境界計装）
     console.log('[cb-md-read-highlight] state update idx=', s.activeIdx, 'phase=', s.phase, 'view found=', !!view);
     if (view && s.activeIdx >= 0 && s.chunks[s.activeIdx]) {
-      // v0.35.0: スクロール位置設定（%）を反映（store が無いテスト環境では既定 40）
-      const pct = store?.load?.()?.tts?.mdReadHighlight?.scrollPositionPct ?? 40;
+      // v0.35.2: 初回ハイライト時（idx=0）は user 設定より**先頭固定**で描画・スクロール
+      // （スクロールバー先頭へ戻す → ここから順次%位置へ移る、という意図的な順序）
+      const pct = s.activeIdx === 0 ? 0 : (store?.load?.()?.tts?.mdReadHighlight?.scrollPositionPct ?? 40);
       const matched = highlightChunkInPreview(view as never, s.chunks[s.activeIdx], pct, s.chunks[s.activeIdx + 1]);
       // v0.32.6: 診断ログ（実機確認用）
       console.log('[cb-md-read-highlight] chunk', s.activeIdx, 'of', s.chunks.length - 1, matched ? 'underline applied' : 'NOT matched');
