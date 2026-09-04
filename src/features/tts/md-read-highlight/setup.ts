@@ -96,7 +96,7 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
       return;
     }
     // v0.35.2: 同一チャンクへの複数回発火（state reactive 通知）を抑制
-    if (s.activeIdx === lastHighlightIdx && s.phase !== 'cleared') return;
+    if (s.activeIdx === lastHighlightIdx) return;
 
     // filePath 変化時 → overlay を再 mount（古いものは unmount）
     if (s.filePath !== mountedFilePath) {
