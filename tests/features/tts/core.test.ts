@@ -502,3 +502,12 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     expect((child.stdin.write.mock.calls[0][0] as string).length).toBe(500);
   });
 });
+
+describe('chunkTextNatural 統合 (v0.35.0)', () => {
+  it('見出しをまたぐテキストは見出し直前でチャンクが分かれる', async () => {
+    await addTextToTTS(null as never, 'あ'.repeat(120) + '。\n# 見出し\n' + 'い'.repeat(120) + '。', makePlachtaSettings());
+    const chunks = vi.mocked(plachtaSpeakChunksPipelined).mock.calls.at(-1)?.[0] as string[];
+    expect(chunks.length).toBe(2);
+    expect(chunks[1].startsWith('# 見出し')).toBe(true);
+  });
+});

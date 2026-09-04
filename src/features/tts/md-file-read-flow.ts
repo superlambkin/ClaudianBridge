@@ -17,7 +17,7 @@ import type { ClaudianBridgeSettings } from '../../core/settings';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import { speakText, resolveSpeechFilter } from './speak';
 import { filterSpeechText } from './speech-filter';
-import { chunkText } from './chunking';
+import { chunkTextNatural } from './chunking';
 import { extractMdText } from './md-file-read';
 import {
   finalizeMdRead,
@@ -68,7 +68,7 @@ export async function addMdToTts(
     // speakText と同じフィルタを適用（最終的に core に渡るテキストを再現）
     const optimized = filterSpeechText(text.trim(), filter);
     const ttsChunks = chunkMax > 0 && optimized.length > chunkMax
-      ? chunkText(optimized, chunkMax)
+      ? chunkTextNatural(optimized, chunkMax)
       : [optimized];
     const anchors = ttsChunks.map((t) => {
       const a = normalizeForMatch(t);
