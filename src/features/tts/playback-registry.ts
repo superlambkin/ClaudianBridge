@@ -9,6 +9,10 @@ import type { TtsEngine } from '../../core/settings';
 export interface TtsPlaybackHandle {
   engine: TtsEngine;
   stop: () => void;
+  /** v0.35.0: 一時停止（PlaybackController 用・任意） */
+  pause?: () => void;
+  /** v0.35.0: 再開（任意） */
+  resume?: () => void;
 }
 
 const active = new Set<TtsPlaybackHandle>();
