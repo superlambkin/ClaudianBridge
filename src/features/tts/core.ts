@@ -4,6 +4,7 @@ import type { PlachtaSettings, TtsChunkMaxChars, TtsCliSpeechFilter, TtsEdgeClou
 import { DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../../core/settings';
 import { plachtaSpeakChunksPipelined, playObjectUrl } from './plachta-tts';
 import { chunkText, speakChunks, chunkTextNatural } from './chunking';
+import { getPlaybackController } from './playback-controller';
 import { registerPlayback, stopAllPlayback, getStopEpoch } from './playback-registry';
 import { localEdgeTtsSpeak } from './edge-tts-local';
 
@@ -88,6 +89,8 @@ async function fetchEdgeBlob(
   noticeFn: NoticeFn,
   lang?: TtsLang,
 ): Promise<Blob | null> {
+  // v0.35.2: 別 MD 切替時の即時中止に従う
+  if (getPlaybackController().isAborted()) return null;
   const cloud = settings.edgeCloud;
   if (!cloud?.serverUrl) {
     noticeFn('⚠️ クラウドサーバ URL 未設定。設定タブで edgeCloud.serverUrl を入力してください');
@@ -311,6 +314,8 @@ export async function addTextToTTS(
   // チャンク i の再生中にチャンク i+1 の音声を fetch し、Blob URL を先に用意する。
   let pendingEdge: Promise<string | null> | null = null;
   const speakEdgeWithPrefetch = async (text: string, idx: number): Promise<boolean> => {
+    // v0.35.2: 別 MD 切替時の即時中止に従う
+    if (getPlaybackController().isAborted()) return false;
     let url: string | null = null;
     if (pendingEdge) {
       url = await pendingEdge;
