@@ -86,3 +86,17 @@ describe('先頭記号アンカー照合 (v0.35.2)', () => {
     expect(view.previewMode.containerEl.querySelector('.cb-md-read-chunk.is-active')).not.toBeNull();
   });
 });
+
+describe('照合耐性追加 (v0.35.2)', () => {
+  it('タスクリスト [x] はチェックボックス部品扱いで除去され照合できる', () => {
+    const view = { previewMode: { containerEl: makePreview('Measurable（測定可能）:テストで測定できること。') } };
+    const c: MdReadChunkAnchor = { index: 4, startLine: 0, anchor: 'x]Measurable（測定可能）:テ', text: '[x] Measurable（測定可能）:テストで測定できること。', headingLevel: 0 };
+    expect(highlightChunkInPreview(view, c)).toBe(true);
+  });
+
+  it('記号個数差（:: vs :）は記号許容の正規表現再照合で救済される', () => {
+    const view = { previewMode: { containerEl: makePreview('番号範囲:項目:関連機能 IS1 PDF→Markdown 変換') } };
+    const c: MdReadChunkAnchor = { index: 5, startLine: 0, anchor: '番号範囲項目関連機能::IS1PDF→M', text: '番号範囲::項目::関連機能::IS1 PDF→Markdown 変換', headingLevel: 0 };
+    expect(highlightChunkInPreview(view, c)).toBe(true);
+  });
+});

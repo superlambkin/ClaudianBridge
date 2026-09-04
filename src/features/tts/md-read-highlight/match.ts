@@ -32,6 +32,9 @@ const IGNORE_CHARS_RE = /[-‐‑‒–—―`/|*_~\s]+/g;
  */
 export function normalizeForMatch(t: string): string {
   return t
+    // v0.35.2: タスクリストのチェックボックス（[x] / [ ]）は DOM 側では
+    // チェックボックス部品（文字なし）として描画されるため除去
+    .replace(/\[(x|X|\s|\/)\]/g, '')
     .replace(WIKILINK_RE, (_m, path: string, alias?: string) => {
       if (alias) return alias;
       // v0.34.0: Obsidian の描画に合わせ表示名（path 最終セグメント）で照合する
