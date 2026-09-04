@@ -27,6 +27,9 @@ import { mdReadState } from './md-read-highlight/state';
 import { normalizeForMatch, anchorPrefix } from './md-read-highlight/match';
 import { openInPreview } from './md-read-highlight/open-in-preview-flow';
 import { getPlaybackController } from './playback-controller';
+import { applyProfileTransform } from './profile';
+import { loadTermsDict } from './terms-dict';
+import { playBeep } from './audio-beep';
 
 export { openInPreview };
 
@@ -54,7 +57,14 @@ export async function addMdToTts(
   if (!tFile) return false;
   const content = await app.vault.cachedRead(tFile as TFile);
   const filter = resolveSpeechFilter(cfg, 'md');
-  const text = extractMdText(content, filter);
+  let text = extractMdText(content, filter);
+
+  // v0.36.0 (F-032): 聴き手プロファイル変換（original 以外）。用語辞書もここで読み込む
+  const profile = cfg.tts.mdReadProfile ?? 'original';
+  if (profile !== 'original') {
+    const termsMap = await loadTermsDict(app, cfg.tts.termsDict ?? '');
+    text = applyProfileTransform(text, profile, termsMap);
+  }
 
   const hlEnabled = cfg.tts.mdReadHighlight?.enabled !== false;
   // v0.35.x: 読み上げ開始ごとに再生制御を初期化（前回中断の abort フラグを解除）
@@ -97,9 +107,26 @@ export async function addMdToTts(
   }
 
   // 4. speakText 実行（onChunkStart でハイライト連動）
+  // v0.36.0 (F-032): DR プロファイル時、[BEEP] マーカーを含むチャンクの開始時に警告音
+  let drBeepChunks: string[] | null = null;
+  if (profile === 'dr') {
+    const engineForChunk = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
+    const chunkMax = cfg.tts.chunkMaxChars?.[engineForChunk] ?? (engineForChunk === 'edge' ? 500 : 140);
+    const optimized = filterSpeechText(text.trim(), filter);
+    drBeepChunks = chunkMax > 0 && optimized.length > chunkMax
+      ? chunkTextNatural(optimized, chunkMax)
+      : [optimized];
+  }
+  const baseHook = createChunkStartHook(hlEnabled);
+  const onChunkStart = drBeepChunks
+    ? (idx: number) => {
+        baseHook?.(idx);
+        if (drBeepChunks?.[idx]?.includes('[BEEP]')) playBeep();
+      }
+    : baseHook;
   const ok = await speakText('md', text, cfg, {
     noticeOnEmpty: true,
-    onChunkStart: createChunkStartHook(hlEnabled),
+    onChunkStart,
   });
 
   // 5. finalize

@@ -183,3 +183,48 @@ describe('E2E: Add to TTS → amber 下線が付き、チャンク進行で移�
     expect(body).toContain('background-color: transparent');
   });
 });
+
+describe('E2E: 聴き手プロファイル変換 (v0.36.0)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __resetMdReadSubscribersForTesting();
+    mdReadState.clear();
+    document.body.innerHTML = '';
+    mockAddTextToTTS.mockImplementation(
+      async (_app: unknown, _text: string, _settings: unknown, onChunkStart?: (i: number) => void) => {
+        onChunkStart?.(0);
+        return true;
+      },
+    );
+  });
+
+  it('workplace プロファイル設定で略語が展開されて読み上げられる', async () => {
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>API テスト</h1><p>API を使う。</p>';
+    document.body.appendChild(container);
+    const { app } = makeApp(container, '# API テスト\nAPI を使う。');
+
+    setupMdReadHighlight(app, {} as never);
+    const cfg = makeCfg();
+    (cfg as { tts: { mdReadProfile: string } }).tts.mdReadProfile = 'workplace';
+    const result = await addMdToTts(app, { path: '/a.md', extension: 'md' }, cfg);
+    expect(result).toBe(true);
+    // 1 回目 = ファイル名、2 回目 = 変換後本文（API がカタカナ展開される）
+    const calls = mockAddTextToTTS.mock.calls;
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+    expect(calls[1][1]).toContain('エー ピー アイ');
+  });
+
+  it('original（既定）では変換されない', async () => {
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>API テスト</h1><p>API を使う。</p>';
+    document.body.appendChild(container);
+    const { app } = makeApp(container, '# API テスト\nAPI を使う。');
+
+    setupMdReadHighlight(app, {} as never);
+    await addMdToTts(app, { path: '/a.md', extension: 'md' }, makeCfg());
+    const calls = mockAddTextToTTS.mock.calls;
+    expect(calls[1][1]).toContain('API');
+    expect(calls[1][1]).not.toContain('エー ピー アイ');
+  });
+});
