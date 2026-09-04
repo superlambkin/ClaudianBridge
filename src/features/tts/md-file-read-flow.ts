@@ -16,7 +16,7 @@ import manifest from '../../manifest.json';
 import { speakText, resolveSpeechFilter } from './speak';
 import { filterSpeechText } from './speech-filter';
 import { chunkTextNatural } from './chunking';
-import { extractMdText } from './md-file-read';
+import { extractMdText, normalizeMdForSpeech } from './md-file-read';
 import { finalizeMdRead, createChunkStartHook } from './md-read-highlight/runtime';
 import { mdReadState } from './md-read-highlight/state';
 import { normalizeForMatch, anchorPrefix } from './md-read-highlight/match';
@@ -34,6 +34,16 @@ export { openInPreview };
 
 function safeCache(app: App): RewriteCache | null {
   try { return new RewriteCache(getPluginDir(app, manifest)); } catch { return null; }
+}
+
+/**
+ * v0.37.1: LLM 変換文を「読上げ最適化」に合わせて仕上げる。
+ * 設定のフィルタ（絵文字/顔文字/記号等の削除）と MD 記号正規化を適用し、
+ * そのまま読める原稿にする。キャッシュには仕上げ後の文を保存する。
+ */
+function finishScript(text: string, cfg: ClaudianBridgeSettings): string {
+  const normalized = normalizeMdForSpeech(text).trim();
+  return filterSpeechText(normalized, resolveSpeechFilter(cfg, 'md')).trim();
 }
 
 /** play selection flow 経由で再生（テスト可能関数） */
@@ -141,7 +151,7 @@ export async function addMdToTts(
               let ok = true;
               for (let i = 0; i < bodies.length; i++) {
                 if (isCancelled()) { ok = false; break; }
-                const r = await readSectionBody(i, bodies[i]);
+                const r = await readSectionBody(i, finishScript(bodies[i], cfg));
                 if (!r) { if (getPlaybackController().isAborted()) { ok = false; } else { ok = false; } break; }
               }
               endLlmSession(session.gen);
@@ -156,7 +166,8 @@ export async function addMdToTts(
       const progress = new Notice('📝 原稿生成中…', 0);
       const runFn = async (p: string): Promise<string | null> => {
         if (session.signal.aborted) return null;
-        return runClaudePrompt(p, { signal: session.signal });
+        // v0.37.1: 原稿生成は Think モードなしで高速化
+        return runClaudePrompt(p, { signal: session.signal, disableThinking: true });
       };
       const stream = rewriteSectionsStream(orig, profile, runFn,
         (done, total) => { try { progress.setMessage(`📝 原稿生成中 ${done}/${total}…`); } catch { /* ignore */ } },
@@ -174,9 +185,10 @@ export async function addMdToTts(
             first = false;
             if (!item.ok && !session.signal.aborted) { firstFailed = true; ok = false; break; }
           }
-          generatedBodies.push(item.body);
+          const script = finishScript(item.body, cfg);
+          generatedBodies.push(script);
           bodyCount += 1;
-          const r = await readSectionBody(item.index, item.ok ? item.body : item.body);
+          const r = await readSectionBody(item.index, script);
           if (!r) { ok = false; break; }
         }
       } finally {

@@ -411,3 +411,38 @@ describe('E2E: LLM ストリーミング (v0.37.1)', () => {
     expect(mockRunPrompt).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('E2E: 変換文の読上げ最適化仕上げ (v0.37.1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __resetMdReadSubscribersForTesting();
+    mdReadState.clear();
+    document.body.innerHTML = '';
+    mockAddTextToTTS.mockImplementation(async () => true);
+  });
+
+  it('LLM 変換文から強調記号・スラッシュが除かれ原稿として読まれる', async () => {
+    const md = '# H1\n本文です。';
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>H1</h1><p>本文です。</p>';
+    document.body.appendChild(container);
+    const built = makeApp(container, md);
+    const app = built.app as { vault: { configDir?: string; adapter?: unknown } & Record<string, unknown> } & Record<string, unknown>;
+    app.vault.configDir = '.obsidian-test';
+    app.vault.adapter = { getBasePath: () => os.tmpdir() };
+    mockRunPrompt.mockResolvedValue('**太字** 本文 / です。');
+    const cfg = makeCfg();
+    const c = cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } };
+    c.tts.mdReadProfile = 'boss';
+    c.tts.llmRewriteCache = false;
+
+    setupMdReadHighlight(app as never, {} as never);
+    await addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfg);
+
+    const texts = mockAddTextToTTS.mock.calls.map((x) => String(x[1]));
+    const read = texts.find((t) => t.includes('太字'));
+    expect(read).toBeDefined();
+    expect(read).not.toContain('**');
+    expect(read).not.toContain('/');
+  });
+});

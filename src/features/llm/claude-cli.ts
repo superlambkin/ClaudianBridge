@@ -14,6 +14,8 @@ export interface ClaudeCliOptions {
   timeoutMs?: number;
   /** v0.37.1: 中断シグナル。abort 時に子プロセスを kill し null を返す */
   signal?: AbortSignal;
+  /** v0.37.1: Think モードを無効化（拡張思考なしで応答＝高速・低コスト） */
+  disableThinking?: boolean;
 }
 
 const DEFAULT_TIMEOUT_MS = 30000;
@@ -46,7 +48,11 @@ export async function runClaudePrompt(prompt: string, opts?: ClaudeCliOptions): 
 
     let timer: ReturnType<typeof setTimeout>;
     try {
-      child = spawn(resolveClaudeCommand(), ['-p'], { windowsHide: true });
+      child = spawn(resolveClaudeCommand(), ['-p'], {
+        windowsHide: true,
+        // v0.37.1: Think モード無効化（MAX_THINKING_TOKENS=0 で拡張思考を切る）
+        env: { ...process.env, ...(opts?.disableThinking ? { MAX_THINKING_TOKENS: '0' } : {}) },
+      });
     } catch (e) {
       console.warn('[cb-claude-cli] spawn threw:', e);
       resolve(null);
