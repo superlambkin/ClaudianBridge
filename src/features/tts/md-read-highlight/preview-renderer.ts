@@ -128,7 +128,16 @@ export function highlightChunkInPreview(view: PreviewLike, chunk: MdReadChunkAnc
     notifyOnce('⚠️ 下線表示: 読書モードで開けていない可能性があります（Console: no text nodes）');
     return false;
   }
-  const pos = norm.indexOf(anchor);
+  // v0.34.0: 完全 anchor で不一致のときは先頭 20/18/16 文字で再試行（wikilink 表示名等の
+  // 軽微な文字列差に耐性を持たせる）。短くしすぎると誤照合するため 16 文字未満にはしない。
+  let pos = norm.indexOf(anchor);
+  if (pos < 0) {
+    const cps = Array.from(anchor);
+    for (let keep = 20; keep >= 16; keep -= 2) {
+      const p2 = norm.indexOf(cps.slice(0, keep).join(''));
+      if (p2 >= 0) { pos = p2; break; }
+    }
+  }
   if (pos < 0 || pos + anchor.length > map.length) {
     // v0.32.6: 不一致時の診断ログ（実機確認用）
     console.log('[cb-md-read-highlight] anchor not matched:', JSON.stringify(anchor.slice(0, 20)), 'norm head:', JSON.stringify(norm.slice(0, 40)));

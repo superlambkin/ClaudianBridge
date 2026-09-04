@@ -24,7 +24,7 @@ import {
   createChunkStartHook,
 } from './md-read-highlight/runtime';
 import { mdReadState } from './md-read-highlight/state';
-import { normalizeForMatch } from './md-read-highlight/match';
+import { normalizeForMatch, anchorPrefix } from './md-read-highlight/match';
 import { openInPreview } from './md-read-highlight/open-in-preview-flow';
 
 export { openInPreview };
@@ -72,7 +72,7 @@ export async function addMdToTts(
       : [optimized];
     const anchors = ttsChunks.map((t) => {
       const a = normalizeForMatch(t);
-      return (a || t).slice(0, 24);
+      return anchorPrefix(a || t, 24);
     });
     mdReadState.register(filePath, anchors.map((anchor, i) => ({
       index: i,

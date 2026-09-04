@@ -32,7 +32,12 @@ const IGNORE_CHARS_RE = /[-‐‑‒–—―`/|*_~\s]+/g;
  */
 export function normalizeForMatch(t: string): string {
   return t
-    .replace(WIKILINK_RE, (_m, path: string, alias?: string) => alias ?? path)
+    .replace(WIKILINK_RE, (_m, path: string, alias?: string) => {
+      if (alias) return alias;
+      // v0.34.0: Obsidian の描画に合わせ表示名（path 最終セグメント）で照合する
+      const base = path.split('/').pop() ?? path;
+      return base;
+    })
     .replace(MD_LINK_RE, '$1')
     .replace(HEADING_MARK_RE, '')
     .replace(HASHTAG_RE, '$1')
@@ -40,4 +45,13 @@ export function normalizeForMatch(t: string): string {
     .replace(LIST_MARKER_RE, '')
     .replace(BLOCKQUOTE_MARK_RE, '')
     .replace(IGNORE_CHARS_RE, '');
+}
+
+/**
+ * v0.34.0: サロゲートペア（絵文字等）を切断しない安全な先頭 n 文字切り出し。
+ * String.prototype.slice は UTF-16 単位のため、絵文字の途中で切ると
+ * 不正な lone surrogate が混ざり DOM 照合に必ず失敗する。
+ */
+export function anchorPrefix(t: string, n = 24): string {
+  return Array.from(t).slice(0, n).join('');
 }
