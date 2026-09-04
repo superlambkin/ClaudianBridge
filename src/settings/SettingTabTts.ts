@@ -3,6 +3,7 @@ import type { App } from 'obsidian';
 import * as path from 'path';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
+import { renderHighlightColorPalette } from './color-palette';
 import { addTextToTTS, SAMPLE_TEXT } from '../features/tts/core';
 import {
   PLACHTA_PRESETS,
@@ -665,38 +666,28 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             });
           }),
       );
-    // v0.35.0: ハイライト色プリセットプルダウン（一般人向けの簡単色選択）
-    const COLOR_PRESETS: Array<{ label: string; value: string }> = [
-      { label: s.mdReadColorDefault, value: '#ffb300' },
-      { label: s.mdReadColorYellow, value: '#ffd54f' },
-      { label: s.mdReadColorGreen, value: '#a5d6a7' },
-      { label: s.mdReadColorBlue, value: '#81d4fa' },
-      { label: s.mdReadColorPink, value: '#f48fb1' },
-      { label: s.mdReadColorOrange, value: '#ffab91' },
-      { label: s.mdReadColorPurple, value: '#ce93d8' },
-      { label: s.mdReadColorGray, value: '#cfd8dc' },
-    ];
+    // v0.35.2: ハイライト色パレット（スウォッチ 16 色＋カスタムピッカー）
     new Setting(containerEl)
       .setName(s.mdReadColorPreset)
-      .setDesc(s.mdReadColorPresetDesc)
-      .addDropdown((d) => {
-        COLOR_PRESETS.forEach((p) => d.addOption(p.value, p.label));
-        d.setValue(cfg.tts.mdReadHighlight?.highlightColor || '#ffb300')
-          .onChange((v) => {
-            const latest = store.load();
-            store.save({
-              ...latest,
-              tts: {
-                ...latest.tts,
-                mdReadHighlight: {
-                  ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '', scrollPositionPct: 40 }),
-                  highlightColor: v,
-                },
-              },
-            });
-            applyHighlightColor(v);
-          });
-      });
+      .setDesc(s.mdReadColorPresetDesc);
+    renderHighlightColorPalette(
+      containerEl,
+      cfg.tts.mdReadHighlight?.highlightColor || '#ffb300',
+      (color) => {
+        const latest = store.load();
+        store.save({
+          ...latest,
+          tts: {
+            ...latest.tts,
+            mdReadHighlight: {
+              ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '', scrollPositionPct: 40 }),
+              highlightColor: color,
+            },
+          },
+        });
+        applyHighlightColor(color);
+      },
+    );
     // v0.35.0: 自動スクロール位置スライダー（既定 40%）
     new Setting(containerEl)
       .setName(s.mdReadScrollPosition)

@@ -167,6 +167,15 @@ export interface LocaleStrings {
   mdReadColorOrange: string;
   mdReadColorPurple: string;
   mdReadColorGray: string;
+  mdReadColorDarkDefault: string;
+  mdReadColorDarkYellow: string;
+  mdReadColorDarkGreen: string;
+  mdReadColorDarkBlue: string;
+  mdReadColorDarkPink: string;
+  mdReadColorDarkOrange: string;
+  mdReadColorDarkPurple: string;
+  mdReadColorDarkGray: string;
+  mdReadColorCustom: string;
   mdReadScrollPosition: string;
   mdReadScrollPositionDesc: string;
   ttsMdReadOverlayPause: string;
@@ -523,6 +532,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadColorOrange: 'オレンジ',
     mdReadColorPurple: '紫',
     mdReadColorGray: 'グレー',
+    mdReadColorDarkDefault: '濃いアンバー',
+    mdReadColorDarkYellow: '濃い黄',
+    mdReadColorDarkGreen: '濃い緑',
+    mdReadColorDarkBlue: '濃い青',
+    mdReadColorDarkPink: '濃い赤',
+    mdReadColorDarkOrange: '濃いオレンジ',
+    mdReadColorDarkPurple: '濃い紫',
+    mdReadColorDarkGray: '濃いグレー',
+    mdReadColorCustom: 'カスタム',
     mdReadScrollPosition: '📍 自動スクロール位置',
     mdReadScrollPositionDesc: '読み上げ中のハイライトを画面上から何%の位置に表示するか（0=最上部 〜 100=最下部）',
     ttsMdReadOverlayPause: '一時停止',
@@ -873,6 +891,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadColorOrange: 'Orange',
     mdReadColorPurple: 'Purple',
     mdReadColorGray: 'Gray',
+    mdReadColorDarkDefault: 'Dark amber',
+    mdReadColorDarkYellow: 'Dark yellow',
+    mdReadColorDarkGreen: 'Dark green',
+    mdReadColorDarkBlue: 'Dark blue',
+    mdReadColorDarkPink: 'Dark red',
+    mdReadColorDarkOrange: 'Dark orange',
+    mdReadColorDarkPurple: 'Dark purple',
+    mdReadColorDarkGray: 'Dark gray',
+    mdReadColorCustom: 'Custom',
     mdReadScrollPosition: '📍 Auto-scroll position',
     mdReadScrollPositionDesc: 'Where to place the highlight on screen while reading (0=top 〜 100=bottom)',
     ttsMdReadOverlayPause: 'Pause',
@@ -1218,6 +1245,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadColorOrange: '橙色',
     mdReadColorPurple: '紫色',
     mdReadColorGray: '灰色',
+    mdReadColorDarkDefault: '深琥珀',
+    mdReadColorDarkYellow: '深黄',
+    mdReadColorDarkGreen: '深绿',
+    mdReadColorDarkBlue: '深蓝',
+    mdReadColorDarkPink: '深红',
+    mdReadColorDarkOrange: '深橙',
+    mdReadColorDarkPurple: '深紫',
+    mdReadColorDarkGray: '深灰',
+    mdReadColorCustom: '自定义',
     mdReadScrollPosition: '📍 自动滚动位置',
     mdReadScrollPositionDesc: '朗读时高亮显示在屏幕纵向的位置（0=最上 〜 100=最下）',
     ttsMdReadOverlayPause: '暂停',
