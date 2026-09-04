@@ -118,6 +118,9 @@ export function highlightChunkInPreview(view: PreviewLike, chunk: MdReadChunkAnc
   const anchor = normalizeForMatch(chunk.anchor);
   if (!anchor) return false;
 
+  // v0.34.0: 描画範囲はチャンク全文（anchor は照合用の先頭 24 文字のまま）
+  const full = normalizeForMatch(chunk.text ?? '') || anchor;
+
   const { norm, map, nodes } = buildDomIndex(container);
   if (nodes.length === 0) {
     // v0.32.7: コンテナにテキスト無し → 読書モード以外で再生している疑い
@@ -132,9 +135,11 @@ export function highlightChunkInPreview(view: PreviewLike, chunk: MdReadChunkAnc
     notifyOnce('⚠️ 下線表示: テキスト照合に失敗しました（Console: anchor not matched）');
     return false;
   }
+  // 全文がコンテナ末尾で途中切れの場合（末尾チャンク等）は map の範囲内にクランプ
+  const endPos = Math.min(pos + full.length, map.length);
 
   const startEntry = map[pos];
-  const endEntry = map[Math.min(pos + anchor.length - 1, map.length - 1)];
+  const endEntry = map[endPos - 1];
 
   // 単一ノード内なら 1 span、複数ノード跨ぎは各ノードに span を分配
   let firstSpan: HTMLElement | null = null;
