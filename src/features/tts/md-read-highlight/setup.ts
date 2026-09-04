@@ -113,6 +113,8 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
 
     // ハイライト + 進捗反映
     const view = findPreviewViewForFile(app, s.filePath);
+    // v0.34.0: 診断ログ（通知は届いているか・view は取れているかを区別する境界計装）
+    console.log('[cb-md-read-highlight] state update idx=', s.activeIdx, 'phase=', s.phase, 'view found=', !!view);
     if (view && s.activeIdx >= 0 && s.chunks[s.activeIdx]) {
       const matched = highlightChunkInPreview(view as never, s.chunks[s.activeIdx]);
       // v0.32.6: 診断ログ（実機確認用）
