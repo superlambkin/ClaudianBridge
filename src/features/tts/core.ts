@@ -272,7 +272,10 @@ export async function addTextToTTS(
 
   // v0.10.0 UAT: plachta はパイプライン再生（次チャンクを先行合成してギャップ解消）
   if (settings.engine === 'plachta') {
-    const plachtaOk = await plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress);
+    // v0.34.0: onChunkStart 指定時のみ第 5 引数で伝播（MD 読み上げハイライト用・下線原因⑥）
+    const plachtaOk = onChunkStart !== undefined
+      ? await plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress, onChunkStart)
+      : await plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress);
     // v0.18.x (F1): 後続の外部停止（後勝ち中断）で失敗してもエラー扱いしない
     if (!plachtaOk && getStopEpoch() > stopEpochAtStart) return true;
     return plachtaOk;
