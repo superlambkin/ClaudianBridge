@@ -75,15 +75,6 @@ class PlaybackController {
     }
   }
 
-  /** 読み上げ開始ごとの初期化 */
-  reset(): void {
-    this.audio = null;
-    this.paused = false;
-    this.skipRequested = false;
-    this.aborted = false;
-    this.releaseAll();
-  }
-
   private releaseAll(): void {
     const rs = this.resolvers; this.resolvers = [];
     rs.forEach((r) => r());
