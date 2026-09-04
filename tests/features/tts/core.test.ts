@@ -508,6 +508,7 @@ describe('chunkTextNatural 統合 (v0.35.0)', () => {
     await addTextToTTS(null as never, 'あ'.repeat(120) + '。\n# 見出し\n' + 'い'.repeat(120) + '。', makePlachtaSettings());
     const chunks = vi.mocked(plachtaSpeakChunksPipelined).mock.calls.at(-1)?.[0] as string[];
     expect(chunks.length).toBe(2);
-    expect(chunks[1].startsWith('# 見出し')).toBe(true);
+    expect(chunks[1].startsWith('見出し')).toBe(true);
+    expect(chunks[1]).not.toContain('#');
   });
 });

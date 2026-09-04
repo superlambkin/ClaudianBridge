@@ -27,8 +27,6 @@ const TABLE_BLOCK_RE = /^\s*\|.*\|[ \t]*(?:\r?\n|$)(?:^\s*\|[\s:|-]*\|[ \t]*(?:\
  * v0.32.1: 記号正規化（ハッシュタグ・記号を読み上げない）
  * ========================================================================== */
 
-/** 見出し行頭の #（#### タイトル → タイトル） */
-const HEADING_MARK_RE = /^\s{0,3}#{1,6}\s+/gm;
 /** ハッシュタグ（#タグ・#日本語タグ → 除去） */
 const HASHTAG_RE = /(^|\s)#[^\s#、。！？]+/g;
 /** wikilink [[path|alias]] → alias / [[path]] → path */
@@ -59,7 +57,7 @@ export function normalizeMdForSpeech(t: string): string {
   return t
     .replace(WIKILINK_RE, (_m, path: string, alias?: string) => alias ?? path)
     .replace(MD_LINK_RE, '$1')
-    .replace(HEADING_MARK_RE, '')
+    // v0.35.x: 見出しの # は chunkTextNatural が章境界判定に使うためここでは除去しない
     .replace(HASHTAG_RE, '$1')
     .replace(EMPHASIS_RE, (_m, b?: string, s?: string, e1?: string, e2?: string) => b ?? s ?? e1 ?? e2 ?? '')
     .replace(LIST_MARKER_RE, '')

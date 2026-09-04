@@ -103,10 +103,12 @@ describe('speakChunks', () => {
 });
 
 describe('chunkTextNatural (v0.35.0)', () => {
-  it('見出し行で強制新チャンク', () => {
+  it('見出し行で強制新チャンク（# は読み上げ用に除去）', () => {
     const chunks = chunkTextNatural('# A\n\n本文A。\n# B\n\n本文B。', 100);
-    expect(chunks[0].startsWith('# A')).toBe(true);
-    expect(chunks[1].startsWith('# B')).toBe(true);
+    expect(chunks[0].startsWith('A')).toBe(true);
+    expect(chunks[0]).not.toContain('#');
+    expect(chunks[1].startsWith('B')).toBe(true);
+    expect(chunks[1]).not.toContain('#');
   });
 
   it('見出しがなく文末で区切れる場合は既存 chunkText と同一結果', () => {
