@@ -121,8 +121,11 @@ export function highlightChunkInPreview(
   deactivateAll(container);
 
   // v0.35.2: 先頭の記号類（::: 等・記号のみの接頭辞）は DOM 側と個数が合わず
-  // 照合失敗するため、最初の文字（英数・かな・漢字等）から照合する
-  const anchor = normalizeForMatch(chunk.anchor).replace(/^[^\p{L}\p{N}]+/u, '');
+  // 照合失敗するため、最初の文字（英数・かな・漢字等）から照合する。
+  // また過去に正規化された anchor に残るチェックボックス残骸「x]」等も除去する
+  const anchor = normalizeForMatch(chunk.anchor)
+    .replace(/^[^\p{L}\p{N}]*[a-zA-Z]{0,2}\]/u, '')
+    .replace(/^[^\p{L}\p{N}]+/u, '');
   if (!anchor) return false;
 
   // v0.34.0: 描画範囲はチャンク全文（anchor は照合用の先頭 24 文字のまま）
@@ -143,6 +146,18 @@ export function highlightChunkInPreview(
     for (let keep = 20; keep >= 16; keep -= 2) {
       const p2 = norm.indexOf(cps.slice(0, keep).join(''));
       if (p2 >= 0) { pos = p2; break; }
+    }
+  }
+  // v0.35.2: それでも不一致のときはアンカーの記号（: [ ] 等）を許容する正規表現で再照合
+  // （定義リスト「用語:: 定義」等、記号の個数が DOM 側と合わないケースの救済）
+  if (pos < 0) {
+    const anchorBare = anchor.replace(/[[\]:：]/g, '');
+    if (Array.from(anchorBare).length >= 8) {
+      const pattern = Array.from(anchorBare)
+        .map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('[^\\p{L}\\p{N}]*');
+      const m = new RegExp(pattern, 'u').exec(norm);
+      if (m) pos = m.index;
     }
   }
   if (pos < 0 || pos + anchor.length > map.length) {
