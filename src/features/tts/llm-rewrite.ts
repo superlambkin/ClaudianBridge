@@ -94,6 +94,66 @@ function profileInstruction(profile: ProfileId): string {
 
 export type RewriteRunFn = (prompt: string) => Promise<string | null>;
 
+/** ストリーム生成結果（index は元セクション順）。ok=false はそのセクションが LLM 失敗（原文保持） */
+export interface LlmStreamItem { index: number; ok: boolean; body: string }
+
+/**
+ * v0.37.1: セクションを最大 concurrency 並列で生成し、**できた順ではなく元順序で**逐次 yield する。
+ * 読上げ側はこれを for-await で消費しながら、後続セクションの生成を並行継続できる。
+ */
+export async function* rewriteSectionsStream(
+  sections: MdSection[],
+  profile: ProfileId,
+  runFn: RewriteRunFn = runClaudePrompt,
+  onProgress?: (done: number, total: number) => void,
+  concurrency = 2,
+  signal?: AbortSignal,
+): AsyncGenerator<LlmStreamItem> {
+  const n = sections.length;
+  if (n === 0) return;
+  const out = new Array<LlmStreamItem | undefined>(n);
+  let started = 0;
+  let active = 0;
+  const waiters: Array<() => void> = [];
+  const wake = (): void => { const ws = waiters.splice(0); ws.forEach((f) => f()); };
+  const tick = (): Promise<void> => new Promise<void>((r) => waiters.push(r));
+
+  const genOne = async (i: number): Promise<void> => {
+    const parts = splitLongBody(sections[i].bodyText);
+    let txt = '';
+    let ok = true;
+    for (const part of parts) {
+      if (signal?.aborted) { ok = false; break; }
+      const res = await runFn(buildRewritePrompt({ ...sections[i], bodyText: part }, profile));
+      if (res === null) { ok = false; break; }
+      txt += (txt ? '\n' : '') + res.trim();
+    }
+    out[i] = ok ? { index: i, ok: true, body: txt || sections[i].bodyText } : { index: i, ok: false, body: sections[i].bodyText };
+    active -= 1;
+    onProgress?.(i + 1, n);
+    wake();
+  };
+
+  const launch = (): void => {
+    while (active < concurrency && started < n) {
+      const i = started; started += 1; active += 1;
+      void genOne(i);
+    }
+  };
+
+  launch();
+  for (let i = 0; i < n; i++) {
+    while (!out[i]) {
+      if (active === 0 && started === n) break; // 全タスク完了（異常系の安全弁）
+      await tick();
+    }
+    const item = out[i];
+    out[i] = undefined;
+    launch();
+    if (item) yield item;
+  }
+}
+
 export async function rewriteSections(
   sections: MdSection[],
   profile: ProfileId,
