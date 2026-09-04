@@ -3,7 +3,7 @@ import { Notice } from 'obsidian';
 import type { PlachtaSettings, TtsChunkMaxChars, TtsCliSpeechFilter, TtsEdgeCloudSettings, TtsEngine } from '../../core/settings';
 import { DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../../core/settings';
 import { plachtaSpeakChunksPipelined, playObjectUrl } from './plachta-tts';
-import { chunkText, speakChunks } from './chunking';
+import { chunkText, speakChunks, chunkTextNatural } from './chunking';
 import { registerPlayback, stopAllPlayback, getStopEpoch } from './playback-registry';
 import { localEdgeTtsSpeak } from './edge-tts-local';
 
@@ -265,7 +265,8 @@ export async function addTextToTTS(
   // v0.27.1: 言語は分割前の全文で 1 回だけ判定する。
   // チャンクごとに auto 判定すると、区切り方次第で英語/中国語チャンクが生まれ音声が途中で変わるため。
   const readLang = pickLang(trimmed, settings.addToTtsLanguageMode ?? 'auto');
-  const chunks = limit > 0 && trimmed.length > limit ? chunkText(trimmed, limit) : [trimmed];
+  // v0.35.0: 見出し行で強制新チャンク＋文末優先パック（ハイライト登録側と同一関数）
+  const chunks = limit > 0 && trimmed.length > limit ? chunkTextNatural(trimmed, limit) : [trimmed];
   if (chunks.length > 1) {
     console.log(`[claudian-bridge TTS] chunking: ${trimmed.length} chars → ${chunks.length} chunks (engine: ${settings.engine}, lang: ${readLang})`);
   }
