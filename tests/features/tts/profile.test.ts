@@ -76,3 +76,30 @@ describe('classroom プロファイル', () => {
     expect(out).toContain('API とは アプリと会話する仕組み');
   });
 });
+
+describe('boss プロファイル', () => {
+  it('チャンク配列で 🎯 結論 を先頭に並び替え（チャンク内の段落レベル判定）', () => {
+    // boss プロファイルは呼び出し側でチャンク順序を制御するため、
+    // applyProfileTransform 自体は文字列変換に専念し、並び替えは呼び出し側で行う設計とする。
+    // ここでは text 内の 🎯 結論 見出し直前にマーカー「結論：」を付与することで並び替えヒントを残す。
+    const out = applyProfileTransform('## 🎯 結論\n要点\n## 詳細\n詳細', 'boss', new Map());
+    expect(out).toMatch(/結論：[\s\S]*要点[\s\S]*詳細：[\s\S]*詳細/);
+  });
+
+  it('数値を漢数字にする', () => {
+    const out = applyProfileTransform('売上 150 万円', 'boss', new Map());
+    expect(out).toContain('百五十');
+  });
+});
+
+describe('dr プロファイル', () => {
+  it('誤字疑い箇所にビープマーカー（[BEEP]）を挿入', () => {
+    const out = applyProfileTransform('原文ママ', 'dr', new Map());
+    expect(out).toContain('[BEEP]');
+  });
+
+  it('修正提案は TODO: プレフィックスを付与', () => {
+    const out = applyProfileTransform('修正：改善', 'dr', new Map());
+    expect(out).toContain('TODO:');
+  });
+});

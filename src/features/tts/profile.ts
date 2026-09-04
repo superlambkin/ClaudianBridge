@@ -27,6 +27,10 @@ export function applyProfileTransform(
       return transformFamily(text, termsMap);
     case 'classroom':
       return transformClassroom(text, termsMap);
+    case 'boss':
+      return transformBoss(text);
+    case 'dr':
+      return transformDr(text);
     default:
       return text;
   }
@@ -144,5 +148,23 @@ function transformClassroom(text: string, termsMap: Map<string, string>): string
     t = t.replace(new RegExp(`(${escapeRegExp(term)})(?![とは])`, 'g'),
       `${term} とは ${gloss}`);
   }
+  return t;
+}
+
+/** 上司: 🎯 結論 見出し前にマーカー付与 + 数字漢数字（並び順は呼び出し側チャンクで実施） */
+function transformBoss(text: string): string {
+  let t = text.replace(/(^|\n)(## 🎯 結論\b[^\n]*)/g, '$1結論：$2');
+  t = t.replace(/(^|\n)(## (?!🎯 )[^\n]*)/g, '$1詳細：$2');
+  t = t.replace(/\d+/g, (m) => toKanjiNumber(Number(m)));
+  return t;
+}
+
+/** DR: 誤字疑い箇所に [BEEP]、修正提案に TODO: を付与 */
+function transformDr(text: string): string {
+  let t = text;
+  // 誤字疑いキーワード
+  t = t.replace(/(原文ママ|TBD|FIXME|XXX|HACK|要修正|誤字|typo)/gi, '[BEEP] $& [BEEP]');
+  // 修正提案: 「修正：」「修正：」「修正：」始まりを TODO: に
+  t = t.replace(/^(修正[：:])\s*/gm, 'TODO: ');
   return t;
 }
