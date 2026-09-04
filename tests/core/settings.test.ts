@@ -915,3 +915,16 @@ describe('general.mermaidRender (チャット内 mermaid 自動描画)', () => {
     expect(validateClaudianBridgeSettings(cfg)).toContain('mermaidRender');
   });
 });
+
+describe('mdReadHighlight.scrollPositionPct (v0.35.0)', () => {
+  it('既定は 40', () => {
+    expect(normalizeClaudianBridgeSettings({}).tts.mdReadHighlight.scrollPositionPct).toBe(40);
+  });
+  it('0〜100 外は 40 にフォールバック', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { mdReadHighlight: { scrollPositionPct: 200 } } }).tts.mdReadHighlight.scrollPositionPct).toBe(40);
+    expect(normalizeClaudianBridgeSettings({ tts: { mdReadHighlight: { scrollPositionPct: -1 } } }).tts.mdReadHighlight.scrollPositionPct).toBe(40);
+  });
+  it('設定値は尊重される', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { mdReadHighlight: { scrollPositionPct: 70 } } }).tts.mdReadHighlight.scrollPositionPct).toBe(70);
+  });
+});
