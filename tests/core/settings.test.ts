@@ -951,3 +951,15 @@ describe('tts.mdReadProfile / tts.termsDict (v0.36.0)', () => {
       .toBe('00_Vault管理/Tech_用語対照表.md');
   });
 });
+
+describe('tts.llmRewriteCache (v0.37.0)', () => {
+  it('既定は true', () => {
+    expect(normalizeClaudianBridgeSettings({}).tts.llmRewriteCache).toBe(true);
+  });
+  it('false は尊重', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteCache: false } }).tts.llmRewriteCache).toBe(false);
+  });
+  it('非 boolean は true フォールバック', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteCache: 'no' } }).tts.llmRewriteCache).toBe(true);
+  });
+});

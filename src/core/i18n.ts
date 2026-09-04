@@ -189,6 +189,8 @@ export interface LocaleStrings {
   mdReadProfileDr: string;
   mdReadTermsDict: string;
   mdReadTermsDictDesc: string;
+  ttsLlmRewriteCache: string;
+  ttsLlmRewriteCacheDesc: string;
   ttsMdReadOverlayPause: string;
   ttsMdReadOverlayResume: string;
   ttsMdReadOverlaySkipToHeading: string;
@@ -565,6 +567,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadProfileDr: 'DR（査読）',
     mdReadTermsDict: '📖 用語辞書（任意）',
     mdReadTermsDictDesc: '用語 → やさしい表現 の対照表 MD パス（テーブルまたは「- 用語 → 表現」形式）',
+    ttsLlmRewriteCache: '🧠 LLM 原稿書き換えキャッシュ',
+    ttsLlmRewriteCacheDesc: '書き換え結果をキャッシュして再読上げを高速化（既定 ON）',
     ttsMdReadOverlayPause: '一時停止',
     ttsMdReadOverlayResume: '再開',
     ttsMdReadOverlaySkipToHeading: '次の見出しへ',
@@ -935,6 +939,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadProfileDr: 'DR (document review)',
     mdReadTermsDict: '📖 Terms dictionary (optional)',
     mdReadTermsDictDesc: 'Path to a MD file mapping terms to plain expressions (table or "- term → expr")',
+    ttsLlmRewriteCache: '🧠 LLM rewrite cache',
+    ttsLlmRewriteCacheDesc: 'Cache the rewritten script for faster re-reads (default ON)',
     ttsMdReadOverlayPause: 'Pause',
     ttsMdReadOverlayResume: 'Resume',
     ttsMdReadOverlaySkipToHeading: 'Skip to next heading',
@@ -1300,6 +1306,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadProfileDr: 'DR（文档评审）',
     mdReadTermsDict: '📖 术语词典（可选）',
     mdReadTermsDictDesc: '术语 → 通俗表达 的对照表 MD 路径（表格或「- 术语 → 表达」形式）',
+    ttsLlmRewriteCache: '🧠 LLM 改写缓存',
+    ttsLlmRewriteCacheDesc: '缓存改写稿以加速再次朗读（默认开启）',
     ttsMdReadOverlayPause: '暂停',
     ttsMdReadOverlayResume: '继续',
     ttsMdReadOverlaySkipToHeading: '跳到下一标题',
