@@ -204,6 +204,7 @@ export async function plachtaSpeakChunksPipelined(
   settings: TtsSettings,
   noticeFn: (m: string) => void,
   onProgress?: (msg: string | null) => void,
+  onChunkStart?: (idx: number) => void,
 ): Promise<boolean> {
   if (chunks.length === 0) return true;
   onProgress?.('⏳ 音声生成中…');
@@ -219,6 +220,8 @@ export async function plachtaSpeakChunksPipelined(
       pending = plachtaSynthesize(chunks[i + 1], settings, noticeFn);
     }
     if (i === 0) onProgress?.('▶ 読み上げ中…');
+    // v0.34.0: チャンク再生開始を通知（MD 読み上げハイライト用・下線原因⑥）
+    onChunkStart?.(i);
     const ok = await playObjectUrl(url, noticeFn);
     if (!ok) {
       onProgress?.(null);
