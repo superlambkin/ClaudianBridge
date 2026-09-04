@@ -90,12 +90,15 @@ export async function speakChunks(
 }
 
 /** 見出し行（markdown heading）の直前位置を検出する */
-const HEADING_LINE_RE = /(^|\n)([ \t]{0,3}#{1,6} [^\n]*)/g;
+const HEADING_LINE_RE = /(^|\n)([ \t]{0,3}#{1,6}[ \t]+[^\n]*)/g;
+/** セクション先頭の見出し記号（# と後続空白）を読み上げ用に除去する */
+const HEADING_STRIP_RE = /^[ \t]{0,3}#{1,6}[ \t]+/;
 
 /**
  * v0.35.0: 見出し行で強制新チャンクし、各セクションを既存 chunkText で
  * 文末（。！？\n 等）優先パックする。core.ts と md-file-read-flow.ts の
  * 両方から使用することでハイライト index の完全一致を維持する。
+ * v0.35.x: 見出しの # 記号は読み上げ用に除去（章境界は維持）。
  */
 export function chunkTextNatural(text: string, maxChunkSize: number): string[] {
   const sections: string[] = [];
@@ -110,7 +113,9 @@ export function chunkTextNatural(text: string, maxChunkSize: number): string[] {
   const out: string[] = [];
   for (const s of sections) {
     const trimmed = s.replace(/^\n+|\n+$/g, '');
-    if (trimmed) out.push(...chunkText(trimmed, maxChunkSize));
+    // v0.35.x: 章見出しの # を除去（本文として読む）
+    const cleaned = trimmed.replace(HEADING_STRIP_RE, '');
+    if (cleaned.trim()) out.push(...chunkText(cleaned, maxChunkSize));
   }
   return out;
 }
