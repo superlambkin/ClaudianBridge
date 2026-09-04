@@ -77,3 +77,12 @@ describe('highlightChunkInPreview 終端計算 (v0.35.1)', () => {
     expect(active?.textContent).toContain('long paragraph');
   });
 });
+
+describe('先頭記号アンカー照合 (v0.35.2)', () => {
+  it('anchor 先頭の記号（::: 等）が DOM 側と個数が違っても照合できる', () => {
+    const view = { previewMode: { containerEl: makePreview(':::G1和文PDFをMarkdown化する手順です。') } };
+    const c: MdReadChunkAnchor = { index: 3, startLine: 0, anchor: '::::G1和文PDFをMarkdown', text: '::::G1和文PDFをMarkdown化する手順です。', headingLevel: 0 };
+    expect(highlightChunkInPreview(view, c)).toBe(true);
+    expect(view.previewMode.containerEl.querySelector('.cb-md-read-chunk.is-active')).not.toBeNull();
+  });
+});
