@@ -57,3 +57,23 @@ describe('highlightChunkInPreview', () => {
     expect(view.previewMode.containerEl.querySelector('.cb-md-read-chunk')).toBeNull();
   });
 });
+
+describe('highlightChunkInPreview 終端計算 (v0.35.1)', () => {
+  it('次チャンクの anchor 開始位置まで下線を広げる（読み上げ除外文字で隙間が空かない）', () => {
+    // DOM にはハッシュタグ（読み上げ除外）が含まれる
+    const view = { previewMode: { containerEl: makePreview('前半のチャンクです。 #タグ 後半のチャンクです。続き。') } };
+    const c0: MdReadChunkAnchor = { index: 0, startLine: 0, anchor: '前半のチャンクです', text: '前半のチャンクです。', headingLevel: 0 };
+    const c1: MdReadChunkAnchor = { index: 1, startLine: 0, anchor: '後半のチャンクです', text: '後半のチャンクです。続き。', headingLevel: 0 };
+    highlightChunkInPreview(view, c0, 40, c1);
+    const active = view.previewMode.containerEl.querySelector('.cb-md-read-chunk.is-active');
+    // 次チャンク先頭（後半の…）までは下線が及ぶ（#タグ を含む）
+    expect(active?.textContent).toContain('タグ');
+  });
+
+  it('nextChunk 未指定なら従来どおり text 長で終端する', () => {
+    const view = { previewMode: { containerEl: makePreview('Hello world. This is a long paragraph.') } };
+    highlightChunkInPreview(view, chunk);
+    const active = view.previewMode.containerEl.querySelector('.cb-md-read-chunk.is-active');
+    expect(active?.textContent).toContain('long paragraph');
+  });
+});

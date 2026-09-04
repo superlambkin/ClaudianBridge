@@ -114,6 +114,7 @@ export function highlightChunkInPreview(
   view: PreviewLike,
   chunk: MdReadChunkAnchor,
   scrollPositionPct = 40,
+  nextChunk?: MdReadChunkAnchor,
 ): boolean {
   const container = view.previewMode?.containerEl;
   if (!container) return false;
@@ -149,7 +150,16 @@ export function highlightChunkInPreview(
     return false;
   }
   // 全文がコンテナ末尾で途中切れの場合（末尾チャンク等）は map の範囲内にクランプ
-  const endPos = Math.min(pos + full.length, map.length);
+  // v0.35.1: 終端は次チャンク先頭（anchor）の位置。読み上げ除外文字（ハッシュタグ等）が
+  // DOM 側に残る場合でもチャンク間の下線隙間が空かない。見つからなければ text 長でフォールバック
+  let endPos = Math.min(pos + full.length, map.length);
+  if (nextChunk) {
+    const nextAnchor = normalizeForMatch(nextChunk.anchor);
+    if (nextAnchor) {
+      const nextPos = norm.indexOf(nextAnchor, pos + 1);
+      if (nextPos > pos) endPos = Math.min(nextPos, map.length);
+    }
+  }
 
   const startEntry = map[pos];
   const endEntry = map[endPos - 1];
