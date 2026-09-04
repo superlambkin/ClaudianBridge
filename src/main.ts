@@ -3,6 +3,8 @@ import { ConfigStore } from './core/config-store';
 import { ClaudianBridgeSettingTab } from './settings/ClaudianBridgeSettingTab';
 import { setupSelectionWatcher } from './features/selection/watcher';
 import { setupCodeCopyFence } from './features/code-copy-fence';
+import { setupMermaidRender } from './features/mermaid-render';
+import { initMermaidLog } from './features/mermaid-render/logger';
 import { addFolderToClaudian } from './features/selection/core';
 import { speakText } from './features/tts/speak';
 import { setupAutoReadTTS } from './features/tts/auto-read';
@@ -263,6 +265,11 @@ export default class ClaudianBridgePlugin extends Plugin {
       // v0.9.0: Claudian チャットのコードコピーにフェンスを付与（設定 OFF 時は無効）
       this.register(setupCodeCopyFence(this.store));
       diag('code-copy-fence registered');
+
+      // v0.33.0: チャット内 mermaid 自動描画（設定 OFF 時は無効）
+      initMermaidLog(pluginDir);
+      this.register(setupMermaidRender(this.app, this, this.store));
+      diag('mermaid-render registered');
 
       // === v0.2.0: Object context menu ===
       registerObjectContextMenu(this, this.store);
