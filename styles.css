@@ -616,7 +616,7 @@
 }
 
 /* v0.33.0: mermaid-render */
-.cb-mermaid-toggle { position: relative; float: right; margin: 2px; cursor: pointer; opacity: 0.6; }
+.cb-mermaid-toggle { position: relative; float: left; margin: 2px 8px 2px 2px; cursor: pointer; opacity: 0.6; }
 .cb-mermaid-toggle:hover { opacity: 1; }
 .cb-mermaid-holder { overflow-x: auto; }
 .cb-mermaid-fail-badge { font-size: 0.8em; opacity: 0.7; }
