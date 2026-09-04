@@ -21,6 +21,12 @@ export function applyProfileTransform(
   switch (profile) {
     case 'workplace':
       return transformWorkplace(text, termsMap);
+    case 'customer':
+      return transformCustomer(text, termsMap);
+    case 'family':
+      return transformFamily(text, termsMap);
+    case 'classroom':
+      return transformClassroom(text, termsMap);
     default:
       return text;
   }
@@ -87,4 +93,56 @@ function transformWorkplace(text: string, termsMap: Map<string, string>): string
     if (termsMap.has(word)) return termsMap.get(word)!;
     return expandAbbreviation(word);
   });
+}
+
+/** 顧客向け: コードフェンス除去 + 丁寧語化 + 略語展開 */
+function transformCustomer(text: string, termsMap: Map<string, string>): string {
+  let t = text.replace(/```[a-zA-Z]*\n[\s\S]*?\n```/g, 'コードブロック省略');
+  t = t.replace(/```[\s\S]*?```/g, 'コードブロック省略');
+  // 簡易丁寧語化: 「だ。」→「です。」
+  t = t.replace(/([^。\n]*)だ(?=[。\n])/g, '$1です');
+  // 略語も展開（customer は一般語展開はしない、職場と同じ 1 文字読みで統一）
+  t = t.replace(/[A-Za-z]+/g, (word) => {
+    if (termsMap.has(word)) return termsMap.get(word)!;
+    return expandAbbreviation(word);
+  });
+  return t;
+}
+
+/** 数字を漢数字に変換（0-9999）。1万超はアラビア数字のまま */
+const KANJI_DIGITS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+function toKanjiNumber(n: number): string {
+  if (n === 0) return '零';
+  if (n >= 10000) return String(n);
+  const k = (h: number, c: string) => h === 0 ? c : (h === 1 ? '' : KANJI_DIGITS[h]) + c;
+  const sen = Math.floor(n / 1000);
+  const hyaku = Math.floor((n % 1000) / 100);
+  const ju = Math.floor((n % 100) / 10);
+  const ichi = n % 10;
+  return (sen > 0 ? k(sen, '千') : '') + (hyaku > 0 ? k(hyaku, '百') : '') + (ju > 0 ? k(ju, '十') : '') + (ichi > 0 ? KANJI_DIGITS[ichi] : '');
+}
+
+/** 家族: コードフェンス除外 + 数字漢数字 + 略語展開（用語辞書優先） */
+function transformFamily(text: string, termsMap: Map<string, string>): string {
+  let t = text.replace(/```[\s\S]*?```/g, ' ');
+  t = t.replace(/\d+/g, (m) => toKanjiNumber(Number(m)));
+  t = t.replace(/[A-Za-z]+/g, (word) => {
+    if (termsMap.has(word)) return termsMap.get(word)!;
+    return expandAbbreviation(word);
+  });
+  return t;
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** 教室: 用語辞書の語直後に「とは 〇〇」を付記 */
+function transformClassroom(text: string, termsMap: Map<string, string>): string {
+  let t = text;
+  for (const [term, gloss] of termsMap) {
+    t = t.replace(new RegExp(`(${escapeRegExp(term)})(?![とは])`, 'g'),
+      `${term} とは ${gloss}`);
+  }
+  return t;
 }
