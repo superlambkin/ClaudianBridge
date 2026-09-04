@@ -109,46 +109,53 @@ export async function* rewriteSectionsStream(
   concurrency = 2,
   signal?: AbortSignal,
 ): AsyncGenerator<LlmStreamItem> {
-  const n = sections.length;
-  if (n === 0) return;
-  const out = new Array<LlmStreamItem | undefined>(n);
+  if (sections.length === 0) return;
+
+  // タスク = 「セクション × パート」。元順序（セクション→パート）で逐次 yield する。
+  interface Task { order: number; sectionIdx: number; partText: string }
+  const tasks: Task[] = [];
+  sections.forEach((s, si) => {
+    for (const part of splitLongBody(s.bodyText)) tasks.push({ order: tasks.length, sectionIdx: si, partText: part });
+  });
+  const total = tasks.length;
+  const out = new Array<LlmStreamItem | undefined>(total);
   let started = 0;
   let active = 0;
   const waiters: Array<() => void> = [];
   const wake = (): void => { const ws = waiters.splice(0); ws.forEach((f) => f()); };
   const tick = (): Promise<void> => new Promise<void>((r) => waiters.push(r));
 
-  const genOne = async (i: number): Promise<void> => {
-    const parts = splitLongBody(sections[i].bodyText);
-    let txt = '';
+  const genOne = async (t: Task): Promise<void> => {
     let ok = true;
-    for (const part of parts) {
-      if (signal?.aborted) { ok = false; break; }
-      const res = await runFn(buildRewritePrompt({ ...sections[i], bodyText: part }, profile));
-      if (res === null) { ok = false; break; }
-      txt += (txt ? '\n' : '') + res.trim();
+    let body = '';
+    if (!signal?.aborted) {
+      const res = await runFn(buildRewritePrompt({ index: t.sectionIdx, heading: sections[t.sectionIdx].heading, bodyText: t.partText }, profile));
+      if (res !== null) body = res.trim();
+      else ok = false;
+    } else {
+      ok = false;
     }
-    out[i] = ok ? { index: i, ok: true, body: txt || sections[i].bodyText } : { index: i, ok: false, body: sections[i].bodyText };
+    out[t.order] = { index: t.sectionIdx, ok, body: body || t.partText };
     active -= 1;
-    onProgress?.(i + 1, n);
+    onProgress?.(t.order + 1, total);
     wake();
   };
 
   const launch = (): void => {
-    while (active < concurrency && started < n) {
-      const i = started; started += 1; active += 1;
-      void genOne(i);
+    while (active < concurrency && started < total) {
+      const t = tasks[started]; started += 1; active += 1;
+      void genOne(t);
     }
   };
 
   launch();
-  for (let i = 0; i < n; i++) {
-    while (!out[i]) {
-      if (active === 0 && started === n) break; // 全タスク完了（異常系の安全弁）
+  for (let o = 0; o < total; o++) {
+    while (!out[o]) {
+      if (active === 0 && started === total) break;
       await tick();
     }
-    const item = out[i];
-    out[i] = undefined;
+    const item = out[o];
+    out[o] = undefined;
     launch();
     if (item) yield item;
   }
