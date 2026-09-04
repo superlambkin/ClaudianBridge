@@ -289,6 +289,7 @@ describe('読み上げ開始時のスクロール制御 (v0.35.2)', () => {
     document.body.innerHTML = '';
     const scroller = document.createElement('div');
     scroller.style.overflow = 'auto';
+    (scroller as unknown as { scrollTo: (opt: { top: number }) => void }).scrollTo = vi.fn();
     document.body.appendChild(scroller);
     // container が scroller の内側で markdown-preview-view クラス
     const container = document.createElement('div');

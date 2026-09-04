@@ -103,8 +103,14 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
       const resetView = findPreviewViewForFile(app, s.filePath);
       const scroller = (resetView?.previewMode?.containerEl?.querySelector('.markdown-preview-view, .markdown-reading-view') as HTMLElement | null)
         ?? (resetView?.previewMode?.containerEl as HTMLElement | null);
-      if (scroller && typeof scroller.scrollTo === 'function') {
-        scroller.scrollTo({ top: 0 });
+      if (scroller) {
+        // v0.35.2: 一部の jsdom 環境では scrollTo が存在しないため
+        // 直接代入と window 経由の両方を試みる
+        try { scroller.scrollTop = 0; } catch { /* ignore */ }
+        const fn = scroller.scrollTo;
+        if (typeof fn === 'function') {
+          try { fn.call(scroller, { top: 0 }); } catch { /* ignore */ }
+        }
       }
       window.scrollTo({ top: 0 });
       const view = findPreviewViewForFile(app, s.filePath);
