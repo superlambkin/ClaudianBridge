@@ -67,6 +67,19 @@ export function isTtsPlaying(): boolean {
   return active.size > 0;
 }
 
+/**
+ * v0.35.0: 最新のアクティブハンドルのみ停止する（⏭ スキップ用）。
+ * stopAllPlayback() と異なり stopEpoch を進めないため、
+ * ディスパッチャは「外部停止」ではなくスキップによる中断として扱える。
+ */
+export function stopCurrentHandle(): void {
+  const handles = [...active];
+  const last = handles.at(-1);
+  if (last) {
+    try { last.stop(); } catch { /* ベストエフォート */ }
+  }
+}
+
 export function stopAllPlayback(): number {
   const handles = [...active];
   for (const h of handles) {
