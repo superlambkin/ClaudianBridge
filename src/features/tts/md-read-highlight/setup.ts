@@ -107,9 +107,9 @@ export function setupMdReadHighlight(app: App, store: ConfigStore): () => void {
         // v0.35.2: 一部の jsdom 環境では scrollTo が存在しないため
         // 直接代入と window 経由の両方を試みる
         try { scroller.scrollTop = 0; } catch { /* ignore */ }
-        const fn = scroller.scrollTo;
+        const fn = (scroller as unknown as { scrollTo?: (x?: number, y?: number) => void }).scrollTo;
         if (typeof fn === 'function') {
-          try { fn.call(scroller, { top: 0 }); } catch { /* ignore */ }
+          try { fn.call(scroller, 0, 0); } catch { /* ignore */ }
         }
       }
       window.scrollTo({ top: 0 });

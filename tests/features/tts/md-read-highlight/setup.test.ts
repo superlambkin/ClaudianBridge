@@ -317,10 +317,9 @@ describe('読み上げ開始時のスクロール制御 (v0.35.2)', () => {
     const cleanup = setupMdReadHighlight(app as never, makeStore() as never);
     subscribeHandler?.({ filePath: '/a.md', chunks: [{ index: 0, startLine: 0, anchor: 'aaa', text: 'aaa', headingLevel: 0 }], activeIdx: 0, paused: false, phase: 'playing' });
     scroller.scrollTop = 500;
-    const scrollToSpy = vi.spyOn(scroller, 'scrollTo');
     subscribeHandler?.({ filePath: '/b.md', chunks: [{ index: 0, startLine: 0, anchor: 'い', text: 'い', headingLevel: 0 }], activeIdx: 0, paused: false, phase: 'playing' });
-    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0 });
-    scrollToSpy.mockRestore();
+    // v0.35.2: scroller.scrollTop が 0 に戻る
+    expect(scroller.scrollTop).toBe(0);
     cleanup();
   });
 
