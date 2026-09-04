@@ -9,6 +9,7 @@ import type { ConfigStore } from '../../core/config-store';
 import type { SpeechFilterOptions } from '../../core/settings';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import { speakText, resolveSpeechFilter } from './speak';
+import { addMdToTts } from './md-file-read-flow';
 
 /** frontmatter（先頭 --- 〜 ---） */
 const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
@@ -95,12 +96,8 @@ export function setupMdFileRead(app: App, store: ConfigStore): () => void {
       .onClick(() => {
         void (async () => {
           try {
-            const cfg = store.load();
-            if (!cfg.tts.enabled) { new Notice('🔇 ミュート中です'); return; }
-            const content = await app.vault.cachedRead(file as TFile);
-            const filter = resolveSpeechFilter(cfg, 'md');
-            const text = extractMdText(content, filter);
-            await speakText('md', text, cfg, { noticeOnEmpty: true });
+            // v0.34.0: ハイライト対応フロー（mdReadState 登録 + onChunkStart 連動）に統一
+            await addMdToTts(app, file as TFile, store.load());
           } catch (e) {
             console.warn('[cb-md-read] failed:', e);
             new Notice(`⚠️ MD 読み上げ失敗: ${(e as Error).message}`);
