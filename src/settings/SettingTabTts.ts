@@ -699,6 +699,15 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             store.save({ ...latest, tts: { ...latest.tts, termsDict: v } });
           }));
 
+    // v0.37.0 (F-033): LLM 原稿書き換えキャッシュ（既定 ON）
+    new Setting(containerEl)
+      .setName(s.ttsLlmRewriteCache)
+      .setDesc(s.ttsLlmRewriteCacheDesc)
+      .addToggle((t) => t.setValue(cfg.tts.llmRewriteCache !== false).onChange(async (v) => {
+        const latest = store.load();
+        store.save({ ...latest, tts: { ...latest.tts, llmRewriteCache: v } });
+      }));
+
     // v0.35.2: ハイライト色パレット（スウォッチ 16 色＋カスタムピッカー）
     new Setting(containerEl)
       .setName(s.mdReadColorPreset)
