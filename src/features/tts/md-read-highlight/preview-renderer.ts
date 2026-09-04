@@ -120,7 +120,9 @@ export function highlightChunkInPreview(
   if (!container) return false;
   deactivateAll(container);
 
-  const anchor = normalizeForMatch(chunk.anchor);
+  // v0.35.2: 先頭の記号類（::: 等・記号のみの接頭辞）は DOM 側と個数が合わず
+  // 照合失敗するため、最初の文字（英数・かな・漢字等）から照合する
+  const anchor = normalizeForMatch(chunk.anchor).replace(/^[^\p{L}\p{N}]+/u, '');
   if (!anchor) return false;
 
   // v0.34.0: 描画範囲はチャンク全文（anchor は照合用の先頭 24 文字のまま）
@@ -154,7 +156,8 @@ export function highlightChunkInPreview(
   // DOM 側に残る場合でもチャンク間の下線隙間が空かない。見つからなければ text 長でフォールバック
   let endPos = Math.min(pos + full.length, map.length);
   if (nextChunk) {
-    const nextAnchor = normalizeForMatch(nextChunk.anchor);
+    // v0.35.2: 先頭の記号（::: 等）は DOM 側と個数が異なり得るため除外して照合
+    const nextAnchor = normalizeForMatch(nextChunk.anchor).replace(/^[^\p{L}\p{N}]+/u, '');
     if (nextAnchor) {
       const nextPos = norm.indexOf(nextAnchor, pos + 1);
       if (nextPos > pos) endPos = Math.min(nextPos, map.length);
