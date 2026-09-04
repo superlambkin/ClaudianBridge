@@ -963,3 +963,17 @@ describe('tts.llmRewriteCache (v0.37.0)', () => {
     expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteCache: 'no' } }).tts.llmRewriteCache).toBe(true);
   });
 });
+
+describe('tts.llmRewriteConcurrency (v0.37.1)', () => {
+  it('既定は 2', () => {
+    expect(normalizeClaudianBridgeSettings({}).tts.llmRewriteConcurrency).toBe(2);
+  });
+  it('1〜8 外は clamp（0→1・9→8・非数→2）', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteConcurrency: 0 } }).tts.llmRewriteConcurrency).toBe(1);
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteConcurrency: 9 } }).tts.llmRewriteConcurrency).toBe(8);
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteConcurrency: 'x' } }).tts.llmRewriteConcurrency).toBe(2);
+  });
+  it('設定値は尊重（1〜8）', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteConcurrency: 4 } }).tts.llmRewriteConcurrency).toBe(4);
+  });
+});

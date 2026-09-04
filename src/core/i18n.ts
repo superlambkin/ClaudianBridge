@@ -191,6 +191,8 @@ export interface LocaleStrings {
   mdReadTermsDictDesc: string;
   ttsLlmRewriteCache: string;
   ttsLlmRewriteCacheDesc: string;
+  ttsLlmRewriteConcurrency: string;
+  ttsLlmRewriteConcurrencyDesc: string;
   ttsMdReadOverlayPause: string;
   ttsMdReadOverlayResume: string;
   ttsMdReadOverlaySkipToHeading: string;
@@ -569,6 +571,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadTermsDictDesc: '用語 → やさしい表現 の対照表 MD パス（テーブルまたは「- 用語 → 表現」形式）',
     ttsLlmRewriteCache: '🧠 LLM 原稿書き換えキャッシュ',
     ttsLlmRewriteCacheDesc: '書き換え結果をキャッシュして再読上げを高速化（既定 ON）',
+    ttsLlmRewriteConcurrency: '🔀 LLM 並列生成数',
+    ttsLlmRewriteConcurrencyDesc: '原稿生成を並列実行して待ち時間を短縮（1〜8・既定 2）',
     ttsMdReadOverlayPause: '一時停止',
     ttsMdReadOverlayResume: '再開',
     ttsMdReadOverlaySkipToHeading: '次の見出しへ',
@@ -941,6 +945,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadTermsDictDesc: 'Path to a MD file mapping terms to plain expressions (table or "- term → expr")',
     ttsLlmRewriteCache: '🧠 LLM rewrite cache',
     ttsLlmRewriteCacheDesc: 'Cache the rewritten script for faster re-reads (default ON)',
+    ttsLlmRewriteConcurrency: '🔀 LLM parallel generation',
+    ttsLlmRewriteConcurrencyDesc: 'Run script generation in parallel to reduce wait (1-8, default 2)',
     ttsMdReadOverlayPause: 'Pause',
     ttsMdReadOverlayResume: 'Resume',
     ttsMdReadOverlaySkipToHeading: 'Skip to next heading',
@@ -1308,6 +1314,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadTermsDictDesc: '术语 → 通俗表达 的对照表 MD 路径（表格或「- 术语 → 表达」形式）',
     ttsLlmRewriteCache: '🧠 LLM 改写缓存',
     ttsLlmRewriteCacheDesc: '缓存改写稿以加速再次朗读（默认开启）',
+    ttsLlmRewriteConcurrency: '🔀 LLM 并行生成数',
+    ttsLlmRewriteConcurrencyDesc: '并行生成改写稿以减少等待（1-8，默认 2）',
     ttsMdReadOverlayPause: '暂停',
     ttsMdReadOverlayResume: '继续',
     ttsMdReadOverlaySkipToHeading: '跳到下一标题',

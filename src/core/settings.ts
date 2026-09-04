@@ -553,6 +553,8 @@ export interface ClaudianBridgeSettings {
     termsDict?: string;
     /** v0.37.0 (F-033): LLM 原稿書き換え結果のキャッシュ（既定 ON） */
     llmRewriteCache?: boolean;
+    /** v0.37.1: LLM 並列生成数（1〜8・既定 2） */
+    llmRewriteConcurrency?: number;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
@@ -813,6 +815,11 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
           termsDict: typeof r.tts?.termsDict === 'string' ? r.tts.termsDict : '',
           // v0.37.0 (F-033): LLM 原稿書き換えキャッシュ（既定 ON）
           llmRewriteCache: r.tts?.llmRewriteCache !== false,
+          // v0.37.1: LLM 並列生成数（1〜8・既定 2）
+          llmRewriteConcurrency: (() => {
+            const v = r.tts?.llmRewriteConcurrency;
+            return typeof v === 'number' && Number.isInteger(v) ? Math.max(1, Math.min(8, v)) : 2;
+          })(),
         };
       })(),
     },

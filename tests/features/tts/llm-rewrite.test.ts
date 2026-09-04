@@ -64,3 +64,24 @@ describe('rewriteSections', () => {
     expect(r.rewritten[0].bodyText).toBe('a');
   });
 });
+
+describe('rewriteSections 並列 (v0.37.1)', () => {
+  it('遅い先頭セクションでも結果は元順序で並ぶ', async () => {
+    const runFn = vi.fn()
+      .mockImplementation(async (p: string) => {
+        // 先頭（index 0）だけ遅延させる
+        if (p.includes('本文A')) await new Promise((r) => setTimeout(r, 30));
+        return 'ok';
+      });
+    const sections = [
+      { index: 0, heading: 'A', bodyText: '本文A' },
+      { index: 1, heading: 'B', bodyText: '本文B' },
+      { index: 2, heading: 'C', bodyText: '本文C' },
+    ];
+    const t0 = Date.now();
+    const r = await rewriteSections(sections, 'boss', runFn, undefined, 3);
+    const took = Date.now() - t0;
+    expect(r.rewritten.map((s) => s.bodyText)).toEqual(['ok', 'ok', 'ok']);
+    expect(took).toBeLessThan(120); // 直列 90ms 相当より速い（並列効果）
+  });
+});

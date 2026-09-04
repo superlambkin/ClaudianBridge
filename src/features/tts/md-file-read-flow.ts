@@ -79,11 +79,13 @@ async function tryLlmRewrite(
     if (session.signal.aborted) return null;
     return runClaudePrompt(p, { signal: session.signal });
   };
+  const concurrency = cfg.tts.llmRewriteConcurrency ?? 2;
   const res = await rewriteSections(
     origSections,
     profile,
     runFn,
     (done, total) => { try { progress.setMessage(`📝 原稿生成中 ${done}/${total}…`); } catch { /* ignore */ } },
+    concurrency,
   );
   try { progress.hide(); } catch { /* ignore */ }
 
