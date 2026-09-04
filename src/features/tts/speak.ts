@@ -6,6 +6,7 @@
 import { Notice } from 'obsidian';
 import type { ClaudianBridgeSettings, SpeechFilterOptions } from '../../core/settings';
 import type { TtsSettings } from './core';
+import { getPlaybackController } from './playback-controller';
 import { addTextToTTS } from './core';
 import { filterSpeechText } from './speech-filter';
 
@@ -65,6 +66,8 @@ export async function speakText(
   const settings = toTtsSettings(cfg, type);
   const ok = await addTextToTTS(null, optimized, settings, opts?.onChunkStart);
   if (ok) return true;
+  // v0.35.2: 別 MD 切替による abort は失敗扱いしない
+  if (getPlaybackController().isAborted()) return true;
 
   // 失敗時: fallbackText があれば元文で再試行（⑤）、なければエラー Notice
   if (opts?.fallbackText && opts.fallbackText.trim() !== '') {
