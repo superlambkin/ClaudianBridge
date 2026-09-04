@@ -214,7 +214,10 @@ describe('E2E: 聴き手プロファイル変換 (v0.36.0)', () => {
 
     setupMdReadHighlight(app, {} as never);
     const cfg = makeCfg();
-    (cfg as { tts: { mdReadProfile: string } }).tts.mdReadProfile = 'workplace';
+    const c = cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } };
+    c.tts.mdReadProfile = 'workplace';
+    c.tts.llmRewriteCache = false;
+    mockRunPrompt.mockResolvedValue(null); // LLM 失敗 → トークンフォールバック
     const result = await addMdToTts(app, { path: '/a.md', extension: 'md' }, cfg);
     expect(result).toBe(true);
     // 1 回目 = ファイル名、2 回目 = 変換後本文（API がカタカナ展開される）
@@ -362,5 +365,49 @@ describe('E2E: LLM 修正回帰 (v0.37.1)', () => {
     const calls = mockAddTextToTTS.mock.calls;
     expect(calls[1][1]).toContain('cached1');
     expect(calls[2][1]).toContain('cached2');
+  });
+});
+
+describe('E2E: LLM ストリーミング (v0.37.1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __resetMdReadSubscribersForTesting();
+    mdReadState.clear();
+    document.body.innerHTML = '';
+    mockAddTextToTTS.mockImplementation(async () => true);
+  });
+
+  it('全セクション生成完了を待たず、先頭セクションから読上げを開始する', async () => {
+    const md = '# H1\n本文A。\n## H2\n本文B。';
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>H1</h1><p>本文A。</p><h2>H2</h2><p>本文B。</p>';
+    document.body.appendChild(container);
+    const built = makeApp(container, md);
+    const app = built.app as { vault: { configDir?: string; adapter?: unknown } & Record<string, unknown> } & Record<string, unknown>;
+    app.vault.configDir = '.obsidian-test';
+    app.vault.adapter = { getBasePath: () => os.tmpdir() };
+
+    let releaseH2: (() => void) | null = null;
+    const gate = new Promise<void>((r) => { releaseH2 = r; });
+    mockRunPrompt.mockImplementation(async (p: string) => {
+      if (p.includes('H2')) await gate; // H2 は H1 読み上げ開始まで生成を保留
+      return 'rew';
+    });
+    const cfg = makeCfg();
+    const c = cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } };
+    c.tts.mdReadProfile = 'boss';
+    c.tts.llmRewriteCache = false;
+
+    setupMdReadHighlight(app as never, {} as never);
+    const running = addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfg);
+    // 先頭セクション（rew）の読上げ開始を待つ = H2 生成がまだ完了していない段階
+    await vi.waitFor(() => {
+      const texts = mockAddTextToTTS.mock.calls.map((x) => String(x[1]));
+      expect(texts.some((t) => t.includes('rew'))).toBe(true);
+    });
+    releaseH2!();
+    const ok = await running;
+    expect(ok).toBe(true);
+    expect(mockRunPrompt).toHaveBeenCalledTimes(2);
   });
 });
