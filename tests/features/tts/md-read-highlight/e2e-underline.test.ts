@@ -128,6 +128,23 @@ describe('E2E: Add to TTS → amber 下線が付き、チャンク進行で移�
     expect(document.body.querySelector('[data-cb-md-read-progress]')!.textContent).toBe(`${total}/${total}`);
   });
 
+  it('v0.35.x: Add to TTS はファイル名を本文より先に読み上げる', async () => {
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>大見出し</h1><p>本文です。</p>';
+    document.body.appendChild(container);
+    const { app } = makeApp(container, '# 大見出し\n本文です。');
+
+    setupMdReadHighlight(app, {} as never);
+    await addMdToTts(app, { path: '/a.md', extension: 'md' }, makeCfg());
+
+    const calls = mockAddTextToTTS.mock.calls;
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+    // 1 回目がファイル名（basename が無いモックでは path から "a" を導出）
+    expect(calls[0][1]).toBe('a');
+    // 2 回目が本文（見出し # 除去後）
+    expect(calls[1][1]).toContain('大見出し');
+  });
+
   it('v0.32.9: 登録 chunks は TTS と同一の chunkText 分割と一致する（マルチチャンク整合）', async () => {
     // 長文 MD（500 字超）で chunkText 分割との一致を検証
     const longParagraph = 'これは長い文です。'.repeat(60); // 540 字

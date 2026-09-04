@@ -56,16 +56,26 @@ export async function addMdToTts(
   const filter = resolveSpeechFilter(cfg, 'md');
   const text = extractMdText(content, filter);
 
+  const hlEnabled = cfg.tts.mdReadHighlight?.enabled !== false;
+  // v0.35.x: 読み上げ開始ごとに再生制御を初期化（前回中断の abort フラグを解除）
+  if (hlEnabled) getPlaybackController().reset();
+
+  // v0.35.x: ファイル名を先に読み上げる（本文の前・ハイライト対象外）
+  const basename = (tFile as TFile | null)?.basename
+    ?? filePath.split('/').pop()?.replace(/\.md$/i, '')
+    ?? '';
+  const filenameText = basename.replace(/_/g, ' ').trim();
+  if (filenameText) {
+    await speakText('md', filenameText, cfg, { noticeOnEmpty: false });
+  }
+
   // 3. F-028: state 登録（ハイライトが enabled の場合のみ）
   // v0.32.9 修正: これまで buildChunks（行パッキング分割）で chunks を作って
   // いたが、TTS 本体（core.ts）は filterSpeechText + chunkText（句点区切り
   // パッキング）で別アルゴリズム分割するため、500 字超の文書で index が
   // ズレ／範囲外になり下線が止まっていた。TTS と完全に同一の分割結果から
   // chunks を生成し、onChunkStart の index を完全一致させる。
-  const hlEnabled = cfg.tts.mdReadHighlight?.enabled !== false;
   if (hlEnabled) {
-    // v0.35.0: 読み上げ開始ごとに再生制御を初期化
-    getPlaybackController().reset();
     const engineForChunk = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
     const chunkMax = cfg.tts.chunkMaxChars?.[engineForChunk] ?? (engineForChunk === 'edge' ? 500 : 140);
     // speakText と同じフィルタを適用（最終的に core に渡るテキストを再現）
