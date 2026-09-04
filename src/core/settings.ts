@@ -547,12 +547,19 @@ export interface ClaudianBridgeSettings {
     edgeCloud?: TtsEdgeCloudSettings;
     /** v0.31.0 (F-028): MD ファイル「Add to TTS」読み上げ中の Preview ハイライト設定。 */
     mdReadHighlight: MdReadHighlightSettings;
+    /** v0.36.0 (F-032): 聴き手プロファイル（口調・用語変換）。既定 'original'（原文） */
+    mdReadProfile?: 'original' | 'workplace' | 'customer' | 'family' | 'classroom' | 'boss' | 'dr';
+    /** v0.36.0 (F-032): 用語辞書（Vault 内 MD パス。任意） */
+    termsDict?: string;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
   chroma: ChromaSettings;
   memory: MemorySettings;
 }
+
+/** v0.36.0 (F-032): 聴き手プロファイルの有効値一覧 */
+const PROFILE_VALUES = ['original', 'workplace', 'customer', 'family', 'classroom', 'boss', 'dr'] as const;
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS },
@@ -796,6 +803,12 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
               rawHighlight.scrollPositionPct >= 0 && rawHighlight.scrollPositionPct <= 100
               ? rawHighlight.scrollPositionPct : 40,
           },
+          // v0.36.0 (F-032): 聴き手プロファイル（未知の値は 'original' にフォールバック）
+          mdReadProfile: PROFILE_VALUES.includes(r.tts?.mdReadProfile as never)
+            ? (r.tts?.mdReadProfile as ClaudianBridgeSettings['tts']['mdReadProfile'])
+            : 'original',
+          // v0.36.0 (F-032): 用語辞書パス（任意）
+          termsDict: typeof r.tts?.termsDict === 'string' ? r.tts.termsDict : '',
         };
       })(),
     },

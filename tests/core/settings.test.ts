@@ -928,3 +928,26 @@ describe('mdReadHighlight.scrollPositionPct (v0.35.0)', () => {
     expect(normalizeClaudianBridgeSettings({ tts: { mdReadHighlight: { scrollPositionPct: 70 } } }).tts.mdReadHighlight.scrollPositionPct).toBe(70);
   });
 });
+
+describe('tts.mdReadProfile / tts.termsDict (v0.36.0)', () => {
+  it('既定は original・termsDict は空文字', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.tts.mdReadProfile).toBe('original');
+    expect(cfg.tts.termsDict).toBe('');
+  });
+
+  it('workplace 〜 dr が許可される', () => {
+    for (const p of ['workplace', 'customer', 'family', 'classroom', 'boss', 'dr'] as const) {
+      expect(normalizeClaudianBridgeSettings({ tts: { mdReadProfile: p } }).tts.mdReadProfile).toBe(p);
+    }
+  });
+
+  it('未知の値は original にフォールバック', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { mdReadProfile: 'unknown' } }).tts.mdReadProfile).toBe('original');
+  });
+
+  it('termsDict は文字列を尊重', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { termsDict: '00_Vault管理/Tech_用語対照表.md' } }).tts.termsDict)
+      .toBe('00_Vault管理/Tech_用語対照表.md');
+  });
+});
