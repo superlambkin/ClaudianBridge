@@ -468,6 +468,8 @@ export interface MdReadHighlightSettings {
   enabled: boolean;
   /** チャンクのアクティブ背景色（CSS color 文字列）。空文字ならデフォルト色 */
   highlightColor: string;
+  /** v0.35.0: ハイライトの画面上スクロール位置（%・0=最上部 〜 100=最下部・既定 40） */
+  scrollPositionPct: number;
 }
 
 export interface ClaudianBridgeSettings {
@@ -603,6 +605,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     mdReadHighlight: {
       enabled: true,
       highlightColor: '',
+      scrollPositionPct: 40,
     },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
@@ -788,6 +791,10 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
           mdReadHighlight: {
             enabled: typeof rawHighlight.enabled === 'boolean' ? rawHighlight.enabled : true,
             highlightColor: typeof rawHighlight.highlightColor === 'string' ? rawHighlight.highlightColor : '',
+            // v0.35.0: スクロール位置（0〜100 外は既定 40 にフォールバック）
+            scrollPositionPct: typeof rawHighlight.scrollPositionPct === 'number' &&
+              rawHighlight.scrollPositionPct >= 0 && rawHighlight.scrollPositionPct <= 100
+              ? rawHighlight.scrollPositionPct : 40,
           },
         };
       })(),

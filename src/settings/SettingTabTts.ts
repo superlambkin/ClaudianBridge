@@ -665,6 +665,61 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             });
           }),
       );
+    // v0.35.0: ハイライト色プリセットプルダウン（一般人向けの簡単色選択）
+    const COLOR_PRESETS: Array<{ label: string; value: string }> = [
+      { label: s.mdReadColorDefault, value: '#ffb300' },
+      { label: s.mdReadColorYellow, value: '#ffd54f' },
+      { label: s.mdReadColorGreen, value: '#a5d6a7' },
+      { label: s.mdReadColorBlue, value: '#81d4fa' },
+      { label: s.mdReadColorPink, value: '#f48fb1' },
+      { label: s.mdReadColorOrange, value: '#ffab91' },
+      { label: s.mdReadColorPurple, value: '#ce93d8' },
+      { label: s.mdReadColorGray, value: '#cfd8dc' },
+    ];
+    new Setting(containerEl)
+      .setName(s.mdReadColorPreset)
+      .setDesc(s.mdReadColorPresetDesc)
+      .addDropdown((d) => {
+        COLOR_PRESETS.forEach((p) => d.addOption(p.value, p.label));
+        d.setValue(cfg.tts.mdReadHighlight?.highlightColor || '#ffb300')
+          .onChange((v) => {
+            const latest = store.load();
+            store.save({
+              ...latest,
+              tts: {
+                ...latest.tts,
+                mdReadHighlight: {
+                  ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '', scrollPositionPct: 40 }),
+                  highlightColor: v,
+                },
+              },
+            });
+            applyHighlightColor(v);
+          });
+      });
+    // v0.35.0: 自動スクロール位置スライダー（既定 40%）
+    new Setting(containerEl)
+      .setName(s.mdReadScrollPosition)
+      .setDesc(s.mdReadScrollPositionDesc)
+      .addSlider((sl) =>
+        sl
+          .setLimits(0, 100, 5)
+          .setValue(cfg.tts.mdReadHighlight?.scrollPositionPct ?? 40)
+          .setDynamicTooltip()
+          .onChange((v) => {
+            const latest = store.load();
+            store.save({
+              ...latest,
+              tts: {
+                ...latest.tts,
+                mdReadHighlight: {
+                  ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '', scrollPositionPct: 40 }),
+                  scrollPositionPct: v,
+                },
+              },
+            });
+          }),
+      );
     new Setting(containerEl)
       .setName(s.ttsMdReadHighlightHighlightColor)
       .setDesc('例: #a0c4ff（空文字でデフォルト色 rgba(100, 180, 255, 0.35)）')

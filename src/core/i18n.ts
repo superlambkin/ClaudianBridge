@@ -157,6 +157,18 @@ export interface LocaleStrings {
   // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
   ttsMdReadHighlightEnabled: string;
   ttsMdReadHighlightHighlightColor: string;
+  mdReadColorPreset: string;
+  mdReadColorPresetDesc: string;
+  mdReadColorDefault: string;
+  mdReadColorYellow: string;
+  mdReadColorGreen: string;
+  mdReadColorBlue: string;
+  mdReadColorPink: string;
+  mdReadColorOrange: string;
+  mdReadColorPurple: string;
+  mdReadColorGray: string;
+  mdReadScrollPosition: string;
+  mdReadScrollPositionDesc: string;
   ttsMdReadOverlayPause: string;
   ttsMdReadOverlayResume: string;
   ttsMdReadOverlaySkipToHeading: string;
@@ -501,6 +513,18 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
     ttsMdReadHighlightEnabled: 'MD 読み上げ時にチャンク位置をハイライト',
     ttsMdReadHighlightHighlightColor: 'ハイライト色',
+    mdReadColorPreset: '🎨 ハイライト色（プリセット）',
+    mdReadColorPresetDesc: '定番色から選ぶと色コードへ自動反映します',
+    mdReadColorDefault: '既定（アンバー）',
+    mdReadColorYellow: '黄色',
+    mdReadColorGreen: '緑',
+    mdReadColorBlue: '水色',
+    mdReadColorPink: '桃',
+    mdReadColorOrange: 'オレンジ',
+    mdReadColorPurple: '紫',
+    mdReadColorGray: 'グレー',
+    mdReadScrollPosition: '📍 自動スクロール位置',
+    mdReadScrollPositionDesc: '読み上げ中のハイライトを画面上から何%の位置に表示するか（0=最上部 〜 100=最下部）',
     ttsMdReadOverlayPause: '一時停止',
     ttsMdReadOverlayResume: '再開',
     ttsMdReadOverlaySkipToHeading: '次の見出しへ',
@@ -839,6 +863,18 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
     ttsMdReadHighlightEnabled: 'Highlight reading position in MD Preview',
     ttsMdReadHighlightHighlightColor: 'Highlight color',
+    mdReadColorPreset: '🎨 Highlight color (preset)',
+    mdReadColorPresetDesc: 'Pick a preset color and it will be applied to the color code',
+    mdReadColorDefault: 'Default (amber)',
+    mdReadColorYellow: 'Yellow',
+    mdReadColorGreen: 'Green',
+    mdReadColorBlue: 'Light blue',
+    mdReadColorPink: 'Pink',
+    mdReadColorOrange: 'Orange',
+    mdReadColorPurple: 'Purple',
+    mdReadColorGray: 'Gray',
+    mdReadScrollPosition: '📍 Auto-scroll position',
+    mdReadScrollPositionDesc: 'Where to place the highlight on screen while reading (0=top 〜 100=bottom)',
     ttsMdReadOverlayPause: 'Pause',
     ttsMdReadOverlayResume: 'Resume',
     ttsMdReadOverlaySkipToHeading: 'Skip to next heading',
@@ -1172,6 +1208,18 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.33.0 (F-028): MD 读取位置高亮 / Floating Overlay
     ttsMdReadHighlightEnabled: '在 MD 朗读时高亮当前分块位置',
     ttsMdReadHighlightHighlightColor: '高亮颜色',
+    mdReadColorPreset: '🎨 高亮颜色（预设）',
+    mdReadColorPresetDesc: '选择常用色后自动填入颜色代码',
+    mdReadColorDefault: '默认（琥珀）',
+    mdReadColorYellow: '黄色',
+    mdReadColorGreen: '绿色',
+    mdReadColorBlue: '浅蓝',
+    mdReadColorPink: '粉色',
+    mdReadColorOrange: '橙色',
+    mdReadColorPurple: '紫色',
+    mdReadColorGray: '灰色',
+    mdReadScrollPosition: '📍 自动滚动位置',
+    mdReadScrollPositionDesc: '朗读时高亮显示在屏幕纵向的位置（0=最上 〜 100=最下）',
     ttsMdReadOverlayPause: '暂停',
     ttsMdReadOverlayResume: '继续',
     ttsMdReadOverlaySkipToHeading: '跳到下一标题',
