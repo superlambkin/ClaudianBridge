@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.37.0] - 2026-09-05 — MD 読み上げ LLM 原稿書き換え（F-033）
+
+### Added
+
+- プロファイル非 original のとき、MD を Claude CLI（claude -p）で聞き手向け口頭原稿に書き換えてから読み上げ
+- 見出し単位でセクション分割し、各セクションを LLM で書き換え（プロファイル別プロンプト）
+- 書き換え中は Notice「原稿生成中 n/m…」を表示
+- 結果は `llm-rewrite-cache.json`（100 件 LRU）にキャッシュ（`tts.llmRewriteCache` 既定 ON）
+- ハイライトは書き換え時「見出し単位の粗ハイライト」へ切替
+- LLM 失敗時は従来のトークン変換（F-032）へフォールバック
+
+### テスト
+
+- llm-rewrite 5 件 / llm-rewrite-cache 5 件 / 統合 e2e 2 件 / 設定キー 3 件追加。1044 件 PASS / typecheck 0
+
+
 ## [0.36.0] - 2026-09-05 — MD 読み上げ聴き手プロファイル（F-032）
 
 ### Added
