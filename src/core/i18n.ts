@@ -17,6 +17,8 @@ export interface LocaleStrings {
   generalEnabledDesc: string;
   generalCodeCopyFence: string;
   generalCodeCopyFenceDesc: string;
+  generalMermaidRender: string;
+  generalMermaidRenderDesc: string;
   // === v0.21.0: バックアップ機能 ===
   generalBackupEnabled: string;
   generalBackupEnabledDesc: string;
