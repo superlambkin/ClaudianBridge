@@ -711,29 +711,6 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             });
           }),
       );
-    new Setting(containerEl)
-      .setName(s.ttsMdReadHighlightHighlightColor)
-      .setDesc('例: #a0c4ff（空文字でデフォルト色 rgba(100, 180, 255, 0.35)）')
-      .addText((text) =>
-        text
-          .setPlaceholder('#a0c4ff')
-          .setValue(cfg.tts.mdReadHighlight?.highlightColor ?? '')
-          .onChange((v) => {
-            const latest = store.load();
-            const newColor = v ?? '';
-            store.save({
-              ...latest,
-              tts: {
-                ...latest.tts,
-                mdReadHighlight: {
-                  ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '' }),
-                  highlightColor: newColor,
-                },
-              },
-            });
-            applyHighlightColor(newColor);
-          }),
-      );
   };
 
   draw();
