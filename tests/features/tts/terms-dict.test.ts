@@ -51,8 +51,7 @@ describe('loadTermsDict (v0.36.0)', () => {
       '',
       '- API キー → 秘密の文字列',
       '- GUI →',
-    ].join('
-');
+    ].join('\n');
     const file = { path: 'Tech_用語対照表.md' };
     const app = {
       vault: {

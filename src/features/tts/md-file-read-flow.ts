@@ -33,7 +33,7 @@ import { loadTermsDict } from './terms-dict';
 import { playBeep } from './audio-beep';
 import { parseSections, rewriteSections, type MdSection } from './llm-rewrite';
 import { rewriteCacheKey, RewriteCache } from './llm-rewrite-cache';
-import { beginLlmSession, endLlmSession, isCurrent, type LlmSession } from './llm-session';
+import { beginLlmSession, endLlmSession, isCurrent, abortIfOtherLlmActive, type LlmSession } from './llm-session';
 import { runClaudePrompt } from '../llm/claude-cli';
 
 export { openInPreview };
@@ -113,6 +113,9 @@ export async function addMdToTts(
     return false;
   }
 
+  // v0.37.1 (N4): 別ファイルの新規 Add-to-TTS が進行中の LLM 生成を中断
+  abortIfOtherLlmActive(filePath);
+
   // 1. ファイルを開く（Preview モードへ）— v0.33.4: openLinkText ベース
   await openInPreview(app, filePath);
 
@@ -143,10 +146,10 @@ export async function addMdToTts(
   let llm: { origSections: MdSection[]; speakBodies: string[] } | null = null;
   let session: LlmSession | null = null;
   if (profile !== 'original') {
-    session = beginLlmSession();
+    session = beginLlmSession(filePath);
     llm = await tryLlmRewrite(app, filePath, content, cfg, session).catch(() => null);
     if (session.signal.aborted || !isCurrent(session.gen)) {
-      endLlmSession();
+      endLlmSession(session.gen);
       // 新しい読み上げが始まった/中断された場合はこの読み上げを静かに終了
       return true;
     }
@@ -234,7 +237,7 @@ export async function addMdToTts(
   }
 
   // 5. finalize
-  if (session) endLlmSession();
+  if (session) endLlmSession(session.gen);
   if (hlEnabled) finalizeMdRead(ok);
 
   return ok;
