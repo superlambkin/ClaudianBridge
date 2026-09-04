@@ -1,4 +1,5 @@
 import type { TtsSettings } from './core';
+import { getPlaybackController } from './playback-controller';
 import type { PlachtaSettings, PlachtaLanguage, TtsEngine } from '../../core/settings';
 import { registerPlayback } from './playback-registry';
 
@@ -167,6 +168,14 @@ export async function playObjectUrl(
           try { audio.pause(); } catch { /* ignore */ }
           finish(false);
         },
+        // v0.35.0: 一時停止/再開ハンドル（PlaybackController 用）
+        pause: () => { try { audio.pause(); } catch { /* ignore */ } },
+        resume: () => { void audio.play().catch(() => { /* ignore */ }); },
+      });
+      // v0.35.0: 再生開始時に PlaybackController へバインド
+      getPlaybackController().bindAudio({
+        pause: () => { try { audio.pause(); } catch { /* ignore */ } },
+        resume: () => { void audio.play().catch(() => { /* ignore */ }); },
       });
       audio.onended = () => finish(true);
       audio.onerror = () => { noticeFn('⚠️ 再生失敗'); finish(false); };
