@@ -170,15 +170,16 @@ export async function addMdToTts(
     const stream = rewriteSectionsStream(orig, profile, runFn,
       (done, total) => { try { progress.setMessage(`📝 原稿生成中 ${done}/${total}…`); } catch { /* ignore */ } },
       concurrency, session.signal);
-    const firstP = stream.next(); // 生成を先に開始
-    await speakFilename();        // タイトル読上げと生成を並行
+    const firstP = stream.next();      // 生成開始（並列で後続も走る）
+    const it0 = await firstP;          // v0.37.1: チャンク1の原稿を先に用意する
+    await speakFilename();             // その後、タイトルを読み上げ
 
     let ok = true;
     let first = true;
     let firstFailed = false;
     let count = 0;
     const generatedBodies: string[] = [];
-    let it = await firstP;
+    let it = it0;
     while (!it.done) {
       const item = it.value;
       if (isCancelled()) { ok = false; break; }
