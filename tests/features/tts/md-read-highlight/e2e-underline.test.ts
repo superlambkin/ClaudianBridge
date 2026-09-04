@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 /**
@@ -15,7 +16,14 @@ const { mockAddTextToTTS } = vi.hoisted(() => ({
   mockAddTextToTTS: vi.fn(),
 }));
 
+const { mockRunPrompt } = vi.hoisted(() => ({
+  mockRunPrompt: vi.fn(),
+}));
+
 vi.mock('obsidian', () => ({ Notice: vi.fn() }));
+vi.mock('../../../../src/features/llm/claude-cli', () => ({
+  runClaudePrompt: (...args: unknown[]) => (mockRunPrompt as unknown as (...a: unknown[]) => Promise<string | null>)(...args),
+}));
 vi.mock('../../../../src/features/tts/core', () => ({
   addTextToTTS: (...a: unknown[]) => (mockAddTextToTTS as unknown as (...args: unknown[]) => Promise<boolean>)(...a),
   SAMPLE_TEXT: { zh: '', ja: '', en: '' },
@@ -226,5 +234,68 @@ describe('E2E: 聴き手プロファイル変換 (v0.36.0)', () => {
     const calls = mockAddTextToTTS.mock.calls;
     expect(calls[1][1]).toContain('API');
     expect(calls[1][1]).not.toContain('エー ピー アイ');
+  });
+});
+
+describe('E2E: LLM 原稿書き換え (v0.37.0)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __resetMdReadSubscribersForTesting();
+    mdReadState.clear();
+    document.body.innerHTML = '';
+    mockRunPrompt.mockResolvedValue('書き換え済みセクション');
+    mockAddTextToTTS.mockImplementation(async () => true);
+  });
+
+  it('非 original でセクションごとに LLM 原稿が読まれ、見出し単位で粗ハイライト', async () => {
+    const md = '# H1\n本文A。\n## H2\n本文B。';
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>H1</h1><p>本文A。</p><h2>H2</h2><p>本文B。</p>';
+    document.body.appendChild(container);
+    const built = makeApp(container, md);
+    const app = built.app as { vault: { configDir?: string; adapter?: unknown } & Record<string, unknown> } & Record<string, unknown>;
+    app.vault.configDir = '.obsidian-test';
+    app.vault.adapter = { getBasePath: () => os.tmpdir() };
+    const cfg = makeCfg();
+    (cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } }).tts.mdReadProfile = 'boss';
+    (cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } }).tts.llmRewriteCache = false;
+
+    setupMdReadHighlight(app as never, {} as never);
+    const ok = await addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfg);
+
+    expect(ok).toBe(true);
+    // 2 セクション = LLM 呼び出し 2 回
+    expect(mockRunPrompt).toHaveBeenCalledTimes(2);
+    // ファイル名 + 各セクション本文が読み上げられる
+    const calls = mockAddTextToTTS.mock.calls;
+    expect(calls.length).toBe(3);
+    expect(calls[1][1]).toContain('書き換え済みセクション');
+    // 粗ハイライト: セクション数だけ chunk 登録・最後に H2 を activeIdx
+    const state = mdReadState.get();
+    expect(state).not.toBeNull();
+    expect(state!.chunks.length).toBe(2);
+    expect(state!.chunks[1].anchor).toContain('H2');
+    expect(state!.activeIdx).toBe(1);
+  });
+
+  it('LLM 失敗時はトークン変換へフォールバック（workplace 略語展開）', async () => {
+    mockRunPrompt.mockResolvedValue(null);
+    const md = '# API テスト\nAPI を使う。';
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>API テスト</h1><p>API を使う。</p>';
+    document.body.appendChild(container);
+    const built = makeApp(container, md);
+    const app = built.app as { vault: { configDir?: string; adapter?: unknown } & Record<string, unknown> } & Record<string, unknown>;
+    app.vault.configDir = '.obsidian-test';
+    app.vault.adapter = { getBasePath: () => os.tmpdir() };
+    const cfg = makeCfg();
+    (cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } }).tts.mdReadProfile = 'workplace';
+    (cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } }).tts.llmRewriteCache = false;
+
+    setupMdReadHighlight(app as never, {} as never);
+    await addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfg);
+
+    const calls = mockAddTextToTTS.mock.calls;
+    expect(calls[1][1]).toContain('エー ピー アイ');
   });
 });
