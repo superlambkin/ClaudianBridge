@@ -240,36 +240,7 @@ describe('setupMdReadHighlight', () => {
   });
 });
 
-describe('読み上げ開始時のスクロール制御 (v0.35.2)', () => {
-  function makeAppWithScroller() {
-    document.body.innerHTML = '';
-    const container = document.createElement('div');
-    const scroller = document.createElement('div');
-    scroller.className = 'markdown-preview-view';
-    scroller.appendChild(container);
-    document.body.appendChild(scroller);
-    const handlers = new Map<string, () => void>();
-    const eventRefs = new Map<string, unknown>();
-    const offrefs = vi.fn();
-    const app: AppMock = {
-      workspace: {
-        on: vi.fn((event: string, handler: () => void) => {
-          handlers.set(event, handler);
-          const ref = { kind: 'eventRef', event };
-          eventRefs.set(event, ref);
-          return ref;
-        }),
-        offref: offrefs,
-        getLeavesOfType: vi.fn().mockReturnValue([{
-          view: { previewMode: { containerEl: container }, file: { path: '/a.md' } },
-        }]),
-      },
-    };
-    let subscribeHandler: ((s: unknown) => void) | undefined;
-    vi.spyOn(mdReadState, 'subscribe').mockImplementation((h) => {
-      subscribeHandler = h as (s: unknown) => void;
-      return () => {};
-    });
+
     return {
       app, container, scroller,
       registeredHandler: (s: { phase?: string; filePath?: string; activeIdx?: number; chunks?: unknown[] }) => {
@@ -291,6 +262,7 @@ describe('読み上げ開始時のスクロール制御 (v0.35.2)', () => {
     scroller.style.overflow = 'auto';
     (scroller as unknown as { scrollTo: (opt: { top: number }) => void }).scrollTo = vi.fn();
     document.body.appendChild(scroller);
+    // v0.35.2: window.scrollTo は既存テストで既にモック化されている場合があるので再代入
     // container が scroller の内側で markdown-preview-view クラス
     const container = document.createElement('div');
     container.className = 'markdown-preview-view';
@@ -318,8 +290,9 @@ describe('読み上げ開始時のスクロール制御 (v0.35.2)', () => {
     subscribeHandler?.({ filePath: '/a.md', chunks: [{ index: 0, startLine: 0, anchor: 'aaa', text: 'aaa', headingLevel: 0 }], activeIdx: 0, paused: false, phase: 'playing' });
     scroller.scrollTop = 500;
     subscribeHandler?.({ filePath: '/b.md', chunks: [{ index: 0, startLine: 0, anchor: 'い', text: 'い', headingLevel: 0 }], activeIdx: 0, paused: false, phase: 'playing' });
-    // v0.35.2: scroller.scrollTop が 0 に戻る
-    expect(scroller.scrollTop).toBe(0);
+    // v0.35.2: window.scrollTo({ top: 0 }) が少なくとも 1 回呼ばれる
+    expect(windowScrollToSpy).toHaveBeenCalled();
+    expect((windowScrollToSpy.mock.calls[0] as unknown[])[0]).toEqual({ top: 0 });
     cleanup();
   });
 
