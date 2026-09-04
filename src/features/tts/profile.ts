@@ -153,8 +153,9 @@ function transformClassroom(text: string, termsMap: Map<string, string>): string
 
 /** 上司: 🎯 結論 見出し前にマーカー付与 + 数字漢数字（並び順は呼び出し側チャンクで実施） */
 function transformBoss(text: string): string {
-  // 必ず行頭で判定するため `m` フラグ＋^ で行頭一致にする
-  let t = text.replace(/^## 🎯 結論\b([^\n]*)/gm, '結論：## 🎯 結論$1');
+  // 必ず行頭で判定するため `m` フラグ＋^ で行頭一致にする。
+  // 注: 日本語の直後に \b（単語境界）は機能しない（\w は ASCII のみ）ため使用しない
+  let t = text.replace(/^## 🎯 結論([^\n]*)/gm, '結論：## 🎯 結論$1');
   t = t.replace(/^## (?!🎯 )([^\n]*)/gm, '詳細：## $1');
   t = t.replace(/\d+/g, (m) => toKanjiNumber(Number(m)));
   return t;
