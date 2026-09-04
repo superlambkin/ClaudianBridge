@@ -75,6 +75,8 @@ export async function speakChunks(
   const pc = getPlaybackController();
   for (let i = 0; i < chunks.length; i++) {
     if (onCancel?.()) return false;
+    // v0.35.2: stop() による即時中止
+    if (pc.isAborted()) return false;
     onChunkStart?.(i);
     const ok = await speakFn(chunks[i], i);
     if (!ok) {

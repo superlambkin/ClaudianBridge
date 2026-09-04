@@ -11,6 +11,7 @@ class PlaybackController {
   private audio: AudioHandles | null = null;
   private paused = false;
   private skipRequested = false;
+  private aborted = false;
   private resolvers: Array<() => void> = [];
 
   /** 再生開始時に playObjectUrl から呼ばれる */
@@ -37,10 +38,28 @@ class PlaybackController {
     this.releaseAll();
   }
 
-  /** 🔇・別 MD オープン時: 読み上げ全体を中止する */
+  /** 🔇・別 MD オープン時: 読み上げ全体を即時中止する（speakChunks ループを即抜け） */
   stop(): void {
-    this.skipNext();
+    this.aborted = true;
+    this.skipRequested = false;
+    this.audio?.pause();
+    try { stopCurrentHandle(); } catch { /* ignore */ }
+    this.releaseAll();
   }
+
+  /** 読み上げ全体を中止（reset 後再有効化可能） */
+  reset(): void {
+    this.audio = null;
+    this.paused = false;
+    this.skipRequested = false;
+    this.aborted = false;
+    this.releaseAll();
+  }
+
+  /** speakChunks ループから呼ばれ、abort 状態なら true を返す */
+  isAborted(): boolean { return this.aborted; }
+
+  /** チャンク境界で speakChunks から呼ぶ。要求されたスキップを 1 回だけ消費する */
 
   /** チャンク境界で speakChunks から呼ぶ。要求されたスキップを 1 回だけ消費する */
   consumeSkip(): boolean {
@@ -61,6 +80,7 @@ class PlaybackController {
     this.audio = null;
     this.paused = false;
     this.skipRequested = false;
+    this.aborted = false;
     this.releaseAll();
   }
 
