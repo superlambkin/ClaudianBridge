@@ -3,8 +3,11 @@
  *
  * v0.37.0 (F-033): プロファイル非 original で各セクションを Claude CLI で
  * 聞き手向け口頭原稿に書き換えて読上げ。
- * v0.37.1: 生成を全セクション待たず「できたセクションから順に読む」ストリーミング。
- * 並列生成数（1〜8）・キャッシュ・です・ます調・中断/世代ガード・フォールバック対応。
+ * v0.37.1:
+ * - ストリーミング読上げ（全生成を待たず、できたセクションから順に再生）
+ * - タイトル読上げ中から原稿生成を開始
+ * - 中止（🔇）で全 LLM 子プロセス終了・ストリーム中断・state クリア
+ * - 変換文は設定の読上げ最適化（絵文字/記号除外）で仕上げ、です・ます調を維持
  */
 import { Notice } from 'obsidian';
 import type { App, TFile } from 'obsidian';
@@ -36,14 +39,9 @@ function safeCache(app: App): RewriteCache | null {
   try { return new RewriteCache(getPluginDir(app, manifest)); } catch { return null; }
 }
 
-/**
- * v0.37.1: LLM 変換文を「読上げ最適化」に合わせて仕上げる。
- * 設定のフィルタ（絵文字/顔文字/記号等の削除）と MD 記号正規化を適用し、
- * そのまま読める原稿にする。キャッシュには仕上げ後の文を保存する。
- */
+/** v0.37.1: LLM 変換文を設定の読上げ最適化（絵文字/記号除外）で仕上げる */
 function finishScript(text: string, cfg: ClaudianBridgeSettings): string {
-  const normalized = normalizeMdForSpeech(text).trim();
-  return filterSpeechText(normalized, resolveSpeechFilter(cfg, 'md')).trim();
+  return filterSpeechText(normalizeMdForSpeech(text).trim(), resolveSpeechFilter(cfg, 'md')).trim();
 }
 
 /** play selection flow 経由で再生（テスト可能関数） */
@@ -59,9 +57,7 @@ export async function addMdToTts(
   const filePath = file.path;
   if (!file.path.endsWith('.md') && file.extension !== 'md') return false;
 
-  // v0.37.1 (N4): 別ファイルの新規 Add-to-TTS が進行中の LLM 生成を中断
   abortIfOtherLlmActive(filePath);
-
   await openInPreview(app, filePath);
 
   const tFile = app.vault.getAbstractFileByPath(filePath);
@@ -72,18 +68,17 @@ export async function addMdToTts(
   const hlEnabled = cfg.tts.mdReadHighlight?.enabled !== false;
   if (hlEnabled) getPlaybackController().reset();
 
-  // ファイル名を先に読む
+  const originalText = extractMdText(content, filter);
+  const engineForChunk = cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine;
+  const chunkMax = cfg.tts.chunkMaxChars?.[engineForChunk] ?? (engineForChunk === 'edge' ? 500 : 140);
   const basename = (tFile as TFile | null)?.basename ?? filePath.split('/').pop()?.replace(/\.md$/i, '') ?? '';
   const filenameText = basename.replace(/_/g, ' ').trim();
-  if (filenameText) await speakText('md', filenameText, cfg, { noticeOnEmpty: false });
-
-  const originalText = extractMdText(content, filter);
+  const speakFilename = (): Promise<boolean> =>
+    filenameText ? speakText('md', filenameText, cfg, { noticeOnEmpty: false }) : Promise.resolve(true);
 
   const registerOriginalChunks = (): void => {
     if (!hlEnabled) return;
     const optimized = filterSpeechText(originalText.trim(), filter);
-    const chunkMax = cfg.tts.chunkMaxChars?.[cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine]
-      ?? (cfg.tts.engine === 'edge-local' || cfg.tts.engine === 'edge' ? 500 : 140);
     const ttsChunks = chunkMax > 0 && optimized.length > chunkMax ? chunkTextNatural(optimized, chunkMax) : [optimized];
     const anchors = ttsChunks.map((t) => anchorPrefix(normalizeForMatch(t) || t, 24));
     mdReadState.register(filePath, anchors.map((anchor, i) => ({ index: i, startLine: 0, anchor, text: ttsChunks[i], headingLevel: 0 as const })));
@@ -98,14 +93,13 @@ export async function addMdToTts(
     })));
   };
 
-  // セクション本文を 1 つ読む（アクティブ位置更新込み）。false=中断/失敗
-  const readSectionBody = async (sectionIdx: number, body: string): Promise<boolean> => {
+  const readSection = async (sectionIdx: number, body: string): Promise<boolean> => {
     if (!body.trim()) return true;
     if (hlEnabled) mdReadState.setActiveIdx(sectionIdx);
     return speakText('md', body, cfg, { noticeOnEmpty: false });
   };
 
-  // === 標準（original / トークンフォールバック）経路 ===
+  // === 標準（original / トークンフォールバック） ===
   const runStandard = async (): Promise<boolean> => {
     registerOriginalChunks();
     let text = originalText;
@@ -117,10 +111,8 @@ export async function addMdToTts(
     let drBeepChunks: string[] | null = null;
     if (profile === 'dr') {
       const optimized = filterSpeechText(text.trim(), filter);
-      const chunkMax = cfg.tts.chunkMaxChars?.[cfg.tts.engine === 'edge-local' ? 'edge' : cfg.tts.engine]
-        ?? (cfg.tts.engine === 'edge-local' || cfg.tts.engine === 'edge' ? 500 : 140);
       drBeepChunks = chunkMax > 0 && optimized.length > chunkMax ? chunkTextNatural(optimized, chunkMax) : [optimized];
-      text = text.replace(/\[BEEP\]\s*/g, ''); // v0.37.1 (M1)
+      text = text.replace(/\[BEEP\]\s*/g, '');
     }
     const onChunkStart = drBeepChunks
       ? (idx: number) => { baseHook?.(idx); if (drBeepChunks?.[idx]?.includes('[BEEP]')) playBeep(); }
@@ -128,7 +120,7 @@ export async function addMdToTts(
     return speakText('md', text, cfg, { noticeOnEmpty: true, onChunkStart });
   };
 
-  // === LLM ストリーミング経路（非 original） ===
+  // === LLM ストリーミング（非 original） ===
   if (profile !== 'original') {
     const session: LlmSession = beginLlmSession(filePath);
     const concurrency = cfg.tts.llmRewriteConcurrency ?? 2;
@@ -138,87 +130,87 @@ export async function addMdToTts(
     const orig = parseSections(content);
     const isCancelled = (): boolean => session.signal.aborted || !isCurrent(session.gen) || getPlaybackController().isAborted();
 
-    if (orig.length > 0) {
-      registerCoarse(orig);
-
-      // 1) キャッシュヒットなら即全セクション読上げ
-      if (cache) {
-        const cached = await cache.get(key);
-        if (cached) {
-          try {
-            const bodies = JSON.parse(cached) as string[];
-            if (Array.isArray(bodies) && bodies.length === orig.length) {
-              let ok = true;
-              for (let i = 0; i < bodies.length; i++) {
-                if (isCancelled()) { ok = false; break; }
-                const r = await readSectionBody(i, finishScript(bodies[i], cfg));
-                if (!r) { if (getPlaybackController().isAborted()) { ok = false; } else { ok = false; } break; }
-              }
-              endLlmSession(session.gen);
-              if (hlEnabled) finalizeMdRead(ok);
-              return ok;
-            }
-          } catch { /* 破損→再生成 */ }
-        }
-      }
-
-      // 2) ストリーミング生成 → できたセクションから順に読上げ
-      const progress = new Notice('📝 原稿生成中…', 0);
-      const runFn = async (p: string): Promise<string | null> => {
-        if (session.signal.aborted) return null;
-        // v0.37.1: 原稿生成は Think モードなしで高速化
-        return runClaudePrompt(p, { signal: session.signal, disableThinking: true });
-      };
-      const stream = rewriteSectionsStream(orig, profile, runFn,
-        (done, total) => { try { progress.setMessage(`📝 原稿生成中 ${done}/${total}…`); } catch { /* ignore */ } },
-        concurrency, session.signal);
-
-      let ok = true;
-      let firstFailed = false;
-      let bodyCount = 0;
-      const generatedBodies: string[] = [];
-      let first = true;
-      try {
-        for await (const item of stream) {
-          if (isCancelled()) { ok = false; break; }
-          if (first) {
-            first = false;
-            if (!item.ok && !session.signal.aborted) { firstFailed = true; ok = false; break; }
-          }
-          const script = finishScript(item.body, cfg);
-          generatedBodies.push(script);
-          bodyCount += 1;
-          const r = await readSectionBody(item.index, script);
-          if (!r) { ok = false; break; }
-        }
-      } finally {
-        try { progress.hide(); } catch { /* ignore */ }
-      }
-
-      if (!firstFailed && ok && !session.signal.aborted && bodyCount === orig.length && cache) {
-        try { await cache.put(key, JSON.stringify(generatedBodies)); } catch { /* ignore */ }
-      }
-
-      if (firstFailed) {
-        // 初回生成が失敗（非中断）→ 全体をトークンフォールバックで読む
-        endLlmSession(session.gen);
-        const okStd = await runStandard();
-        if (hlEnabled) finalizeMdRead(okStd);
-        return okStd;
-      }
-
+    if (orig.length === 0) {
+      await speakFilename();
       endLlmSession(session.gen);
-      if (hlEnabled) finalizeMdRead(ok);
-      return ok;
+      const okStd = await runStandard();
+      if (hlEnabled) finalizeMdRead(okStd);
+      return okStd;
+    }
+    registerCoarse(orig);
+
+    // 1) キャッシュヒット
+    if (cache) {
+      const cached = await cache.get(key);
+      if (cached) {
+        try {
+          const bodies = JSON.parse(cached) as string[];
+          if (Array.isArray(bodies) && bodies.length === orig.length) {
+            await speakFilename();
+            let ok = true;
+            for (let i = 0; i < bodies.length; i++) {
+              if (isCancelled()) { ok = false; break; }
+              const r = await readSection(i, finishScript(bodies[i], cfg));
+              if (!r) { ok = false; break; }
+            }
+            endLlmSession(session.gen);
+            if (hlEnabled) finalizeMdRead(ok);
+            return ok;
+          }
+        } catch { /* 破損 → 再生成 */ }
+      }
     }
 
+    // 2) ストリーミング生成。生成開始をタイトル読上げと並行させる
+    const progress = new Notice('📝 原稿生成中…', 0);
+    const runFn = async (p: string): Promise<string | null> => {
+      if (session.signal.aborted) return null;
+      return runClaudePrompt(p, { signal: session.signal, disableThinking: true });
+    };
+    const stream = rewriteSectionsStream(orig, profile, runFn,
+      (done, total) => { try { progress.setMessage(`📝 原稿生成中 ${done}/${total}…`); } catch { /* ignore */ } },
+      concurrency, session.signal);
+    const firstP = stream.next(); // 生成を先に開始
+    await speakFilename();        // タイトル読上げと生成を並行
+
+    let ok = true;
+    let first = true;
+    let firstFailed = false;
+    let count = 0;
+    const generatedBodies: string[] = [];
+    let it = await firstP;
+    while (!it.done) {
+      const item = it.value;
+      if (isCancelled()) { ok = false; break; }
+      if (first) {
+        first = false;
+        if (!item.ok) { firstFailed = true; ok = false; break; }
+      }
+      const script = finishScript(item.body, cfg);
+      generatedBodies.push(script);
+      count += 1;
+      const r = await readSection(item.index, script);
+      if (!r) { ok = false; break; }
+      it = await stream.next();
+    }
+    try { progress.hide(); } catch { /* ignore */ }
+
+    if (ok && !isCancelled() && count === orig.length && cache) {
+      try { await cache.put(key, JSON.stringify(generatedBodies)); } catch { /* ignore */ }
+    }
     endLlmSession(session.gen);
-    const okStd = await runStandard();
-    if (hlEnabled) finalizeMdRead(okStd);
-    return okStd;
+
+    if (firstFailed) {
+      const okStd = await runStandard();
+      if (hlEnabled) finalizeMdRead(okStd);
+      return okStd;
+    }
+    if (hlEnabled) finalizeMdRead(ok);
+    return ok;
   }
 
   // === original ===
+  await speakFilename();
   const ok = await runStandard();
   if (hlEnabled) finalizeMdRead(ok);
   return ok;
