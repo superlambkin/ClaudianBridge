@@ -178,6 +178,17 @@ export interface LocaleStrings {
   mdReadColorCustom: string;
   mdReadScrollPosition: string;
   mdReadScrollPositionDesc: string;
+  mdReadProfile: string;
+  mdReadProfileDesc: string;
+  mdReadProfileOriginal: string;
+  mdReadProfileWorkplace: string;
+  mdReadProfileCustomer: string;
+  mdReadProfileFamily: string;
+  mdReadProfileClassroom: string;
+  mdReadProfileBoss: string;
+  mdReadProfileDr: string;
+  mdReadTermsDict: string;
+  mdReadTermsDictDesc: string;
   ttsMdReadOverlayPause: string;
   ttsMdReadOverlayResume: string;
   ttsMdReadOverlaySkipToHeading: string;
@@ -543,6 +554,17 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadColorCustom: 'カスタム',
     mdReadScrollPosition: '📍 自動スクロール位置',
     mdReadScrollPositionDesc: '読み上げ中のハイライトを画面上から何%の位置に表示するか（0=最上部 〜 100=最下部）',
+    mdReadProfile: '👂 聴き手プロファイル',
+    mdReadProfileDesc: '聞く相手に合わせて口調・専門用語を変換します（既定は原文のまま）',
+    mdReadProfileOriginal: '原文（デフォルト）',
+    mdReadProfileWorkplace: '職場（技術）',
+    mdReadProfileCustomer: '顧客（仕様説明）',
+    mdReadProfileFamily: '家族（やさしい）',
+    mdReadProfileClassroom: '教室（学生）',
+    mdReadProfileBoss: '上司（報告）',
+    mdReadProfileDr: 'DR（査読）',
+    mdReadTermsDict: '📖 用語辞書（任意）',
+    mdReadTermsDictDesc: '用語 → やさしい表現 の対照表 MD パス（テーブルまたは「- 用語 → 表現」形式）',
     ttsMdReadOverlayPause: '一時停止',
     ttsMdReadOverlayResume: '再開',
     ttsMdReadOverlaySkipToHeading: '次の見出しへ',
@@ -902,6 +924,17 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadColorCustom: 'Custom',
     mdReadScrollPosition: '📍 Auto-scroll position',
     mdReadScrollPositionDesc: 'Where to place the highlight on screen while reading (0=top 〜 100=bottom)',
+    mdReadProfile: '👂 Listener profile',
+    mdReadProfileDesc: 'Transform tone and terminology for the audience (default: original text)',
+    mdReadProfileOriginal: 'Original (default)',
+    mdReadProfileWorkplace: 'Workplace (technical)',
+    mdReadProfileCustomer: 'Customer (spec review)',
+    mdReadProfileFamily: 'Family (simple)',
+    mdReadProfileClassroom: 'Classroom (students)',
+    mdReadProfileBoss: 'Boss (report)',
+    mdReadProfileDr: 'DR (document review)',
+    mdReadTermsDict: '📖 Terms dictionary (optional)',
+    mdReadTermsDictDesc: 'Path to a MD file mapping terms to plain expressions (table or "- term → expr")',
     ttsMdReadOverlayPause: 'Pause',
     ttsMdReadOverlayResume: 'Resume',
     ttsMdReadOverlaySkipToHeading: 'Skip to next heading',
@@ -1256,6 +1289,17 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     mdReadColorCustom: '自定义',
     mdReadScrollPosition: '📍 自动滚动位置',
     mdReadScrollPositionDesc: '朗读时高亮显示在屏幕纵向的位置（0=最上 〜 100=最下）',
+    mdReadProfile: '👂 听众配置',
+    mdReadProfileDesc: '根据听众转换语气与专业术语（默认原文照读）',
+    mdReadProfileOriginal: '原文（默认）',
+    mdReadProfileWorkplace: '职场（技术）',
+    mdReadProfileCustomer: '客户（规格说明）',
+    mdReadProfileFamily: '家人（通俗易懂）',
+    mdReadProfileClassroom: '教室（学生）',
+    mdReadProfileBoss: '上司（汇报）',
+    mdReadProfileDr: 'DR（文档评审）',
+    mdReadTermsDict: '📖 术语词典（可选）',
+    mdReadTermsDictDesc: '术语 → 通俗表达 的对照表 MD 路径（表格或「- 术语 → 表达」形式）',
     ttsMdReadOverlayPause: '暂停',
     ttsMdReadOverlayResume: '继续',
     ttsMdReadOverlaySkipToHeading: '跳到下一标题',

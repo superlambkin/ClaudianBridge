@@ -14,6 +14,7 @@ import {
   PLACHTA_SPEED_MAX,
 } from '../features/tts/plachta-tts';
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
+import type { ClaudianBridgeSettings } from '../core/settings';
 import type { TtsCliSettings, TtsAutoReadSettings } from '../core/settings';
 import { withFullTextState, DEFAULT_SPEECH_FILTER_OPTIONS, DEFAULT_TTS_EDGE_CLOUD } from '../core/settings';
 import { TTS_LANGUAGE_MODES } from '../core/settings';
@@ -666,6 +667,38 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             });
           }),
       );
+    // v0.36.0 (F-032): 聴き手プロファイル（口調・用語変換）
+    new Setting(containerEl)
+      .setName(s.mdReadProfile)
+      .setDesc(s.mdReadProfileDesc)
+      .addDropdown((d) => {
+        d.addOption('original', s.mdReadProfileOriginal);
+        d.addOption('workplace', s.mdReadProfileWorkplace);
+        d.addOption('customer', s.mdReadProfileCustomer);
+        d.addOption('family', s.mdReadProfileFamily);
+        d.addOption('classroom', s.mdReadProfileClassroom);
+        d.addOption('boss', s.mdReadProfileBoss);
+        d.addOption('dr', s.mdReadProfileDr);
+        d.setValue(cfg.tts.mdReadProfile ?? 'original')
+          .onChange(async (v) => {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, mdReadProfile: v as ClaudianBridgeSettings['tts']['mdReadProfile'] } });
+            new Notice(s.noticeSaved);
+          });
+      });
+
+    // v0.36.0 (F-032): 用語辞書（任意）
+    new Setting(containerEl)
+      .setName(s.mdReadTermsDict)
+      .setDesc(s.mdReadTermsDictDesc)
+      .addText((t) =>
+        t.setPlaceholder('00_Vault管理/Tech_用語対照表.md')
+          .setValue(cfg.tts.termsDict ?? '')
+          .onChange(async (v) => {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, termsDict: v } });
+          }));
+
     // v0.35.2: ハイライト色パレット（スウォッチ 16 色＋カスタムピッカー）
     new Setting(containerEl)
       .setName(s.mdReadColorPreset)
