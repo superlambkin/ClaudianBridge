@@ -1,4 +1,5 @@
 import type { MdReadState } from './types';
+import { getPlaybackController } from '../../tts/playback-controller';
 
 interface PreviewLike {
   previewMode?: { containerEl: HTMLElement };
@@ -44,8 +45,16 @@ export function mountOverlay(
   overlay.appendChild(muteBtn);
   overlay.appendChild(progress);
 
-  pauseBtn.addEventListener('click', () => handlers.onPause());
-  skipBtn.addEventListener('click', () => handlers.onSkip());
+  // v0.35.0: ⏸/⏭ は PlaybackController 経由で音声本体を制御
+  pauseBtn.addEventListener('click', () => {
+    const paused = getPlaybackController().togglePause();
+    pauseBtn.textContent = paused ? '▶' : '⏸';
+    if (paused) handlers.onPause(); else handlers.onResume();
+  });
+  skipBtn.addEventListener('click', () => {
+    getPlaybackController().skipNext();
+    handlers.onSkip();
+  });
   muteBtn.addEventListener('click', () => handlers.onMute());
 
   document.body.appendChild(overlay);
