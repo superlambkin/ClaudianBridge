@@ -8,10 +8,10 @@ vi.mock('../../../src/features/selection/core', () => ({
   addTextToClaudian: vi.fn(async () => true),
 }));
 
-function makeStore(overrides?: Partial<{ enabled: boolean; delayMs: number }>) {
+function makeStore(overrides?: Partial<{ enabled: boolean; delayMs: number; popupPosition: 'top-right' | 'bottom' }>) {
   return {
     load: () => ({
-      selection: { enabled: true, delayMs: 0, folderEnabled: true, ...overrides },
+      selection: { enabled: true, delayMs: 0, folderEnabled: true, popupPosition: 'top-right', ...overrides },
     }),
   } as unknown as import('../../../src/core/config-store').ConfigStore;
 }
@@ -61,13 +61,25 @@ describe('setupSelectionWatcher', () => {
     cleanup();
   });
 
-  it('ポップアップが選択位置に配置される（left/top 設定）', async () => {
+  // === v0.38.0 (F-032): popupPosition 反映テスト ===
+  it('popupPosition="top-right"（既定）で右上に配置される', async () => {
     const app = {} as import('obsidian').App;
-    const store = makeStore();
+    const store = makeStore(); // 既定: 'top-right'
     const { cleanup, popup } = await showPopup(app, store);
-    // 回帰テスト: position: fixed のまま top/left 未設定だと画面外に出て見えない
+    // rect={left:100, top:100, right:200, bottom:120}
+    // jsdom の offsetWidth/Height は通常 0 → left=right(200)-0=200, top=top(100)-0-6=94
+    expect(popup!.style.left).toBe('200px');
+    expect(popup!.style.top).toBe('94px');
+    cleanup();
+  });
+
+  it('popupPosition="bottom" で直下に配置される', async () => {
+    const app = {} as import('obsidian').App;
+    const store = makeStore({ popupPosition: 'bottom' });
+    const { cleanup, popup } = await showPopup(app, store);
+    // left=left(100), top=bottom(120)+6=126
     expect(popup!.style.left).toBe('100px');
-    expect(popup!.style.top).toBe('126px'); // bottom(120) + 6
+    expect(popup!.style.top).toBe('126px');
     cleanup();
   });
 
