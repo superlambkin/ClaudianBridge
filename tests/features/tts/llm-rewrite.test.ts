@@ -45,6 +45,22 @@ describe('buildRewritePrompt', () => {
     expect(p).toContain('B');
     expect(p).toContain('H');
   });
+
+  // v0.37.2 (追加要件): 表は見出し行を含め読み上げない旨を prompt に明示
+  it('表を読み上げない指示（ヘッダー行含む）が含まれる', () => {
+    const p = buildRewritePrompt({ index: 0, heading: 'H', bodyText: 'B' }, 'boss');
+    expect(p).toContain('表');
+    expect(p).toContain('読み上げない');
+    expect(p).toContain('ヘッダー');
+  });
+
+  // v0.37.1 (新要件): 全 profile でです・ます調に統一（回帰防止ロック）
+  it('です・ます調統一の指示が全 profile に含まれる', () => {
+    for (const profile of ['workplace', 'customer', 'family', 'classroom', 'boss', 'dr'] as const) {
+      const p = buildRewritePrompt({ index: 0, heading: 'H', bodyText: 'B' }, profile);
+      expect(p, `profile=${profile}`).toContain('です・ます調');
+    }
+  });
 });
 
 describe('rewriteSections', () => {
