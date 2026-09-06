@@ -221,3 +221,24 @@ describe('tokenRateInterval* ラベル（更新周期設定）', () => {
     }
   });
 });
+
+// === v0.38.0 (F-032): 選択ポップアップ位置 ===
+describe('selectionPopupPosition* ラベル（F-032）', () => {
+  it('3 言語で非空・意味のある文言を持つ', () => {
+    const ja = getLocaleStrings('ja');
+    const en = getLocaleStrings('en');
+    const zh = getLocaleStrings('zh');
+    expect(ja.selectionPopupPosition).toMatch(/ポップアップ位置/);
+    expect(en.selectionPopupPosition.toLowerCase()).toMatch(/popup/);
+    expect(zh.selectionPopupPosition).toMatch(/位置/);
+    expect(ja.selectionPopupPositionDesc.length).toBeGreaterThan(0);
+    expect(en.selectionPopupPositionDesc.length).toBeGreaterThan(0);
+    expect(zh.selectionPopupPositionDesc.length).toBeGreaterThan(0);
+    expect(ja.selectionPopupPositionTopRight).toBe('右上');
+    expect(en.selectionPopupPositionTopRight).toBe('Top right');
+    expect(zh.selectionPopupPositionTopRight).toBe('右上');
+    expect(ja.selectionPopupPositionBottom).toBe('下');
+    expect(en.selectionPopupPositionBottom).toBe('Bottom');
+    expect(zh.selectionPopupPositionBottom).toBe('下方');
+  });
+});
