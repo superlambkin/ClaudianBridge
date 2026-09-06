@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Deploy Claudian Bridge build artifacts + Python helper scripts to the Obsidian vault.
- * Thin wrapper around the shared deploy tool in D:\AI-Agent\_devtools.
+ * Self-contained: no shared _devtools dependency.
  *
  * The Python helpers (_chroma_inspect.py / _run_markitdown.py / split_*.py) live in
  * the repo's python/ directory and are copied flat into the deployed plugin folder,
@@ -10,7 +10,18 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { resolveVaultPath } from "../../_devtools/obsidian-deploy.mjs";
+
+// v0.37.2: 自立化。優先順位: 1) 環境変数 CLAUDIAN_VAULT_PATH, 2) 環境変数 OBSIDIAN_VAULT_PATH,
+// 3) ハードコード既定（このリポジトリ専用）
+function resolveVaultPath() {
+  const env = process.env.CLAUDIAN_VAULT_PATH || process.env.OBSIDIAN_VAULT_PATH;
+  if (env && existsSync(env)) return env;
+  const FALLBACK = "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault";
+  if (existsSync(FALLBACK)) return FALLBACK;
+  throw new Error(
+    `❌ Vault path を解決できません。CLAUDIAN_VAULT_PATH 環境変数を設定してください（未設定・パス不一致）`
+  );
+}
 
 // Deploy the Python helper scripts so the plugin folder is self-contained.
 const PY_FILES = [
