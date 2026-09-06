@@ -20,7 +20,18 @@ const { mockRunPrompt } = vi.hoisted(() => ({
   mockRunPrompt: vi.fn(),
 }));
 
-vi.mock('obsidian', () => ({ Notice: vi.fn() }));
+// v0.37.2: Notice の hide() / setMessage() 呼び出し追跡（progress.hide() 漏れ検証用）
+const { mockNoticeHide, mockNoticeSetMessage } = vi.hoisted(() => ({
+  mockNoticeHide: vi.fn(),
+  mockNoticeSetMessage: vi.fn(),
+}));
+
+vi.mock('obsidian', () => ({
+  Notice: vi.fn().mockImplementation(() => ({
+    hide: mockNoticeHide,
+    setMessage: mockNoticeSetMessage,
+  })),
+}));
 vi.mock('../../../../src/features/llm/claude-cli', () => ({
   runClaudePrompt: (...args: unknown[]) => (mockRunPrompt as unknown as (...a: unknown[]) => Promise<string | null>)(...args),
 }));
@@ -442,4 +453,148 @@ describe('E2E: 変換文の読上げ最適化仕上げ (v0.37.1)', () => {
     expect(read).not.toContain('**');
     expect(read).not.toContain('/');
   });
+});
+
+// v0.37.2: 「チャンク2（3 番目）の読上げ中に下線が消失する」バグ再現
+// 仮説: register 時 activeIdx=-1 だが、subscriber の lastHighlightIdx=-1 ガードで
+// 早期リターン → スクロールリセットや view 取得タイミングが後続チャンクで崩れる。
+describe('E2E: 多チャンク (3+) ハイライト回帰 (v0.37.2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __resetMdReadSubscribersForTesting();
+    mdReadState.clear();
+    document.body.innerHTML = '';
+    mockAddTextToTTS.mockImplementation(async () => true);
+    mockRunPrompt.mockResolvedValue('rew');
+  });
+
+  it('3 セクション LLM: 各 setActiveIdx 呼び出し時点で該当 chunk に下線が付く', async () => {
+    const md = '# H1\n本文A。\n## H2\n本文B。\n## H3\n本文C。';
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>H1</h1><p>本文A。</p><h2>H2</h2><p>本文B。</p><h3>H3</h3><p>本文C。</p>';
+    document.body.appendChild(container);
+    const built = makeApp(container, md);
+    const app = built.app as { vault: { configDir?: string; adapter?: unknown } & Record<string, unknown> } & Record<string, unknown>;
+    app.vault.configDir = '.obsidian-test';
+    app.vault.adapter = { getBasePath: () => os.tmpdir() };
+    const cfg = makeCfg();
+    (cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } }).tts.mdReadProfile = 'boss';
+    (cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } }).tts.llmRewriteCache = false;
+
+    setupMdReadHighlight(app as never, {} as never);
+    const ok = await addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfg);
+    expect(ok).toBe(true);
+
+    // 最終チャンク (index=2) に下線がある
+    const state = mdReadState.get()!;
+    expect(state.chunks.length).toBe(3);
+    expect(state.activeIdx).toBe(2);
+    const active = container.querySelectorAll('.cb-md-read-chunk.is-active');
+    expect(active.length).toBeGreaterThanOrEqual(1);
+    // chunk 2 のテキスト「本文C」がハイライト範囲に含まれている
+    const joined = Array.from(active).map((el) => el.textContent ?? '').join('');
+    expect(joined).toContain('本文C');
+    // chunk 0/1 のテキスト（本文A、本文B）は下線範囲に含まれない
+    expect(joined).not.toContain('本文A');
+    expect(joined).not.toContain('本文B');
+  });
+});
+
+// v0.37.2: 全セクション生成完了時点（onProgress X/X）でも progress Notice は
+// hide されないと、「📝 原稿生成中 10/10」が読上げ完了まで残ってしまう。
+// （readSection → speakText → addTextToTTS の await が終わるまで while loop を
+//  出ないため、生成完了 ≠ 読上げ完了 で Notice が居座る）
+describe('E2E: 原稿生成完了時点の progress Notice クリーンアップ (v0.37.2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __resetMdReadSubscribersForTesting();
+    mdReadState.clear();
+    document.body.innerHTML = '';
+  });
+
+  it('全セクション生成完了時（setMessage X/X）でも progress Notice は hide される（読上げ完了を待たない）', async () => {
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>H1</h1><p>本文A。</p><h2>H2</h2><p>本文B。</p>';
+    document.body.appendChild(container);
+    const mdContent = '# H1\n本文A。\n## H2\n本文B。';
+    const { app } = makeApp(container, mdContent);
+
+    // LLM プロンプトは即座に resolve（生成は速い）
+    mockRunPrompt.mockResolvedValue('rew');
+
+    // 読上げ（addTextToTTS）は永続的に hang させる（最初のセクション以降に進まない）
+    let releaseAudio: (() => void) | null = null;
+    const audioGate = new Promise<void>((r) => { releaseAudio = r; });
+    mockAddTextToTTS.mockImplementation(async () => {
+      await audioGate;
+      return true;
+    });
+
+    const cfg = makeCfg();
+    const c = cfg as { tts: { mdReadProfile: string; llmRewriteCache: boolean } };
+    c.tts.mdReadProfile = 'boss';
+    c.tts.llmRewriteCache = false;
+
+    setupMdReadHighlight(app as never, {} as never);
+    const running = addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfg);
+
+    // 原稿生成が完了する（2/2 進捗がセットされる）のを待つ
+    await vi.waitFor(() => {
+      expect(
+        mockNoticeSetMessage.mock.calls.some((call) => String(call[0]).includes('2/2')),
+      ).toBe(true);
+    }, 5_000);
+
+    // この時点で progress.hide() が呼ばれているべき（読上げが hang しているのに）
+    expect(mockNoticeHide).toHaveBeenCalled();
+
+    // 読上げを解放して完了させる
+    releaseAudio!();
+    const ok = await running;
+    expect(ok).toBe(true);
+  }, 10_000);
+});
+
+// v0.37.2: 最初の LLM 結果が 10s タイムアウトした時、「📝 原稿生成中…」Notice も
+// hide されなければ残ってしまう（背景 stream が走り続けるため "10/10" に更新されるが
+// catch ブロックで progress.hide() を呼ばないバグ）。
+describe('E2E: 原稿生成タイムアウト時の progress Notice クリーンアップ (v0.37.2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __resetMdReadSubscribersForTesting();
+    mdReadState.clear();
+    document.body.innerHTML = '';
+  });
+
+  it('最初の LLM 結果が 10s タイムアウトしても progress Notice は hide される', async () => {
+    const container = document.createElement('div');
+    container.innerHTML = '<h1>H1</h1><p>本文1</p><h2>H2</h2><p>本文2</p>';
+    document.body.appendChild(container);
+    const mdContent = '# H1\n本文1。\n## H2\n本文2。';
+    const { app } = makeApp(container, mdContent);
+
+    // LLM プロンプトを永続的に hang させる（最初の結果が返らない）
+    mockRunPrompt.mockImplementation(() => new Promise<string>(() => {}));
+
+    const cfg = makeCfg();
+    const c = cfg as { tts: { mdReadProfile: string; llmRewriteConcurrency: number; mdReadHighlight: { enabled: boolean } } };
+    c.tts.mdReadProfile = 'boss'; // LLM 経路に入る
+    c.tts.llmRewriteConcurrency = 2;
+    c.tts.mdReadHighlight.enabled = false; // overlay 経路は簡略化
+
+    setupMdReadHighlight(app as never, {} as never);
+
+    // fake timers で 10s 進める → FIRST_RESULT_TIMEOUT_MS 発動 → catch ブロック
+    vi.useFakeTimers();
+    const promise = addMdToTts(app as never, { path: '/a.md', extension: 'md' }, cfg);
+    await vi.advanceTimersByTimeAsync(11_000);
+    // runStandard の addTextToTTS が同期的に resolve するのを待つ
+    const ok = await promise;
+    vi.useRealTimers();
+
+    // フォールバック成功
+    expect(ok).toBe(true);
+    // progress.hide() が呼ばれた（タイムアウト catch ブロックでも消える）
+    expect(mockNoticeHide).toHaveBeenCalled();
+  }, 15_000);
 });
