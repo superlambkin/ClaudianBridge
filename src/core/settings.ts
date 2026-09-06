@@ -435,6 +435,8 @@ export const DEFAULT_QUOTA_DISPLAY_MODELS: QuotaDisplayFlags = {
 
 // === v0.17.0: MD保存ボタン設定 ===
 export type MemoryScope = 'pair' | 'conversation';
+// === v0.38.0 (F-032): 選択ポップアップ位置 ===
+export type PopupPosition = 'top-right' | 'bottom';
 
 export interface MemorySettings {
   /** MD保存ボタン全体の有効/無効（既定 true） */
@@ -507,6 +509,8 @@ export interface ClaudianBridgeSettings {
     enabled: boolean;
     folderEnabled: boolean;
     delayMs: number;
+    // === v0.38.0 (F-032): 選択ポップアップ位置 ===
+    popupPosition: PopupPosition;
     // === v0.2.0: Object context menu ===
     objectMenuEnabled: boolean;
     objectMenuExcludeSelectors: string[];
@@ -581,6 +585,8 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     enabled: true,
     folderEnabled: true,
     delayMs: 300,
+    // === v0.38.0 (F-032) ===
+    popupPosition: 'top-right',
     objectMenuEnabled: true,
     objectMenuExcludeSelectors: [...DEFAULT_OBJECT_EXCLUDE_SELECTORS],
     objectMenuTypeFlags: { button: true, input: true, link: true, element: true },
@@ -708,6 +714,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       enabled: r.selection?.enabled ?? true,
       folderEnabled: r.selection?.folderEnabled ?? true,
       delayMs: r.selection?.delayMs ?? 300,
+      // === v0.38.0 (F-032): popupPosition は 'bottom' のみ保持、それ以外は 'top-right' ===
+      popupPosition: r.selection?.popupPosition === 'bottom' ? 'bottom' : 'top-right',
       objectMenuEnabled: typeof r.selection?.objectMenuEnabled === 'boolean' ? r.selection.objectMenuEnabled : true,
       objectMenuExcludeSelectors: Array.isArray(r.selection?.objectMenuExcludeSelectors)
         ? r.selection.objectMenuExcludeSelectors.filter((s): s is string => typeof s === 'string')
@@ -992,6 +1000,8 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';
+  // === v0.38.0 (F-032) ===
+  if (cfg.selection.popupPosition !== 'top-right' && cfg.selection.popupPosition !== 'bottom') return 'selection.popupPosition は "top-right" または "bottom" である必要があります';
   if (typeof cfg.selection.objectMenuEnabled !== 'boolean') return 'selection.objectMenuEnabled は boolean である必要があります';
   if (!Array.isArray(cfg.selection.objectMenuExcludeSelectors)) return 'selection.objectMenuExcludeSelectors は配列である必要があります';
   if (typeof cfg.selection.objectMenuTypeFlags !== 'object' || cfg.selection.objectMenuTypeFlags === null) return 'selection.objectMenuTypeFlags はオブジェクトである必要があります';

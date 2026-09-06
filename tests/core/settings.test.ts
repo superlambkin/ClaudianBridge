@@ -312,6 +312,37 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
     expect(s.selection.objectMenuTypeFlags.element).toBe(false);
   });
 
+  // === F-032: selection.popupPosition ===
+  it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.selection.popupPosition は "top-right"', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.selection.popupPosition).toBe('top-right');
+  });
+
+  it('normalize は popupPosition 未指定時に "top-right" を既定とする', () => {
+    const norm = normalizeClaudianBridgeSettings({ selection: { delayMs: 400 } });
+    expect(norm.selection.popupPosition).toBe('top-right');
+  });
+
+  it('normalize は popupPosition="bottom" を保持する', () => {
+    const norm = normalizeClaudianBridgeSettings({ selection: { popupPosition: 'bottom' } });
+    expect(norm.selection.popupPosition).toBe('bottom');
+  });
+
+  it('normalize は popupPosition 不正値を "top-right" にフォールバック', () => {
+    const norm = normalizeClaudianBridgeSettings({ selection: { popupPosition: 'left' as never } });
+    expect(norm.selection.popupPosition).toBe('top-right');
+  });
+
+  it('validate は popupPosition が "top-right" / "bottom" 以外の場合エラーを返す', () => {
+    const bad = {
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      selection: {
+        ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.selection,
+        popupPosition: 'left' as never,
+      },
+    };
+    expect(validateClaudianBridgeSettings(bad)).toContain('popupPosition');
+  });
+
   it('validate は objectMenuTypeFlags.button が boolean でない場合エラーを返す', () => {
     const bad = {
       ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
