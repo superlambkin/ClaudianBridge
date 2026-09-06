@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.38.0] - 2026-09-07 — 選択ポップアップ位置設定（F-032）
+
+### Added
+
+- `selection.popupPosition: 'top-right' | 'bottom'` を新設（**既定 `'top-right'`**）
+- 設定タブ「選択」→「🌐 ポップアップ位置」dropdown で切替可能
+- `positionPopup` に第 3 引数 `mode` を追加（ビューポート端のクランプ / 反転ロジックは両モード共通）
+- マイグレーション: 未設定・不正値は `'top-right'` を既定、`'bottom'` 明示のみ保持
+- i18n 対応（ja / en / zh）
+
+### Changed
+
+- **既存ユーザーの可視挙動変更**: ポップアップ位置が「下」→「右上」に変わる（設定で `'bottom'` に戻せる）
+
+### テスト
+
+- 追加 13 ケース（settings 5 / i18n 1 / popup 5 / watcher 2）
+- **1082 PASS / 1 skipped / typecheck 0**
+
+
+## [0.37.2] - 2026-09-05 — 原稿生成 Notice 残留バグ根治 + deploy 自立化
+
+### Fixed
+
+- LLM 原稿生成 Notice「📝 原稿生成中 n/m…」が音声再生中も残っていたバグを根治（`progressHidden` フラグ + `onProgress(X/X)` で冪等 hide）
+- チャンク 2 の下線欠落（heading + body disjoint 解消）
+- ミュート時の LLM 原稿生成セッション即中断
+- ツールバーミュートで進行中セッション・ハイライトが完全クリアされない問題
+
+### Changed
+
+- LLM プロンプトで表（ヘッダー行含む）を読み上げない指示を追加
+- `scripts/deploy.mjs` 自立化（`_devtools/obsidian-deploy.mjs` 依存解消）
+
+
 ## [0.37.1] - 2026-09-05 — LLM 原稿です・ます調統一 + 並列生成 + ストリーミング読上げ（F-033 拡張・レビュー修正込み）
 
 ### Added
