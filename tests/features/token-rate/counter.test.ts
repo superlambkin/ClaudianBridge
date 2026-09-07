@@ -299,4 +299,58 @@ describe('createTokenRateCounter', () => {
     expect(container.querySelector('.cb-token-rate')?.getAttribute('data-interval')).toBe(expected);
     c.destroy();
   });
+
+  // Bug regression: カウンター再注入（設定変更など）直後の avgRate が異常に高くなる症状の防止
+  // start() 直後は state.startTime が経過 0 だがアシスタントには既に大量テキストが存在するため
+  // 「総文字数 / 経過 0秒」が異常に高い数値として描画されてしまう。
+  // baseline-only 経路で state.startTime も now に再設定することで、初周期の avgRate は 0 になる。
+  it('カウンター再注入（mid-stream）直後の初周期 avgRate は異常に高くない', () => {
+    vi.useFakeTimers();
+    // 既存アシスタント要素に大量テキストを置いた状態を作り、
+    // その後にカウンターが新規 start() で注入される状況を再現
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    asst.textContent = 'A'.repeat(300); // 100 tokens 相当
+    document.body.appendChild(asst);
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start(); // 注入：mid-stream シナリオ（既にアシスタント要素あり）
+    vi.advanceTimersByTime(250); // baseline-only（elementChanged=true）
+    const s = c.getState();
+    // 直後に巨大 avgRate が出ていないこと（= 再注入時に startTime が baseline と同期）
+    expect(s.avgRate).toBeLessThan(20);
+    vi.useRealTimers();
+    c.destroy();
+  });
+
+  // Bug regression: ユーザー送信から初回アシスタント到着まで長い遅延があるとき
+  // 旧実装は state.startTime が start() 時のままなので avgRate 分母が膨大になり
+  // 「平均 0.0 tok/s」と表示される。ユーザー送信時に cycleStartTime だけでなく
+  // state.startTime もリセットすることで初周期から妥当な avgRate が出る。
+  it('ユーザー送信から初回アシスタント到着まで長い遅延があっても avgRate が 0.0 にならない', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    // 5 分放置（長い遅延）
+    vi.advanceTimersByTime(5 * 60 * 1000);
+    // ユーザー送信
+    const user = document.createElement('div');
+    user.className = 'claudian-message-user';
+    user.textContent = 'hello';
+    document.body.appendChild(user);
+    vi.advanceTimersByTime(250);
+    // アシスタント初トークン（TTFT 2 秒）
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    document.body.appendChild(asst);
+    vi.advanceTimersByTime(250); // baseline-only
+    asst.textContent = 'A'.repeat(60); // 20 tokens
+    vi.advanceTimersByTime(250); // rate 計算窓
+    const s = c.getState();
+    // 旧実装だと elapsed が 5 分超、tokens が 20 で avgRate = 20/300 ≈ 0.07 → "0.0" 表示
+    // 修正後は TTFT 完了時に startTime がリセットされ、avgRate は妥当な値
+    expect(s.avgRate).toBeGreaterThan(1); // 1 tok/s 以上出る
+    expect(s.rate).toBeGreaterThan(70);
+    vi.useRealTimers();
+    c.destroy();
+  });
 });

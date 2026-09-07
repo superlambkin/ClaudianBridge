@@ -117,11 +117,19 @@ export function createTokenRateCounter(
       lastUserEl = userEl;
       cycleStartTime = now;
       state.ttftMs = null;
+      // avgRate の分母（state.startTime）を新サイクル開始時刻にリセット。
+      // start() から長時間経過したケース（長い沈黙→ユーザー送信）で
+      // 「平均 0.0 tok/s」になる症状を防止する。
+      state.startTime = now;
+      state.lastTokens = state.lastTokens;
+      state.lastUpdateTime = now;
     }
     // フォールバック: ユーザー要素が無い環境では新しいアシスタント要素出現を起点にする
     if (cycleStartTime === null && assistantEl !== lastAssistantEl) {
       lastAssistantEl = assistantEl;
       cycleStartTime = now;
+      state.startTime = now;
+      state.lastUpdateTime = now;
     }
     lastAssistantEl = assistantEl;
     const tokens = chars !== null ? chars / opts.charPerToken : state.lastTokens;
@@ -141,7 +149,11 @@ export function createTokenRateCounter(
       if (quarantine || elementChanged) {
         // 縮小窓の直後の復帰窓（quarantine）・初回アンカー確立 / 要素交代は
         // baseline-only: rate/maxRate を更新せずベースラインのみ引き直す
+        // 同時に state.startTime も now に再設定し、avgRate 分母を
+        // 「現在観測中の生成の開始時刻」に揃える（mid-stream 再注入時の
+        // 巨大 avgRate スパイク／クロスサイクル累積による 0.0 表示を防止）
         quarantine = false;
+        state.startTime = now;
       } else if (dTokens >= 0 && dt > 0) {
         state.rate = dTokens / dt;
         if (state.rate > state.maxRate) state.maxRate = state.rate;
