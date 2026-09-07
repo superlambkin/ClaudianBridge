@@ -1,10 +1,10 @@
 ---
 title: "POC_017 Claudian Bridge プロジェクト README"
 type: project-readme
-version: 1.15.0
+version: 1.17.0
 status: ✅ 完成（P5 完了）
 created: 2026-08-10
-modified: 2026-08-30
+modified: 2026-09-07
 project_id: POC_017_ClaudianBridge
 tags:
   - README
@@ -17,7 +17,7 @@ applied_rules_version: 2.15.0
 ---
 
 > 📂 **パス**: `80_POC_Projects/POC_017_ClaudianBridge/README.md`
-> 📍 **ソース**: `D:\AI-Agent\ClaudianBridge\`（git main · v0.28.0）
+> 📍 **ソース**: `D:\AI-Agent\ClaudianBridge\`（git main · v0.38.0）
 
 # 🎙️ POC_017 Claudian Bridge
 
@@ -27,14 +27,14 @@ applied_rules_version: 2.15.0
 
 | 項目 | 内容 |
 |------|------|
-| **現在バージョン** | **v0.30.2**（2026-08-31 リリース） |
+| **現在バージョン** | **v0.38.0**（2026-09-07 リリース） |
 | **統合元** | Claudian Selection Bridge, 拡張子WhiteList, Vault Office Bridge, Chroma Inspector, claude-tts-settings |
-| **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.28.0） |
-| **設定画面** | 8タブ（一般 / テキスト挿入 / テキスト読み上げ / ファイル変換 / 拡張子フィルタ / 残量検知 / Chroma / Memory） |
+| **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.38.0） |
+| **設定画面** | 9タブ（一般 / テキスト挿入 / テキスト読み上げ / ファイル変換 / 拡張子フィルタ / 残量検知 / Chroma / Memory / 文生図） |
 | **データ移行** | 初回起動時に旧 data.json を自動取り込み（リセット可能） |
 | **旧プラグイン無効化** | 初回起動時に一括（community-plugins.json 除外 + `_disabled__` リネーム） |
 | **旧プラグイン削除** | P5 で不在確認済み（完全削除） |
-| **テスト実績** | **830 passed / 1 skipped**（vitest ・ 77 ファイル・v0.30.2 時点） |
+| **テスト実績** | **1171 passed / 1 skipped**（vitest ・ 117 ファイル・v0.38.0 時点） |
 | **POC 状態** | **P5 完了**（全サブプロジェクト ✅） |
 
 ---
@@ -70,6 +70,14 @@ applied_rules_version: 2.15.0
 | F025 | Thought 読上げ除外強化 | `THINKING_BLOCK_SELECTOR` を複数クラス OR に拡張（realclaudian v2.2.4+ 対応） | v0.27.1 |
 | F026 | 完了報告読上げスクリプト整形 | 完了報告を ヘッダー/結論/次のアクション提案 のサマリーのみ読上げ（`tts.autoReadReportScript`・既定 ON） | v0.28.0 |
 | F027 | トークン速度（tok/s）表示 | `general.tokenRateEnabled` で LLM 応答のトークン生成速度をライブ表示（YOLO トグル左・4 値: 首/現在/平均/最大・右寄せ・0.5s 周期） | v0.30.0〜 |
+| F028 | MD 読み上げ位置ハイライト | MD「Add to TTS」本文を Preview 上でチャンク単位ハイライト + フローティングオーバーレイ（⏸▶⏭🔇N/M） | v0.33.0〜v0.33.1 |
+| F030 | チャット内 Mermaid 自動描画 | チャット内の ```mermaid フェンスを MarkdownRenderer で自動図化 + 図⇔コード切替ボタン | v0.34.0 |
+| F031 | MD 読み上げ再生制御強化 | PlaybackController（⏸/⏭ 実働化）・自然分割・Edge 先行変換・色パレット 16 色・自動スクロール位置 | v0.35.0〜v0.35.1 |
+| F032 | 選択ポップアップ位置設定 | `selection.popupPosition: 'top-right' \| 'bottom'`（既定 top-right）・ビューポート端のクランプ/反転両モード共通 | v0.38.0 |
+| F038 | 文生図（Text-to-Image） | MiniMax image-01 / Zhipu GLM-Image で画像生成 → `output/Assets/` 保存 → アクティブノートに `![[]]` 挿入 | v0.38.0 |
+| F038 | 画像スタイル選択 | standard / scientific / anime / photo の 4 スタイル（プロンプト先頭に英語スタイル指示自動付与） | v0.38.0 |
+| F038 | LLM プロキシ設定 | 一般タブで社内プロキシ URL を設定 → `HTTPS_PROXY` env 反映 → LLM アクセスがプロキシ経由に | v0.38.0 |
+| F038 | MD 読み上げクリーン化 | 「Add to TTS」で `<style>` / <script> ブロックを必ず除外（CSS/JS は読み上げ価値なし） | v0.38.0 |
 
 ---
 
@@ -89,7 +97,9 @@ applied_rules_version: 2.15.0
 | **Memory** | `src/features/memory/` | MD 保存ボタン（回答ブロック + ツールバー） |
 | **Code Copy Fence** | `src/features/code-copy-fence/` | コードコピー時のフェンス付与 |
 | **Backup** | `src/features/backup/` | 右クリックバックアップ（BackupMenuRegistrar + backup-runner） |
-| **Quick Reply** | `src/features/quick-reply/` | クイック返信ボタン（✅ ❌ 1️⃣〜5️⃣・推奨方案ハイライト・動的表示）※ v0.23.0 予定 |
+| **Quick Reply** | `src/features/quick-reply/` | クイック返信ボタン（✅ ❌ 1️⃣〜5️⃣・推奨方案ハイライト・動的表示） |
+| **Image Gen** | `src/features/image-gen/` | 文生圖（Text-to-Image）: MiniMax image-01 / Zhipu GLM-Image / スタイル選択（standard・scientific・anime・photo）/ `output/Assets/` 保存 |
+| **Proxy** | `src/core/proxy.ts` | LLM プロキシ設定（`HTTPS_PROXY` 検出で Node fetch フォールバック強制・noProxy 判定）|
 | **Legacy 層** | `src/legacy/` | 旧プラグイン移行・無効化 |
 
 ---
@@ -97,56 +107,56 @@ applied_rules_version: 2.15.0
 ## 📚 ドキュメント目次
 
 ### フェーズ 0: プロジェクト立項
-- [[00_プロジェクト立項|00_プロジェクト立項]]
-- [[00_使用ガイド|00_使用ガイド]]（プロジェクト PDCA 使用フロー）
-- [[01_移行ガイド|01_移行ガイド]]（旧プラグインからの移行）
+- [[80_POC_Projects/POC_017_ClaudianBridge/00_プロジェクト立項|00_プロジェクト立項]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/00_使用ガイド|00_使用ガイド]]（プロジェクト PDCA 使用フロー）
+- [[80_POC_Projects/POC_017_ClaudianBridge/01_移行ガイド|01_移行ガイド]]（旧プラグインからの移行）
 
 ### フェーズ 1: 要件定義
-- [[01_要件定義/00_要件総覧|00_要件総覧]]
-- [[01_要件定義/01_機能要件|01_機能要件]]
-- [[01_要件定義/02_非機能要件|02_非機能要件]]
-- [[01_要件定義/03_ユースケース図|03_ユースケース図]]
-- [[01_要件定義/04_ユーザーストーリー|04_ユーザーストーリー]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/01_要件定義/00_要件総覧|00_要件総覧]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/01_要件定義/01_機能要件|01_機能要件]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/01_要件定義/02_非機能要件|02_非機能要件]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/01_要件定義/03_ユースケース図|03_ユースケース図]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/01_要件定義/04_ユーザーストーリー|04_ユーザーストーリー]]
 
 ### フェーズ 2: 設計
-- [[02_設計文書/00_アーキテクチャ総覧|00_アーキテクチャ総覧]]
-- [[02_設計文書/01_クラス設計|01_クラス設計]]
-- [[02_設計文書/02_シーケンス図|02_シーケンス図]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/00_アーキテクチャ総覧|00_アーキテクチャ総覧]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/01_クラス設計|01_クラス設計]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/02_シーケンス図|02_シーケンス図]]
 - [[02_設計文書/04_データ移行設計|04_データ移行設計]]
 - [[02_設計文書/05_設定画面設計|05_設定画面設計]]
 
 ### フェーズ 3: 開発
-- [[03_開発文書/00_開発計画|00_開発計画]]
-- [[03_開発文書/01_環境設定|01_環境設定]]
-- [[03_開発文書/02_コード規約|02_コード規約]]
-- [[03_開発文書/03_ソース構造|03_ソース構造]]
-- [[03_開発文書/04_開発ログ|04_開発ログ]]
-- [[03_開発文書/05_進捗ボード|05_進捗ボード]]
-- [[03_開発文書/06_ビルド設定|06_ビルド設定]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/00_開発計画|00_開発計画]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/01_環境設定|01_環境設定]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/02_コード規約|02_コード規約]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/03_ソース構造|03_ソース構造]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/04_開発ログ|04_開発ログ]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/05_進捗ボード|05_進捗ボード]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/06_ビルド設定|06_ビルド設定]]
 
 ### フェーズ 4: テスト
-- [[04_テスト文書/00_テスト戦略|00_テスト戦略]]
-- [[04_テスト文書/01_テストケース|01_テストケース]]
-- [[04_テスト文書/02_テスト報告書|02_テスト報告書]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/04_テスト文書/00_テスト戦略|00_テスト戦略]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/04_テスト文書/01_テストケース|01_テストケース]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/04_テスト文書/02_テスト報告書|02_テスト報告書]]
 
 ### フェーズ 5: デプロイ運用
-- [[05_デプロイ運用/README|05_デプロイ運用 インデックス]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/05_デプロイ運用/README|05_デプロイ運用 インデックス]]
 
 ### フェーズ 6: 振り返り
-- [[06_振り返り/00_プロジェクト総括|00_プロジェクト総括]]
-- [[06_振り返り/01_経験教訓|01_経験教訓]]
-- [[06_振り返り/02_ベストプラクティス|02_ベストプラクティス]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/06_振り返り/00_プロジェクト総括|00_プロジェクト総括]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/06_振り返り/01_経験教訓|01_経験教訓]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/06_振り返り/02_ベストプラクティス|02_ベストプラクティス]]
 
 ### 説明書（製品・ユーザー・リリース）
-- [[08_説明書/01_製品紹介/製品紹介|製品紹介]]
-- [[08_説明書/01_製品紹介/コア機能|コア機能]]
-- [[08_説明書/01_製品紹介/差別化優位性|差別化優位性]]
-- [[08_説明書/02_ユーザーマニュアル/クイックスタート|クイックスタート]]
-- [[08_説明書/03_リリースノート/リリースノート|リリースノート]]
-- [[08_説明書/03_リリースノート/バージョン履歴|バージョン履歴]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/08_説明書/01_製品紹介/製品紹介|製品紹介]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/08_説明書/01_製品紹介/コア機能|コア機能]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/08_説明書/01_製品紹介/差別化優位性|差別化優位性]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/08_説明書/02_ユーザーマニュアル/クイックスタート|クイックスタート]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/08_説明書/03_リリースノート/リリースノート|リリースノート]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/08_説明書/03_リリースノート/バージョン履歴|バージョン履歴]]
 
 ### その他
-- [[CHANGELOG|CHANGELOG]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/CHANGELOG|CHANGELOG]]
 - [[09_対話まとめ/2026-08-10_P1ブレインストーミング|2026-08-10 P1 ブレインストーミング]]
 - [[09_対話まとめ/2026-08-14|2026-08-14 対話ログ]]
 
@@ -175,6 +185,7 @@ applied_rules_version: 2.15.0
 
 | バージョン | 日付 | 修正内容 | 修正者 |
 |------|------|---------|--------|
+| v1.17.0 | 2026-09-07 | **v0.38.0 反映**：F032（選択ポップアップ位置）+ F038 一式（文生圖・スタイル・LLM プロキシ・MD/style 除外）+ image-gen / proxy モジュール追記・テスト 1171 件・設定 9 タブ化 | MiuMiu 🐾 |
 | v1.6.0 | 2026-08-18 | **v0.22.0 実態へ更新**：F015-F020 追加（TTS 仕様統一 / EdgeTTS 上限 / 最終回答ゲート / Chroma-fs / Backup / アンダースコア非表示）・テスト 740 件反映・Quick Reply（v0.23.0 予定）モジュール追記・POC_016 リンク修正 | MiuMiu 🐾 |
 | v1.7.0 | 2026-08-18 | **v0.24.0 反映**：F021（方案ボタン常時表示設定）+ テスト 742 件・quick-reply モジュール v0.23.0 実装済み | MiuMiu 🐾 |
 | v1.12.0 | 2026-08-30 | **v0.29.1 反映**：クイック返信ボタンを SVG アイコン化（NewTab と同スタイル）・テスト 811 → 812 件 | MiuMiu 🐾 |
@@ -192,4 +203,4 @@ applied_rules_version: 2.15.0
 
 ---
 
-*📚 POC_017 Claudian Bridge README v1.15.0 · v0.30.2 · MiuMiu 🐾*
+*📚 POC_017 Claudian Bridge README v1.17.0 · v0.38.0 · MiuMiu 🐾*
