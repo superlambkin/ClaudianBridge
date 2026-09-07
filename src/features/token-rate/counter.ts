@@ -267,5 +267,51 @@ export function createTokenRateCounter(
     el.remove();
   };
 
-  return { start, stop, destroy, getState: () => ({ ...state }) };
+  // 個別セグメントリセット: クリックされた数値だけを 0 に戻し、
+  // state.startTime / state.lastTokens / streaming 状態は維持して
+  // カウンタは継続（次の新規コンテンツ増加時に通常の更新ロジックで再計算）。
+  // 平均は凍結ロジック（dTokensForAvg > 0）の対象なので、リセット後は
+  // 次サイクル開始時に baseline-only で再計算される。
+  const reset = (key: 'ttft' | 'current' | 'avg' | 'max'): void => {
+    switch (key) {
+      case 'ttft':
+        state.ttftMs = null;
+        break;
+      case 'current':
+        state.rate = 0;
+        break;
+      case 'avg':
+        state.avgRate = 0;
+        break;
+      case 'max':
+        state.maxRate = 0;
+        break;
+    }
+  };
+
+  // クリックイベント委譲: .cb-token-rate 内の各数値セグメントがクリックされたとき
+  // 該当 key の reset() を発火させる。イベントバブリングを使い 1 リッスンで全セグメント
+  // をカバー。stopPropagation で chat 入力欄などへの伝播を防ぐ。
+  const onSegmentClick = (e: Event): void => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    // クリックされた要素またはその祖先にセグメント識別クラスがあるか確認
+    const ttft = target.closest('.cb-token-rate-ttft');
+    const value = target.closest('.cb-token-rate-value');
+    const avg = target.closest('.cb-token-rate-avg');
+    const max = target.closest('.cb-token-rate-max');
+    let key: 'ttft' | 'current' | 'avg' | 'max' | null = null;
+    if (ttft) key = 'ttft';
+    else if (value) key = 'current';
+    else if (avg) key = 'avg';
+    else if (max) key = 'max';
+    if (key === null) return;
+    e.stopPropagation();
+    reset(key);
+  };
+  el.addEventListener('click', onSegmentClick);
+  // カーソルを pointer にしてクリック可能であることを示す
+  el.classList.add('cb-token-rate-clickable');
+
+  return { start, stop, destroy, reset, getState: () => ({ ...state }) };
 }
