@@ -58,6 +58,7 @@ applied_rules_version: 2.15.0
 | F031 | MD 読み上げ再生制御強化 | v0.35.0〜v0.35.1 | PlaybackController（⏸/⏭ 実働）・自然分割・Edge 先行変換・色パレット・自動スクロール | `[[14_MD読み上げ再生制御強化設計]]` |
 | F032 | 選択ポップアップ位置設定 | v0.38.0 | `selection.popupPosition: 'top-right' \| 'bottom'` 新設（既定 `top-right`）・`positionPopup` に第3引数 `mode`・ビューポート端のクランプ/反転両モード共通・既存ユーザー可視挙動変更（下 → 右上、設定で `bottom` に戻せる）・i18n ja/en/zh | `[[17_選択ポップアップ位置設定設計]]` |
 | F038 | 文生図機能（Text-to-Image） | v0.38.0 | MiniMax image-01 / Zhipu GLM-Image の 2 プロバイダ対応・モーダル UI・`output/Assets/` 固定保存・アクティブノートへ `![[]]` 挿入・i18n ja/en/zh・既存 quota の API キーを流用 | `[[18_文生図機能設計]]` |
+| F039 | Think モード選択機能 | v0.38.0 | 設定 → 一般 → Think モード で Claude / DeepSeek / Zhipu / MiniMax / Kimi ごとの Think モード（ON/OFF + エフォート low/medium/high）を選択・`LlmClient` インターフェース抽象化・quota ステータスバーに 🧠 バッジ | `[[2026-09-08-think-mode-selection-design]]` |
 
 > 💡 **F029 は未使用（欠番）**。CHANGELOG・リリースノートに割当が存在しないため、欠番のまま管理する。
 

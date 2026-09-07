@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.38.0] - 2026-09-08 — Think モード選択機能 (F-039)
+
+### Added
+
+- 🧠 **Think モード選択機能 (F-039)**: 設定 → ClaudianBridge → 一般 → Think モード で Claude / DeepSeek / Zhipu / MiniMax / Kimi ごとに Think モード（ON/OFF + エフォート low/medium/high）を個別選択可能
+- `LlmClient` インターフェース抽象化により将来の chat 系 API 呼び出しも同インターフェースで実装可能
+- quota ステータスバーに 🧠 ON/OFF バッジを追加
+
+### Changed
+
+- `claude-cli.ts` に `createClaudeClient(thinking)` factory を追加（既存 `disableThinking` は deprecated）
+- `polishInstruction` 呼び出しを `resolveLlmClient` 経由に変更
+
+### 互換性
+
+- 既存ユーザーの設定はそのまま動作（`normalizeClaudianBridgeSettings` が default 補完）
+
+---
+
 ## [0.38.0] - 2026-09-07 — 文生図 + スタイル + MD/style 除外 + プロキシ (F-038)
 
 ### Added
