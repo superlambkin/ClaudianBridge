@@ -242,3 +242,48 @@ describe('selectionPopupPosition* ラベル（F-032）', () => {
     expect(zh.selectionPopupPositionBottom).toBe('下方');
   });
 });
+
+// === v0.38.0 (F-038): 文生図（Text-to-Image）===
+describe('F-038: imageGen* ラベル', () => {
+  const REQUIRED_KEYS = [
+    'tabImageGen', 'imageGenEnabled', 'imageGenEnabledDesc',
+    'imageGenProvider', 'imageGenProviderDesc',
+    'imageGenProviderMinimax', 'imageGenProviderZhipu',
+    'imageGenAspectRatio', 'imageGenAspectRatioDesc',
+    'imageGenAspectRatio_1_1', 'imageGenAspectRatio_16_9', 'imageGenAspectRatio_9_16', 'imageGenAspectRatio_4_3',
+    'imageGenPromptMaxChars', 'imageGenPromptMaxCharsDesc',
+    'imageGenAutoInsert', 'imageGenAutoInsertDesc',
+    'imageGenNoticeNoKey', 'imageGenNoticeExpired', 'imageGenNoticeError', 'imageGenNoticeSaved',
+    'imageGenModalTitle', 'imageGenModalGenerate', 'imageGenModalCancel', 'imageGenModalClose',
+    'imageGenModalInsert', 'imageGenModalSaveOnly', 'imageGenModalPreviewEmpty',
+    'imageGenStageSending', 'imageGenStageSaving', 'imageGenStageInserting',
+  ];
+  it('3 言語すべてで必須キーが空でない文字列として定義される', () => {
+    for (const lang of SUPPORTED_LOCALES) {
+      const v = getLocaleStrings(lang);
+      for (const k of REQUIRED_KEYS) {
+        expect(typeof v[k as keyof typeof v], `${lang}.${k} not string`).toBe('string');
+        expect((v[k as keyof typeof v] as string).length, `${lang}.${k} empty`).toBeGreaterThan(0);
+      }
+    }
+  });
+  it('tabImageGen は 3 言語で 🎨 プレフィックスを持つ', () => {
+    expect(getLocaleStrings('ja').tabImageGen.startsWith('🎨')).toBe(true);
+    expect(getLocaleStrings('en').tabImageGen.startsWith('🎨')).toBe(true);
+    expect(getLocaleStrings('zh').tabImageGen.startsWith('🎨')).toBe(true);
+  });
+  it('tabImageGen は en/zh で固定文言と一致（mojibake 防止）', () => {
+    expect(getLocaleStrings('en').tabImageGen).toBe('🎨 Text to Image');
+    expect(getLocaleStrings('zh').tabImageGen).toBe('🎨 文生图');
+  });
+  it('imageGenNoticeNoKey は {provider} プレースホルダを含む', () => {
+    for (const lang of SUPPORTED_LOCALES) {
+      expect(getLocaleStrings(lang).imageGenNoticeNoKey).toContain('{provider}');
+    }
+  });
+  it('imageGenNoticeError は {msg} プレースホルダを含む', () => {
+    for (const lang of SUPPORTED_LOCALES) {
+      expect(getLocaleStrings(lang).imageGenNoticeError).toContain('{msg}');
+    }
+  });
+});
