@@ -193,6 +193,81 @@ describe('settings', () => {
       ]);
     });
   });
+
+  // === v0.38.0 (F-038): Text-to-Image settings ===
+  describe('imageGen (v0.38.0 F-038)', () => {
+    it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen は全フィールドを持つ', () => {
+      expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen).toMatchObject({
+        enabled: true,
+        provider: 'minimax',
+        aspectRatio: '1:1',
+        promptMaxChars: 2000,
+        autoInsertToActive: true,
+      });
+    });
+
+    it('normalize は imageGen の欠落キーをデフォルトで埋める', () => {
+      const norm = normalizeClaudianBridgeSettings({});
+      expect(norm.imageGen.enabled).toBe(true);
+      expect(norm.imageGen.provider).toBe('minimax');
+      expect(norm.imageGen.aspectRatio).toBe('1:1');
+      expect(norm.imageGen.promptMaxChars).toBe(2000);
+      expect(norm.imageGen.autoInsertToActive).toBe(true);
+    });
+
+    it('normalize は imageGen の個別フィールド上書きを尊重する', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        imageGen: { enabled: false, provider: 'zhipu', aspectRatio: '16:9', promptMaxChars: 1000, autoInsertToActive: false },
+      });
+      expect(norm.imageGen.enabled).toBe(false);
+      expect(norm.imageGen.provider).toBe('zhipu');
+      expect(norm.imageGen.aspectRatio).toBe('16:9');
+      expect(norm.imageGen.promptMaxChars).toBe(1000);
+      expect(norm.imageGen.autoInsertToActive).toBe(false);
+    });
+
+    it('normalize は不正な provider を minimax にフォールバック', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        imageGen: { provider: 'openai' as unknown as 'minimax' },
+      });
+      expect(norm.imageGen.provider).toBe('minimax');
+    });
+
+    it('normalize は不正な aspectRatio を 1:1 にフォールバック', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        imageGen: { aspectRatio: '21:9' as unknown as '1:1' },
+      });
+      expect(norm.imageGen.aspectRatio).toBe('1:1');
+    });
+
+    it('normalize は promptMaxChars を [100,8000] にクランプ', () => {
+      expect(normalizeClaudianBridgeSettings({ imageGen: { promptMaxChars: 10 } }).imageGen.promptMaxChars).toBe(100);
+      expect(normalizeClaudianBridgeSettings({ imageGen: { promptMaxChars: 99999 } }).imageGen.promptMaxChars).toBe(8000);
+      expect(normalizeClaudianBridgeSettings({ imageGen: { promptMaxChars: 500 } }).imageGen.promptMaxChars).toBe(500);
+    });
+
+    it('normalize は promptMaxChars 非数値を 2000 にフォールバック', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        imageGen: { promptMaxChars: 'bad' as unknown as number },
+      });
+      expect(norm.imageGen.promptMaxChars).toBe(2000);
+    });
+
+    it('validate は imageGen.enabled が boolean でないとエラー', () => {
+      const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, imageGen: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen, enabled: 'yes' as unknown as boolean } };
+      expect(validateClaudianBridgeSettings(bad)).toContain('imageGen.enabled');
+    });
+
+    it('validate は imageGen.provider が未知の値だとエラー', () => {
+      const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, imageGen: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen, provider: 'openai' as unknown as 'minimax' } };
+      expect(validateClaudianBridgeSettings(bad)).toContain('imageGen.provider');
+    });
+
+    it('validate は imageGen.aspectRatio が未知の値だとエラー', () => {
+      const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, imageGen: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen, aspectRatio: '21:9' as unknown as '1:1' } };
+      expect(validateClaudianBridgeSettings(bad)).toContain('imageGen.aspectRatio');
+    });
+  });
 });
 
 describe('normalizeClaudianBridgeSettings - quota', () => {

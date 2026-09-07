@@ -30,6 +30,7 @@ import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
+import { ImageGenMenuRegistrar } from './features/image-gen/menu';
 import { installChromaFsHideCss, removeChromaFsHideCss } from './features/chroma-fs/hide-internal';
 import { registerRagMenu } from './features/chroma-fs/rag-menu';
 import { registerObjectContextMenu } from './features/object';
@@ -39,6 +40,7 @@ import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS } from './core/settings';
 import * as path from 'path';
 import { initDiagAuto, diag, installGlobalErrorHandlers } from './core/diag';
 import { getPluginDir } from './core/plugin-dir';
+import { applyProxyEnv } from './core/proxy';
 
 // モジュールロード時に診断ログを初期化（ロード失敗の原因特定用）
 console.log('[claudian-bridge] module loading (main.ts top)');
@@ -68,6 +70,10 @@ export default class ClaudianBridgePlugin extends Plugin {
       initEdgeTtsLocal(pluginDir);
       this.store = new ConfigStore(pluginDataDir);
       diag('ConfigStore created', { configPath: pluginDataDir });
+
+      // v0.38.0: プロキシ設定の env 適用（Node fetch が HTTPS_PROXY を尊重する）
+      applyProxyEnv(this.store.load().general.proxy);
+      diag('proxy env applied', this.store.load().general.proxy);
 
       // 1. 旧 data.json → 新形式 自動取り込み（旧プラグインのリネームより先に実施）
       try {
@@ -256,6 +262,8 @@ export default class ClaudianBridgePlugin extends Plugin {
 
       // ★ v0.10.0: 保存時に voice-config.json へエクスポート（Claudian Bridge が SSOT）
       this.store.onSave((cfg) => {
+        // v0.38.0: プロキシ変更を即時 env 反映（次リクエストから有効）
+        applyProxyEnv(cfg.general.proxy);
         void voiceSync.exportToVoiceConfig(cfg).catch((e) => {
           console.warn('[claudian-bridge] voice-config export error:', e);
         });
@@ -356,6 +364,12 @@ export default class ClaudianBridgePlugin extends Plugin {
         diag('chroma-fs rag menu registered');
       }
         diag('chroma registered');
+      }
+
+      // ★ v0.38.0 (F-038): 文生図機能（リボン + コマンドパレット）
+      if (this.store.load().imageGen.enabled) {
+        ImageGenMenuRegistrar.register(this, this.store);
+        diag('image-gen menu registered');
       }
 
       // 7. Claude 残量検出 (v0.3.0): quotaEnabled=true のとき onload で起動

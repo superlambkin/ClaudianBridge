@@ -92,6 +92,42 @@ describe('extractMdText', () => {
     expect(extractMdText(md, T)).toBe('本文です');
   });
 
+  it('v0.38.0: <style>...</style> ブロックを除去する', () => {
+    const md = '前置き\n<style>.foo { color: red; }</style>\n後置き';
+    const out = extractMdText(md, T);
+    expect(out).toContain('前置き');
+    expect(out).toContain('後置き');
+    expect(out).not.toContain('color: red');
+    expect(out).not.toContain('<style');
+  });
+
+  it('v0.38.0: <script>...</script> ブロックを除去する', () => {
+    const md = '前置き\n<script>console.log("x")</script>\n後置き';
+    const out = extractMdText(md, T);
+    expect(out).toContain('前置き');
+    expect(out).toContain('後置き');
+    expect(out).not.toContain('console');
+    expect(out).not.toContain('<script');
+  });
+
+  it('v0.38.0: 複数行 <style> と属性付き <style> も除去', () => {
+    const md = 'A\n<style type="text/css">\n.x { font: bold; }\n.y { color: blue; }\n</style>\nB';
+    const out = extractMdText(md, T);
+    expect(out).toContain('A');
+    expect(out).toContain('B');
+    expect(out).not.toContain('font: bold');
+    expect(out).not.toContain('color: blue');
+  });
+
+  it('v0.38.0: <style> が複数あっても全部除去', () => {
+    const md = '前\n<style>.a{}</style>中\n<style>.b{}</style>後';
+    const out = extractMdText(md, T);
+    expect(out).toContain('前');
+    expect(out).toContain('中');
+    expect(out).toContain('後');
+    expect(out).not.toMatch(/<style/);
+  });
+
   it('コードブロックを除去する（code=false）', () => {
     const md = '説明\n```ts\nconst x = 1;\n```\n後半';
     expect(extractMdText(md, { ...T, code: false })).toContain('説明');
