@@ -30,6 +30,7 @@ import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
+import { ImageGenMenuRegistrar } from './features/image-gen/menu';
 import { installChromaFsHideCss, removeChromaFsHideCss } from './features/chroma-fs/hide-internal';
 import { registerRagMenu } from './features/chroma-fs/rag-menu';
 import { registerObjectContextMenu } from './features/object';
@@ -356,6 +357,12 @@ export default class ClaudianBridgePlugin extends Plugin {
         diag('chroma-fs rag menu registered');
       }
         diag('chroma registered');
+      }
+
+      // ★ v0.38.0 (F-038): 文生図機能（リボン + コマンドパレット）
+      if (this.store.load().imageGen.enabled) {
+        ImageGenMenuRegistrar.register(this, this.store);
+        diag('image-gen menu registered');
       }
 
       // 7. Claude 残量検出 (v0.3.0): quotaEnabled=true のとき onload で起動

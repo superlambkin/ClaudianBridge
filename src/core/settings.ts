@@ -474,6 +474,53 @@ export interface MdReadHighlightSettings {
   scrollPositionPct: number;
 }
 
+// === v0.38.0 (F-038): 文生図（Text-to-Image）設定 ===
+export type ImageGenProviderId = 'minimax' | 'zhipu';
+export type ImageGenAspectRatio = '1:1' | '16:9' | '9:16' | '4:3';
+export const IMAGE_GEN_PROVIDER_IDS: readonly ImageGenProviderId[] = ['minimax', 'zhipu'];
+export const IMAGE_GEN_ASPECT_RATIOS: readonly ImageGenAspectRatio[] = ['1:1', '16:9', '9:16', '4:3'];
+export const IMAGE_GEN_PROMPT_MAX_CHARS_MIN = 100;
+export const IMAGE_GEN_PROMPT_MAX_CHARS_MAX = 8000;
+export const IMAGE_GEN_PROMPT_MAX_CHARS_DEFAULT = 2000;
+
+export interface ImageGenSettings {
+  /** 機能全体の ON/OFF（既定 true） */
+  enabled: boolean;
+  /** 既定 provider（既定 'minimax'） */
+  provider: ImageGenProviderId;
+  /** 既定 aspect ratio（既定 '1:1'） */
+  aspectRatio: ImageGenAspectRatio;
+  /** プロンプトの文字数上限（既定 2000、API 仕様に応じ [100, 8000] にクランプ） */
+  promptMaxChars: number;
+  /** 成功時に Vault ノートへ自動挿入するか（既定 true） */
+  autoInsertToActive: boolean;
+}
+
+export const DEFAULT_IMAGE_GEN_SETTINGS: ImageGenSettings = {
+  enabled: true,
+  provider: 'minimax',
+  aspectRatio: '1:1',
+  promptMaxChars: IMAGE_GEN_PROMPT_MAX_CHARS_DEFAULT,
+  autoInsertToActive: true,
+};
+
+export function normalizeImageGenSettings(raw: unknown): ImageGenSettings {
+  const r = (raw ?? {}) as Partial<ImageGenSettings>;
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_IMAGE_GEN_SETTINGS.enabled,
+    provider: r.provider === 'zhipu' ? 'zhipu' : DEFAULT_IMAGE_GEN_SETTINGS.provider,
+    aspectRatio: IMAGE_GEN_ASPECT_RATIOS.includes(r.aspectRatio as ImageGenAspectRatio)
+      ? (r.aspectRatio as ImageGenAspectRatio)
+      : DEFAULT_IMAGE_GEN_SETTINGS.aspectRatio,
+    promptMaxChars: typeof r.promptMaxChars === 'number' && Number.isFinite(r.promptMaxChars)
+      ? Math.max(IMAGE_GEN_PROMPT_MAX_CHARS_MIN, Math.min(IMAGE_GEN_PROMPT_MAX_CHARS_MAX, Math.round(r.promptMaxChars)))
+      : DEFAULT_IMAGE_GEN_SETTINGS.promptMaxChars,
+    autoInsertToActive: typeof r.autoInsertToActive === 'boolean'
+      ? r.autoInsertToActive
+      : DEFAULT_IMAGE_GEN_SETTINGS.autoInsertToActive,
+  };
+}
+
 export interface ClaudianBridgeSettings {
   general: {
     enabled: boolean;
@@ -564,6 +611,8 @@ export interface ClaudianBridgeSettings {
   whitelist: WhitelistSettings;
   chroma: ChromaSettings;
   memory: MemorySettings;
+  // === v0.38.0 (F-038): 文生図（Text-to-Image）===
+  imageGen: ImageGenSettings;
 }
 
 /** v0.36.0 (F-032): 聴き手プロファイルの有効値一覧 */
@@ -629,6 +678,7 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
   chroma: { ...DEFAULT_CHROMA_SETTINGS },
   memory: { ...DEFAULT_MEMORY_SETTINGS },
+  imageGen: { ...DEFAULT_IMAGE_GEN_SETTINGS },
 };
 
 export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSettings {
@@ -835,6 +885,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     whitelist: normalizeWhitelistSettings(r.whitelist),
     chroma,
     memory: normalizeMemorySettings(r.memory),
+    // === v0.38.0 (F-038): 文生図設定 ===
+    imageGen: normalizeImageGenSettings(r.imageGen),
   };
 }
 
@@ -1088,6 +1140,13 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   for (const k of ['zhipu', 'claude', 'minimax'] as const) {
     if (cfg.quota?.windows?.[k] !== '5h' && cfg.quota?.windows?.[k] !== 'week') return `quota.windows.${k} は 5h または week である必要があります`;
   }
+  // === v0.38.0 (F-038): 文生図設定の検証 ===
+  if (cfg.imageGen === undefined || cfg.imageGen === null) return 'imageGen は必須オブジェクトです';
+  if (typeof cfg.imageGen.enabled !== 'boolean') return 'imageGen.enabled は boolean である必要があります';
+  if (!IMAGE_GEN_PROVIDER_IDS.includes(cfg.imageGen.provider)) return `imageGen.provider は ${IMAGE_GEN_PROVIDER_IDS.join(' / ')} のいずれかである必要があります`;
+  if (!IMAGE_GEN_ASPECT_RATIOS.includes(cfg.imageGen.aspectRatio)) return `imageGen.aspectRatio は ${IMAGE_GEN_ASPECT_RATIOS.join(' / ')} のいずれかである必要があります`;
+  if (typeof cfg.imageGen.promptMaxChars !== 'number' || !Number.isFinite(cfg.imageGen.promptMaxChars)) return 'imageGen.promptMaxChars は数値である必要があります';
+  if (typeof cfg.imageGen.autoInsertToActive !== 'boolean') return 'imageGen.autoInsertToActive は boolean である必要があります';
   return null;
 }
 
