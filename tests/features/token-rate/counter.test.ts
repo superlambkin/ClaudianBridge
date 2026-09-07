@@ -446,4 +446,143 @@ describe('createTokenRateCounter', () => {
     vi.useRealTimers();
     c.destroy();
   });
+
+  // 機能追加: ユーザー要望 — 各数値セグメントをマウスクリックするとその数値だけ 0 にリセット。
+  // カウンタ自体は継続（state.startTime / lastTokens / streaming 状態を維持）。
+  describe('セグメントクリックで個別リセット', () => {
+    it('「最大」セグメントをクリックすると maxRate だけが 0 になる', () => {
+      vi.useFakeTimers();
+      const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+      c.start();
+      const asst = document.createElement('div');
+      asst.setAttribute('data-role', 'assistant');
+      asst.textContent = 'A'.repeat(60);
+      document.body.appendChild(asst);
+      vi.advanceTimersByTime(250);
+      asst.textContent = 'A'.repeat(120);
+      vi.advanceTimersByTime(250); // rate=80, maxRate=80, avgRate=160
+      const sBefore = c.getState();
+      expect(sBefore.maxRate).toBeGreaterThan(0);
+      expect(sBefore.rate).toBeGreaterThan(0);
+      const maxSeg = container.querySelector('.cb-token-rate-max')!;
+      maxSeg.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const sAfter = c.getState();
+      expect(sAfter.maxRate).toBe(0);
+      expect(sAfter.rate).toBeGreaterThan(0); // 他は維持
+      vi.useRealTimers();
+      c.destroy();
+    });
+
+    it('「平均」セグメントをクリックすると avgRate だけが 0 になる', () => {
+      vi.useFakeTimers();
+      const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+      c.start();
+      const asst = document.createElement('div');
+      asst.setAttribute('data-role', 'assistant');
+      asst.textContent = 'A'.repeat(60);
+      document.body.appendChild(asst);
+      vi.advanceTimersByTime(250);
+      asst.textContent = 'A'.repeat(120);
+      vi.advanceTimersByTime(250); // avgRate > 0
+      const sBefore = c.getState();
+      expect(sBefore.avgRate).toBeGreaterThan(0);
+      const avgSeg = container.querySelector('.cb-token-rate-avg')!;
+      avgSeg.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const sAfter = c.getState();
+      expect(sAfter.avgRate).toBe(0);
+      expect(sAfter.maxRate).toBeGreaterThan(0); // max は維持
+      vi.useRealTimers();
+      c.destroy();
+    });
+
+    it('「現在」セグメントをクリックすると rate だけが 0 になる', () => {
+      vi.useFakeTimers();
+      const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+      c.start();
+      const asst = document.createElement('div');
+      asst.setAttribute('data-role', 'assistant');
+      asst.textContent = 'A'.repeat(60);
+      document.body.appendChild(asst);
+      vi.advanceTimersByTime(250);
+      asst.textContent = 'A'.repeat(120);
+      vi.advanceTimersByTime(250); // rate > 0
+      const sBefore = c.getState();
+      expect(sBefore.rate).toBeGreaterThan(0);
+      const valueSeg = container.querySelector('.cb-token-rate-value')!;
+      valueSeg.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const sAfter = c.getState();
+      expect(sAfter.rate).toBe(0);
+      expect(sAfter.avgRate).toBeGreaterThan(0); // avg は維持
+      vi.useRealTimers();
+      c.destroy();
+    });
+
+    it('「首」セグメントをクリックすると ttftMs だけが null になる', () => {
+      vi.useFakeTimers();
+      const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+      c.start();
+      const user = document.createElement('div');
+      user.className = 'claudian-message-user';
+      document.body.appendChild(user);
+      vi.advanceTimersByTime(100);
+      const asst = document.createElement('div');
+      asst.setAttribute('data-role', 'assistant');
+      asst.textContent = 'A'.repeat(60);
+      document.body.appendChild(asst);
+      vi.advanceTimersByTime(250);
+      const sBefore = c.getState();
+      expect(sBefore.ttftMs).not.toBeNull();
+      const ttftSeg = container.querySelector('.cb-token-rate-ttft')!;
+      ttftSeg.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const sAfter = c.getState();
+      expect(sAfter.ttftMs).toBeNull();
+      vi.useRealTimers();
+      c.destroy();
+    });
+
+    it('クリック後もカウンタは継続（state.startTime / lastTokens 維持）', () => {
+      vi.useFakeTimers();
+      const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+      c.start();
+      const asst = document.createElement('div');
+      asst.setAttribute('data-role', 'assistant');
+      asst.textContent = 'A'.repeat(60);
+      document.body.appendChild(asst);
+      vi.advanceTimersByTime(250);
+      asst.textContent = 'A'.repeat(120);
+      vi.advanceTimersByTime(250); // rate=80, maxRate=80
+      const startTimeBefore = c.getState().startTime;
+      const maxSeg = container.querySelector('.cb-token-rate-max')!;
+      maxSeg.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(c.getState().startTime).toBe(startTimeBefore);
+      // さらに tick が進んでも rate/maxRate は通常の更新ロジックで再計算される
+      asst.textContent = 'A'.repeat(180);
+      vi.advanceTimersByTime(250);
+      const s = c.getState();
+      expect(s.rate).toBeGreaterThan(0);
+      vi.useRealTimers();
+      c.destroy();
+    });
+
+    it('reset(key) メソッドも同じ動作（プログラム的リセット）', () => {
+      vi.useFakeTimers();
+      const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+      c.start();
+      const asst = document.createElement('div');
+      asst.setAttribute('data-role', 'assistant');
+      asst.textContent = 'A'.repeat(60);
+      document.body.appendChild(asst);
+      vi.advanceTimersByTime(250);
+      asst.textContent = 'A'.repeat(120);
+      vi.advanceTimersByTime(250);
+      c.reset('max');
+      expect(c.getState().maxRate).toBe(0);
+      expect(c.getState().rate).toBeGreaterThan(0);
+      c.reset('avg');
+      expect(c.getState().avgRate).toBe(0);
+      expect(c.getState().maxRate).toBe(0); // 既 0 のまま
+      vi.useRealTimers();
+      c.destroy();
+    });
+  });
 });
