@@ -13,6 +13,7 @@ import { Notice } from 'obsidian';
 import type { App, TFile } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import type { ClaudianBridgeSettings } from '../../core/settings';
+import { DEFAULT_THINKING_CONFIGS } from '../../core/settings';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import { getPluginDir } from '../../core/plugin-dir';
 import manifest from '../../manifest.json';
@@ -31,7 +32,9 @@ import { playBeep } from './audio-beep';
 import { parseSections, rewriteSectionsStream, type MdSection } from './llm-rewrite';
 import { rewriteCacheKey, RewriteCache } from './llm-rewrite-cache';
 import { beginLlmSession, endLlmSession, isCurrent, abortIfOtherLlmActive, abortCurrentLlm, type LlmSession } from './llm-session';
-import { runClaudePrompt } from '../llm/claude-cli';
+// v0.38.0 (F-039): dispatch 経由で ThinkingConfig を反映した LlmClient を使う
+import { resolveLlmClient } from '../llm/dispatch';
+import { readLlmInfoFromSettings } from '../quota/llm-info';
 
 export { openInPreview };
 
@@ -182,7 +185,15 @@ export async function addMdToTts(
     };
     const runFn = async (p: string): Promise<string | null> => {
       if (session.signal.aborted) return null;
-      return runClaudePrompt(p, { signal: session.signal, disableThinking: true });
+      // v0.38.0 (F-039): dispatch 経由でプロバイダ別 LlmClient を取得し ThinkingConfig を反映
+      const llmInfo = readLlmInfoFromSettings(cfg.quota?.claudeSettingsPath);
+      // テスト用 cfg で thinking フィールドが省略された場合に既定値でフォールバック
+      const providerDefaults = DEFAULT_THINKING_CONFIGS as Record<string, typeof DEFAULT_THINKING_CONFIGS.claude>;
+      const thinking = (cfg.thinking as Record<string, typeof DEFAULT_THINKING_CONFIGS.claude> | undefined)?.[llmInfo.provider]
+        ?? providerDefaults[llmInfo.provider]
+        ?? DEFAULT_THINKING_CONFIGS.claude;
+      const client = resolveLlmClient(llmInfo.provider, undefined, thinking);
+      return client.runPrompt(p, { thinking, signal: session.signal });
     };
     const stream = rewriteSectionsStream(orig, profile, runFn,
       (done, total) => {

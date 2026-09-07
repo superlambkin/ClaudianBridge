@@ -6,6 +6,18 @@ import type { ConfigStore } from '../../../src/core/config-store';
 const speakTextMock = vi.fn(async () => true);
 vi.mock('../../../src/features/tts/speak', () => ({ speakText: (...a: unknown[]) => speakTextMock(...a) }));
 
+// v0.38.0 (F-039): dispatch 経由の LlmClient をモック
+const runPromptMock = vi.fn(async () => '整形済み');
+const resolveLlmClientMock = vi.fn(() => ({ id: 'claude' as const, runPrompt: runPromptMock }));
+vi.mock('../../../src/features/llm/dispatch', () => ({
+  resolveLlmClient: (...a: unknown[]) => (resolveLlmClientMock as unknown as (...args: unknown[]) => { id: 'claude'; runPrompt: typeof runPromptMock })(...a),
+}));
+
+// v0.38.0 (F-039): readLlmInfoFromSettings をモック
+vi.mock('../../../src/features/quota/llm-info', () => ({
+  readLlmInfoFromSettings: () => ({ provider: 'claude', model: null, baseUrl: null, authTokenPresent: true }),
+}));
+
 /** .claudian-input-composer 構造を模倣（realclaudian main.js 実測に基づく） */
 function makeComposer(text = ''): { toolbar: HTMLElement; textarea: HTMLTextAreaElement } {
   const composer = document.createElement('div');
@@ -32,6 +44,14 @@ function makeSpeechFilter() {
 
 function makeStore(opts?: { enabled?: boolean; inputAi?: boolean }) {
   let cfg = {
+    quota: { claudeSettingsPath: '' },
+    thinking: {
+      claude: { enabled: true, effort: 'medium' },
+      deepseek: { enabled: false, effort: 'medium' },
+      kimi: { enabled: false, effort: 'medium' },
+      minimax: { enabled: false, effort: 'medium' },
+      zhipu: { enabled: false, effort: 'medium' },
+    },
     tts: {
       enabled: opts?.enabled ?? true,
       engine: 'edge',
@@ -58,11 +78,15 @@ describe('setupInputAiReadButton', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     speakTextMock.mockClear();
+    runPromptMock.mockReset();
+    resolveLlmClientMock.mockClear();
+    // 既定は整形成功を返す（個別テストで上書き）
+    runPromptMock.mockResolvedValue('整形済み');
   });
 
   it('ツールバーへボタンを 1 つ注入し、cleanup で削除する', () => {
     const { toolbar } = makeComposer('テスト');
-    const cleanup = setupInputAiReadButton({ store: makeStore(), polish: vi.fn() });
+    const cleanup = setupInputAiReadButton({ store: makeStore() });
     const btn = toolbar.querySelector('[data-cb-input-ai]');
     expect(btn).not.toBeNull();
     expect(toolbar.querySelectorAll('[data-cb-input-ai]').length).toBe(1);
@@ -72,15 +96,15 @@ describe('setupInputAiReadButton', () => {
 
   it('inputAi.enabled=false では注入しない', () => {
     const { toolbar } = makeComposer('テスト');
-    setupInputAiReadButton({ store: makeStore({ inputAi: false }), polish: vi.fn() });
+    setupInputAiReadButton({ store: makeStore({ inputAi: false }) });
     expect(toolbar.querySelector('[data-cb-input-ai]')).toBeNull();
   });
 
   it('成功時: 整形文で入力欄を上書き + 元文 Notice + 整形文を読み上げ', async () => {
     const { textarea } = makeComposer('あれやっといて');
-    const polish = vi.fn(async () => 'それを実行しておいてください。');
+    runPromptMock.mockResolvedValue('それを実行しておいてください。');
     const noticeFn = vi.fn();
-    setupInputAiReadButton({ store: makeStore(), polish, noticeFn });
+    setupInputAiReadButton({ store: makeStore(), noticeFn });
     (document.querySelector('[data-cb-input-ai]') as HTMLElement).click();
     await vi.waitFor(() => expect(speakTextMock).toHaveBeenCalledTimes(1));
     expect(textarea.value).toBe('それを実行しておいてください。');
@@ -93,15 +117,17 @@ describe('setupInputAiReadButton', () => {
     const { textarea } = makeComposer('x');
     const onInput = vi.fn();
     textarea.addEventListener('input', onInput);
-    setupInputAiReadButton({ store: makeStore(), polish: vi.fn(async () => '整形済'), noticeFn: vi.fn() });
+    runPromptMock.mockResolvedValue('整形済');
+    setupInputAiReadButton({ store: makeStore(), noticeFn: vi.fn() });
     (document.querySelector('[data-cb-input-ai]') as HTMLElement).click();
     await vi.waitFor(() => expect(onInput).toHaveBeenCalledTimes(1));
   });
 
   it('失敗時: 入力欄を上書きせず元文を読み上げる', async () => {
     const { textarea } = makeComposer('元の文章');
+    runPromptMock.mockResolvedValue(null);
     const noticeFn = vi.fn();
-    setupInputAiReadButton({ store: makeStore(), polish: vi.fn(async () => null), noticeFn });
+    setupInputAiReadButton({ store: makeStore(), noticeFn });
     (document.querySelector('[data-cb-input-ai]') as HTMLElement).click();
     await vi.waitFor(() => expect(speakTextMock).toHaveBeenCalledTimes(1));
     expect(textarea.value).toBe('元の文章');
@@ -113,28 +139,51 @@ describe('setupInputAiReadButton', () => {
   it('空入力・ミュート中は読み上げない', async () => {
     const empty = makeComposer('   ');
     const noticeFn = vi.fn();
-    setupInputAiReadButton({ store: makeStore(), polish: vi.fn(), noticeFn });
+    setupInputAiReadButton({ store: makeStore(), noticeFn });
     (empty.toolbar.querySelector('[data-cb-input-ai]') as HTMLElement).click();
     expect(speakTextMock).not.toHaveBeenCalled();
+    expect(runPromptMock).not.toHaveBeenCalled();
 
     document.body.innerHTML = '';
     speakTextMock.mockClear();
     const muted = makeComposer('ある');
-    setupInputAiReadButton({ store: makeStore({ enabled: false }), polish: vi.fn(), noticeFn });
+    setupInputAiReadButton({ store: makeStore({ enabled: false }), noticeFn });
     (muted.toolbar.querySelector('[data-cb-input-ai]') as HTMLElement).click();
     expect(speakTextMock).not.toHaveBeenCalled();
+    expect(runPromptMock).not.toHaveBeenCalled();
     expect(noticeFn).toHaveBeenCalled();
   });
 
   it('実行中はボタンが disabled（二重クリックガード）', async () => {
-    let resolvePolish!: (v: string | null) => void;
-    const polish = vi.fn(() => new Promise<string | null>((r) => { resolvePolish = r; }));
+    let resolveRun!: (v: string | null) => void;
+    runPromptMock.mockImplementation(() => new Promise<string | null>((r) => { resolveRun = r; }));
     makeComposer('text');
-    setupInputAiReadButton({ store: makeStore(), polish, noticeFn: vi.fn() });
+    setupInputAiReadButton({ store: makeStore(), noticeFn: vi.fn() });
     const btn = document.querySelector('[data-cb-input-ai]') as HTMLButtonElement;
     btn.click();
     expect(btn.disabled).toBe(true);
-    resolvePolish('ok');
+    resolveRun('ok');
     await vi.waitFor(() => expect(btn.disabled).toBe(false));
+  });
+
+  it('resolveLlmClient に正しいプロバイダと ThinkingConfig が渡される', async () => {
+    runPromptMock.mockResolvedValue('整形済');
+    makeComposer('テスト');
+    setupInputAiReadButton({ store: makeStore(), noticeFn: vi.fn() });
+    (document.querySelector('[data-cb-input-ai]') as HTMLElement).click();
+    await vi.waitFor(() => expect(resolveLlmClientMock).toHaveBeenCalled());
+    // resolveLlmClient(provider, apiKey, thinking)
+    expect(resolveLlmClientMock.mock.calls[0][0]).toBe('claude');
+    expect(resolveLlmClientMock.mock.calls[0][2]).toEqual({ enabled: true, effort: 'medium' });
+  });
+
+  it('コードフェンス付き応答は剥がして読み上げる', async () => {
+    const { textarea } = makeComposer('x');
+    runPromptMock.mockResolvedValue('```\n整形後の文\n```');
+    const noticeFn = vi.fn();
+    setupInputAiReadButton({ store: makeStore(), noticeFn });
+    (document.querySelector('[data-cb-input-ai]') as HTMLElement).click();
+    await vi.waitFor(() => expect(speakTextMock).toHaveBeenCalledTimes(1));
+    expect(textarea.value).toBe('整形後の文');
   });
 });
