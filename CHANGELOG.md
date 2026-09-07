@@ -1,5 +1,72 @@
 # Changelog
 
+## [0.38.0] - 2026-09-07 — 文生図 + スタイル + MD/style 除外 + プロキシ (F-038)
+
+### Added
+
+- 🎨 **文生図機能 (F-038)**: リボン + コマンドパレット → モーダル → MiniMax image-01 / Zhipu GLM-Image API → `output/Assets/` 保存 → アクティブノート `![[]]` 挿入
+- 🖌️ **画像スタイル選択**: モーダルに standard / scientific / anime / photo ドロップダウン（scientific-illustrator スキルを Text-to-Image にマージ）
+- 🌐 **LLM プロキシ設定**: 一般タブに「プロキシ設定」セクション（enabled / url / noProxyHosts）— HTTPS_PROXY 検出で Node fetch フォールバック強制
+
+### Changed
+
+- 📄 MD 読み上げクリーン化: `<style>`/`<script>` ブロックを「Add to TTS」で必ず除外
+
+### テスト
+
+- proxy 14 件・style-prompts 6 件・md-file-read style/script 4 件・文生圖 60+ 件追加。**1171 件 PASS** / typecheck 0
+
+## [0.35.1] - 2026-09-04 — UAT 修正 + ハイライト色パレット化
+
+### Fixed
+
+- ⏭ スキップで合成中も即中断: 最新の再生ハンドル（ローカル音声生成の spawn 含む）に停止を指示し、「音声生成中」で固まる問題を解消
+- 番号付き見出しの誤分割: 文末区切りを「。」「！」「？」改行のみに限定
+- 下線の一部不足: チャンク下線の終端を次チャンク先頭まで拡張
+
+### Added
+
+- ハイライト色パレット化: プリセット 16 色（通常 8 + 濃い 8）のスウォッチグリッド＋カスタムピッカー
+
+### テスト
+
+- パレット 4 件・スキップ統合 1 件・終端計算 2 件・scrollPositionPct 3 件追加。**1002 件 PASS** / typecheck 0
+
+## [0.35.0] - 2026-09-04 — MD 読み上げ再生制御強化（F-031）
+
+### Added
+
+- ⏸/⏭ ボタン実働化: PlaybackController（新設）経由で音声本体を制御
+- chunkTextNatural（見出し強制分割）: 見出し行で必ず新チャンク。TTS 本体とハイライト登録で index 完全一致
+- Edge 先行音声変換: チャンク i 再生中にチャンク i+1 の音声を事前取得
+- ハイライト色プリセットプルダウン: 定番 8 色から選択
+- 自動スクロール位置設定: scrollPositionPct（0〜100・既定 40）をスライダー指定
+- ファイル名を先に読み上げ: Add to TTS 起動時に basename を本文より先に再生
+
+### テスト
+
+- PlaybackController 5 件・chunkTextNatural/speakChunks 制御 5 件・scrollPositionPct 3 件追加。**995 件 PASS**
+
+## [0.34.0] - 2026-09-04 — チャット内 Mermaid 自動描画（F-030）
+
+### Added
+
+- チャットメッセージ内の  を Obsidian 標準 MarkdownRenderer で自動描画
+- 確定判定 1.2s・図⇔コード切替ボタン・エラーログ debug.mermaid.log
+- 設定 general.mermaidRender（既定 ON）/ i18n ja/zh/en
+
+### テスト
+
+- mermaid-render 9 件追加。**989 件 PASS**
+
+## [0.33.0] - 2026-09-02 — MD 読み上げ位置ハイライト（F-028）
+
+### Added
+
+- MD ファイル右クリック「Add to TTS」でプレビューを開いたままチャンク進行に合わせて下線ハイライトが移動
+- ハイライト色プリセット・設定画面トグル・スクロール制御
+
+
 
 ## [0.32.9] - 2026-09-03 — TTS/ハイライト チャンク index 一致化 + 不一致 Notice
 
