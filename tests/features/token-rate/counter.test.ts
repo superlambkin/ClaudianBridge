@@ -353,4 +353,44 @@ describe('createTokenRateCounter', () => {
     vi.useRealTimers();
     c.destroy();
   });
+
+  // 機能追加: ユーザー要望 — streaming 終了時 / stop() 呼び出し時に最大値をリセット
+  // 同一カウンターで複数ストリームを扱う際、過去の最大値が累積して
+  // 新しいストリームの最大値と比較できなくなる問題を防止する。
+  it('streaming 終了時（isStreaming true→false 遷移）に maxRate がリセットされる', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    document.body.appendChild(asst);
+    asst.textContent = 'A'.repeat(30);
+    vi.advanceTimersByTime(250); // ベースライン
+    asst.textContent = 'A'.repeat(90);
+    vi.advanceTimersByTime(250); // rate = 80, maxRate = 80
+    expect(c.getState().maxRate).toBeGreaterThan(70);
+    // streaming 終了: 2.5 秒（isStreaming 判定閾値）以上 DOM 変化なしで経過
+    vi.advanceTimersByTime(3000);
+    expect(c.getState().maxRate).toBe(0);
+    vi.useRealTimers();
+    c.destroy();
+  });
+
+  it('stop() 呼び出しで maxRate がリセットされる', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    document.body.appendChild(asst);
+    asst.textContent = 'A'.repeat(30);
+    vi.advanceTimersByTime(250);
+    asst.textContent = 'A'.repeat(90);
+    vi.advanceTimersByTime(250);
+    expect(c.getState().maxRate).toBeGreaterThan(70);
+    c.stop();
+    expect(c.getState().maxRate).toBe(0);
+    vi.useRealTimers();
+    c.destroy();
+  });
 });
