@@ -627,3 +627,11 @@
 .cb-color-swatch.is-selected { outline: 2px solid var(--text-accent); outline-offset: 1px; }
 .cb-color-custom { display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
 .cb-color-custom input[type="color"] { width: 100%; height: 100%; border: none; padding: 0; margin: 0; background: transparent; cursor: pointer; }
+
+/* v0.38.0 (F-039): Think モード（プロバイダ別折りたたみ） */
+.cb-think-provider { border: 1px solid var(--background-modifier-border); border-radius: 6px; margin: 6px 0; padding: 4px 10px; }
+.cb-think-provider__summary { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 0; }
+.cb-think-provider__name { font-weight: 600; }
+.cb-think-badge { font-size: 0.8em; }
+.cb-think-badge--on { color: var(--text-accent); }
+.cb-think-badge--off { opacity: 0.5; }

@@ -100,8 +100,17 @@ import { renderGeneralTab } from '../../src/settings/SettingTabGeneral';
 import { getLocaleStrings } from '../../src/core/i18n';
 import type { ConfigStore } from '../../src/core/config-store';
 
-function makeStore(generalOverrides: Record<string, unknown> = {}): ConfigStore {
+function makeStore(generalOverrides: Record<string, unknown> = {}, rootOverrides: Record<string, unknown> = {}): ConfigStore {
   const cfg = {
+    // v0.38.0 (F-039): Think モードセクションが参照する
+    quota: { claudeSettingsPath: '' },
+    thinking: {
+      claude: { enabled: true, effort: 'medium' },
+      deepseek: { enabled: false, effort: 'medium' },
+      kimi: { enabled: false, effort: 'medium' },
+      minimax: { enabled: false, effort: 'medium' },
+      zhipu: { enabled: false, effort: 'medium' },
+    },
     general: {
       enabled: true,
       migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false },
@@ -123,6 +132,7 @@ function makeStore(generalOverrides: Record<string, unknown> = {}): ConfigStore 
       proxy: { enabled: false, url: '', noProxyHosts: 'localhost,127.0.0.1,.local' },
       ...generalOverrides,
     },
+    ...rootOverrides,
   };
   return {
     load: () => cfg as never,
@@ -186,5 +196,118 @@ describe('renderGeneralTab - tokenRateIntervalMs ドロップダウン', () => {
     const interval = dropdownHandlers.find((d) => d.name === getLocaleStrings('ja').tokenRateIntervalLabel)!;
     await interval.onChange?.(500);
     expect((store.save as ReturnType<typeof vi.fn>).mock.calls[0][0].general.tokenRateIntervalMs).toBe(500);
+  });
+});
+
+// === v0.38.0 (F-039): Think モード セクション ===
+describe('renderGeneralTab - Think モード セクション', () => {
+  let containerEl: HTMLElement;
+  const s = getLocaleStrings('ja');
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    toggleHandlers.length = 0;
+    dropdownHandlers.length = 0;
+    containerEl = document.createElement('div');
+    document.body.appendChild(containerEl);
+  });
+
+  it('見出しと説明が描画される', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const headings = Array.from(containerEl.querySelectorAll('h3')).map((h) => h.textContent);
+    expect(headings).toContain(s.settingThinkModeTitle);
+    const texts = Array.from(containerEl.querySelectorAll('p')).map((p) => p.textContent);
+    expect(texts).toContain(s.settingThinkModeDescription);
+  });
+
+  it('現在の LLM プロバイダ行が描画される', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const found = Array.from(containerEl.querySelectorAll('div')).some((d) =>
+      (d.textContent ?? '').startsWith(`${s.settingThinkModeCurrentProvider}: `),
+    );
+    expect(found).toBe(true);
+  });
+
+  it('5 プロバイダ分の折りたたみブロックが描画される', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const details = containerEl.querySelectorAll('details');
+    expect(details).toHaveLength(5);
+    const names = Array.from(details).map((d) => d.querySelector('summary')?.textContent ?? '');
+    for (const label of [
+      s.settingThinkModeProviderClaude,
+      s.settingThinkModeProviderDeepseek,
+      s.settingThinkModeProviderKimi,
+      s.settingThinkModeProviderMiniMax,
+      s.settingThinkModeProviderZhipu,
+    ]) {
+      expect(names.some((n) => n.includes(label))).toBe(true);
+    }
+  });
+
+  it('🧠 バッジが enabled に応じて ON / OFF で描画される', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const summaries = Array.from(containerEl.querySelectorAll('summary')).map((el) => el.textContent ?? '');
+    // claude のみ既定で enabled: true
+    expect(summaries.filter((t) => t.includes(s.settingThinkModeBadgeOn))).toHaveLength(1);
+    expect(summaries.filter((t) => t.includes(s.settingThinkModeBadgeOff))).toHaveLength(4);
+  });
+
+  it('プロバイダごとに ON/OFF トグルと effort ドロップダウンが 1 つずつ描画される', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    expect(toggleHandlers.filter((t) => t.name === s.settingThinkModeEnabled)).toHaveLength(5);
+    expect(dropdownHandlers.filter((d) => d.name === s.settingThinkModeEffort)).toHaveLength(5);
+  });
+
+  it('effort ドロップダウンは Think モード OFF のとき無効化される', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const efforts = dropdownHandlers.filter((d) => d.name === s.settingThinkModeEffort);
+    // claude（先頭・enabled: true）のみ有効
+    expect(efforts[0].disabled).toBe(false);
+    expect(efforts.slice(1).every((d) => d.disabled === true)).toBe(true);
+  });
+
+  it('トグル変更時に thinking.<provider>.enabled が保存される', async () => {
+    const store = makeStore();
+    renderGeneralTab({} as never, containerEl, store);
+    const toggles = toggleHandlers.filter((t) => t.name === s.settingThinkModeEnabled);
+    await toggles[1].onChange?.(true); // deepseek
+    const saved = (store.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(saved.thinking.deepseek.enabled).toBe(true);
+    expect(saved.thinking.claude.enabled).toBe(true); // 他プロバイダは不変
+  });
+
+  it('effort 変更時に thinking.<provider>.effort が保存される', async () => {
+    const store = makeStore();
+    renderGeneralTab({} as never, containerEl, store);
+    const efforts = dropdownHandlers.filter((d) => d.name === s.settingThinkModeEffort);
+    await efforts[0].onChange?.('high'); // claude
+    const saved = (store.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(saved.thinking.claude.effort).toBe('high');
+  });
+
+  it('不正な effort が保存されていても UI は既定値 medium を表示する', () => {
+    const store = makeStore({}, {
+      thinking: {
+        claude: { enabled: true, effort: 'invalid' },
+        deepseek: { enabled: false, effort: 'low' },
+        kimi: { enabled: false, effort: 'medium' },
+        minimax: { enabled: false, effort: 'high' },
+        zhipu: { enabled: false, effort: 'off' },
+      },
+    });
+    renderGeneralTab({} as never, containerEl, store);
+    const efforts = dropdownHandlers.filter((d) => d.name === s.settingThinkModeEffort);
+    expect(efforts[0].value).toBe('medium'); // claude: invalid → フォールバック
+    expect(efforts[1].value).toBe('low');
+    expect(efforts[4].value).toBe('off');
+  });
+
+  it('不正な effort を選ばれても保存値は既定値に丸められる', async () => {
+    const store = makeStore();
+    renderGeneralTab({} as never, containerEl, store);
+    const efforts = dropdownHandlers.filter((d) => d.name === s.settingThinkModeEffort);
+    await efforts[0].onChange?.('bogus');
+    const saved = (store.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(saved.thinking.claude.effort).toBe('medium');
   });
 });
