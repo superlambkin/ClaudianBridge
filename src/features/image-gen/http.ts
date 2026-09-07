@@ -40,20 +40,37 @@ function getRequestUrl(): RequestUrlLike | null {
   return cachedRequestUrl;
 }
 
+/** v0.38.0: プロセス env に HTTPS_PROXY がセットされていれば自動的に fetch フォールバック */
+function hasProxyEnv(): boolean {
+  return Boolean(process.env.HTTPS_PROXY || process.env.HTTP_PROXY);
+}
+
+/** v0.38.0: プロキシ有効時は requestUrl をスキップして fetch フォールバックに強制 */
+export interface HttpPostJsonOptions {
+  forceFetch?: boolean;
+  signal?: AbortSignal;
+}
+
 /**
  * POST リクエスト（JSON body）を実行。
  * Obsidian 環境では requestUrl、それ以外では fetch を使用。
+ * forceFetch=true または HTTPS_PROXY 環境変数がセットされているときは必ず fetch を使う。
  */
 export async function httpPostJson(
   url: string,
   headers: Record<string, string>,
   body: unknown,
-  signal?: AbortSignal,
+  optionsOrSignal?: HttpPostJsonOptions | AbortSignal,
 ): Promise<HttpResponse> {
+  // 後方互換: 第4引数が AbortSignal の場合も受け付ける
+  const options: HttpPostJsonOptions | undefined =
+    optionsOrSignal instanceof AbortSignal
+      ? { signal: optionsOrSignal }
+      : optionsOrSignal;
   const jsonBody = JSON.stringify(body);
   const mergedHeaders: Record<string, string> = { 'Content-Type': 'application/json', ...headers };
 
-  const ru = getRequestUrl();
+  const ru = (options?.forceFetch || hasProxyEnv()) ? null : getRequestUrl();
   if (ru) {
     const res = await ru({ url, method: 'POST', headers: mergedHeaders, body: jsonBody });
     const ok = res.status >= 200 && res.status < 300;
@@ -69,6 +86,7 @@ export async function httpPostJson(
   }
 
   // フォールバック: グローバル fetch (Node / テスト / 非 Obsidian)
+  const signal = options?.signal;
   const res = await fetch(url, {
     method: 'POST',
     headers: mergedHeaders,

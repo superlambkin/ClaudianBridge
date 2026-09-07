@@ -122,6 +122,54 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
         }
       }));
 
+    // === v0.38.0: プロキシ設定（LLM アクセス用） ===
+    containerEl.createEl('h3', { text: s.generalProxyHeading });
+    new Setting(containerEl)
+      .setName(s.generalProxyEnabled)
+      .setDesc(s.generalProxyEnabledDesc)
+      .addToggle((t) => t.setValue(cfg.general.proxy.enabled).onChange(async (v) => {
+        try {
+          const latest = store.load();
+          store.save({ ...latest, general: { ...latest.general, proxy: { ...latest.general.proxy, enabled: v } } });
+          new Notice(s.noticeSaved);
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+    new Setting(containerEl)
+      .setName(s.generalProxyUrl)
+      .setDesc(s.generalProxyUrlDesc)
+      .addText((t) => t
+        .setPlaceholder('http://proxy.example.com:8080')
+        .setValue(cfg.general.proxy.url)
+        .onChange(async (v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, general: { ...latest.general, proxy: { ...latest.general.proxy, url: v } } });
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        }),
+      );
+    new Setting(containerEl)
+      .setName(s.generalProxyNoProxy)
+      .setDesc(s.generalProxyNoProxyDesc)
+      .addText((t) => t
+        .setPlaceholder('localhost,127.0.0.1,.local')
+        .setValue(cfg.general.proxy.noProxyHosts)
+        .onChange(async (v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, general: { ...latest.general, proxy: { ...latest.general.proxy, noProxyHosts: v } } });
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        }),
+      );
+
     // === v0.24.0: クイック返信ボタンの方案ボタンを常に表示 ===
     new Setting(containerEl)
       .setName(s.quickReplyShowAllOptions)
