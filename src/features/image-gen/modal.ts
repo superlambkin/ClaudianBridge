@@ -5,10 +5,12 @@ import { App, MarkdownView, Modal, Notice, Setting } from 'obsidian';
 import * as path from 'path';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import type { ConfigStore } from '../../core/config-store';
-import type { ImageGenAspectRatio, ImageGenProviderId } from '../../core/settings';
+import type { ImageGenAspectRatio, ImageGenProviderId, ImageGenStyle } from '../../core/settings';
+import { IMAGE_GEN_STYLES } from '../../core/settings';
 import { formatImageGenError } from './types';
 import type { ImageGenProvider } from './types';
 import { writeAsset } from './save';
+import { applyStylePrompt, getStyleLabelKey } from './style-prompts';
 
 export interface ImageGenModalOptions {
   app: App;
@@ -27,6 +29,7 @@ export class ImageGenModal extends Modal {
   private promptText = '';
   private providerId: ImageGenProviderId;
   private aspectRatio: ImageGenAspectRatio;
+  private styleId: ImageGenStyle;
   private generatedBytes: Uint8Array | null = null;
   private generatedExt: 'png' | 'jpg' | 'jpeg' | null = null;
   private generatedRelPath: string | null = null;
@@ -43,6 +46,7 @@ export class ImageGenModal extends Modal {
     const cfg = opts.store.load();
     this.providerId = cfg.imageGen.provider;
     this.aspectRatio = cfg.imageGen.aspectRatio;
+    this.styleId = cfg.imageGen.style;
   }
 
   onOpen(): void {
@@ -72,6 +76,18 @@ export class ImageGenModal extends Modal {
         d.addOption('4:3', this.s.imageGenAspectRatio_4_3);
         d.setValue(this.aspectRatio).onChange((v) => {
           this.aspectRatio = v as ImageGenAspectRatio;
+        });
+      });
+
+    // Style dropdown（scientific-illustrator スキル相当を含む 4 種）
+    new Setting(contentEl)
+      .setName(this.s.imageGenStyle)
+      .addDropdown((d) => {
+        for (const s of IMAGE_GEN_STYLES) {
+          d.addOption(s, this.s[getStyleLabelKey(s) as keyof typeof this.s] as string);
+        }
+        d.setValue(this.styleId).onChange((v) => {
+          this.styleId = v as ImageGenStyle;
         });
       });
 
@@ -183,7 +199,7 @@ export class ImageGenModal extends Modal {
         (id) => (id === 'minimax' ? cfg.quota.minimaxApiKey : cfg.quota.zhipuApiKey),
       );
 
-    const outcome = await provider.fetch({ prompt, aspectRatio: this.aspectRatio });
+    const outcome = await provider.fetch({ prompt: applyStylePrompt(this.styleId, prompt), aspectRatio: this.aspectRatio });
     if (!outcome.ok) {
       const formatted = formatImageGenError(outcome.error);
       this.appendLog(`[ERROR] ${formatted}`);
