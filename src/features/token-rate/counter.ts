@@ -186,9 +186,14 @@ export function createTokenRateCounter(
     // wasStreaming ゲート（v0.38.3 初回実装）と異なり MutationObserver への依存が
     // ないため、jsdom + fake timers で MO コールバックが遅延するテスト環境でも
     // 安定して動作する。
+    // elapsed = 0（baseline-only tick で state.startTime が now にリセットされた
+    // 直後 / 一括配信の初回観測）のときは intervalMs を経過時間の下限として
+    // avgRate = tokens / (intervalMs / 1000) を採用し、avgRate = 0 のまま
+    // 凍結される回帰を防止する（v0.38.3 派生）。
     if (chars !== null && dTokensForAvg > 0 && state.startTime !== null) {
       const elapsed = (now - state.startTime) / 1000;
-      state.avgRate = elapsed > 0 ? tokens / elapsed : 0;
+      const effectiveElapsed = elapsed > 0 ? elapsed : opts.intervalMs / 1000;
+      state.avgRate = tokens / effectiveElapsed;
     }
     // TTFT = サイクル開始（ユーザー送信）から最初のアシスタントコンテンツまで
     if (state.ttftMs === null && cycleStartTime !== null && assistantEl !== null && (chars ?? 0) > 0) {
@@ -228,10 +233,18 @@ export function createTokenRateCounter(
 
   const start = (): void => {
     const now = Date.now();
+    // mid-stream 再注入（既存アシスタント要素ありでカウンター recreate）の
+    // 検出: 注入時点で既にコンテンツが存在する場合、state.startChars と
+    // state.lastTokens を既存値に同期しておき、初回 tick で
+    // dTokensForAvg = 0 → avgRate 更新スキップ → 巨大スパイクを防止。
+    // 注入時にアシスタント要素が無い場合（一括配信 / 通常の新規ストリーム）は
+    // state.lastTokens = 0 のままで、初回 tick でコンテンツ増加として検出される。
+    const { chars: initialChars } = getAssistant();
+    const initialTokens = initialChars !== null ? initialChars / opts.charPerToken : 0;
     state.startTime = now;
     state.lastUpdateTime = now;
-    state.startChars = state.currentChars;
-    state.lastTokens = state.currentChars / opts.charPerToken;
+    state.startChars = initialChars ?? 0;
+    state.lastTokens = initialTokens;
     lastChangeTime = now;
     observer = new MutationObserver(handleMutation);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });

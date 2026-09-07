@@ -422,4 +422,28 @@ describe('createTokenRateCounter', () => {
     vi.useRealTimers();
     c.destroy();
   });
+
+  // Bug regression: 短い応答が一括で到着するケースで avgRate が 0 のままになる症状の防止
+  // 旧実装 (v0.38.3 初回): baseline-only tick で state.startTime が now にリセットされ、
+  // dTokensForAvg > 0 で avgRate 更新されるも elapsed = 0 → avgRate = 0。
+  // 続く tick では dTokensForAvg = 0 → 凍結値 0 のまま。
+  // 修正: baseline-only tick で content あり (chars > 0) のとき、
+  // intervalMs を経過時間の代理として avgRate = tokens / (intervalMs/1000) を更新する。
+  it('一括配信（短い応答が一気に到着）でも avgRate が 0 のままにならない', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    // アシスタント要素に最初から全コンテンツが入った状態で出現（典型的な短い応答）
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    asst.textContent = 'A'.repeat(60); // 20 tokens
+    document.body.appendChild(asst);
+    vi.advanceTimersByTime(250); // baseline-only
+    const s = c.getState();
+    // 旧実装だと avgRate = 20/0 = 0（凍結）
+    // 修正後は intervalMs (0.25s) を代理経過時間として avgRate = 20/0.25 = 80
+    expect(s.avgRate).toBeGreaterThan(20);
+    vi.useRealTimers();
+    c.destroy();
+  });
 });
