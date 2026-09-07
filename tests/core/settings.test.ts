@@ -1128,4 +1128,21 @@ describe('Think モード default (v0.38.0 F-038)', () => {
     expect(result.thinking.deepseek).toEqual(DEFAULT_THINKING_CONFIGS.deepseek);
     expect(result.thinking.zhipu).toEqual(DEFAULT_THINKING_CONFIGS.zhipu);
   });
+
+  it('不正な effort は default でフォールバック', () => {
+    const result = normalizeClaudianBridgeSettings({
+      thinking: {
+        claude: { enabled: true, effort: 'invalid' as unknown as 'low' },
+        deepseek: { enabled: true, effort: 'low' },
+        kimi: { enabled: true, effort: 'medium' },
+        minimax: { enabled: true, effort: 'high' },
+        zhipu: { enabled: true, effort: 'off' },
+      },
+    });
+    expect(result.thinking.claude.effort).toBe('medium');  // fallback
+    expect(result.thinking.deepseek.effort).toBe('low');
+    expect(result.thinking.kimi.effort).toBe('medium');
+    expect(result.thinking.minimax.effort).toBe('high');
+    expect(result.thinking.zhipu.effort).toBe('off');
+  });
 });

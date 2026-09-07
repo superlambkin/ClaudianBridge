@@ -679,6 +679,27 @@ export const DEFAULT_THINKING_CONFIGS = {
   zhipu:   { enabled: false, effort: 'medium' } as ThinkingConfig,
 };
 
+// === v0.38.0 (F-039): ThinkingConfig の runtime 検証 ===
+/** ThinkingEffort の有効値判定（'off' | 'low' | 'medium' | 'high'） */
+function isValidEffort(effort: unknown): effort is ThinkingEffort {
+  return effort === 'off' || effort === 'low' || effort === 'medium' || effort === 'high';
+}
+
+/**
+ * ThinkingConfig の部分指定を runtime 検証して補完する。
+ * オブジェクト自体欠落・enabled 型違い・effort 不正値はいずれも fallback に倒す。
+ */
+function normalizeThinkingField(
+  raw: Partial<ThinkingConfig> | undefined,
+  fallback: ThinkingConfig,
+): ThinkingConfig {
+  if (!raw) return fallback;
+  return {
+    enabled: typeof raw.enabled === 'boolean' ? raw.enabled : fallback.enabled,
+    effort: isValidEffort(raw.effort) ? raw.effort : fallback.effort,
+  };
+}
+
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, proxy: { ...DEFAULT_PROXY_SETTINGS } },
   quota: {
@@ -952,13 +973,13 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     memory: normalizeMemorySettings(r.memory),
     // === v0.38.0 (F-038): 文生図設定 ===
     imageGen: normalizeImageGenSettings(r.imageGen),
-    // === v0.38.0 (F-038): Think モード default 補完 ===
+    // === v0.38.0 (F-039): Think モード default 補完 + runtime 検証 ===
     thinking: {
-      claude:   r.thinking?.claude   ?? DEFAULT_THINKING_CONFIGS.claude,
-      deepseek: r.thinking?.deepseek ?? DEFAULT_THINKING_CONFIGS.deepseek,
-      kimi:     r.thinking?.kimi     ?? DEFAULT_THINKING_CONFIGS.kimi,
-      minimax:  r.thinking?.minimax  ?? DEFAULT_THINKING_CONFIGS.minimax,
-      zhipu:    r.thinking?.zhipu    ?? DEFAULT_THINKING_CONFIGS.zhipu,
+      claude:   normalizeThinkingField(r.thinking?.claude,   DEFAULT_THINKING_CONFIGS.claude),
+      deepseek: normalizeThinkingField(r.thinking?.deepseek, DEFAULT_THINKING_CONFIGS.deepseek),
+      kimi:     normalizeThinkingField(r.thinking?.kimi,     DEFAULT_THINKING_CONFIGS.kimi),
+      minimax:  normalizeThinkingField(r.thinking?.minimax,  DEFAULT_THINKING_CONFIGS.minimax),
+      zhipu:    normalizeThinkingField(r.thinking?.zhipu,    DEFAULT_THINKING_CONFIGS.zhipu),
     },
   };
 }
