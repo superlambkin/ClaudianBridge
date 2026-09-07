@@ -2,12 +2,46 @@ import { Notice, Setting } from 'obsidian';
 import type { App, DataAdapter } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
-import { ALLOWED_TOKEN_RATE_INTERVALS } from '../core/settings';
+import { ALLOWED_TOKEN_RATE_INTERVALS, DEFAULT_THINKING_CONFIGS } from '../core/settings';
+import type { LocaleStrings } from '../core/i18n';
+import { THINKING_EFFORT_VALUES } from '../features/llm/types';
+import type { ThinkingEffort } from '../features/llm/types';
+import { readLlmInfoFromSettings } from '../features/quota/llm-info';
+import type { LlmProviderId } from '../features/quota/llm-info';
 import { runSelfUpdate } from '../features/self-update';
 import manifest from '../manifest.json';
 
 /** プラグインバージョン（SSOT: src/manifest.json — バンドル時に esbuild が埋め込む） */
 export const PLUGIN_VERSION: string = manifest.version;
+
+// === v0.38.0 (F-039): Think モード選択機能 ===
+
+/** Think モード設定を持つプロバイダのキー（settings.thinking のキーと一致） */
+export type ThinkProviderKey = 'claude' | 'deepseek' | 'kimi' | 'minimax' | 'zhipu';
+
+/** Think モード設定を表示するプロバイダの並び順 */
+export const THINK_PROVIDER_KEYS: readonly ThinkProviderKey[] = ['claude', 'deepseek', 'kimi', 'minimax', 'zhipu'];
+
+/** プロバイダの表示名（ロケール文字列から取得） */
+export function getThinkProviderName(s: LocaleStrings, p: ThinkProviderKey): string {
+  switch (p) {
+    case 'claude': return s.settingThinkModeProviderClaude;
+    case 'deepseek': return s.settingThinkModeProviderDeepseek;
+    case 'kimi': return s.settingThinkModeProviderKimi;
+    case 'minimax': return s.settingThinkModeProviderMiniMax;
+    case 'zhipu': return s.settingThinkModeProviderZhipu;
+  }
+}
+
+/** 検出された LLM プロバイダのラベル（unknown はそのまま表示） */
+export function getThinkProviderLabel(s: LocaleStrings, p: LlmProviderId): string {
+  return p === 'unknown' ? 'unknown' : getThinkProviderName(s, p);
+}
+
+/** 保存値が不正な effort だった場合は既定値へフォールバック（normalize は effort を検証しない） */
+function coerceEffort(v: unknown, fallback: ThinkingEffort): ThinkingEffort {
+  return THINKING_EFFORT_VALUES.includes(v as ThinkingEffort) ? (v as ThinkingEffort) : fallback;
+}
 
 export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string): void {
   const s = getLocaleStrings(getUILanguage());
@@ -270,6 +304,71 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
               draw();
             }
           }));
+    }
+
+    // === v0.38.0 (F-039): Think モード セクション ===
+    containerEl.createEl('h3', { text: s.settingThinkModeTitle });
+    containerEl.createEl('p', { text: s.settingThinkModeDescription, cls: 'setting-item-description' });
+
+    // 現在検出されている LLM プロバイダ（Claude Code settings.json の ANTHROPIC_BASE_URL から推定）
+    const llmInfo = readLlmInfoFromSettings(cfg.quota?.claudeSettingsPath);
+    containerEl.createEl('div', {
+      text: `${s.settingThinkModeCurrentProvider}: ${getThinkProviderLabel(s, llmInfo.provider)}`,
+      cls: 'setting-item-description',
+    });
+
+    for (const provider of THINK_PROVIDER_KEYS) {
+      const saved = cfg.thinking?.[provider] ?? DEFAULT_THINKING_CONFIGS[provider];
+      const enabled = saved.enabled === true;
+      const effort = coerceEffort(saved.effort, DEFAULT_THINKING_CONFIGS[provider].effort);
+
+      const details = containerEl.createEl('details', { cls: 'cb-think-provider' });
+      // 検出中のプロバイダは既定で開いておく
+      if (llmInfo.provider === provider) details.setAttribute('open', '');
+      const summary = details.createEl('summary', { cls: 'cb-think-provider__summary' });
+      summary.createEl('span', { text: getThinkProviderName(s, provider), cls: 'cb-think-provider__name' });
+      summary.createEl('span', {
+        text: enabled ? s.settingThinkModeBadgeOn : s.settingThinkModeBadgeOff,
+        cls: enabled ? 'cb-think-badge cb-think-badge--on' : 'cb-think-badge cb-think-badge--off',
+      });
+
+      // Think モード ON/OFF
+      new Setting(details)
+        .setName(s.settingThinkModeEnabled)
+        .addToggle((t) => t.setValue(enabled).onChange(async (v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, thinking: { ...latest.thinking, [provider]: { ...latest.thinking[provider], enabled: v } } });
+            new Notice(s.noticeSaved);
+            draw(); // バッジと effort ドロップダウンの有効/無効を即時反映
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        }));
+
+      // エフォート（low / medium / high、off は enabled=false 相当）
+      new Setting(details)
+        .setName(s.settingThinkModeEffort)
+        .addDropdown((d) => {
+          d.addOption('off', s.settingThinkModeEffortOff);
+          d.addOption('low', s.settingThinkModeEffortLow);
+          d.addOption('medium', s.settingThinkModeEffortMedium);
+          d.addOption('high', s.settingThinkModeEffortHigh);
+          d.setValue(effort)
+            .setDisabled(!enabled)
+            .onChange(async (v) => {
+              try {
+                const latest = store.load();
+                const next = coerceEffort(v, DEFAULT_THINKING_CONFIGS[provider].effort);
+                store.save({ ...latest, thinking: { ...latest.thinking, [provider]: { ...latest.thinking[provider], effort: next } } });
+                new Notice(s.noticeSaved);
+              } catch (e) {
+                new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+                draw();
+              }
+            });
+        });
     }
 
     containerEl.createEl('h3', { text: s.migratedFrom });
