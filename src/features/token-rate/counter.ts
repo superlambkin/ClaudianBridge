@@ -93,6 +93,8 @@ export function createTokenRateCounter(
   // 縮小窓（dTokens < 0）検出後の隔離フラグ: 次の 1 窓を baseline-only にする
   //（縮小 → 復帰の 2 窓で全文字数が一括計上される偽スパイク防止）
   let quarantine = false;
+  // 前回 tick 時点の isStreaming を保持し、true → false 遷移時に最大値をリセットする
+  let wasStreaming = false;
 
   const getAssistant = (): { el: Element | null; chars: number | null } => {
     let list = document.querySelectorAll('[data-role="assistant"].claudian-message-assistant, [data-role="assistant"]');
@@ -181,6 +183,13 @@ export function createTokenRateCounter(
     }
     state.isStreaming = now - lastChangeTime < 2500;
     el.classList.toggle('is-streaming', state.isStreaming);
+    // streaming 終了遷移（true → false）検出: 次のストリームに備えて最大値をリセット。
+    // 同一カウンターが複数ストリームを跨いで生存する場合、
+    // 過去の最大値が累積して新しいストリームの最大値と比較できなくなる問題を防止。
+    if (wasStreaming && !state.isStreaming) {
+      state.maxRate = 0;
+    }
+    wasStreaming = state.isStreaming;
     const setText = (selector: string, text: string): void => {
       const target = el.querySelector(selector);
       if (target) target.textContent = text;
@@ -219,6 +228,8 @@ export function createTokenRateCounter(
   const stop = (): void => {
     if (intervalId !== null) { clearInterval(intervalId); intervalId = null; }
     state.isStreaming = false;
+    state.maxRate = 0;
+    wasStreaming = false;
     el.classList.remove('is-streaming');
     fadeTimer = setTimeout(() => el.classList.add('is-fading'), opts.fadeOutMs);
   };
