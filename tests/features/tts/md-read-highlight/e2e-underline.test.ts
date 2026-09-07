@@ -32,8 +32,14 @@ vi.mock('obsidian', () => ({
     setMessage: mockNoticeSetMessage,
   })),
 }));
-vi.mock('../../../../src/features/llm/claude-cli', () => ({
-  runClaudePrompt: (...args: unknown[]) => (mockRunPrompt as unknown as (...a: unknown[]) => Promise<string | null>)(...args),
+vi.mock('../../../../src/features/llm/dispatch', () => ({
+  resolveLlmClient: () => ({
+    id: 'claude' as const,
+    runPrompt: (...args: unknown[]) => (mockRunPrompt as unknown as (...a: unknown[]) => Promise<string | null>)(...args),
+  }),
+}));
+vi.mock('../../../../src/features/quota/llm-info', () => ({
+  readLlmInfoFromSettings: () => ({ provider: 'claude', model: null, baseUrl: null, authTokenPresent: true }),
 }));
 vi.mock('../../../../src/features/tts/core', () => ({
   addTextToTTS: (...a: unknown[]) => (mockAddTextToTTS as unknown as (...args: unknown[]) => Promise<boolean>)(...a),
