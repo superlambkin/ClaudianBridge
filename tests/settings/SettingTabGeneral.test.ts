@@ -45,6 +45,11 @@ vi.mock('obsidian', () => {
         toggleHandlers.push(captured);
         return this;
       }
+      addText(cb: (d: unknown) => unknown) {
+        const builder = { setPlaceholder: () => builder, setValue: () => builder, onChange: () => builder };
+        cb(builder);
+        return this;
+      }
       addDropdown(cb: (d: unknown) => unknown) {
         const captured: { name: string; value: unknown; disabled: boolean | null; onChange: ((v: unknown) => void) | null } = {
           name: this._name,
@@ -115,6 +120,7 @@ function makeStore(generalOverrides: Record<string, unknown> = {}): ConfigStore 
       tokenRateShowCurrent: true,
       tokenRateShowAvg: true,
       tokenRateShowMax: true,
+      proxy: { enabled: false, url: '', noProxyHosts: 'localhost,127.0.0.1,.local' },
       ...generalOverrides,
     },
   };

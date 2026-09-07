@@ -24,6 +24,14 @@ export interface LocaleStrings {
   generalBackupEnabledDesc: string;
   // === v0.21.1: バックアップ完了時ダイアログ自動クローズ ===
   generalBackupAutoClose: string;
+  // === v0.38.0: プロキシ設定 ===
+  generalProxyHeading: string;
+  generalProxyEnabled: string;
+  generalProxyEnabledDesc: string;
+  generalProxyUrl: string;
+  generalProxyUrlDesc: string;
+  generalProxyNoProxy: string;
+  generalProxyNoProxyDesc: string;
   generalBackupAutoCloseDesc: string;
   selectionEnabled: string;
   selectionEnabledDesc: string;
@@ -393,6 +401,44 @@ export interface LocaleStrings {
   updateBackupFailed: string;
   updateDownloadFailed: string;
   updateReloadFailed: string;
+  // === v0.38.0 (F-038): 文生図（Text-to-Image）===
+  tabImageGen: string;
+  imageGenEnabled: string;
+  imageGenEnabledDesc: string;
+  imageGenProvider: string;
+  imageGenProviderDesc: string;
+  imageGenProviderMinimax: string;
+  imageGenProviderZhipu: string;
+  imageGenAspectRatio: string;
+  imageGenAspectRatioDesc: string;
+  imageGenAspectRatio_1_1: string;
+  imageGenAspectRatio_16_9: string;
+  imageGenAspectRatio_9_16: string;
+  imageGenAspectRatio_4_3: string;
+  imageGenPromptMaxChars: string;
+  imageGenPromptMaxCharsDesc: string;
+  imageGenAutoInsert: string;
+  imageGenAutoInsertDesc: string;
+  imageGenStyle: string;
+  imageGenStyleDesc: string;
+  imageGenStyleStandard: string;
+  imageGenStyleScientific: string;
+  imageGenStyleAnime: string;
+  imageGenStylePhoto: string;
+  imageGenNoticeNoKey: string;
+  imageGenNoticeExpired: string;
+  imageGenNoticeError: string;
+  imageGenNoticeSaved: string;
+  imageGenModalTitle: string;
+  imageGenModalGenerate: string;
+  imageGenModalCancel: string;
+  imageGenModalClose: string;
+  imageGenModalInsert: string;
+  imageGenModalSaveOnly: string;
+  imageGenModalPreviewEmpty: string;
+  imageGenStageSending: string;
+  imageGenStageSaving: string;
+  imageGenStageInserting: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -417,6 +463,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalBackupEnabledDesc: 'ファイル/フォルダ右クリックメニューに「バックアップ」を追加（OFF で非表示）',
     // v0.21.1
     generalBackupAutoClose: '⏱️ 完了時にダイアログを自動で閉じる',
+    generalProxyHeading: '🌐 プロキシ設定',
+    generalProxyEnabled: '🌐 プロキシ使用',
+    generalProxyEnabledDesc: '有効にすると、LLM アクセス（画像生成・残量検知）がプロキシ経由になります',
+    generalProxyUrl: '🔗 プロキシ URL',
+    generalProxyUrlDesc: '例: http://proxy.example.com:8080',
+    generalProxyNoProxy: '🚫 プロキシ除外ホスト',
+    generalProxyNoProxyDesc: 'カンマ区切り。例: localhost,127.0.0.1,.local',
     generalBackupAutoCloseDesc: 'バックアップ成功後、1.5秒後にダイアログを自動で閉じます（失敗時は閉じません）',
     selectionEnabled: '🌐 機能 ON/OFF',
     selectionEnabledDesc: '選択テキストを Claudian 入力に挿入する機能を有効化',
@@ -774,6 +827,44 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     updateBackupFailed: '❌ バックアップ作成失敗。中断します: {msg}',
     updateDownloadFailed: '❌ ダウンロード失敗。バックアップから手動復元できます: {msg}',
     updateReloadFailed: '❌ 再起動失敗。手動で復元してください: {msg}',
+    // === v0.38.0 (F-038): 文生図（Text-to-Image）===
+    tabImageGen: '🎨 文生図',
+    imageGenEnabled: '🌐 機能 ON/OFF',
+    imageGenEnabledDesc: 'リボン / コマンドパレットから画像生成を有効化します',
+    imageGenProvider: '🛠 既定プロバイダ',
+    imageGenProviderDesc: '画像生成に使用する API プロバイダ',
+    imageGenProviderMinimax: 'MiniMax (image-01)',
+    imageGenProviderZhipu: 'Zhipu (GLM-Image)',
+    imageGenAspectRatio: '📐 既定アスペクト比',
+    imageGenAspectRatioDesc: '新規生成時の既定のアスペクト比',
+    imageGenAspectRatio_1_1: '1:1（正方形）',
+    imageGenAspectRatio_16_9: '16:9（横長）',
+    imageGenAspectRatio_9_16: '9:16（縦長）',
+    imageGenAspectRatio_4_3: '4:3（標準）',
+    imageGenPromptMaxChars: '📝 プロンプト上限',
+    imageGenPromptMaxCharsDesc: 'プロンプト文字数の上限（100〜8000）',
+    imageGenAutoInsert: '📥 自動挿入',
+    imageGenAutoInsertDesc: '生成成功時にアクティブノートへ ![[ ]] を挿入',
+    imageGenStyle: '🎨 スタイル',
+    imageGenStyleDesc: 'scientific-illustrator 相当の科学イラストやアニメ調、写真リアルを選択',
+    imageGenStyleStandard: '🎨 標準（API 既定）',
+    imageGenStyleScientific: '📊 科学的イラスト（scientific-illustrator 相当）',
+    imageGenStyleAnime: '🎬 アニメ調（Studio Ghibli 風）',
+    imageGenStylePhoto: '📷 写真リアル',
+    imageGenNoticeNoKey: '⚠️ {provider} の API キーが未設定です。ClaudianBridge 設定の LLM 残量タブで設定してください',
+    imageGenNoticeExpired: '⚠️ {provider} の API キーが無効です（期限切れ）',
+    imageGenNoticeError: '⚠️ 画像生成失敗: {msg}',
+    imageGenNoticeSaved: '✅ 画像を保存しました',
+    imageGenModalTitle: '🎨 画像生成',
+    imageGenModalGenerate: '生成',
+    imageGenModalCancel: 'キャンセル',
+    imageGenModalClose: '閉じる',
+    imageGenModalInsert: 'ノートに挿入',
+    imageGenModalSaveOnly: '保存のみ',
+    imageGenModalPreviewEmpty: 'ここに生成画像が表示されます',
+    imageGenStageSending: '{provider} に送信中...',
+    imageGenStageSaving: '保存中...',
+    imageGenStageInserting: 'ノートに挿入中...',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -796,6 +887,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalBackupEnabledDesc: 'Add "Backup" to file/folder right-click menu (hide when OFF)',
     // v0.21.1
     generalBackupAutoClose: '⏱️ Auto-close dialog on completion',
+    generalProxyHeading: '🌐 Proxy settings',
+    generalProxyEnabled: '🌐 Use proxy',
+    generalProxyEnabledDesc: 'When enabled, LLM access (image generation, quota detection) goes through the proxy',
+    generalProxyUrl: '🔗 Proxy URL',
+    generalProxyUrlDesc: 'Example: http://proxy.example.com:8080',
+    generalProxyNoProxy: '🚫 Bypass hosts',
+    generalProxyNoProxyDesc: 'Comma-separated. Example: localhost,127.0.0.1,.local',
     generalBackupAutoCloseDesc: 'Automatically closes the dialog 1.5s after a successful backup (not on failure)',
     selectionEnabled: '🌐 Enable Feature',
     selectionEnabledDesc: 'Insert selected text into Claudian input',
@@ -1153,6 +1251,44 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     updateBackupFailed: '❌ Backup failed. Aborting: {msg}',
     updateDownloadFailed: '❌ Download failed. Restore manually from backup: {msg}',
     updateReloadFailed: '❌ Reload failed. Restore manually: {msg}',
+    // === v0.38.0 (F-038): Text-to-Image ===
+    tabImageGen: '🎨 Text to Image',
+    imageGenEnabled: '🌐 Enable feature',
+    imageGenEnabledDesc: 'Enable image generation from ribbon / command palette',
+    imageGenProvider: '🛠 Default provider',
+    imageGenProviderDesc: 'API provider used for image generation',
+    imageGenProviderMinimax: 'MiniMax (image-01)',
+    imageGenProviderZhipu: 'Zhipu (GLM-Image)',
+    imageGenAspectRatio: '📐 Default aspect ratio',
+    imageGenAspectRatioDesc: 'Default aspect ratio for new generations',
+    imageGenAspectRatio_1_1: '1:1 (Square)',
+    imageGenAspectRatio_16_9: '16:9 (Landscape)',
+    imageGenAspectRatio_9_16: '9:16 (Portrait)',
+    imageGenAspectRatio_4_3: '4:3 (Standard)',
+    imageGenPromptMaxChars: '📝 Prompt max chars',
+    imageGenPromptMaxCharsDesc: 'Prompt character limit (100–8000)',
+    imageGenAutoInsert: '📥 Auto insert',
+    imageGenAutoInsertDesc: 'Insert ![[ ]] into the active note after generation',
+    imageGenStyle: '🎨 Style',
+    imageGenStyleDesc: 'Select from scientific illustration (scientific-illustrator equivalent), anime, or photorealistic',
+    imageGenStyleStandard: '🎨 Standard (API default)',
+    imageGenStyleScientific: '📊 Scientific illustration (scientific-illustrator equivalent)',
+    imageGenStyleAnime: '🎬 Anime (Studio Ghibli style)',
+    imageGenStylePhoto: '📷 Photorealistic',
+    imageGenNoticeNoKey: '⚠️ {provider} API key is not configured. Please set it in the ClaudianBridge settings → LLM quota tab',
+    imageGenNoticeExpired: '⚠️ {provider} API key is invalid (expired)',
+    imageGenNoticeError: '⚠️ Image generation failed: {msg}',
+    imageGenNoticeSaved: '✅ Image saved',
+    imageGenModalTitle: '🎨 Generate Image',
+    imageGenModalGenerate: 'Generate',
+    imageGenModalCancel: 'Cancel',
+    imageGenModalClose: 'Close',
+    imageGenModalInsert: 'Insert into note',
+    imageGenModalSaveOnly: 'Save only',
+    imageGenModalPreviewEmpty: 'Generated image will appear here',
+    imageGenStageSending: 'Sending to {provider}...',
+    imageGenStageSaving: 'Saving...',
+    imageGenStageInserting: 'Inserting into note...',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -1175,6 +1311,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalBackupEnabledDesc: '在文件/文件夹右键菜单中添加"备份"（关闭时不显示）',
     // v0.21.1
     generalBackupAutoClose: '⏱️ 完成时自动关闭对话框',
+    generalProxyHeading: '🌐 代理设置',
+    generalProxyEnabled: '🌐 使用代理',
+    generalProxyEnabledDesc: '启用后,LLM 访问（图像生成、配额检测）将通过代理',
+    generalProxyUrl: '🔗 代理 URL',
+    generalProxyUrlDesc: '例如: http://proxy.example.com:8080',
+    generalProxyNoProxy: '🚫 跳过主机',
+    generalProxyNoProxyDesc: '逗号分隔。例如: localhost,127.0.0.1,.local',
     generalBackupAutoCloseDesc: '备份成功后 1.5 秒自动关闭对话框（失败时不关闭）',
     selectionEnabled: '🌐 启用功能',
     selectionEnabledDesc: '将选中文本插入 Claudian 输入框',
@@ -1532,6 +1675,44 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     updateBackupFailed: '❌ 备份创建失败，已中止: {msg}',
     updateDownloadFailed: '❌ 下载失败，可从备份手动恢复: {msg}',
     updateReloadFailed: '❌ 重启失败，请手动恢复: {msg}',
+    // === v0.38.0 (F-038): 文生图 ===
+    tabImageGen: '🎨 文生图',
+    imageGenEnabled: '🌐 启用功能',
+    imageGenEnabledDesc: '从侧栏图标 / 命令面板启用图像生成',
+    imageGenProvider: '🛠 默认提供商',
+    imageGenProviderDesc: '用于图像生成的 API 提供商',
+    imageGenProviderMinimax: 'MiniMax (image-01)',
+    imageGenProviderZhipu: 'Zhipu (GLM-Image)',
+    imageGenAspectRatio: '📐 默认宽高比',
+    imageGenAspectRatioDesc: '新生成图像的默认宽高比',
+    imageGenAspectRatio_1_1: '1:1（正方形）',
+    imageGenAspectRatio_16_9: '16:9（横版）',
+    imageGenAspectRatio_9_16: '9:16（竖版）',
+    imageGenAspectRatio_4_3: '4:3（标准）',
+    imageGenPromptMaxChars: '📝 提示词上限',
+    imageGenPromptMaxCharsDesc: '提示词字符数上限（100〜8000）',
+    imageGenAutoInsert: '📥 自动插入',
+    imageGenAutoInsertDesc: '生成成功后自动将 ![[ ]] 插入当前笔记',
+    imageGenStyle: '🎨 风格',
+    imageGenStyleDesc: '可选择 scientific-illustrator 相当的科学绘图、动漫风或照片写实',
+    imageGenStyleStandard: '🎨 标准（API 默认）',
+    imageGenStyleScientific: '📊 科学绘图（scientific-illustrator 相当）',
+    imageGenStyleAnime: '🎬 动漫风（吉卜力风格）',
+    imageGenStylePhoto: '📷 照片写实',
+    imageGenNoticeNoKey: '⚠️ {provider} 的 API 密钥未配置。请在 ClaudianBridge 设置 → LLM 配额 标签页中配置',
+    imageGenNoticeExpired: '⚠️ {provider} 的 API 密钥无效（已过期）',
+    imageGenNoticeError: '⚠️ 图像生成失败: {msg}',
+    imageGenNoticeSaved: '✅ 图像已写入',
+    imageGenModalTitle: '🎨 图像生成',
+    imageGenModalGenerate: '生成',
+    imageGenModalCancel: '取消',
+    imageGenModalClose: '关闭',
+    imageGenModalInsert: '插入笔记',
+    imageGenModalSaveOnly: '仅写入',
+    imageGenModalPreviewEmpty: '生成的图像将显示在此处',
+    imageGenStageSending: '正在发送到 {provider}...',
+    imageGenStageSaving: '正在写入...',
+    imageGenStageInserting: '正在插入笔记...',
   },
 };
 
