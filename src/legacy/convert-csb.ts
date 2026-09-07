@@ -21,6 +21,8 @@ export function convertFromClaudianSelectionBridge(raw: unknown): Partial<Claudi
       enabled: typeof r.enabled === 'boolean' ? r.enabled : true,
       folderEnabled: true,
       delayMs: typeof r.delayMs === 'number' ? r.delayMs : 300,
+      // === v0.38.0 (F-032): 旧データ移行時の既定値 ===
+      popupPosition: 'top-right',
       objectMenuEnabled: true,
       objectMenuExcludeSelectors: [...DEFAULT_OBJECT_EXCLUDE_SELECTORS],
       objectMenuTypeFlags: { button: true, input: true, link: true, element: true },

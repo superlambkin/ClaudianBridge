@@ -85,7 +85,13 @@ export async function addMdToTts(
     mdReadState.register(filePath, sections.map((s, i) => ({
       index: i, startLine: 0,
       anchor: anchorPrefix(normalizeForMatch(s.heading) || s.bodyText, 24),
-      text: s.bodyText, headingLevel: 0 as const,
+      // v0.37.2 (F-033 fix): チャンク全文（anchor + 本文）を text に含める。
+      // preview-renderer.ts は endPos = pos + full.length で末尾を決定するが、
+      // anchor が見出し・text が本文だと disjoint になり、最終チャンク
+      // （nextChunk がない）では本文の末尾+anchor.length 分が下線範囲から漏れる
+      // （チャンク 2 で「H3本文」のみで「H3本文C。」にならない症状）。
+      text: s.heading ? `${s.heading}\n${s.bodyText}` : s.bodyText,
+      headingLevel: 0 as const,
     })));
   };
 
@@ -157,6 +163,18 @@ export async function addMdToTts(
 
     // 2) ストリーミング生成。生成開始をタイトル読上げと並行させる
     const progress = new Notice('📝 原稿生成中…', 0);
+    // v0.37.2: 生成完了（onProgress X/X）時点で progress を hide する。
+    // 以前は while loop 脱出時（全セクション読上げ完了時）にしか hide されておらず、
+    // 並列実行の genOne が完了して "10/10" になっても、その後の audio 再生中は
+    // 「📝 原稿生成中 10/10」Notice が見えたままになっていた。
+    // さらに、hide 後に背景 stream が setMessage を呼ぶと Notice が再表示されるため、
+    // progressHidden フラグで setMessage/hide を冪等化する。
+    let progressHidden = false;
+    const hideProgress = (): void => {
+      if (progressHidden) return;
+      progressHidden = true;
+      try { progress.hide(); } catch { /* ignore */ }
+    };
     const genStartedAt = Date.now();
     const progressMsg = (done: number, total: number): string => {
       const sec = Math.floor((Date.now() - genStartedAt) / 1000);
@@ -167,7 +185,11 @@ export async function addMdToTts(
       return runClaudePrompt(p, { signal: session.signal, disableThinking: true });
     };
     const stream = rewriteSectionsStream(orig, profile, runFn,
-      (done, total) => { try { progress.setMessage(progressMsg(done, total)); } catch { /* ignore */ } },
+      (done, total) => {
+        if (progressHidden) return;
+        try { progress.setMessage(progressMsg(done, total)); } catch { /* ignore */ }
+        if (done === total) hideProgress();
+      },
       concurrency, session.signal);
     const firstP = stream.next();      // 生成開始（並列で後続も走る）
 
@@ -185,6 +207,10 @@ export async function addMdToTts(
       console.warn('[cb-md-read] LLM first result timeout → fallback');
       abortCurrentLlm();
       endLlmSession(session.gen);
+      // v0.37.2: catch ブロックでも progress.hide() を呼ばないと
+      // 背景 stream が走り続けて progress が "10/10" に到達しても
+      // 「📝 原稿生成中…」Notice が残ってしまう。
+      hideProgress();
       const okTimeout = await runStandard();
       if (hlEnabled) finalizeMdRead(okTimeout);
       return okTimeout;
@@ -207,7 +233,7 @@ export async function addMdToTts(
       if (!r) { ok = false; break; }
       it = await stream.next();
     }
-    try { progress.hide(); } catch { /* ignore */ }
+    hideProgress();
 
     if (ok && !isCancelled() && cache) {
       const sectionBodies = segments.map((arr) => arr.join('\n'));
