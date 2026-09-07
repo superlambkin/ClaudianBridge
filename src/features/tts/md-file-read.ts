@@ -23,6 +23,11 @@ const CALLOUT_BLOCK_RE = />\s*\[![\s\S]*?(?=\r?\n(?!\s*>)|$)/g;
 /** テーブル行（| 区切りの連続行 + 区切り行）。各行の終端は改行または行末（$）のどちらも許容 */
 const TABLE_BLOCK_RE = /^\s*\|.*\|[ \t]*(?:\r?\n|$)(?:^\s*\|[\s:|-]*\|[ \t]*(?:\r?\n|$))?(?:^\s*\|.*\|[ \t]*(?:\r?\n|$))*/gm;
 
+/** v0.38.0 (F-038): HTML <style>...</style> ブロック（CSS は読み上げ価値なし・必ず排除） */
+const STYLE_BLOCK_RE = /<style\b[^>]*>[\s\S]*?<\/style>/gi;
+/** v0.38.0 (F-038): HTML <script>...</script> ブロック（JS は読み上げ価値なし・必ず排除） */
+const SCRIPT_BLOCK_RE = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
+
 /* ============================================================================
  * v0.32.1: 記号正規化（ハッシュタグ・記号を読み上げない）
  * ========================================================================== */
@@ -77,6 +82,9 @@ export function extractMdText(md: string, filter: SpeechFilterOptions): string {
   if (!filter.code) t = t.replace(CODE_FENCE_RE, ' ');
   if (!filter.callout) t = t.replace(CALLOUT_BLOCK_RE, ' ');
   if (!filter.table) t = t.replace(TABLE_BLOCK_RE, ' ');
+  // v0.38.0 (F-038): <style>/<script> ブロックは TTS 価値なし・必ず排除
+  t = t.replace(STYLE_BLOCK_RE, ' ');
+  t = t.replace(SCRIPT_BLOCK_RE, ' ');
   // v0.32.1: ハッシュタグ・記号を読み上げない
   t = normalizeMdForSpeech(t);
   return t.trim();
