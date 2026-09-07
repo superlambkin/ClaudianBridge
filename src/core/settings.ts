@@ -52,6 +52,9 @@ export {
 } from '../features/chroma/defaults';
 import { MAX_QUERY_RESULTS, MIN_QUERY_RESULTS, MAX_PREVIEW_LENGTH, MIN_PREVIEW_LENGTH } from '../features/chroma/defaults';
 
+// === v0.38.0 (F-038): Think モード選択機能 ===
+import type { ThinkingConfig } from '../features/llm/types';
+
 // === v0.32.0: トークン速度表示の更新周期 ===
 export const ALLOWED_TOKEN_RATE_INTERVALS = [100, 250, 500, 1000, 2000] as const;
 export const DEFAULT_TOKEN_RATE_INTERVAL_MS = 250;
@@ -653,10 +656,28 @@ export interface ClaudianBridgeSettings {
   memory: MemorySettings;
   // === v0.38.0 (F-038): 文生図（Text-to-Image）===
   imageGen: ImageGenSettings;
+  // === v0.38.0 (F-038): Think モード選択機能 ===
+  /** プロバイダ別 Think モード設定 */
+  thinking: {
+    claude: ThinkingConfig;
+    deepseek: ThinkingConfig;
+    kimi: ThinkingConfig;
+    minimax: ThinkingConfig;
+    zhipu: ThinkingConfig;
+  };
 }
 
 /** v0.36.0 (F-032): 聴き手プロファイルの有効値一覧 */
 const PROFILE_VALUES = ['original', 'workplace', 'customer', 'family', 'classroom', 'boss', 'dr'] as const;
+
+// === v0.38.0 (F-038): Think モード選択機能 — プロバイダ別デフォルト ===
+export const DEFAULT_THINKING_CONFIGS = {
+  claude:  { enabled: true,  effort: 'medium' } as ThinkingConfig,
+  deepseek:{ enabled: false, effort: 'medium' } as ThinkingConfig,
+  kimi:    { enabled: false, effort: 'medium' } as ThinkingConfig,
+  minimax: { enabled: false, effort: 'medium' } as ThinkingConfig,
+  zhipu:   { enabled: false, effort: 'medium' } as ThinkingConfig,
+};
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, proxy: { ...DEFAULT_PROXY_SETTINGS } },
@@ -719,6 +740,8 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
   chroma: { ...DEFAULT_CHROMA_SETTINGS },
   memory: { ...DEFAULT_MEMORY_SETTINGS },
   imageGen: { ...DEFAULT_IMAGE_GEN_SETTINGS },
+  // === v0.38.0 (F-038): Think モード選択機能 ===
+  thinking: { ...DEFAULT_THINKING_CONFIGS },
 };
 
 export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSettings {
@@ -929,6 +952,14 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     memory: normalizeMemorySettings(r.memory),
     // === v0.38.0 (F-038): 文生図設定 ===
     imageGen: normalizeImageGenSettings(r.imageGen),
+    // === v0.38.0 (F-038): Think モード default 補完 ===
+    thinking: {
+      claude:   r.thinking?.claude   ?? DEFAULT_THINKING_CONFIGS.claude,
+      deepseek: r.thinking?.deepseek ?? DEFAULT_THINKING_CONFIGS.deepseek,
+      kimi:     r.thinking?.kimi     ?? DEFAULT_THINKING_CONFIGS.kimi,
+      minimax:  r.thinking?.minimax  ?? DEFAULT_THINKING_CONFIGS.minimax,
+      zhipu:    r.thinking?.zhipu    ?? DEFAULT_THINKING_CONFIGS.zhipu,
+    },
   };
 }
 
