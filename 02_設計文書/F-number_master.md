@@ -4,7 +4,7 @@ type: feature-master
 project_id: POC_017_ClaudianBridge
 status: stable
 created: 2026-08-29
-modified: 2026-08-30
+modified: 2026-09-07
 tags:
   - F-番号
   - マスター
@@ -22,7 +22,7 @@ applied_rules_version: 2.15.0
 
 # 📚 F-番号マスター
 
-## F-番号一覧（F001 〜 F026）
+## F-番号一覧（F001 〜 F032）
 
 | F-番号 | 機能名 | 導入 ver | 概要 | 関連 commit / 設計書 |
 |:------:|--------|:--------:|------|---------------------|
@@ -52,6 +52,14 @@ applied_rules_version: 2.15.0
 | F024 | TTS エンジン変更 | v0.27.0 | edge_tts 同梱 + cloud + 言語モード + Linux | `[[2026-08-19-tts-engine-change-local-bundle-cloud-server-language-mode]]` |
 | F025 | Thought 読上げ除外強化 | v0.27.1 | 複数クラス OR | |
 | F026 | 完了報告読上げスクリプト整形 | v0.28.0 | ✅ 完了報告を ヘッダー/結論/次のアクション提案 のサマリーのみ読み上げ（成果物・検証結果・参照文献・表は除外） | `[[2026-08-30-report-speech-script-design]]` |
+| F027 | トークン速度（tok/s）表示 | v0.30.0〜v0.32.0 | `general.tokenRateEnabled`。4 値（首/現在/平均/最大）表示・項目選択（v0.31.0）・更新周期プリセット既定 250ms（v0.32.0） | `[[2026-08-30-token-rate-display-design]]` |
+| F028 | MD 読み上げ位置ハイライト | v0.33.0 | MD「Add to TTS」本文を Preview 上でチャンク単位ハイライト + フローティングオーバーレイ | `[[2026-09-02-md-read-position-highlight-design]]` |
+| F030 | チャット内 Mermaid 自動描画 | v0.34.0 | チャットの mermaid フェンスを MarkdownRenderer で自動図化 + `</>` 切替 | `[[13_Mermaidチャット内自動描画設計]]` |
+| F031 | MD 読み上げ再生制御強化 | v0.35.0〜v0.35.1 | PlaybackController（⏸/⏭ 実働）・自然分割・Edge 先行変換・色パレット・自動スクロール | `[[14_MD読み上げ再生制御強化設計]]` |
+| F032 | 選択ポップアップ位置設定 | v0.38.0 | `selection.popupPosition: 'top-right' \| 'bottom'` 新設（既定 `top-right`）・`positionPopup` に第3引数 `mode`・ビューポート端のクランプ/反転両モード共通・既存ユーザー可視挙動変更（下 → 右上、設定で `bottom` に戻せる）・i18n ja/en/zh | `[[17_選択ポップアップ位置設定設計]]` |
+| F038 | 文生図機能（Text-to-Image） | v0.38.0 | MiniMax image-01 / Zhipu GLM-Image の 2 プロバイダ対応・モーダル UI・`output/Assets/` 固定保存・アクティブノートへ `![[]]` 挿入・i18n ja/en/zh・既存 quota の API キーを流用 | `[[18_文生図機能設計]]` |
+
+> 💡 **F029 は未使用（欠番）**。CHANGELOG・リリースノートに割当が存在しないため、欠番のまま管理する。
 
 ## 付与規約
 
@@ -73,4 +81,4 @@ graph LR
 
 ---
 
-*📚 F-番号マスター v1.0.0 · Claudian Bridge · MiuMiu 🐾 · 2026-08-29*
+*📚 F-番号マスター v1.2.0 · Claudian Bridge · MiuMiu 🐾 · 2026-09-07 As-Built v0.38.0 対応（F-032 retroactive）*
