@@ -53,7 +53,7 @@ export {
 import { MAX_QUERY_RESULTS, MIN_QUERY_RESULTS, MAX_PREVIEW_LENGTH, MIN_PREVIEW_LENGTH } from '../features/chroma/defaults';
 
 // === v0.38.0 (F-038): Think モード選択機能 ===
-import type { ThinkingConfig } from '../features/llm/types';
+import type { ThinkingConfig, ThinkingEffort } from '../features/llm/types';
 
 // === v0.32.0: トークン速度表示の更新周期 ===
 export const ALLOWED_TOKEN_RATE_INTERVALS = [100, 250, 500, 1000, 2000] as const;
@@ -694,9 +694,10 @@ function normalizeThinkingField(
   fallback: ThinkingConfig,
 ): ThinkingConfig {
   if (!raw) return fallback;
+  const effort: ThinkingEffort = isValidEffort(raw.effort) ? raw.effort : fallback.effort;
   return {
     enabled: typeof raw.enabled === 'boolean' ? raw.enabled : fallback.enabled,
-    effort: isValidEffort(raw.effort) ? raw.effort : fallback.effort,
+    effort,
   };
 }
 
