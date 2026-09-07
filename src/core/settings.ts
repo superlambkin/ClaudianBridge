@@ -485,6 +485,36 @@ export const IMAGE_GEN_PROMPT_MAX_CHARS_MIN = 100;
 export const IMAGE_GEN_PROMPT_MAX_CHARS_MAX = 8000;
 export const IMAGE_GEN_PROMPT_MAX_CHARS_DEFAULT = 2000;
 
+// === v0.38.0: プロキシ設定（LLM アクセス用） ===
+export interface ProxySettings {
+  /** プロキシ使用の ON/OFF（既定 false） */
+  enabled: boolean;
+  /** プロキシ URL（例: "http://proxy.example.com:8080"） */
+  url: string;
+  /** プロキシ除外ホスト（カンマ区切り、例: "localhost,127.0.0.1,.local"） */
+  noProxyHosts: string;
+}
+
+export const DEFAULT_PROXY_SETTINGS: ProxySettings = {
+  enabled: false,
+  url: '',
+  noProxyHosts: 'localhost,127.0.0.1,.local',
+};
+
+export const PROXY_URL_MAX_LEN = 500;
+export const PROXY_NO_PROXY_MAX_LEN = 1000;
+
+export function normalizeProxySettings(raw: unknown): ProxySettings {
+  const r = (raw ?? {}) as Partial<ProxySettings>;
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_PROXY_SETTINGS.enabled,
+    url: typeof r.url === 'string' ? r.url.slice(0, PROXY_URL_MAX_LEN) : DEFAULT_PROXY_SETTINGS.url,
+    noProxyHosts: typeof r.noProxyHosts === 'string'
+      ? r.noProxyHosts.slice(0, PROXY_NO_PROXY_MAX_LEN)
+      : DEFAULT_PROXY_SETTINGS.noProxyHosts,
+  };
+}
+
 export interface ImageGenSettings {
   /** 機能全体の ON/OFF（既定 true） */
   enabled: boolean;
@@ -558,6 +588,8 @@ export interface ClaudianBridgeSettings {
     tokenRateShowMax: boolean;
     // === v0.32.0: トークン速度表示の更新周期 ===
     tokenRateIntervalMs: number;
+    // === v0.38.0: プロキシ設定（LLM アクセス用） ===
+    proxy: ProxySettings;
   };
   quota: QuotaSettings;
   selection: {
@@ -627,7 +659,7 @@ export interface ClaudianBridgeSettings {
 const PROFILE_VALUES = ['original', 'workplace', 'customer', 'family', 'classroom', 'boss', 'dr'] as const;
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, proxy: { ...DEFAULT_PROXY_SETTINGS } },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
@@ -743,6 +775,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
           ? (raw as TokenRateIntervalMs)
           : DEFAULT_TOKEN_RATE_INTERVAL_MS;
       })(),
+      // v0.38.0: プロキシ設定
+      proxy: normalizeProxySettings(r.general?.proxy),
     },
     quota: {
       claudeSettingsPath: typeof r.quota?.claudeSettingsPath === 'string' && r.quota.claudeSettingsPath.trim() !== ''
@@ -1057,6 +1091,11 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.general.tokenRateShowAvg !== 'boolean') return 'general.tokenRateShowAvg は boolean である必要があります';
   if (typeof cfg.general.tokenRateShowMax !== 'boolean') return 'general.tokenRateShowMax は boolean である必要があります';
   if (!ALLOWED_TOKEN_RATE_INTERVALS.includes(cfg.general.tokenRateIntervalMs as TokenRateIntervalMs)) return `general.tokenRateIntervalMs は ${ALLOWED_TOKEN_RATE_INTERVALS.join(' / ')} のいずれかである必要があります`;
+  if (cfg.general.proxy === undefined || cfg.general.proxy === null) return 'general.proxy は必須オブジェクトです';
+  if (typeof cfg.general.proxy.enabled !== 'boolean') return 'general.proxy.enabled は boolean である必要があります';
+  if (typeof cfg.general.proxy.url !== 'string') return 'general.proxy.url は string である必要があります';
+  if (typeof cfg.general.proxy.noProxyHosts !== 'string') return 'general.proxy.noProxyHosts は string である必要があります';
+  if (cfg.general.proxy.enabled && !cfg.general.proxy.url) return 'general.proxy.enabled=true のとき url は必須です';
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';

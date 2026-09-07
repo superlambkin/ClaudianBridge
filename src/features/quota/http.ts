@@ -37,11 +37,27 @@ function getRequestUrl(): RequestUrlLike | null {
   return cachedRequestUrl;
 }
 
+/** v0.38.0: プロセス env に HTTPS_PROXY がセットされていれば自動的に fetch フォールバック */
+function hasProxyEnv(): boolean {
+  return Boolean(process.env.HTTPS_PROXY || process.env.HTTP_PROXY);
+}
+
+/** v0.38.0: プロキシ有効時は requestUrl をスキップして fetch フォールバックに強制 */
+export interface HttpGetOptions {
+  /** true のとき Obsidian requestUrl をスキップ（プロキシ経由で fetch を使う用途） */
+  forceFetch?: boolean;
+}
+
 /**
  * GET リクエストを実行。Obsidian では requestUrl、それ以外では fetch を使用。
+ * forceFetch=true または HTTPS_PROXY 環境変数がセットされているときは必ず fetch を使う。
  */
-export async function httpGet(url: string, headers: Record<string, string>): Promise<HttpResponse> {
-  const ru = getRequestUrl();
+export async function httpGet(
+  url: string,
+  headers: Record<string, string>,
+  options?: HttpGetOptions,
+): Promise<HttpResponse> {
+  const ru = (options?.forceFetch || hasProxyEnv()) ? null : getRequestUrl();
   if (ru) {
     const res = await ru({ url, method: 'GET', headers });
     const ok = res.status >= 200 && res.status < 300;

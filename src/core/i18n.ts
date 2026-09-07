@@ -24,6 +24,14 @@ export interface LocaleStrings {
   generalBackupEnabledDesc: string;
   // === v0.21.1: バックアップ完了時ダイアログ自動クローズ ===
   generalBackupAutoClose: string;
+  // === v0.38.0: プロキシ設定 ===
+  generalProxyHeading: string;
+  generalProxyEnabled: string;
+  generalProxyEnabledDesc: string;
+  generalProxyUrl: string;
+  generalProxyUrlDesc: string;
+  generalProxyNoProxy: string;
+  generalProxyNoProxyDesc: string;
   generalBackupAutoCloseDesc: string;
   selectionEnabled: string;
   selectionEnabledDesc: string;
@@ -455,6 +463,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalBackupEnabledDesc: 'ファイル/フォルダ右クリックメニューに「バックアップ」を追加（OFF で非表示）',
     // v0.21.1
     generalBackupAutoClose: '⏱️ 完了時にダイアログを自動で閉じる',
+    generalProxyHeading: '🌐 プロキシ設定',
+    generalProxyEnabled: '🌐 プロキシ使用',
+    generalProxyEnabledDesc: '有効にすると、LLM アクセス（画像生成・残量検知）がプロキシ経由になります',
+    generalProxyUrl: '🔗 プロキシ URL',
+    generalProxyUrlDesc: '例: http://proxy.example.com:8080',
+    generalProxyNoProxy: '🚫 プロキシ除外ホスト',
+    generalProxyNoProxyDesc: 'カンマ区切り。例: localhost,127.0.0.1,.local',
     generalBackupAutoCloseDesc: 'バックアップ成功後、1.5秒後にダイアログを自動で閉じます（失敗時は閉じません）',
     selectionEnabled: '🌐 機能 ON/OFF',
     selectionEnabledDesc: '選択テキストを Claudian 入力に挿入する機能を有効化',
@@ -872,6 +887,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalBackupEnabledDesc: 'Add "Backup" to file/folder right-click menu (hide when OFF)',
     // v0.21.1
     generalBackupAutoClose: '⏱️ Auto-close dialog on completion',
+    generalProxyHeading: '🌐 Proxy settings',
+    generalProxyEnabled: '🌐 Use proxy',
+    generalProxyEnabledDesc: 'When enabled, LLM access (image generation, quota detection) goes through the proxy',
+    generalProxyUrl: '🔗 Proxy URL',
+    generalProxyUrlDesc: 'Example: http://proxy.example.com:8080',
+    generalProxyNoProxy: '🚫 Bypass hosts',
+    generalProxyNoProxyDesc: 'Comma-separated. Example: localhost,127.0.0.1,.local',
     generalBackupAutoCloseDesc: 'Automatically closes the dialog 1.5s after a successful backup (not on failure)',
     selectionEnabled: '🌐 Enable Feature',
     selectionEnabledDesc: 'Insert selected text into Claudian input',
@@ -1289,6 +1311,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalBackupEnabledDesc: '在文件/文件夹右键菜单中添加"备份"（关闭时不显示）',
     // v0.21.1
     generalBackupAutoClose: '⏱️ 完成时自动关闭对话框',
+    generalProxyHeading: '🌐 代理设置',
+    generalProxyEnabled: '🌐 使用代理',
+    generalProxyEnabledDesc: '启用后,LLM 访问（图像生成、配额检测）将通过代理',
+    generalProxyUrl: '🔗 代理 URL',
+    generalProxyUrlDesc: '例如: http://proxy.example.com:8080',
+    generalProxyNoProxy: '🚫 跳过主机',
+    generalProxyNoProxyDesc: '逗号分隔。例如: localhost,127.0.0.1,.local',
     generalBackupAutoCloseDesc: '备份成功后 1.5 秒自动关闭对话框（失败时不关闭）',
     selectionEnabled: '🌐 启用功能',
     selectionEnabledDesc: '将选中文本插入 Claudian 输入框',
