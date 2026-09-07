@@ -68,7 +68,9 @@ export function parseSections(rawContent: string): MdSection[] {
 export function buildRewritePrompt(section: MdSection, profile: ProfileId): string {
   const lines = [
     `あなたは技術文書を「${profile}」向けの読み上げ原稿に書き換えるアシスタントです。`,
-    '- 口頭で自然に読める形にする（記号・コード・表は言葉で説明 or 省略）',
+    '- 口頭で自然に読める形にする（記号・コード・絵文字は省略）',
+    // v0.37.2 (追加要件): 表は見出し行を含め、読み上げない（口頭では分かりにくい）
+    '- 表は**読み上げない**（Markdown 表のヘッダー行・データ行ともに省略する。表の中身は本文で言及しないこと）',
     profileInstruction(profile),
     '- 出力は元の言語で。見出し・装飾・前置きは不要。',
     // v0.37.1 (新要件): 全 profile でです・ます調に統一

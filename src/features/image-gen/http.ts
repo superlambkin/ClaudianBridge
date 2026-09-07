@@ -1,10 +1,12 @@
 /**
- * CORS を回避する HTTP GET ヘルパー。
+ * CORS を回避する HTTP POST (JSON body) ヘルパー。
  *
- * Obsidian レンダラーではブラウザの fetch が CORS を強制するため、
- * api.kimi.com 等は Authorization ヘッダーのプリフライト (OPTIONS) で 404 を返し失敗する。
- * Obsidian の requestUrl (メインプロセス経由) なら CORS 制約を受けない。
+ * Obsidian レンダラーではブラウザ fetch が CORS を強制するため、Authorization
+ * ヘッダーのプリフライト (OPTIONS) で失敗する API もある。Obsidian の
+ * requestUrl は main プロセス経由なので CORS 制約を受けない。
  * Node/テスト環境では fetch にフォールバックする。
+ *
+ * 設計は src/features/quota/http.ts (httpGet) を踏襲。
  */
 
 export interface HttpResponse {
@@ -17,6 +19,8 @@ type RequestUrlLike = (opts: {
   url: string;
   method: string;
   headers: Record<string, string>;
+  body?: string;
+  throw?: boolean;
 }) => Promise<{ status: number; json?: unknown; text?: string; arrayBuffer?: ArrayBuffer }>;
 
 function resolveObsidianRequestUrl(): RequestUrlLike | null {
@@ -30,7 +34,6 @@ function resolveObsidianRequestUrl(): RequestUrlLike | null {
   return null;
 }
 
-/** requestUrl を遅延解決（初回呼び出し時に確定） */
 let cachedRequestUrl: RequestUrlLike | null | undefined;
 function getRequestUrl(): RequestUrlLike | null {
   if (cachedRequestUrl === undefined) cachedRequestUrl = resolveObsidianRequestUrl();
@@ -43,37 +46,53 @@ function hasProxyEnv(): boolean {
 }
 
 /** v0.38.0: プロキシ有効時は requestUrl をスキップして fetch フォールバックに強制 */
-export interface HttpGetOptions {
-  /** true のとき Obsidian requestUrl をスキップ（プロキシ経由で fetch を使う用途） */
+export interface HttpPostJsonOptions {
   forceFetch?: boolean;
+  signal?: AbortSignal;
 }
 
 /**
- * GET リクエストを実行。Obsidian では requestUrl、それ以外では fetch を使用。
+ * POST リクエスト（JSON body）を実行。
+ * Obsidian 環境では requestUrl、それ以外では fetch を使用。
  * forceFetch=true または HTTPS_PROXY 環境変数がセットされているときは必ず fetch を使う。
  */
-export async function httpGet(
+export async function httpPostJson(
   url: string,
   headers: Record<string, string>,
-  options?: HttpGetOptions,
+  body: unknown,
+  optionsOrSignal?: HttpPostJsonOptions | AbortSignal,
 ): Promise<HttpResponse> {
+  // 後方互換: 第4引数が AbortSignal の場合も受け付ける
+  const options: HttpPostJsonOptions | undefined =
+    optionsOrSignal instanceof AbortSignal
+      ? { signal: optionsOrSignal }
+      : optionsOrSignal;
+  const jsonBody = JSON.stringify(body);
+  const mergedHeaders: Record<string, string> = { 'Content-Type': 'application/json', ...headers };
+
   const ru = (options?.forceFetch || hasProxyEnv()) ? null : getRequestUrl();
   if (ru) {
-    const res = await ru({ url, method: 'GET', headers });
+    const res = await ru({ url, method: 'POST', headers: mergedHeaders, body: jsonBody });
     const ok = res.status >= 200 && res.status < 300;
     return {
       status: res.status,
       ok,
       async json() {
-        // requestUrl は json をパース済みで返す
         if (res.json !== undefined) return res.json;
         const text = res.text ?? '';
         return JSON.parse(text);
       },
     };
   }
-  // フォールバック: グローバル fetch（Node / テスト / 非 Obsidian）
-  const res = await fetch(url, { headers });
+
+  // フォールバック: グローバル fetch (Node / テスト / 非 Obsidian)
+  const signal = options?.signal;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: mergedHeaders,
+    body: jsonBody,
+    ...(signal ? { signal } : {}),
+  });
   return {
     status: res.status,
     ok: res.ok,
