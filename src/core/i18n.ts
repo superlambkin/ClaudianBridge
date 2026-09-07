@@ -411,6 +411,12 @@ export interface LocaleStrings {
   imageGenPromptMaxCharsDesc: string;
   imageGenAutoInsert: string;
   imageGenAutoInsertDesc: string;
+  imageGenStyle: string;
+  imageGenStyleDesc: string;
+  imageGenStyleStandard: string;
+  imageGenStyleScientific: string;
+  imageGenStyleAnime: string;
+  imageGenStylePhoto: string;
   imageGenNoticeNoKey: string;
   imageGenNoticeExpired: string;
   imageGenNoticeError: string;
@@ -824,6 +830,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     imageGenPromptMaxCharsDesc: 'プロンプト文字数の上限（100〜8000）',
     imageGenAutoInsert: '📥 自動挿入',
     imageGenAutoInsertDesc: '生成成功時にアクティブノートへ ![[ ]] を挿入',
+    imageGenStyle: '🎨 スタイル',
+    imageGenStyleDesc: 'scientific-illustrator 相当の科学イラストやアニメ調、写真リアルを選択',
+    imageGenStyleStandard: '🎨 標準（API 既定）',
+    imageGenStyleScientific: '📊 科学的イラスト（scientific-illustrator 相当）',
+    imageGenStyleAnime: '🎬 アニメ調（Studio Ghibli 風）',
+    imageGenStylePhoto: '📷 写真リアル',
     imageGenNoticeNoKey: '⚠️ {provider} の API キーが未設定です。ClaudianBridge 設定の LLM 残量タブで設定してください',
     imageGenNoticeExpired: '⚠️ {provider} の API キーが無効です（期限切れ）',
     imageGenNoticeError: '⚠️ 画像生成失敗: {msg}',
@@ -1235,6 +1247,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     imageGenPromptMaxCharsDesc: 'Prompt character limit (100–8000)',
     imageGenAutoInsert: '📥 Auto insert',
     imageGenAutoInsertDesc: 'Insert ![[ ]] into the active note after generation',
+    imageGenStyle: '🎨 Style',
+    imageGenStyleDesc: 'Select from scientific illustration (scientific-illustrator equivalent), anime, or photorealistic',
+    imageGenStyleStandard: '🎨 Standard (API default)',
+    imageGenStyleScientific: '📊 Scientific illustration (scientific-illustrator equivalent)',
+    imageGenStyleAnime: '🎬 Anime (Studio Ghibli style)',
+    imageGenStylePhoto: '📷 Photorealistic',
     imageGenNoticeNoKey: '⚠️ {provider} API key is not configured. Please set it in the ClaudianBridge settings → LLM quota tab',
     imageGenNoticeExpired: '⚠️ {provider} API key is invalid (expired)',
     imageGenNoticeError: '⚠️ Image generation failed: {msg}',
@@ -1646,6 +1664,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     imageGenPromptMaxCharsDesc: '提示词字符数上限（100〜8000）',
     imageGenAutoInsert: '📥 自动插入',
     imageGenAutoInsertDesc: '生成成功后自动将 ![[ ]] 插入当前笔记',
+    imageGenStyle: '🎨 风格',
+    imageGenStyleDesc: '可选择 scientific-illustrator 相当的科学绘图、动漫风或照片写实',
+    imageGenStyleStandard: '🎨 标准（API 默认）',
+    imageGenStyleScientific: '📊 科学绘图（scientific-illustrator 相当）',
+    imageGenStyleAnime: '🎬 动漫风（吉卜力风格）',
+    imageGenStylePhoto: '📷 照片写实',
     imageGenNoticeNoKey: '⚠️ {provider} 的 API 密钥未配置。请在 ClaudianBridge 设置 → LLM 配额 标签页中配置',
     imageGenNoticeExpired: '⚠️ {provider} 的 API 密钥无效（已过期）',
     imageGenNoticeError: '⚠️ 图像生成失败: {msg}',

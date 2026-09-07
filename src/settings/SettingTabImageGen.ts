@@ -2,7 +2,9 @@ import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
-import type { ImageGenAspectRatio, ImageGenProviderId } from '../core/settings';
+import { IMAGE_GEN_STYLES } from '../core/settings';
+import type { ImageGenAspectRatio, ImageGenProviderId, ImageGenStyle } from '../core/settings';
+import { getStyleLabelKey } from '../features/image-gen/style-prompts';
 
 /**
  * v0.38.0 (F-038): 文生図機能の設定タブ。
@@ -99,6 +101,24 @@ export function renderImageGenTab(app: App, containerEl: HTMLElement, store: Con
           draw();
         }
       }));
+
+    new Setting(containerEl)
+      .setName(s.imageGenStyle)
+      .setDesc(s.imageGenStyleDesc)
+      .addDropdown((d) => {
+        for (const style of IMAGE_GEN_STYLES) {
+          d.addOption(style, s[getStyleLabelKey(style) as keyof typeof s] as string);
+        }
+        d.setValue(cfg.imageGen.style).onChange((v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, imageGen: { ...latest.imageGen, style: v as ImageGenStyle } });
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        });
+      });
   };
 
   draw();

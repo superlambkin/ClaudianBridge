@@ -111,12 +111,12 @@ describe('SettingTabImageGen', () => {
     textHandlers.length = 0;
   });
 
-  it('renders h2 + 5 settings (2 toggles, 2 dropdowns, 1 text)', () => {
+  it('renders h2 + 6 settings (2 toggles, 3 dropdowns, 1 text)', () => {
     renderImageGenTab({} as any, containerEl, store);
     const h2 = containerEl.querySelector('h2');
     expect(h2?.textContent).toContain('文生図');
     expect(toggleHandlers.length).toBe(2);
-    expect(dropdownHandlers.length).toBe(2);
+    expect(dropdownHandlers.length).toBe(3);
     expect(textHandlers.length).toBe(1);
   });
 

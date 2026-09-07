@@ -477,8 +477,10 @@ export interface MdReadHighlightSettings {
 // === v0.38.0 (F-038): 文生図（Text-to-Image）設定 ===
 export type ImageGenProviderId = 'minimax' | 'zhipu';
 export type ImageGenAspectRatio = '1:1' | '16:9' | '9:16' | '4:3';
+export type ImageGenStyle = 'standard' | 'scientific' | 'anime' | 'photo';
 export const IMAGE_GEN_PROVIDER_IDS: readonly ImageGenProviderId[] = ['minimax', 'zhipu'];
 export const IMAGE_GEN_ASPECT_RATIOS: readonly ImageGenAspectRatio[] = ['1:1', '16:9', '9:16', '4:3'];
+export const IMAGE_GEN_STYLES: readonly ImageGenStyle[] = ['standard', 'scientific', 'anime', 'photo'];
 export const IMAGE_GEN_PROMPT_MAX_CHARS_MIN = 100;
 export const IMAGE_GEN_PROMPT_MAX_CHARS_MAX = 8000;
 export const IMAGE_GEN_PROMPT_MAX_CHARS_DEFAULT = 2000;
@@ -494,6 +496,8 @@ export interface ImageGenSettings {
   promptMaxChars: number;
   /** 成功時に Vault ノートへ自動挿入するか（既定 true） */
   autoInsertToActive: boolean;
+  /** 画像スタイル（既定 'standard'）。`scientific-illustrator` スキル相当のスタイルも選択可能 */
+  style: ImageGenStyle;
 }
 
 export const DEFAULT_IMAGE_GEN_SETTINGS: ImageGenSettings = {
@@ -502,6 +506,7 @@ export const DEFAULT_IMAGE_GEN_SETTINGS: ImageGenSettings = {
   aspectRatio: '1:1',
   promptMaxChars: IMAGE_GEN_PROMPT_MAX_CHARS_DEFAULT,
   autoInsertToActive: true,
+  style: 'standard',
 };
 
 export function normalizeImageGenSettings(raw: unknown): ImageGenSettings {
@@ -518,6 +523,9 @@ export function normalizeImageGenSettings(raw: unknown): ImageGenSettings {
     autoInsertToActive: typeof r.autoInsertToActive === 'boolean'
       ? r.autoInsertToActive
       : DEFAULT_IMAGE_GEN_SETTINGS.autoInsertToActive,
+    style: IMAGE_GEN_STYLES.includes(r.style as ImageGenStyle)
+      ? (r.style as ImageGenStyle)
+      : DEFAULT_IMAGE_GEN_SETTINGS.style,
   };
 }
 
@@ -1145,6 +1153,7 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.imageGen.enabled !== 'boolean') return 'imageGen.enabled は boolean である必要があります';
   if (!IMAGE_GEN_PROVIDER_IDS.includes(cfg.imageGen.provider)) return `imageGen.provider は ${IMAGE_GEN_PROVIDER_IDS.join(' / ')} のいずれかである必要があります`;
   if (!IMAGE_GEN_ASPECT_RATIOS.includes(cfg.imageGen.aspectRatio)) return `imageGen.aspectRatio は ${IMAGE_GEN_ASPECT_RATIOS.join(' / ')} のいずれかである必要があります`;
+  if (!IMAGE_GEN_STYLES.includes(cfg.imageGen.style)) return `imageGen.style は ${IMAGE_GEN_STYLES.join(' / ')} のいずれかである必要があります`;
   if (typeof cfg.imageGen.promptMaxChars !== 'number' || !Number.isFinite(cfg.imageGen.promptMaxChars)) return 'imageGen.promptMaxChars は数値である必要があります';
   if (typeof cfg.imageGen.autoInsertToActive !== 'boolean') return 'imageGen.autoInsertToActive は boolean である必要があります';
   return null;
