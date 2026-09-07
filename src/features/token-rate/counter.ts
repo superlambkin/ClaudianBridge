@@ -135,6 +135,11 @@ export function createTokenRateCounter(
     }
     lastAssistantEl = assistantEl;
     const tokens = chars !== null ? chars / opts.charPerToken : state.lastTokens;
+    // avgRate ゲート用: assistant 分岐の前で前 tick 末の state.lastTokens を参照し
+    // 「この tick で新規コンテンツが増えたか」を判定する。dTokens > 0 = streaming 中、
+    // dTokens = 0 = streaming 停止/アイドル。停止後は elapsed だけ増えて avgRate が
+    // shrink して 0 に近づく現象を防止し、最終的な平均値で凍結する（v0.38.3）。
+    const dTokensForAvg = chars !== null ? tokens - state.lastTokens : 0;
     if (state.startTime === null) {
       state.startTime = now;
       state.startChars = chars ?? 0;
@@ -175,8 +180,16 @@ export function createTokenRateCounter(
     }
     state.currentChars = chars ?? state.currentChars;
     // 平均 = 累積トークン / 経過秒
-    const elapsed = state.startTime !== null ? (now - state.startTime) / 1000 : 0;
-    state.avgRate = elapsed > 0 ? tokens / elapsed : 0;
+    // 新規コンテンツ増加中（dTokensForAvg > 0）のときのみ更新。
+    // コンテンツ増加が止まった tick（dTokensForAvg = 0）以降は elapsed だけ増えて
+    // avgRate が shrink して 0 に近づく現象を防止し、最終的な平均値で凍結する。
+    // wasStreaming ゲート（v0.38.3 初回実装）と異なり MutationObserver への依存が
+    // ないため、jsdom + fake timers で MO コールバックが遅延するテスト環境でも
+    // 安定して動作する。
+    if (chars !== null && dTokensForAvg > 0 && state.startTime !== null) {
+      const elapsed = (now - state.startTime) / 1000;
+      state.avgRate = elapsed > 0 ? tokens / elapsed : 0;
+    }
     // TTFT = サイクル開始（ユーザー送信）から最初のアシスタントコンテンツまで
     if (state.ttftMs === null && cycleStartTime !== null && assistantEl !== null && (chars ?? 0) > 0) {
       state.ttftMs = Math.max(0, now - cycleStartTime);

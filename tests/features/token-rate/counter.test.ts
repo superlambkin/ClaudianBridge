@@ -393,4 +393,33 @@ describe('createTokenRateCounter', () => {
     vi.useRealTimers();
     c.destroy();
   });
+
+  // 機能追加: ユーザー要望 — streaming 終了後に avgRate を凍結（更新しない）
+  // 旧実装: streaming 終了後も tick が継続 → elapsed だけ増えて avgRate が shrink して 0 に近づく
+  // 修正後: 前回 tick で streaming 中だった場合のみ avgRate を更新し、
+  //        isStreaming = false 後は最終値で凍結
+  it('streaming 終了後に avgRate が凍結される（elapsed shrink しない）', () => {
+    vi.useFakeTimers();
+    const c = createTokenRateCounter(container, { intervalMs: 250, charPerToken: 3 });
+    c.start();
+    const asst = document.createElement('div');
+    asst.setAttribute('data-role', 'assistant');
+    document.body.appendChild(asst);
+    asst.textContent = 'A'.repeat(60);
+    vi.advanceTimersByTime(250); // ベースライン
+    asst.textContent = 'A'.repeat(120);
+    vi.advanceTimersByTime(250); // rate = 80 tok/s, avgRate > 0
+    const avgDuringStream = c.getState().avgRate;
+    expect(avgDuringStream).toBeGreaterThan(0);
+    // streaming 終了: DOM 変化停止 + 2.5 秒経過
+    vi.advanceTimersByTime(3000);
+    // isStreaming が false になった瞬間の avgRate を捕捉（凍結値）
+    const avgAtFreeze = c.getState().avgRate;
+    expect(avgAtFreeze).toBeGreaterThan(0);
+    // さらに時間経過: avgRate は凍結されたまま（shrink しない）
+    vi.advanceTimersByTime(5000);
+    expect(c.getState().avgRate).toBe(avgAtFreeze);
+    vi.useRealTimers();
+    c.destroy();
+  });
 });
