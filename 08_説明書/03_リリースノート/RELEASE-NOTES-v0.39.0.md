@@ -1,4 +1,4 @@
-# v0.38.0 — Think モード選択機能 (F-039)
+# v0.39.0 — Think モード選択機能 (F-039)
 
 ## ✨ Highlights
 
@@ -6,7 +6,7 @@
 - `LlmClient` インターフェース抽象化により将来の chat 系 API 呼び出しも同インターフェースで実装可能
 - quota ステータスバーに 🧠 ON/OFF バッジを追加
 
-## 📦 v0.38.0（2026-09-08）— Think モード選択機能（F-039）
+## 📦 v0.39.0（2026-09-08）— Think モード選択機能（F-039）
 
 ### Added
 
@@ -36,8 +36,8 @@
 
 ## ⚠️ 既知の制限
 
-- 初回リリース（v0.38.0）は Claude のみ動作。他プロバイダ（DeepSeek / Zhipu / MiniMax / Kimi）は v0.39.0 で実装予定
-- MiniMax / Zhipu / Kimi の `reasoning_effort` パラメータサポートは v0.39.0 実装時に検証
+- 初回リリース（v0.39.0）は Claude のみ動作。他プロバイダ（DeepSeek / Zhipu / MiniMax / Kimi）は v0.40.0 で実装予定
+- MiniMax / Zhipu / Kimi の `reasoning_effort` パラメータサポートは v0.40.0 実装時に検証
 - 既存 `disableThinking` オプションは deprecated（次メジャーで削除予定）
 
 ## 🔄 互換性
