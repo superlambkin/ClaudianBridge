@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ALLOWED_TOKEN_RATE_INTERVALS, DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, DEFAULT_TOKEN_RATE_INTERVAL_MS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState, TTS_LANGUAGE_MODES, DEFAULT_TTS_EDGE_CLOUD, normalizeTtsSettings, TtsLanguageMode } from '../../src/core/settings';
+import { ALLOWED_TOKEN_RATE_INTERVALS, DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, DEFAULT_TOKEN_RATE_INTERVAL_MS, DEFAULT_THINKING_CONFIGS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState, TTS_LANGUAGE_MODES, DEFAULT_TTS_EDGE_CLOUD, normalizeTtsSettings, TtsLanguageMode } from '../../src/core/settings';
 
 describe('settings', () => {
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS は全フィールドを持つ', () => {
@@ -1081,5 +1081,51 @@ describe('tts.llmRewriteConcurrency (v0.37.1)', () => {
   });
   it('設定値は尊重（1〜8）', () => {
     expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteConcurrency: 4 } }).tts.llmRewriteConcurrency).toBe(4);
+  });
+});
+
+describe('Think モード default (v0.38.0 F-038)', () => {
+  it('thinking 欠落時に 5 プロバイダ分 default が補完される', () => {
+    const result = normalizeClaudianBridgeSettings({});
+    expect(result.thinking.claude).toEqual(DEFAULT_THINKING_CONFIGS.claude);
+    expect(result.thinking.deepseek).toEqual(DEFAULT_THINKING_CONFIGS.deepseek);
+    expect(result.thinking.kimi).toEqual(DEFAULT_THINKING_CONFIGS.kimi);
+    expect(result.thinking.minimax).toEqual(DEFAULT_THINKING_CONFIGS.minimax);
+    expect(result.thinking.zhipu).toEqual(DEFAULT_THINKING_CONFIGS.zhipu);
+  });
+
+  it('Claude だけ enabled=true、他は enabled=false', () => {
+    const result = normalizeClaudianBridgeSettings({});
+    expect(result.thinking.claude.enabled).toBe(true);
+    expect(result.thinking.deepseek.enabled).toBe(false);
+    expect(result.thinking.kimi.enabled).toBe(false);
+    expect(result.thinking.minimax.enabled).toBe(false);
+    expect(result.thinking.zhipu.enabled).toBe(false);
+  });
+
+  it('既存ユーザーの thinking 設定はそのまま保持される', () => {
+    const result = normalizeClaudianBridgeSettings({
+      thinking: {
+        claude: { enabled: false, effort: 'high' },
+        deepseek: { enabled: true, effort: 'low' },
+        kimi: { enabled: false, effort: 'medium' },
+        minimax: { enabled: true, effort: 'high' },
+        zhipu: { enabled: true, effort: 'low' },
+      },
+    });
+    expect(result.thinking.claude.enabled).toBe(false);
+    expect(result.thinking.deepseek.enabled).toBe(true);
+    expect(result.thinking.deepseek.effort).toBe('low');
+  });
+
+  it('部分設定（Claude のみ）は他プロバイダを default で補完', () => {
+    const result = normalizeClaudianBridgeSettings({
+      thinking: {
+        claude: { enabled: false, effort: 'high' },
+      },
+    });
+    expect(result.thinking.claude.enabled).toBe(false);
+    expect(result.thinking.deepseek).toEqual(DEFAULT_THINKING_CONFIGS.deepseek);
+    expect(result.thinking.zhipu).toEqual(DEFAULT_THINKING_CONFIGS.zhipu);
   });
 });
