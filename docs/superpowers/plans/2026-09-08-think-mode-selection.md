@@ -729,7 +729,9 @@ Also add helper functions at top of file:
 import type { ThinkingEffort } from '../features/llm/types';
 import { readLlmInfoFromSettings, type LlmProviderId } from '../features/quota/llm-info';
 
-function getProviderName(p: keyof typeof this.plugin.settings.thinking): string {
+type ThinkProviderKey = 'claude' | 'deepseek' | 'kimi' | 'minimax' | 'zhipu';
+
+function getProviderName(p: ThinkProviderKey): string {
   const strings = getLocaleStrings().settingThinkMode;
   switch (p) {
     case 'claude':   return strings.providerClaude;
@@ -743,13 +745,6 @@ function getProviderName(p: keyof typeof this.plugin.settings.thinking): string 
 function getProviderLabel(p: LlmProviderId): string {
   if (p === 'unknown') return 'unknown';
   return getProviderName(p);
-}
-```
-
-Note: The helper functions need `this` context - use `const self = this;` pattern or move them outside the class. Refactor to:
-```typescript
-function getProviderName(p: 'claude' | 'deepseek' | 'kimi' | 'minimax' | 'zhipu'): string {
-  // (no 'this' usage)
 }
 ```
 
