@@ -100,7 +100,7 @@ export async function registerClaudeQuota(
       const llm = readLlmInfoFromSettings(loaded.quota?.claudeSettingsPath);
       view.setModel(llm.model);
       view.setCurrentLlmQuota(service.getQuotaFor(llm.provider));
-      // v0.38.0 (F-039): Think モード バッジ用に現在プロバイダの設定を渡す
+      // v0.39.0 (F-039): Think モード バッジ用に現在プロバイダの設定を渡す
       view.setThinking(getThinkingForProvider(loaded, service.getCurrentLlmProvider()));
     } catch { /* best-effort */ }
   };
@@ -167,7 +167,7 @@ export async function unregisterClaudeQuota(): Promise<void> {
 }
 
 /**
- * v0.38.0 (F-039): 現在プロバイダに対応する Think モード設定を返す。
+ * v0.39.0 (F-039): 現在プロバイダに対応する Think モード設定を返す。
  * 'unknown' や未知のプロバイダは null（バッジ非表示）。
  */
 function getThinkingForProvider(

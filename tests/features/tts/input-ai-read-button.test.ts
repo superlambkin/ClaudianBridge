@@ -6,14 +6,14 @@ import type { ConfigStore } from '../../../src/core/config-store';
 const speakTextMock = vi.fn(async () => true);
 vi.mock('../../../src/features/tts/speak', () => ({ speakText: (...a: unknown[]) => speakTextMock(...a) }));
 
-// v0.38.0 (F-039): dispatch 経由の LlmClient をモック
+// v0.39.0 (F-039): dispatch 経由の LlmClient をモック
 const runPromptMock = vi.fn(async () => '整形済み');
 const resolveLlmClientMock = vi.fn(() => ({ id: 'claude' as const, runPrompt: runPromptMock }));
 vi.mock('../../../src/features/llm/dispatch', () => ({
   resolveLlmClient: (...a: unknown[]) => (resolveLlmClientMock as unknown as (...args: unknown[]) => { id: 'claude'; runPrompt: typeof runPromptMock })(...a),
 }));
 
-// v0.38.0 (F-039): readLlmInfoFromSettings をモック
+// v0.39.0 (F-039): readLlmInfoFromSettings をモック
 // v0.40.0 (F-040): resolveApiKey も呼ばれるためモックに追加
 vi.mock('../../../src/features/quota/llm-info', () => ({
   readLlmInfoFromSettings: () => ({ provider: 'claude', model: null, baseUrl: null, authTokenPresent: true }),

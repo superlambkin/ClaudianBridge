@@ -32,7 +32,7 @@ import { playBeep } from './audio-beep';
 import { parseSections, rewriteSectionsStream, type MdSection } from './llm-rewrite';
 import { rewriteCacheKey, RewriteCache } from './llm-rewrite-cache';
 import { beginLlmSession, endLlmSession, isCurrent, abortIfOtherLlmActive, abortCurrentLlm, type LlmSession } from './llm-session';
-// v0.38.0 (F-039): dispatch 経由で ThinkingConfig を反映した LlmClient を使う
+// v0.39.0 (F-039): dispatch 経由で ThinkingConfig を反映した LlmClient を使う
 import { resolveLlmClient } from '../llm/dispatch';
 import { readLlmInfoFromSettings, resolveApiKey } from '../quota/llm-info';
 
@@ -185,7 +185,7 @@ export async function addMdToTts(
     };
     const runFn = async (p: string): Promise<string | null> => {
       if (session.signal.aborted) return null;
-      // v0.38.0 (F-039): dispatch 経由でプロバイダ別 LlmClient を取得し ThinkingConfig を反映
+      // v0.39.0 (F-039): dispatch 経由でプロバイダ別 LlmClient を取得し ThinkingConfig を反映
       const llmInfo = readLlmInfoFromSettings(cfg.quota?.claudeSettingsPath);
       // テスト用 cfg で thinking フィールドが省略された場合に既定値でフォールバック
       const providerDefaults = DEFAULT_THINKING_CONFIGS as Record<string, typeof DEFAULT_THINKING_CONFIGS.claude>;

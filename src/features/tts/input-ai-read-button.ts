@@ -3,7 +3,7 @@
  * クリックで: 入力文 → resolveLlmClient().runPrompt(buildPolishPrompt(text)) で指令文整形
  * → 入力欄上書き → speakText('inputAi', ...) で読み上げ。失敗時は元文のまま読み上げる。
  *
- * v0.38.0 (F-039): deps.polish コールバックを廃止し、dispatch 経由で
+ * v0.39.0 (F-039): deps.polish コールバックを廃止し、dispatch 経由で
  * ThinkingConfig を反映した LlmClient を直接取得するように変更。
  *
  * realclaudian 構造（main.js 実測）:
