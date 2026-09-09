@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.40.0] - 2026-09-10 — Think モード選択機能 Phase 2 (F-040)
+
+### Added
+
+- 🧠 **Think モード選択機能 Phase 2 (F-040)**: Phase 1 (v0.39.0) で Claude のみだった Think モードを **DeepSeek / Zhipu / MiniMax / Kimi** の 4 プロバイダに拡張。設定 → ClaudianBridge → 一般 → Think モード で 5 プロバイダ全てを個別 ON/OFF + エフォート選択可能
+- **4 つの API 直接呼び出しクライアント**: `createDeepSeekClient` / `createZhipuClient` / `createMiniMaxClient` / `createKimiClient` を新設（`LlmClient` インターフェース準拠）
+- **`resolveApiKey(provider, quotaSettings)`**: 4 プロバイダの API キーを `quotaSettings` から統一解決（空文字・未設定は `undefined`）
+- **`resolveLlmClient` dispatch を 5 プロバイダ対応に拡張**: `switch` 文で 5 プロバイダを独立 case に分離、`unknown` は warn ログ + Claude フォールバック
+
+### Changed
+
+- **`polishInstruction` 呼び出しに `apiKey` 引数を追加**（Task 13）: `input-ai-read-button.ts` / `md-file-read-flow.ts` から `resolveApiKey` 経由で API キーを渡すよう変更
+- **`dispatch.ts` の v0.39.0 スタブ削除**: Phase 1 で残っていた `deepseek`/`kimi`/`minimax`/`zhipu`/`unknown` → Claude フォールバックを撤廃し、4 プロバイダを独立 case に分離
+- **Kimi の thinking 実装方式**: 当初 `thinking.type=enabled|disabled` を body に送信していたが、Moonshot は body の `thinking` フィールドを no-op として無視するため、**モデル切替方式**（`moonshot-v1-128k` ↔ `kimi-thinking-preview`）に変更
+- **MiniMax モデル名更新**: 旧 `minimax-text-01` → 現行 `MiniMax-M3`
+
+### プロバイダ別 thinking マッピング
+
+| プロバイダ | エンドポイント | モデル | thinking ON | thinking OFF | エフォートマッピング |
+|------------|----------------|--------|-------------|--------------|----------------------|
+| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | deepseek-reasoner 等 | `thinking.type=enabled` + `reasoning_effort` | `thinking.type=disabled` | low / high / max（medium は high にフォールバック）|
+| Zhipu (GLM-4.5) | `https://api.z.ai/api/paas/v4/chat/completions` | `glm-4.5` | `thinking.type=enabled` | `thinking.type=disabled` | （reasoning_effort 未サポート）|
+| MiniMax | `https://api.minimaxi.com/v1/chat/completions` | **`MiniMax-M3`** | `thinking.type=enabled` | `thinking.type=disabled` | low / medium / high（medium は `adaptive` にマッピング）|
+| Kimi (Moonshot) | `https://api.moonshot.cn/v1/chat/completions` | `moonshot-v1-128k` ↔ `kimi-thinking-preview` | `kimi-thinking-preview` モデル | `moonshot-v1-128k` モデル | モデル切替で実装（thinking フィールド非送信）|
+
+### ⚠️ 既知の制限
+
+- **Kimi の `kimi-thinking-preview` は preview ティア**: レート制限が厳しい可能性あり
+- **Moonshot の `reasoning_effort` サポートは未確認**: 公式ドキュメントで明示されていないため送信しない
+- **非 Claude プロバイダの `apiKey` 実配線回帰テストは未実装**: dispatch.test.ts で 5 プロバイダの引数伝播は網羅済みだが、実 API キーでの E2E スモークテストは不在
+
+### テスト
+
+- Phase 2 追加: **+34 件**（DeepSeek 6 + Zhipu 5 + MiniMax 5 + Kimi 4 + dispatch 6 + resolveApiKey 8）
+- **全体: 1250 PASS / 1 SKIP** / typecheck 0
+- コミット: `e14841b`, `e8c96e8`, `bb99a40`, `45eeebe`, `04df269`, `d41132a`, `54533d2`
+
+---
+
 ## [0.39.0] - 2026-09-08 — Think モード選択機能 (F-039)
 
 ### Added

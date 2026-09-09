@@ -4,7 +4,7 @@ type: feature-master
 project_id: POC_017_ClaudianBridge
 status: stable
 created: 2026-08-29
-modified: 2026-09-07
+modified: 2026-09-10
 tags:
   - F-番号
   - マスター
@@ -59,6 +59,7 @@ applied_rules_version: 2.15.0
 | F032 | 選択ポップアップ位置設定 | v0.38.0 | `selection.popupPosition: 'top-right' \| 'bottom'` 新設（既定 `top-right`）・`positionPopup` に第3引数 `mode`・ビューポート端のクランプ/反転両モード共通・既存ユーザー可視挙動変更（下 → 右上、設定で `bottom` に戻せる）・i18n ja/en/zh | `[[17_選択ポップアップ位置設定設計]]` |
 | F038 | 文生図機能（Text-to-Image） | v0.38.0 | MiniMax image-01 / Zhipu GLM-Image の 2 プロバイダ対応・モーダル UI・`output/Assets/` 固定保存・アクティブノートへ `![[]]` 挿入・i18n ja/en/zh・既存 quota の API キーを流用 | `[[18_文生図機能設計]]` |
 | F039 | Think モード選択機能 | v0.39.0 | 設定 → 一般 → Think モード で Claude / DeepSeek / Zhipu / MiniMax / Kimi ごとの Think モード（ON/OFF + エフォート low/medium/high）を選択・`LlmClient` インターフェース抽象化・quota ステータスバーに 🧠 バッジ | `[[2026-09-08-think-mode-selection-design]]` |
+| F040 | Think モード選択機能 Phase 2 | v0.40.0 | Phase 1 (F-039) で Claude のみだった Think モードを **DeepSeek / Zhipu / MiniMax / Kimi** の 4 プロバイダに拡張。`createDeepSeekClient` / `createZhipuClient` / `createMiniMaxClient` / `createKimiClient` の 4 API 直接呼び出しクライアントを新設。`resolveApiKey` 関数で 4 プロバイダの API キーを統一解決、`resolveLlmClient` dispatch を 5 プロバイダ対応に拡張。**Kimi は body の `thinking` フィールド非サポートのため `moonshot-v1-128k` ↔ `kimi-thinking-preview` のモデル切替方式で実装**。MiniMax モデル名は現行 `MiniMax-M3` | `[[2026-09-08-think-mode-selection-design]]` |
 
 > 💡 **F029 は未使用（欠番）**。CHANGELOG・リリースノートに割当が存在しないため、欠番のまま管理する。
 
