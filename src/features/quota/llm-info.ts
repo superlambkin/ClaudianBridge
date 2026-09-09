@@ -53,3 +53,25 @@ export function readLlmInfoFromSettings(settingsPath?: string): LlmInfo {
     return { provider: 'unknown', model: null, baseUrl: null, authTokenPresent: false };
   }
 }
+
+import type { ClaudianBridgeSettings } from '../../core/settings';
+
+/**
+ * v0.40.0 (F-040): プロバイダ別 API キーを settings.quota から解決。
+ * Claude は ANTHROPIC_* を settings.json から読むため undefined。
+ */
+export function resolveApiKey(
+  provider: LlmProviderId,
+  quotaSettings: Pick<ClaudianBridgeSettings['quota'], 'deepseekApiKey' | 'kimiApiKey' | 'minimaxApiKey' | 'zhipuApiKey'>,
+): string | undefined {
+  if (provider === 'claude' || provider === 'unknown') return undefined;
+  const key = (() => {
+    switch (provider) {
+      case 'deepseek': return quotaSettings.deepseekApiKey;
+      case 'kimi':     return quotaSettings.kimiApiKey;
+      case 'minimax':  return quotaSettings.minimaxApiKey;
+      case 'zhipu':    return quotaSettings.zhipuApiKey;
+    }
+  })();
+  return key && key.trim() !== '' ? key : undefined;
+}
