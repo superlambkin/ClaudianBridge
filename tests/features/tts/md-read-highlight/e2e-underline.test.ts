@@ -40,6 +40,8 @@ vi.mock('../../../../src/features/llm/dispatch', () => ({
 }));
 vi.mock('../../../../src/features/quota/llm-info', () => ({
   readLlmInfoFromSettings: () => ({ provider: 'claude', model: null, baseUrl: null, authTokenPresent: true }),
+  // v0.40.0 (F-040): resolveApiKey も呼ばれるためモックに追加
+  resolveApiKey: () => undefined,
 }));
 vi.mock('../../../../src/features/tts/core', () => ({
   addTextToTTS: (...a: unknown[]) => (mockAddTextToTTS as unknown as (...args: unknown[]) => Promise<boolean>)(...a),
