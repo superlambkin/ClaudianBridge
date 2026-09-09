@@ -160,7 +160,7 @@ describe('QuotaBarView', () => {
   });
 });
 
-describe('QuotaBarView: Think モード バッジ (v0.38.0, F-039)', () => {
+describe('QuotaBarView: Think モード バッジ (v0.39.0, F-039)', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
   function mount(anchorCls = 'new-tab-btn') {

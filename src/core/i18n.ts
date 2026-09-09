@@ -439,7 +439,7 @@ export interface LocaleStrings {
   imageGenStageSending: string;
   imageGenStageSaving: string;
   imageGenStageInserting: string;
-  // === v0.38.0 (F-039): Think モード設定 ===
+  // === v0.39.0 (F-039): Think モード設定 ===
   settingThinkModeTitle: string;
   settingThinkModeDescription: string;
   settingThinkModeCurrentProvider: string;
@@ -882,7 +882,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     imageGenStageSending: '{provider} に送信中...',
     imageGenStageSaving: '保存中...',
     imageGenStageInserting: 'ノートに挿入中...',
-    // === v0.38.0 (F-039): Think モード設定 ===
+    // === v0.39.0 (F-039): Think モード設定 ===
     settingThinkModeTitle: 'Think モード',
     settingThinkModeDescription: 'LLM プロバイダごとに Think モードを設定します。MD 読み上げ・AI 読み上げボタンに影響します。',
     settingThinkModeCurrentProvider: '現在の LLM プロバイダ',
@@ -1323,7 +1323,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     imageGenStageSending: 'Sending to {provider}...',
     imageGenStageSaving: 'Saving...',
     imageGenStageInserting: 'Inserting into note...',
-    // === v0.38.0 (F-039): Think Mode settings ===
+    // === v0.39.0 (F-039): Think Mode settings ===
     settingThinkModeTitle: 'Think Mode',
     settingThinkModeDescription: 'Configure thinking mode per LLM provider. Affects MD read-aloud and AI read-aloud buttons.',
     settingThinkModeCurrentProvider: 'Current LLM provider',
@@ -1764,7 +1764,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     imageGenStageSending: '正在发送到 {provider}...',
     imageGenStageSaving: '正在写入...',
     imageGenStageInserting: '正在插入笔记...',
-    // === v0.38.0 (F-039): Think 模式设置 ===
+    // === v0.39.0 (F-039): Think 模式设置 ===
     settingThinkModeTitle: 'Think 模式',
     settingThinkModeDescription: '按 LLM 提供商配置 Think 模式。影响 MD 朗读・AI 朗读按钮。',
     settingThinkModeCurrentProvider: '当前 LLM 提供商',

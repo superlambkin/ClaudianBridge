@@ -102,7 +102,7 @@ import type { ConfigStore } from '../../src/core/config-store';
 
 function makeStore(generalOverrides: Record<string, unknown> = {}, rootOverrides: Record<string, unknown> = {}): ConfigStore {
   const cfg = {
-    // v0.38.0 (F-039): Think モードセクションが参照する
+    // v0.39.0 (F-039): Think モードセクションが参照する
     quota: { claudeSettingsPath: '' },
     thinking: {
       claude: { enabled: true, effort: 'medium' },
@@ -199,7 +199,7 @@ describe('renderGeneralTab - tokenRateIntervalMs ドロップダウン', () => {
   });
 });
 
-// === v0.38.0 (F-039): Think モード セクション ===
+// === v0.39.0 (F-039): Think モード セクション ===
 describe('renderGeneralTab - Think モード セクション', () => {
   let containerEl: HTMLElement;
   const s = getLocaleStrings('ja');

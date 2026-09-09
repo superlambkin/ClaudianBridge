@@ -14,7 +14,7 @@ import manifest from '../manifest.json';
 /** プラグインバージョン（SSOT: src/manifest.json — バンドル時に esbuild が埋め込む） */
 export const PLUGIN_VERSION: string = manifest.version;
 
-// === v0.38.0 (F-039): Think モード選択機能 ===
+// === v0.39.0 (F-039): Think モード選択機能 ===
 
 /** Think モード設定を持つプロバイダのキー（settings.thinking のキーと一致） */
 export type ThinkProviderKey = 'claude' | 'deepseek' | 'kimi' | 'minimax' | 'zhipu';
@@ -306,7 +306,7 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
           }));
     }
 
-    // === v0.38.0 (F-039): Think モード セクション ===
+    // === v0.39.0 (F-039): Think モード セクション ===
     containerEl.createEl('h3', { text: s.settingThinkModeTitle });
     containerEl.createEl('p', { text: s.settingThinkModeDescription, cls: 'setting-item-description' });
 

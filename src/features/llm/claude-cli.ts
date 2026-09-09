@@ -117,12 +117,12 @@ export async function polishInstruction(text: string, opts?: ClaudeCliOptions): 
   return unfenced === '' ? null : unfenced;
 }
 
-// === v0.38.0 (F-038): Think モード選択機能 ===
+// === v0.40.0 (F-040): Think モード選択機能 ===
 
 import type { LlmClient, ThinkingConfig } from './types';
 
 /**
- * v0.38.0 (F-038): ThinkingConfig を受ける createClaudeClient factory。
+ * v0.40.0 (F-040): ThinkingConfig を受ける createClaudeClient factory。
  * ThinkingConfig を env 変数（MAX_THINKING_TOKENS）に変換する。
  */
 export function createClaudeClient(thinking: ThinkingConfig): LlmClient {

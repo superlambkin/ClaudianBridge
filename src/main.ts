@@ -248,7 +248,7 @@ export default class ClaudianBridgePlugin extends Plugin {
       diag('message read button registered');
 
       // ★ v0.16.0: AI読み上げボタン（✨ 入力文を整形して読み上げ）
-      //   v0.38.0 (F-039): polish コールバック廃止。dispatch 経由で LlmClient を直接取得
+      //   v0.39.0 (F-039): polish コールバック廃止。dispatch 経由で LlmClient を直接取得
       this.register(setupInputAiReadButton({
         store: this.store,
       }));

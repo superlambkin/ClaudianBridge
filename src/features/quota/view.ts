@@ -100,7 +100,7 @@ export class QuotaBarView {
   }
 
   /**
-   * v0.38.0 (F-039): Think モード設定（現在プロバイダ分）を設定。
+   * v0.39.0 (F-039): Think モード設定（現在プロバイダ分）を設定。
    * null のときはバッジを非表示。
    */
   setThinking(thinking: ThinkingConfig | null): void {
@@ -149,7 +149,7 @@ export class QuotaBarView {
       this.el.append(label, value);
     }
 
-    // v0.38.0 (F-039): Think モード バッジ
+    // v0.39.0 (F-039): Think モード バッジ
     if (this.thinking) {
       const badge = this.el.ownerDocument.createElement('span');
       badge.className = `cb-think-badge ${this.thinking.enabled ? 'cb-think-badge--on' : 'cb-think-badge--off'}`;

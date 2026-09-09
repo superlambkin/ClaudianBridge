@@ -1084,7 +1084,7 @@ describe('tts.llmRewriteConcurrency (v0.37.1)', () => {
   });
 });
 
-describe('Think モード default (v0.38.0 F-038)', () => {
+describe('Think モード default (v0.39.0 F-039)', () => {
   it('thinking 欠落時に 5 プロバイダ分 default が補完される', () => {
     const result = normalizeClaudianBridgeSettings({});
     expect(result.thinking.claude).toEqual(DEFAULT_THINKING_CONFIGS.claude);
