@@ -17,7 +17,7 @@ import type { ConfigStore } from '../../core/config-store';
 import { DEFAULT_THINKING_CONFIGS } from '../../core/settings';
 import { speakText } from './speak';
 import { resolveLlmClient } from '../llm/dispatch';
-import { readLlmInfoFromSettings } from '../quota/llm-info';
+import { readLlmInfoFromSettings, resolveApiKey } from '../quota/llm-info';
 import { buildPolishPrompt } from '../llm/claude-cli';
 
 const TOOLBAR_SELECTOR = '.claudian-input-toolbar';
@@ -55,7 +55,9 @@ export function setupInputAiReadButton(deps: InputAiReadDeps): () => void {
       const thinking = (cfg.thinking as Record<string, typeof DEFAULT_THINKING_CONFIGS.claude> | undefined)?.[llmInfo.provider]
         ?? providerDefaults[llmInfo.provider]
         ?? DEFAULT_THINKING_CONFIGS.claude;
-      const client = resolveLlmClient(llmInfo.provider, undefined, thinking);
+      // v0.40.0 (F-040): プロバイダ別 API キーを解決して渡す
+      const apiKey = resolveApiKey(llmInfo.provider, cfg.quota ?? {});
+      const client = resolveLlmClient(llmInfo.provider, apiKey, thinking);
       const polished = await client.runPrompt(buildPolishPrompt(original), { thinking });
       const unfenced = typeof polished === 'string'
         ? polished.replace(/^```[a-zA-Z]*\n([\s\S]*?)\n?```$/, '$1').trim()

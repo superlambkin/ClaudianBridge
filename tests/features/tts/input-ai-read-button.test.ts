@@ -14,8 +14,10 @@ vi.mock('../../../src/features/llm/dispatch', () => ({
 }));
 
 // v0.38.0 (F-039): readLlmInfoFromSettings をモック
+// v0.40.0 (F-040): resolveApiKey も呼ばれるためモックに追加
 vi.mock('../../../src/features/quota/llm-info', () => ({
   readLlmInfoFromSettings: () => ({ provider: 'claude', model: null, baseUrl: null, authTokenPresent: true }),
+  resolveApiKey: () => undefined,
 }));
 
 /** .claudian-input-composer 構造を模倣（realclaudian main.js 実測に基づく） */

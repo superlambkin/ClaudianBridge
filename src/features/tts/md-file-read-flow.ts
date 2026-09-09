@@ -34,7 +34,7 @@ import { rewriteCacheKey, RewriteCache } from './llm-rewrite-cache';
 import { beginLlmSession, endLlmSession, isCurrent, abortIfOtherLlmActive, abortCurrentLlm, type LlmSession } from './llm-session';
 // v0.38.0 (F-039): dispatch 経由で ThinkingConfig を反映した LlmClient を使う
 import { resolveLlmClient } from '../llm/dispatch';
-import { readLlmInfoFromSettings } from '../quota/llm-info';
+import { readLlmInfoFromSettings, resolveApiKey } from '../quota/llm-info';
 
 export { openInPreview };
 
@@ -192,7 +192,9 @@ export async function addMdToTts(
       const thinking = (cfg.thinking as Record<string, typeof DEFAULT_THINKING_CONFIGS.claude> | undefined)?.[llmInfo.provider]
         ?? providerDefaults[llmInfo.provider]
         ?? DEFAULT_THINKING_CONFIGS.claude;
-      const client = resolveLlmClient(llmInfo.provider, undefined, thinking);
+      // v0.40.0 (F-040): プロバイダ別 API キーを解決して渡す
+      const apiKey = resolveApiKey(llmInfo.provider, cfg.quota ?? {});
+      const client = resolveLlmClient(llmInfo.provider, apiKey, thinking);
       return client.runPrompt(p, { thinking, signal: session.signal });
     };
     const stream = rewriteSectionsStream(orig, profile, runFn,
