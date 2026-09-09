@@ -101,8 +101,18 @@ describe('resolveApiKey', () => {
     expect(key).toBeUndefined();
   });
 
+  it('キー省略時は undefined として扱う', () => {
+    const key = resolveApiKey('deepseek', {});
+    expect(key).toBeUndefined();
+  });
+
   it('provider=claude は undefined（ANTHROPIC_* を直接参照するため）', () => {
     const key = resolveApiKey('claude', { deepseekApiKey: 'sk-xxx' });
+    expect(key).toBeUndefined();
+  });
+
+  it('provider=unknown は undefined を返す', () => {
+    const key = resolveApiKey('unknown', { deepseekApiKey: 'sk-xxx' });
     expect(key).toBeUndefined();
   });
 });
