@@ -3,18 +3,21 @@
  * Think モード選択機能 Phase 2 で追加。
  *
  * - 公式: https://api.moonshot.cn/v1/chat/completions
- * - body に `thinking.type`（enabled|disabled）のみ付与
- * - Moonshot API は `reasoning_effort` パラメータのサポートが未確定のため
- *   effort は送信しない（仕様確定後に拡張予定）
+ * - Moonshot API は body の `thinking` パラメータをサポートしないため、
+ *   thinking ON/OFF は **モデルの選択** で切り替える:
+ *     - thinking OFF: `moonshot-v1-128k`
+ *     - thinking ON:  `kimi-thinking-preview`
+ * - `reasoning_effort` 相当の細分化は Moonshot API では未確定のため未対応
  */
 import type { LlmClient, ThinkingConfig } from './types';
 
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
-const KIMI_DEFAULT_MODEL = 'moonshot-v1-128k';
+const KIMI_DEFAULT_MODEL = 'moonshot-v1-128k';         // thinking OFF 用
+const KIMI_THINKING_MODEL = 'kimi-thinking-preview';   // thinking ON 用
 
 /**
  * v0.40.0 (F-040): Kimi (Moonshot) API 直接呼び出しクライアントを生成。
- * thinking.type のみを body に付与する（reasoning_effort は仕様未確定のため省略）。
+ * thinking ON/OFF は body ではなくモデルの選択で切り替える。
  */
 export function createKimiClient(
   apiKey: string | undefined,
@@ -36,9 +39,11 @@ export function createKimiClient(
       }
       try {
         const body = {
-          model: KIMI_DEFAULT_MODEL,
+          // thinking 有効時は kimi-thinking-preview モデルを使用
+          // （Moonshot API は body の thinking フィールドをサポートしないため）
+          model: thinking.enabled ? KIMI_THINKING_MODEL : KIMI_DEFAULT_MODEL,
           messages: [{ role: 'user' as const, content: prompt }],
-          thinking: { type: thinking.enabled ? 'enabled' : 'disabled' },
+          // thinking.type は送信しない（no-op になるため）
         };
         const res = await fetch(KIMI_API_URL, {
           method: 'POST',

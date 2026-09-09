@@ -32,7 +32,7 @@ describe('createMiniMaxClient.runPrompt', () => {
       }),
     );
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.model).toBe('minimax-text-01');
+    expect(body.model).toBe('MiniMax-M3');
     expect(body.thinking).toEqual({ type: 'enabled' });
     // MiniMax は reasoning_effort 非対応なので送信しない
     expect(body.reasoning_effort).toBeUndefined();
