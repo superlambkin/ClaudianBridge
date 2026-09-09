@@ -3,6 +3,7 @@
  * Think モード選択機能 Phase 2 で追加。
  *
  * - 公式: https://api.minimaxi.com/v1/chat/completions
+ * - 現行モデル: `MiniMax-M3`（旧 `minimax-text-01` は廃止）
  * - body に `thinking.type`（enabled|adaptive|disabled）を付与
  * - MiniMax は `reasoning_effort` パラメータを持たないため effort の細分化は
  *   `thinking.type` で表現する。enabled + medium は adaptive に委ねる
@@ -10,7 +11,7 @@
 import type { LlmClient, ThinkingConfig, ThinkingEffort } from './types';
 
 const MINIMAX_API_URL = 'https://api.minimaxi.com/v1/chat/completions';
-const MINIMAX_DEFAULT_MODEL = 'minimax-text-01';
+const MINIMAX_DEFAULT_MODEL = 'MiniMax-M3';  // v0.40.0 で更新（旧 minimax-text-01 は廃止）
 
 /** MiniMax の effort を thinking.type 値にマップ（medium → adaptive、他は enabled） */
 function mapType(enabled: boolean, effort: ThinkingEffort): 'enabled' | 'adaptive' | 'disabled' {
