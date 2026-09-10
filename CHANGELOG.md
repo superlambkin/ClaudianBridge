@@ -37,6 +37,11 @@
 - **全体: 1250 PASS / 1 SKIP** / typecheck 0
 - コミット: `e14841b`, `e8c96e8`, `bb99a40`, `45eeebe`, `04df269`, `d41132a`, `54533d2`
 
+### Housekeeping
+
+- `plugin/manifest.json` + `src/manifest.json` + `package.json` を v0.40.0 に更新
+- 23 stale comments 修正（commit `662f81e`, `06ac9eb`）
+
 ---
 
 ## [0.39.0] - 2026-09-08 — Think モード選択機能 (F-039)
