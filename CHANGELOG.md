@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.43.3] - 2026-09-13 — Windows 版 openvpn の stdout ログ監視対応
+
+### Fixed
+
+- 🔌 **OpenVPN 接続検出の修正**: Windows 版 openvpn 2.7.x はログを **stdout** に出力するため、stderr のみ監視していると接続成功（`Initialization Sequence Completed`）や `AUTH_FAILED` を検出できず「🟡 接続中」のまま停止する問題を修正（stdout + stderr の両ストリームを監視）
+  - 実測: Windows 2.7.7 では stdout に全ログ出力・stderr は空。WSL/Linux 版 2.7.0 は従来どおり stderr 系で動作
+  - 非管理者実行時の `open_tun` 失敗（`ERROR: command failed`）も exit ハンドラ経由で 🔴 エラー化
+
 ## [0.43.2] - 2026-09-13 — Server Override（サーバ上書き）機能 (F-044)
 
 ### Added

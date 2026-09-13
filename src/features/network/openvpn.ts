@@ -139,7 +139,11 @@ class OpenVpnControllerImpl implements OpenVpnController {
       this.setStatus('error');
     });
 
-    this.process.stderr?.on('data', (chunk: Buffer) => {
+    // v0.43.3 (F-044 対策): Windows 版 openvpn 2.7.x はログを **stdout** に
+    // 出力する（WSL/Linux 版は stderr）。両ストリームを同一ハンドラで監視しないと
+    // Windows で「Initialization Sequence Completed」を検出できず
+    // 接続成功しても 🟡 connecting のまま止まる。
+    const handleStreamChunk = (chunk: Buffer): void => {
       const text = chunk.toString();
       this.appendLog(text);
       if (text.includes('Initialization Sequence Completed')) {
@@ -156,7 +160,9 @@ class OpenVpnControllerImpl implements OpenVpnController {
         try { this.process?.kill(); } catch { /* 既に死んでいる場合は無視 */ }
         this.setStatus('error');
       }
-    });
+    };
+    this.process.stderr?.on('data', handleStreamChunk);
+    this.process.stdout?.on('data', handleStreamChunk);
 
     this.process.on('exit', (code) => {
       if (this.stopRequested) {
