@@ -98,15 +98,23 @@ function createVpnToggle(
     button.title = !configured ? s.vpnToggleTitleNotConfigured
       : status === 'connected' ? s.vpnToggleTitleConnected
       : s.vpnToggleTitleDisconnected;
+    // ラッパーの表示/非表示は enabled 状態に依存（status 更新時に再評価）
+    applyVisibility();
+  };
+
+  // v0.43.5: enabled=false または configPath 未設定時はトグル自体を非表示
+  const applyVisibility = (): void => {
+    const cfg = store.load() as { network?: { openvpn?: { enabled?: boolean; configPath?: string } } };
+    const enabled = cfg?.network?.openvpn?.enabled === true;
+    const hasConfig = (cfg?.network?.openvpn?.configPath ?? '') !== '';
+    const visible = enabled && hasConfig;
+    wrapper.style.display = visible ? '' : 'none';
+    configured = visible;
   };
 
   const checkEnabledAndUpdate = (): boolean => {
-    const cfg = store.load() as { network?: { openvpn?: { enabled?: boolean; configPath?: string } } };
-    const enabled = cfg?.network?.openvpn?.enabled === true && cfg.network.openvpn.configPath !== '';
-    configured = enabled;
-    button.disabled = !enabled || button.getAttribute('data-status') === 'connecting';
-    if (!enabled) button.title = s.vpnToggleTitleNotConfigured;
-    return enabled;
+    applyVisibility();
+    return configured;
   };
 
   // === クリックハンドラ ===
@@ -133,7 +141,7 @@ function createVpnToggle(
   };
 
   button.addEventListener('click', onClick);
-  checkEnabledAndUpdate();
+  applyVisibility();
   applyStatus(controller.getStatus());
 
   const unsubscribe = controller.subscribe((status) => applyStatus(status));
