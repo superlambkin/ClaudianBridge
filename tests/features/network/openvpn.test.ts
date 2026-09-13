@@ -365,3 +365,48 @@ describe('stdout stream monitoring (v0.43.3)', () => {
     expect(controller.getLastError()).toMatch(/AUTH_FAILED/);
   });
 });
+
+// === v0.43.4: 既定バイナリパス（Windows: Program Files の OpenVPN Community 既定） ===
+describe('default binary path (v0.43.4)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+  });
+
+  it('openvpnBinaryPath 空 + Windows は既定パスを使用する', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS, openvpnBinaryPath: '' });
+    await Promise.resolve();
+    (activeProc as unknown as { stderr: EventEmitter }).stderr.emit('data', Buffer.from('Initialization Sequence Completed\n'));
+    await p;
+    const [binary] = mockSpawn.mock.calls[0];
+    if (process.platform === 'win32') {
+      expect(binary).toBe(String.raw`C:\Program Files\OpenVPN\bin\openvpn.exe`);
+    } else {
+      expect(binary).toBe('openvpn');
+    }
+  });
+
+  it('openvpnBinaryPath 指定時はそちらを優先する', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS, openvpnBinaryPath: String.raw`C:\custom\ovpn.exe` });
+    await Promise.resolve();
+    (activeProc as unknown as { stderr: EventEmitter }).stderr.emit('data', Buffer.from('Initialization Sequence Completed\n'));
+    await p;
+    const [binary] = mockSpawn.mock.calls[0];
+    expect(binary).toBe(String.raw`C:\custom\ovpn.exe`);
+  });
+});

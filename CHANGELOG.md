@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.43.4] - 2026-09-13 — 小改良（既定バイナリパス・YOLO トグルデザイン）
+
+### Changed
+
+- 🔧 **openvpn バイナリパスの既定値**: 空欄時に Windows は `C:\Program Files\OpenVPN\bin\openvpn.exe` を自動使用、Linux/Mac は従来どおり `openvpn`（PATH 解決）
+- 🔌 **VPN トグルを YOLO トグルと同デザインに刷新**: 32×18 ピル型スイッチ + ブランドカラー（`var(--claudian-brand)`）を使用。connected で右移動・connecting で脈動・error で赤ノブ。3 秒後にボタンの意味が一目で分かる
+
 ## [0.43.3] - 2026-09-13 — Windows 版 openvpn の stdout ログ監視対応
 
 ### Fixed

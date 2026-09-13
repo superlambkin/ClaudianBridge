@@ -72,42 +72,28 @@ function createVpnToggle(
   const controller = getOpenVpnController();
   const s = getLocaleStrings(getUILanguage());
 
-  // === DOM 構築 ===
+  // === DOM 構築（v0.43.4: YOLO トグルと同デザインのスイッチ型） ===
   const wrapper = document.createElement('div');
   wrapper.className = 'cb-vpn-toggle';
 
-  const button = document.createElement('button');
-  button.className = 'cb-vpn-toggle__button';
-  button.setAttribute('data-status', 'disconnected');
-
-  const icon = document.createElement('span');
-  icon.className = 'cb-vpn-toggle__icon';
-  icon.textContent = '🔌';
-
   const label = document.createElement('span');
-  label.className = 'cb-vpn-toggle__label';
+  label.className = 'cb-vpn-label';
   label.textContent = s.vpnToggleLabel;
 
-  button.append(icon, label);
+  const button = document.createElement('button');
+  button.className = 'cb-vpn-switch';
+  button.setAttribute('data-status', 'disconnected');
+  button.setAttribute('aria-label', s.vpnToggleLabel);
+  button.title = s.vpnToggleTitleDisconnected;
 
-  const badge = document.createElement('span');
-  badge.className = 'cb-vpn-badge cb-vpn-badge--disconnected';
-  badge.title = s.vpnToggleTitleDisconnected;
-  badge.textContent = '🔴';
-
-  wrapper.append(button, badge);
+  wrapper.append(label, button);
   parent.insertBefore(wrapper, insertBefore);
 
   // === 状態反映 ===
   let configured = true;
   const applyStatus = (status: OpenVpnStatus): void => {
     button.setAttribute('data-status', status);
-    badge.className = `cb-vpn-badge cb-vpn-badge--${status}`;
-    badge.textContent = status === 'connected' ? '🟢' : status === 'connecting' ? '🟡' : '🔴';
-    label.textContent = status === 'connecting' ? s.vpnToggleConnecting
-      : status === 'connected' ? s.vpnToggleConnected
-      : status === 'error' ? s.vpnToggleError
-      : s.vpnToggleLabel;
+    wrapper.setAttribute('data-status', status);
     button.disabled = status === 'connecting' || !configured;
     button.title = !configured ? s.vpnToggleTitleNotConfigured
       : status === 'connected' ? s.vpnToggleTitleConnected

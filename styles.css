@@ -636,60 +636,94 @@
 .cb-think-badge--on { color: var(--text-accent); }
 .cb-think-badge--off { opacity: 0.5; }
 
-/* === v0.43.1 (F-043): Claudian 画面 OpenVPN トグル === */
+/* === v0.43.4 (F-043): Claudian 画面 OpenVPN トグル（YOLO トグル同デザイン） === */
 
 .cb-vpn-toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
   margin-right: 8px;
+  padding-left: 12px;
+  padding-right: 8px;
 }
 
-.cb-vpn-toggle__button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--background-modifier-border);
-  background: var(--background-primary);
+.cb-vpn-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 28px;
+}
+
+.cb-vpn-toggle[data-status='connected'] .cb-vpn-label {
+  color: rgb(92, 148, 140);
+  font-weight: 600;
+}
+
+/* スイッチ本体（YOLO の .claudian-toggle-switch と同一寸法・配色） */
+.cb-vpn-switch {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--background-modifier-border);
+  border: none;
+  padding: 0;
   cursor: pointer;
-  font-size: 13px;
-  transition: background 0.15s, border-color 0.15s;
+  position: relative;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  box-shadow: none;
 }
 
-.cb-vpn-toggle__button:hover:not(:disabled) {
+.cb-vpn-switch::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.cb-vpn-switch:hover:not(:disabled) {
   background: var(--background-modifier-hover);
-  border-color: var(--interactive-accent);
 }
 
-.cb-vpn-toggle__button:disabled {
+.cb-vpn-switch:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.cb-vpn-toggle__icon { font-size: 14px; }
-.cb-vpn-toggle__label { font-weight: 500; }
-
-.cb-vpn-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  font-size: 11px;
-  line-height: 1;
+/* 接続済: ノブ右移動 + ブランドカラー（YOLO active と同様） */
+.cb-vpn-switch[data-status='connected'] {
+  background: rgba(var(--claudian-brand-rgb), 0.3);
 }
 
-.cb-vpn-badge--disconnected { background: #adb5bd; color: #fff; }
-.cb-vpn-badge--connecting   { background: #f08c00; color: #fff; animation: cb-vpn-pulse 1.5s ease-in-out infinite; }
-.cb-vpn-badge--connected    { background: #2f9e44; color: #fff; }
-.cb-vpn-badge--error        { background: #c92a2a; color: #fff; }
-
-@keyframes cb-vpn-pulse {
-  0%, 100% { transform: scale(1);   opacity: 1; }
-  50%      { transform: scale(1.2); opacity: 0.7; }
+.cb-vpn-switch[data-status='connected']::after {
+  transform: translateX(14px);
+  background: var(--claudian-brand);
 }
 
-.theme-dark .cb-vpn-badge--disconnected { background: #495057; }
+/* 接続中: オレンジ + ノブ脈動 */
+.cb-vpn-switch[data-status='connecting'] {
+  background: rgba(240, 140, 0, 0.35);
+}
+
+.cb-vpn-switch[data-status='connecting']::after {
+  background: #f08c00;
+  animation: cb-vpn-pulse-knob 1s ease-in-out infinite;
+}
+
+/* エラー: ノブ赤（位置は左のまま） */
+.cb-vpn-switch[data-status='error']::after {
+  background: #c92a2a;
+}
+
+@keyframes cb-vpn-pulse-knob {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.25); }
+}
+
+.theme-dark .cb-vpn-switch:disabled {
+  opacity: 0.4;
+}
