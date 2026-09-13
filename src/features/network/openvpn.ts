@@ -24,6 +24,8 @@ export interface OpenVpnController {
   /** 直近のエラーメッセージ。status が 'error' の間のみ有効。 */
   getLastError(): string | null;
   subscribe(listener: (status: OpenVpnStatus, log: string) => void): () => void;
+  /** v0.43.6: OS ルーティングまたは TUN アダプタをスキャンして外部 VPN 接続を認識 */
+  detectExternalConnection(): 'connected' | 'disconnected';
 }
 
 const RECENT_LOG_MAX = 2000;
@@ -44,6 +46,21 @@ class OpenVpnControllerImpl implements OpenVpnController {
   getStatus(): OpenVpnStatus { return this.status; }
   getRecentLog(): string { return this.recentLog.join(''); }
   getLastError(): string | null { return this.lastError; }
+
+  /** v0.43.6: OS ルーティングまたは TUN/TAP アダプタをスキャンして外部 VPN 接続を認識 */
+  detectExternalConnection(): 'connected' | 'disconnected' {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { execSync } = require('child_process') as typeof import('child_process');
+      // Windows: route print で 10.8.0.0/24 経路があれば VPN 接続中とみなす
+      const routeOut = execSync('route print -4', { encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'] });
+      if (/10\.8\.0\.\d+\s+255\.255\.255\.\d+\s+On-link/.test(routeOut)) return 'connected';
+      // フォールバック: ipconfig で tun/TAP アダプタ検出
+      const ipOut = execSync('ipconfig /all', { encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'] });
+      if (/tun\d+|OpenVPN Data Channel Offload|TAP-Windows Adapter/i.test(ipOut)) return 'connected';
+    } catch { /* best-effort detection */ }
+    return 'disconnected';
+  }
   subscribe(listener: (status: OpenVpnStatus, log: string) => void): () => void {
     this.emitter.on('change', listener);
     return () => this.emitter.off('change', listener);

@@ -142,7 +142,13 @@ function createVpnToggle(
 
   button.addEventListener('click', onClick);
   applyVisibility();
-  applyStatus(controller.getStatus());
+  // v0.43.6: 既に外部プロセスで VPN 接続済み（OS ルーティングで検出）なら connecting のままにせず connected に補正
+  const initialStatus = ((): OpenVpnStatus => {
+    const ctrl = controller.getStatus();
+    if (ctrl === 'connecting' && controller.detectExternalConnection() === 'connected') return 'connected';
+    return ctrl;
+  })();
+  applyStatus(initialStatus);
 
   const unsubscribe = controller.subscribe((status) => applyStatus(status));
 

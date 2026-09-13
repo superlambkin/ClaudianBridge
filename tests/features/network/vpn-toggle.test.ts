@@ -11,6 +11,7 @@ const mockController = {
   subscribe: vi.fn(() => () => {}),
   start: vi.fn(),
   stop: vi.fn(),
+  detectExternalConnection: vi.fn(() => 'disconnected' as 'disconnected' | 'connected'),
 };
 
 const mockNotice = vi.fn();
