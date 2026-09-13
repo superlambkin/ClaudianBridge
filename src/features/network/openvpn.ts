@@ -143,6 +143,11 @@ export interface OpenVpnController {
   getRecentLog(): string;
   /** 直近のエラーメッセージ。status が 'error' の間のみ有効。 */
   getLastError(): string | null;
+  /**
+   * v0.44.1: 接続は確立したが経路が入っていない場合などの警告。
+   * status が 'connected' のままでも実用できない状態を可視化するために使う。
+   */
+  getWarning(): string | null;
   subscribe(listener: (status: OpenVpnStatus, log: string) => void): () => void;
   /** v0.43.6: OS ルーティングまたは TUN アダプタをスキャンして外部 VPN 接続を認識 */
   detectExternalConnection(): 'connected' | 'disconnected';
@@ -150,6 +155,8 @@ export interface OpenVpnController {
 
 const RECENT_LOG_MAX = 2000;
 const STOP_TIMEOUT_MS = 5000;
+/** v0.44.1: 初期化完了後、経路が確定するまで待ってから検証する時間 */
+const ROUTE_CHECK_DELAY_MS = 2500;
 
 class OpenVpnControllerImpl implements OpenVpnController {
   private status: OpenVpnStatus = 'disconnected';
@@ -158,6 +165,10 @@ class OpenVpnControllerImpl implements OpenVpnController {
   private recentLog: string[] = [];
   private emitter = new EventEmitter();
   private lastError: string | null = null;
+  /** v0.44.1: 接続済みだが実用できない状態の警告 */
+  private warning: string | null = null;
+  /** v0.44.1: 経路検証タイマー */
+  private routeCheckTimer: ReturnType<typeof setTimeout> | null = null;
   private stopRequested = false;
   /** In-flight start() の Promise（並行呼び出しの race 回避用） */
   private startPromise: Promise<void> | null = null;
@@ -166,6 +177,52 @@ class OpenVpnControllerImpl implements OpenVpnController {
   getStatus(): OpenVpnStatus { return this.status; }
   getRecentLog(): string { return this.recentLog.join(''); }
   getLastError(): string | null { return this.lastError; }
+  getWarning(): string | null { return this.warning; }
+
+  /**
+   * v0.44.1: 「Initialization Sequence Completed」直後は route 追加がまだ確定していない
+   * ため、少し待ってから経路を検証する。
+   */
+  private scheduleRouteVerification(): void {
+    // 経路検証は Windows の route print に依存するため Windows のみ
+    if (process.platform !== 'win32') return;
+    if (this.routeCheckTimer !== null) clearTimeout(this.routeCheckTimer);
+    this.routeCheckTimer = setTimeout(() => {
+      this.routeCheckTimer = null;
+      this.verifyRoutes();
+    }, ROUTE_CHECK_DELAY_MS);
+    const t = this.routeCheckTimer as unknown as { unref?: () => void };
+    t.unref?.();
+  }
+
+  /**
+   * v0.44.1: 接続は確立したが VPN 経路が入っていない状態を検出して警告する。
+   * 非管理者で route 追加が拒否されると 🟢 表示のまま LAN に到達できない。
+   */
+  private verifyRoutes(): void {
+    if (this.status !== 'connected') return;
+    if (this.detectExternalConnection() === 'connected') {
+      this.setWarning(null);
+      return;
+    }
+    this.setWarning(
+      'VPN 経路が確立できませんでした（管理者権限不足の可能性があります）。'
+      + 'Obsidian を管理者として実行してから再接続してください。',
+    );
+  }
+
+  private setWarning(next: string | null): void {
+    if (this.warning === next) return;
+    this.warning = next;
+    this.emitter.emit('change', this.status, this.getRecentLog());
+  }
+
+  private clearRouteCheck(): void {
+    if (this.routeCheckTimer !== null) {
+      clearTimeout(this.routeCheckTimer);
+      this.routeCheckTimer = null;
+    }
+  }
 
   /** v0.43.6: OS ルーティングまたは TUN/TAP アダプタをスキャンして外部 VPN 接続を認識 */
   detectExternalConnection(): 'connected' | 'disconnected' {
@@ -256,7 +313,9 @@ class OpenVpnControllerImpl implements OpenVpnController {
     args.push('--writepid', PID_FILE_PATH);
 
     this.lastError = null;
+    this.warning = null;
     this.stopRequested = false;
+    this.clearRouteCheck();
 
     // In-flight Promise を status 変更前に確立（後続呼び出しが同期的に拾える）
     this.startPromise = new Promise<void>((resolve) => {
@@ -295,6 +354,10 @@ class OpenVpnControllerImpl implements OpenVpnController {
       this.appendLog(text);
       if (text.includes('Initialization Sequence Completed')) {
         this.setStatus('connected');
+        // v0.44.1: 初期化完了直後に経路を検証する。
+        // 非管理者環境では route addition が「アクセス拒否」で失敗しても
+        // Initialization Sequence Completed は出るため、🟢 表示でも実用不可な状態になる。
+        this.scheduleRouteVerification();
       } else if (
         // v0.44.0: TAP アダプタを確保できない（他クライアントが占有 / サービス不通）
         text.includes('currently in use or disabled') ||
@@ -339,6 +402,8 @@ class OpenVpnControllerImpl implements OpenVpnController {
   }
 
   async stop(): Promise<void> {
+    this.clearRouteCheck();
+    this.warning = null;
     if (!this.process) {
       this.cleanupRuntimeFiles();
       if (this.status !== 'disconnected') this.setStatus('disconnected');

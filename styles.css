@@ -743,3 +743,10 @@
   color: var(--text-accent);
   text-decoration: underline;
 }
+
+/* === v0.44.1 (F-042): 接続済みだが経路未確立の警告 === */
+.cb-vpn-warning {
+  color: var(--text-error);
+  font-size: 0.9em;
+  margin: 4px 0;
+}

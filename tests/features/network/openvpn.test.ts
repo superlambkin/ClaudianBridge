@@ -493,3 +493,75 @@ describe('adapter-busy detection & pid file (v0.44.0)', () => {
     expect(controller.getLastError()).toMatch(/アダプタ/);
   });
 });
+
+// === v0.44.1: 接続後のルート検証（経路未確立の可視化） ===
+describe('route verification (v0.44.1)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  it('接続後に経路が入っていなければ警告を立てる', async () => {
+    vi.useFakeTimers();
+    try {
+      const proc = makeMockChild();
+      mockSpawn.mockReturnValue(proc);
+      const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+      const controller = getOpenVpnController();
+
+      const p = controller.start({ ...VALID_SETTINGS });
+      await Promise.resolve();
+      (proc as unknown as { stdout: EventEmitter }).stdout.emit(
+        'data', Buffer.from('Initialization Sequence Completed\n'),
+      );
+      await p;
+      expect(controller.getStatus()).toBe('connected');
+
+      // route print が経路を返さない（= 非管理者で route 追加が拒否された状態）
+      await vi.advanceTimersByTimeAsync(3000);
+      if (process.platform === 'win32') {
+        expect(controller.getWarning()).toMatch(/経路/);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('経路が入っていれば警告は立てない', async () => {
+    vi.useFakeTimers();
+    try {
+      const proc = makeMockChild();
+      mockSpawn.mockReturnValue(proc);
+      // route print が VPN 経路を返す
+      mockExecSync.mockReturnValue(
+        '         10.8.0.4  255.255.255.252         On-link          10.8.0.6    257\n',
+      );
+      const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+      const controller = getOpenVpnController();
+
+      const p = controller.start({ ...VALID_SETTINGS });
+      await Promise.resolve();
+      (proc as unknown as { stdout: EventEmitter }).stdout.emit(
+        'data', Buffer.from('Initialization Sequence Completed\n'),
+      );
+      await p;
+
+      await vi.advanceTimersByTimeAsync(3000);
+      if (process.platform === 'win32') {
+        expect(controller.getWarning()).toBeNull();
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
