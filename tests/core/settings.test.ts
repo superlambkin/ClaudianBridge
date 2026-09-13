@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ALLOWED_TOKEN_RATE_INTERVALS, DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, DEFAULT_TOKEN_RATE_INTERVAL_MS, DEFAULT_THINKING_CONFIGS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState, TTS_LANGUAGE_MODES, DEFAULT_TTS_EDGE_CLOUD, normalizeTtsSettings, TtsLanguageMode } from '../../src/core/settings';
+import { DEFAULT_OPEN_VPN_SETTINGS } from '../../src/features/network/types';
 
 describe('settings', () => {
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS は全フィールドを持つ', () => {
@@ -1144,5 +1145,54 @@ describe('Think モード default (v0.39.0 F-039)', () => {
     expect(result.thinking.kimi.effort).toBe('medium');
     expect(result.thinking.minimax.effort).toBe('high');
     expect(result.thinking.zhipu.effort).toBe('off');
+  });
+});
+
+describe('ClaudianBridgeSettings network section (v0.43.0 F-041/F-042)', () => {
+  // 検証用の valid 設定を作るヘルパー。network.proxy + network.openvpn は個別テストで上書きする。
+  const makeValidConfig = () => ({
+    ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+    network: {
+      proxy: { enabled: false, url: '', noProxyHosts: 'localhost' },
+      openvpn: { ...DEFAULT_OPEN_VPN_SETTINGS },
+    },
+  });
+
+  it('normalize: general.proxy を network.proxy へ移送', () => {
+    const result = normalizeClaudianBridgeSettings({
+      general: { proxy: { enabled: true, url: 'http://p:8080', noProxyHosts: 'localhost' } } as any,
+    });
+    expect(result.network.proxy).toEqual({ enabled: true, url: 'http://p:8080', noProxyHosts: 'localhost' });
+  });
+
+  it('normalize: 新 network.proxy があればそちらを優先', () => {
+    const result = normalizeClaudianBridgeSettings({
+      general: { proxy: { enabled: false, url: '', noProxyHosts: '' } } as any,
+      network: { proxy: { enabled: true, url: 'http://new:8080', noProxyHosts: '' } } as any,
+    });
+    expect(result.network.proxy.enabled).toBe(true);
+    expect(result.network.proxy.url).toBe('http://new:8080');
+  });
+
+  it('normalize: network.openvpn 不在時は DEFAULT_OPEN_VPN_SETTINGS で初期化', () => {
+    const result = normalizeClaudianBridgeSettings({} as any);
+    expect(result.network.openvpn).toEqual(DEFAULT_OPEN_VPN_SETTINGS);
+  });
+
+  it('validate: network.proxy 欠落でエラー', () => {
+    const cfg = { ...makeValidConfig(), network: { openvpn: DEFAULT_OPEN_VPN_SETTINGS } } as any;
+    expect(validateClaudianBridgeSettings(cfg)).toMatch(/network\.proxy/);
+  });
+
+  it('validate: enabled=true + configPath 空 でエラー', () => {
+    const cfg = makeValidConfig();
+    cfg.network.openvpn = { ...DEFAULT_OPEN_VPN_SETTINGS, enabled: true, configPath: '' };
+    expect(validateClaudianBridgeSettings(cfg)).toMatch(/configPath/);
+  });
+
+  it('validate: enabled=false + configPath 空 は OK', () => {
+    const cfg = makeValidConfig();
+    cfg.network.openvpn = { ...DEFAULT_OPEN_VPN_SETTINGS, enabled: false, configPath: '' };
+    expect(validateClaudianBridgeSettings(cfg)).toBeNull();
   });
 });
