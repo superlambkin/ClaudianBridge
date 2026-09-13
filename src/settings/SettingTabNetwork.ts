@@ -279,21 +279,36 @@ function renderOpenVpnStatus(
   const statusEl = containerEl.createDiv('cb-vpn-status');
   const logEl = containerEl.createEl('pre', { cls: 'cb-vpn-log', text: '' });
 
+  const labelOf = (st: OpenVpnStatus): string =>
+    st === 'connected'
+      ? s.networkOpenVpnStatusConnected
+      : st === 'connecting'
+        ? s.networkOpenVpnStatusConnecting
+        : st === 'error'
+          ? s.networkOpenVpnStatusError
+          : s.networkOpenVpnStatusDisconnected;
+
   const updateUI = (status: OpenVpnStatus, log: string): void => {
-    const labelOf = (st: OpenVpnStatus): string =>
-      st === 'connected'
-        ? s.networkOpenVpnStatusConnected
-        : st === 'connecting'
-          ? s.networkOpenVpnStatusConnecting
-          : st === 'error'
-            ? s.networkOpenVpnStatusError
-            : s.networkOpenVpnStatusDisconnected;
     statusEl.setText(`${s.networkOpenVpnStatus}: ${labelOf(status)}`);
     logEl.textContent = log.slice(-2000);
   };
 
   updateUI(controller.getStatus(), controller.getRecentLog());
   controller.subscribe(updateUI);
+
+  /** v0.43.9: 共有・解析しやすいよう、状態と設定の要約 + ログをまとめて出力する */
+  const buildLogText = (): string => {
+    const ov = store.load().network.openvpn;
+    const header: string[] = [
+      '=== ClaudianBridge OpenVPN log ===',
+      `${s.networkOpenVpnStatus}: ${labelOf(controller.getStatus())}`,
+      `${s.networkOpenVpnConfigPath}: ${ov.configPath || '(empty)'}`,
+      `${s.networkOpenVpnBinaryPath}: ${ov.openvpnBinaryPath || '(default)'}`,
+    ];
+    if (ov.serverOverride) header.push(`${s.networkOpenVpnServerOverride}: ${ov.serverOverride}`);
+    const log = controller.getRecentLog();
+    return `${header.join('\n')}\n\n${log || '(no log)'}`;
+  };
 
   const connectBtn = containerEl.createEl('button', { text: s.networkOpenVpnConnect });
   connectBtn.addEventListener('click', async () => {
@@ -311,5 +326,41 @@ function renderOpenVpnStatus(
   disconnectBtn.addEventListener('click', async () => {
     await controller.stop();
   });
-  containerEl.append(connectBtn, disconnectBtn);
+
+  // v0.43.9: 接続状態のログデータをコピー（不具合報告・解析用）
+  const copyBtn = containerEl.createEl('button', { text: s.networkOpenVpnCopyLog });
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await copyToClipboard(buildLogText());
+      new Notice(s.networkOpenVpnCopied);
+    } catch (e) {
+      new Notice(s.networkOpenVpnCopyFailed.replace('{msg}', (e as Error).message));
+    }
+  });
+
+  containerEl.append(connectBtn, disconnectBtn, copyBtn);
+}
+
+/**
+ * v0.43.9: クリップボードへコピーする。
+ * Obsidian（Electron）では navigator.clipboard が使えるが、利用不可の環境に備えて
+ * textarea + execCommand のフォールバックを持つ。
+ */
+async function copyToClipboard(text: string): Promise<void> {
+  const nav = navigator as Navigator & {
+    clipboard?: { writeText?: (t: string) => Promise<void> };
+  };
+  if (nav.clipboard?.writeText) {
+    await nav.clipboard.writeText(text);
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand?.('copy');
+  ta.remove();
+  if (!ok) throw new Error('clipboard API unavailable');
 }

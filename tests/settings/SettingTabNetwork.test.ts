@@ -218,3 +218,94 @@ describe('SettingTabNetwork — OpenVPN install detection (v0.43.8)', () => {
     expect(container.querySelector('a[href*="openvpn.net"]')).toBeNull();
   });
 });
+
+// === v0.43.9: 接続状態ログのコピー機能 ===
+describe('SettingTabNetwork — copy connection log (v0.43.9)', () => {
+  beforeEach(() => {
+    mockGetOpenVpnController.mockReset();
+    mockExistsSync.mockReset();
+    mockExistsSync.mockReturnValue(true);
+  });
+
+  function makeJsonStore(): any {
+    return {
+      load: () => ({
+        network: {
+          proxy: { enabled: false, url: '', noProxyHosts: '' },
+          openvpn: {
+            enabled: true,
+            configPath: '/tmp/kentocloud.ovpn',
+            username: '',
+            password: '',
+            autoConnectOnLlm: true,
+            openvpnBinaryPath: '',
+            serverOverride: 'kento.myqnapcloud.com',
+          },
+        },
+      }),
+      save: vi.fn(),
+    };
+  }
+
+  it('コピーボタンでクリップボードに状態+設定+ログが渡る', async () => {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+
+    mockGetOpenVpnController.mockReturnValue({
+      getStatus: () => 'error',
+      getRecentLog: () => 'AUTH_FAILED: username/password invalid\n',
+      getLastError: () => 'AUTH_FAILED',
+      subscribe: () => () => {},
+      start: vi.fn(),
+      stop: vi.fn(),
+      detectExternalConnection: () => 'disconnected',
+    });
+
+    const { renderNetworkTab } = await import('../../src/settings/SettingTabNetwork');
+    const container = document.createElement('div');
+    renderNetworkTab({} as any, container, makeJsonStore());
+
+    const copyBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      (b.textContent ?? '').includes('コピー'),
+    );
+    expect(copyBtn).toBeTruthy();
+    copyBtn!.click();
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const text = String(writeText.mock.calls[0][0]);
+    expect(text).toContain('ClaudianBridge OpenVPN log');
+    expect(text).toContain('/tmp/kentocloud.ovpn');
+    expect(text).toContain('kento.myqnapcloud.com');
+    expect(text).toContain('AUTH_FAILED');
+  });
+
+  it('ログが空でもヘッダ付きでコピーできる', async () => {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    mockGetOpenVpnController.mockReturnValue({
+      getStatus: () => 'disconnected',
+      getRecentLog: () => '',
+      getLastError: () => null,
+      subscribe: () => () => {},
+      start: vi.fn(),
+      stop: vi.fn(),
+      detectExternalConnection: () => 'disconnected',
+    });
+
+    const { renderNetworkTab } = await import('../../src/settings/SettingTabNetwork');
+    const container = document.createElement('div');
+    renderNetworkTab({} as any, container, makeJsonStore());
+    const copyBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      (b.textContent ?? '').includes('コピー'),
+    );
+    copyBtn!.click();
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(String(writeText.mock.calls[0][0])).toContain('(no log)');
+  });
+});
