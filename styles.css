@@ -635,3 +635,61 @@
 .cb-think-badge { font-size: 0.8em; }
 .cb-think-badge--on { color: var(--text-accent); }
 .cb-think-badge--off { opacity: 0.5; }
+
+/* === v0.43.1 (F-043): Claudian 画面 OpenVPN トグル === */
+
+.cb-vpn-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+}
+
+.cb-vpn-toggle__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cb-vpn-toggle__button:hover:not(:disabled) {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+}
+
+.cb-vpn-toggle__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cb-vpn-toggle__icon { font-size: 14px; }
+.cb-vpn-toggle__label { font-weight: 500; }
+
+.cb-vpn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.cb-vpn-badge--disconnected { background: #adb5bd; color: #fff; }
+.cb-vpn-badge--connecting   { background: #f08c00; color: #fff; animation: cb-vpn-pulse 1.5s ease-in-out infinite; }
+.cb-vpn-badge--connected    { background: #2f9e44; color: #fff; }
+.cb-vpn-badge--error        { background: #c92a2a; color: #fff; }
+
+@keyframes cb-vpn-pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.2); opacity: 0.7; }
+}
+
+.theme-dark .cb-vpn-badge--disconnected { background: #495057; }
