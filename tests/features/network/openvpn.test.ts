@@ -565,3 +565,50 @@ describe('route verification (v0.44.1)', () => {
     }
   });
 });
+
+// === v0.44.2: Obsidian（ブラウザ環境）の setTimeout は unref を持たない ===
+describe('stop() in browser-like setTimeout env (v0.44.2)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+  });
+
+  it('setTimeout が数値を返す環境でも stop() は失敗しない', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+
+    // ブラウザ相当: setTimeout が number を返す（unref が無い）
+    const origSetTimeout = globalThis.setTimeout;
+    (globalThis as unknown as { setTimeout: unknown }).setTimeout = ((fn: () => void, ms?: number) => {
+      origSetTimeout(fn, ms);
+      return 1;
+    }) as never;
+
+    try {
+      const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+      const controller = getOpenVpnController();
+
+      const connP = controller.start({ ...VALID_SETTINGS });
+      await Promise.resolve();
+      (proc as unknown as { stderr: EventEmitter }).stderr.emit(
+        'data', Buffer.from('Initialization Sequence Completed\n'),
+      );
+      await connP;
+      expect(controller.getStatus()).toBe('connected');
+
+      const stopP = controller.stop();
+      (proc as unknown as EventEmitter).emit('exit', 0);
+      await expect(stopP).resolves.toBeUndefined();
+      expect(controller.getStatus()).toBe('disconnected');
+    } finally {
+      (globalThis as unknown as { setTimeout: unknown }).setTimeout = origSetTimeout;
+    }
+  });
+});
