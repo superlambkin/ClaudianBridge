@@ -49,6 +49,8 @@ const options = {
   minify: prod,
   logLevel: 'info',
   outfile: 'Plugin/main.js',
+  // CHANGELOG.md をテキストとして import 可能にする（改定履歴タブ用）
+  loader: { '.md': 'text' },
 };
 
 if (!prod) {

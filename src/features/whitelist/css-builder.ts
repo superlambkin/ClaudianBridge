@@ -2,9 +2,10 @@ export function buildWhitelistCss(
   extensions: string[],
   alwaysShowFolders: boolean,
   hideUnderscoreFolders: boolean,
+  hideDotFolders = false,
 ): string | null {
-  // 拡張子フィルタと _ フォルダ非表示の両方が無効なら null
-  if (extensions.length === 0 && !hideUnderscoreFolders) return null;
+  // 拡張子フィルタと _ / . フォルダ非表示のすべてが無効なら null
+  if (extensions.length === 0 && !hideUnderscoreFolders && !hideDotFolders) return null;
 
   const extSelectors = extensions
     .map((ext) => `      [data-path$=".${ext}" i]`)
@@ -25,9 +26,18 @@ export function buildWhitelistCss(
       '}'
     : '';
 
+  // v0.41.0: . で始まるフォルダを非表示（data-path^="." トップレベル / data-path*="/." ネスト）
+  const dotRule = hideDotFolders
+    ? '\n/* hide dot-prefixed folders (v0.41.0) */\n' +
+      '.nav-folder:has(> .nav-folder-title[data-path^="."]),\n' +
+      '.nav-folder:has(> .nav-folder-title[data-path*="/."]) {\n' +
+      '  display: none !important;\n' +
+      '}'
+    : '';
+
   const fileRule = extensions.length > 0
     ? `.nav-files-container .nav-file:not(:has(\n  > .nav-file-title:is(\n${extSelectors}\n  )\n)) {\n  display: none !important;\n}`
     : '';
 
-  return `/* ── Claudian Bridge Whitelist ── */\n${fileRule}${folderRule}${underscoreRule}`;
+  return `/* ── Claudian Bridge Whitelist ── */\n${fileRule}${folderRule}${underscoreRule}${dotRule}`;
 }

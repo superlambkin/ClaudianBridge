@@ -4,9 +4,15 @@ import type { ConfigStore } from '../core/config-store';
 import { DEFAULT_WHITELIST_SETTINGS } from '../core/settings';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { WHITELIST_PRESETS } from '../features/whitelist/presets';
+import { OutputsMirrorManager } from '../features/outputs-mirror/manager';
 
 export function renderWhitelistTab(_app: App, containerEl: HTMLElement, store: ConfigStore): void {
   const s = getLocaleStrings(getUILanguage());
+  const mirror = new OutputsMirrorManager({
+    vaultBasePath: (_app.vault.adapter as unknown as { getBasePath?: () => string; basePath?: string }).getBasePath
+      ? (_app.vault.adapter as unknown as { getBasePath: () => string }).getBasePath()
+      : (_app.vault.adapter as unknown as { basePath?: string }).basePath ?? '',
+  });
 
   const draw = (): void => {
     containerEl.empty();
@@ -144,6 +150,76 @@ export function renderWhitelistTab(_app: App, containerEl: HTMLElement, store: C
           draw();
         }
       }));
+
+    // v0.41.0: . で始まるフォルダを非表示（既定 ON）
+    new Setting(containerEl)
+      .setName(s.hideDotFolders)
+      .setDesc(s.hideDotFoldersDesc)
+      .addToggle((t) => t.setValue(cfg.general.hideDotFolders).onChange((v) => {
+        try {
+          const latest = store.load();
+          store.save({ ...latest, general: { ...latest.general, hideDotFolders: v } });
+          new Notice(s.noticeSaved);
+        } catch (e) {
+          new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          draw();
+        }
+      }));
+
+    // v0.41.0: Outputs フォルダミラリング
+    containerEl.createEl('h3', { text: s.outputsMirrorHeading });
+    const vaultOutputsReal = mirror.vaultOutputsIsRealFolder();
+
+    const mirrorToggle = new Setting(containerEl)
+      .setName(s.outputsMirrorEnabled)
+      .setDesc(vaultOutputsReal ? s.outputsMirrorVaultExists : s.outputsMirrorEnabledDesc)
+      .addToggle((t) => {
+        if (vaultOutputsReal) t.setDisabled(true);
+        t.setValue(cfg.general.outputsMirrorEnabled).onChange((v) => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, general: { ...latest.general, outputsMirrorEnabled: v } });
+            const state = mirror.apply(v, latest.general.outputsMirrorPath);
+            if (state === 'error') new Notice(s.noticeSaveFailed.replace('{msg}', 'outputs mirror'));
+            draw();
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        });
+      });
+    if (vaultOutputsReal) mirrorToggle.setClass('cb-outputs-mirror-disabled');
+
+    // ミラー元パス + 開くボタン
+    const mirrorPathSetting = new Setting(containerEl)
+      .setName(s.outputsMirrorPath)
+      .setDesc(s.outputsMirrorPathDesc)
+      .addText((text) => {
+        text.setPlaceholder('Documents/ObsidainOutputs');
+        text.setValue(cfg.general.outputsMirrorPath);
+        text.inputEl.addEventListener('change', () => {
+          try {
+            const latest = store.load();
+            store.save({ ...latest, general: { ...latest.general, outputsMirrorPath: text.getValue() } });
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+          }
+        });
+      })
+      .addButton((b) => b.setButtonText(s.outputsMirrorOpen).onClick(async () => {
+        const latest = store.load();
+        await mirror.openExternal(latest.general.outputsMirrorPath);
+      }));
+    if (vaultOutputsReal) mirrorPathSetting.setClass('cb-outputs-mirror-disabled');
+
+    // 状態表示
+    const st = mirror.status();
+    containerEl.createEl('p', {
+      text: st.linked && st.target
+        ? s.outputsMirrorStateLinked.replace('{target}', st.target)
+        : s.outputsMirrorStateNone,
+      attr: { style: 'color: var(--text-muted); font-size: 0.85em;' },
+    });
 
     // リセット
     containerEl.createEl('hr');
