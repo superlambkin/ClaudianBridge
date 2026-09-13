@@ -100,7 +100,29 @@ function createVpnToggle(
       : s.vpnToggleTitleDisconnected;
     // ラッパーの表示/非表示は enabled 状態に依存（status 更新時に再評価）
     applyVisibility();
+    // v0.43.7: 接続中は外部トンネル確立を定期確認（色の取りこぼし防止）
+    if (status === 'connecting') startExternalCheck(); else stopExternalCheck();
   };
+
+  // v0.43.7: プラグインが openvpn の成功ログを取りこぼしても、OS ルーティングに
+  // トンネルが存在すれば connected（緑）に補正する。connecting 中のみ 2 秒間隔で確認。
+  let externalCheckTimer: ReturnType<typeof setInterval> | null = null;
+  function stopExternalCheck(): void {
+    if (externalCheckTimer !== null) {
+      clearInterval(externalCheckTimer);
+      externalCheckTimer = null;
+    }
+  }
+  function startExternalCheck(): void {
+    if (externalCheckTimer !== null) return;
+    externalCheckTimer = setInterval(() => {
+      if (controller.getStatus() !== 'connecting') { stopExternalCheck(); return; }
+      if (controller.detectExternalConnection() === 'connected') {
+        stopExternalCheck();
+        applyStatus('connected');
+      }
+    }, 2000);
+  }
 
   // v0.43.5: enabled=false または configPath 未設定時はトグル自体を非表示
   const applyVisibility = (): void => {
@@ -154,6 +176,7 @@ function createVpnToggle(
 
   return {
     destroy: () => {
+      stopExternalCheck();
       unsubscribe();
       button.removeEventListener('click', onClick);
       wrapper.remove();
