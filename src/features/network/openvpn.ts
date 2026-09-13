@@ -88,7 +88,11 @@ class OpenVpnControllerImpl implements OpenVpnController {
       throw new Error(`configPath が見つかりません: ${settings.configPath}`);
     }
 
-    const binary = settings.openvpnBinaryPath || 'openvpn';
+    // v0.43.4: 空欄時の既定バイナリ（Windows は OpenVPN Community の標準インストール先）
+    const defaultBinary = process.platform === 'win32'
+      ? 'C:\\Program Files\\OpenVPN\\bin\\openvpn.exe'
+      : 'openvpn';
+    const binary = settings.openvpnBinaryPath || defaultBinary;
     const args: string[] = ['--config', settings.configPath, '--mute-replay-warnings'];
 
     // v0.43.2 (F-044): Server Override — CLI 引数は config ファイルの remote より優先される

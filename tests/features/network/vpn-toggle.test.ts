@@ -103,9 +103,8 @@ describe('vpn-toggle (F-043)', () => {
     const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
     const { container } = mountContainer();
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
-    const badge = container.querySelector('.cb-vpn-badge') as HTMLElement;
-    expect(badge.className).toContain('cb-vpn-badge--disconnected');
-    expect(badge.textContent).toBe('🔴');
+    const sw = container.querySelector('.cb-vpn-switch') as HTMLElement;
+    expect(sw.getAttribute('data-status')).toBe('disconnected');
     cleanup();
   });
 
@@ -119,11 +118,8 @@ describe('vpn-toggle (F-043)', () => {
     });
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
     listener!('connected');
-    const badge = container.querySelector('.cb-vpn-badge') as HTMLElement;
-    const label = container.querySelector('.cb-vpn-toggle__label') as HTMLElement;
-    expect(badge.className).toContain('cb-vpn-badge--connected');
-    expect(badge.textContent).toBe('🟢');
-    expect(label.textContent).toBe('接続済');
+    const sw = container.querySelector('.cb-vpn-switch') as HTMLElement;
+    expect(sw.getAttribute('data-status')).toBe('connected');
     cleanup();
   });
 
@@ -137,10 +133,10 @@ describe('vpn-toggle (F-043)', () => {
     });
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
     listener!('connecting');
-    const badge = container.querySelector('.cb-vpn-badge') as HTMLElement;
-    expect(badge.className).toContain('cb-vpn-badge--connecting');
+    const sw = container.querySelector('.cb-vpn-switch') as HTMLElement;
+    expect(sw.getAttribute('data-status')).toBe('connecting');
     listener!('connected');
-    expect(badge.className).not.toContain('connecting');
+    expect(sw.getAttribute('data-status')).toBe('connected');
     cleanup();
   });
 
@@ -154,7 +150,7 @@ describe('vpn-toggle (F-043)', () => {
     });
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
     listener!('connecting');
-    const btn = container.querySelector('.cb-vpn-toggle__button') as HTMLButtonElement;
+    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     cleanup();
   });
@@ -165,7 +161,7 @@ describe('vpn-toggle (F-043)', () => {
     const { container } = mountContainer();
     mockController.start.mockResolvedValue(undefined);
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
-    const btn = container.querySelector('.cb-vpn-toggle__button') as HTMLButtonElement;
+    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
     btn.click();
     await new Promise((r) => setTimeout(r, 0));
     expect(mockController.start).toHaveBeenCalledTimes(1);
@@ -179,7 +175,7 @@ describe('vpn-toggle (F-043)', () => {
     mockController.getStatus.mockReturnValue('connected');
     mockController.stop.mockResolvedValue(undefined);
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
-    const btn = container.querySelector('.cb-vpn-toggle__button') as HTMLButtonElement;
+    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
     btn.click();
     await new Promise((r) => setTimeout(r, 0));
     expect(mockController.stop).toHaveBeenCalledTimes(1);
@@ -193,7 +189,7 @@ describe('vpn-toggle (F-043)', () => {
     mockController.getStatus.mockReturnValue('error');
     mockController.start.mockResolvedValue(undefined);
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
-    const btn = container.querySelector('.cb-vpn-toggle__button') as HTMLButtonElement;
+    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
     btn.click();
     await new Promise((r) => setTimeout(r, 0));
     expect(mockController.start).toHaveBeenCalledTimes(1);
@@ -205,7 +201,7 @@ describe('vpn-toggle (F-043)', () => {
     const { container } = mountContainer();
     mockController.getStatus.mockReturnValue('connecting');
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
-    const btn = container.querySelector('.cb-vpn-toggle__button') as HTMLButtonElement;
+    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     btn.click();
     await new Promise((r) => setTimeout(r, 0));
@@ -219,7 +215,7 @@ describe('vpn-toggle (F-043)', () => {
     const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
     const { container } = mountContainer();
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore({ enabled: false, configPath: '' }) as never);
-    const btn = container.querySelector('.cb-vpn-toggle__button') as HTMLButtonElement;
+    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     cleanup();
   });
@@ -228,7 +224,7 @@ describe('vpn-toggle (F-043)', () => {
     const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
     const { container } = mountContainer();
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore({ configPath: '' }) as never);
-    const btn = container.querySelector('.cb-vpn-toggle__button') as HTMLButtonElement;
+    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     cleanup();
   });
@@ -237,7 +233,7 @@ describe('vpn-toggle (F-043)', () => {
     const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
     const { container } = mountContainer();
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore({ enabled: false, configPath: '' }) as never);
-    const btn = container.querySelector('.cb-vpn-toggle__button') as HTMLButtonElement;
+    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
     // 未設定でもクリック自体は可能（disabled 属性は初期 checkEnabled で付くが、JS から click は発火する）
     btn.disabled = false;
     btn.click();
