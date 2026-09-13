@@ -535,6 +535,7 @@ export function normalizeOpenVpnSettings(raw: unknown): OpenVpnSettings {
     password: typeof r.password === 'string' ? r.password : DEFAULT_OPEN_VPN_SETTINGS.password,
     autoConnectOnLlm: typeof r.autoConnectOnLlm === 'boolean' ? r.autoConnectOnLlm : DEFAULT_OPEN_VPN_SETTINGS.autoConnectOnLlm,
     openvpnBinaryPath: typeof r.openvpnBinaryPath === 'string' ? r.openvpnBinaryPath : DEFAULT_OPEN_VPN_SETTINGS.openvpnBinaryPath,
+    serverOverride: typeof r.serverOverride === 'string' ? r.serverOverride : DEFAULT_OPEN_VPN_SETTINGS.serverOverride,
   };
 }
 
@@ -1206,6 +1207,14 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.network.openvpn.enabled !== 'boolean') return 'network.openvpn.enabled は boolean である必要があります';
   if (typeof cfg.network.openvpn.configPath !== 'string') return 'network.openvpn.configPath は string である必要があります';
   if (cfg.network.openvpn.enabled && !cfg.network.openvpn.configPath) return 'network.openvpn.enabled=true のとき configPath は必須です';
+  if (typeof cfg.network.openvpn.serverOverride !== 'string') return 'network.openvpn.serverOverride は string である必要があります';
+  if (cfg.network.openvpn.serverOverride) {
+    const soParts = cfg.network.openvpn.serverOverride.split(':');
+    if (soParts.length > 2) return 'network.openvpn.serverOverride は host または host:port 形式で指定してください';
+    if (soParts.length === 2 && (!/^\d+$/.test(soParts[1]) || Number(soParts[1]) < 1 || Number(soParts[1]) > 65535)) {
+      return 'network.openvpn.serverOverride の port は 1-65535 の数値で指定してください';
+    }
+  }
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';

@@ -1195,4 +1195,22 @@ describe('ClaudianBridgeSettings network section (v0.43.0 F-041/F-042)', () => {
     cfg.network.openvpn = { ...DEFAULT_OPEN_VPN_SETTINGS, enabled: false, configPath: '' };
     expect(validateClaudianBridgeSettings(cfg)).toBeNull();
   });
+
+  // === v0.43.2 (F-044): Server Override ===
+  it('normalize: serverOverride 不在時は空文字で初期化', () => {
+    const result = normalizeClaudianBridgeSettings({} as any);
+    expect(result.network.openvpn.serverOverride).toBe('');
+  });
+
+  it('validate: serverOverride の port 非数値でエラー', () => {
+    const cfg = makeValidConfig();
+    cfg.network.openvpn = { ...DEFAULT_OPEN_VPN_SETTINGS, serverOverride: 'vpn.example.com:abc' };
+    expect(validateClaudianBridgeSettings(cfg)).toMatch(/serverOverride/);
+  });
+
+  it('validate: serverOverride host のみ（port 省略）は OK', () => {
+    const cfg = makeValidConfig();
+    cfg.network.openvpn = { ...DEFAULT_OPEN_VPN_SETTINGS, serverOverride: 'myqnap.myqnapcloud.com' };
+    expect(validateClaudianBridgeSettings(cfg)).toBeNull();
+  });
 });

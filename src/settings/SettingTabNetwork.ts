@@ -183,6 +183,22 @@ function renderOpenVpnSection(
         });
       }),
     );
+  // v0.43.2 (F-044): Server Override — ドメイン名で .ovpn の remote を上書き
+  new Setting(containerEl)
+    .setName(s.networkOpenVpnServerOverride)
+    .setDesc(s.networkOpenVpnServerOverrideDesc)
+    .addText((t) =>
+      t.setPlaceholder('myqnap.myqnapcloud.com').setValue(openvpn.serverOverride).onChange(async (v) => {
+        const latest = store.load();
+        store.save({
+          ...latest,
+          network: {
+            ...latest.network,
+            openvpn: { ...latest.network.openvpn, serverOverride: v },
+          },
+        });
+      }),
+    );
   new Setting(containerEl)
     .setName(s.networkOpenVpnAutoConnect)
     .addToggle((t) =>
