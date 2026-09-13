@@ -33,7 +33,8 @@ vi.mock('obsidian', () => ({
   })),
 }));
 vi.mock('../../../../src/features/llm/dispatch', () => ({
-  resolveLlmClient: () => ({
+  // v0.43.0 (F-041): dispatchLlmRequest は async 化したので Promise を返す
+  dispatchLlmRequest: async () => ({
     id: 'claude' as const,
     runPrompt: (...args: unknown[]) => (mockRunPrompt as unknown as (...a: unknown[]) => Promise<string | null>)(...args),
   }),

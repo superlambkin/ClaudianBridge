@@ -33,7 +33,8 @@ import { parseSections, rewriteSectionsStream, type MdSection } from './llm-rewr
 import { rewriteCacheKey, RewriteCache } from './llm-rewrite-cache';
 import { beginLlmSession, endLlmSession, isCurrent, abortIfOtherLlmActive, abortCurrentLlm, type LlmSession } from './llm-session';
 // v0.39.0 (F-039): dispatch 経由で ThinkingConfig を反映した LlmClient を使う
-import { resolveLlmClient } from '../llm/dispatch';
+// v0.43.0 (F-041): VPN 自動接続フックを発火させるため dispatchLlmRequest を使用
+import { dispatchLlmRequest } from '../llm/dispatch';
 import { readLlmInfoFromSettings, resolveApiKey } from '../quota/llm-info';
 
 export { openInPreview };
@@ -194,7 +195,8 @@ export async function addMdToTts(
         ?? DEFAULT_THINKING_CONFIGS.claude;
       // v0.40.0 (F-040): プロバイダ別 API キーを解決して渡す
       const apiKey = resolveApiKey(llmInfo.provider, cfg.quota ?? {});
-      const client = resolveLlmClient(llmInfo.provider, apiKey, thinking);
+      // v0.43.0 (F-041): dispatchLlmRequest で OpenVPN 自動接続フックを発火させる
+      const client = await dispatchLlmRequest(cfg, llmInfo.provider, apiKey, thinking);
       return client.runPrompt(p, { thinking, signal: session.signal });
     };
     const stream = rewriteSectionsStream(orig, profile, runFn,
