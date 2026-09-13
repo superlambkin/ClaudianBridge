@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.43.0] - 2026-09-13 — ネットワークタブ新設 + OpenVPN 接続機能 (F-041/F-042)
+
+### Added
+
+- 🌐 **ネットワークタブ新設**（F-042）: 一般タブとテキスト挿入タブの間に「🌐 ネットワーク」タブを新設。プロキシ設定（v0.38.0）を一般タブから移動し、OpenVPN 接続セクションを新設
+- 🔐 **OpenVPN 接続機能**（F-041）: `.ovpn` ファイルを使った VPN トンネル確立（デスクトップ環境のみ・Win/Mac/Linux）
+  - 手動接続/切断ボタン + LLM 呼び出し時の自動接続（`network.openvpn.autoConnectOnLlm` 既定 ON）
+  - LAN 内 LLM/Chroma サーバへのアクセス用途
+  - auth-user-pass 対応（ユーザー名・パスワードを別途指定・一時ファイルは chmod 600）
+  - 状態管理 4 値（disconnected / connecting / connected / error）+ stderr 監視 + リアルタイムログ表示
+  - `ensureVpnConnected()` による LLM dispatch 前の自動接続フック（TTS の AI 読み上げ経路も対応）
+  - プラグイン無効化時に VPN も自動切断（ゾンビプロセス防止）
+- i18n 20 キー追加（ja / en / zh-CN）
+
+### Changed
+
+- 一般タブからプロキシ設定を削除し、ネットワークタブへ移動（`general.proxy` → `network.proxy`・旧キーは normalize 時に自動移送・後方互換維持）
+
+### ⚠️ 制限事項
+
+- OpenVPN はデスクトップ環境でのみ動作（モバイルでは不可・UI に注記表示）
+
 ## [0.41.0] - 2026-09-13 — Outputs フォルダミラリング + Vault表示タブ + 改定履歴ページ
 
 ### Added
