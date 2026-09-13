@@ -7,10 +7,11 @@ const speakTextMock = vi.fn(async () => true);
 vi.mock('../../../src/features/tts/speak', () => ({ speakText: (...a: unknown[]) => speakTextMock(...a) }));
 
 // v0.39.0 (F-039): dispatch 経由の LlmClient をモック
+// v0.43.0 (F-041): dispatchLlmRequest に置換（VPN フック発火経路）
 const runPromptMock = vi.fn(async () => '整形済み');
-const resolveLlmClientMock = vi.fn(() => ({ id: 'claude' as const, runPrompt: runPromptMock }));
+const dispatchLlmRequestMock = vi.fn(async () => ({ id: 'claude' as const, runPrompt: runPromptMock }));
 vi.mock('../../../src/features/llm/dispatch', () => ({
-  resolveLlmClient: (...a: unknown[]) => (resolveLlmClientMock as unknown as (...args: unknown[]) => { id: 'claude'; runPrompt: typeof runPromptMock })(...a),
+  dispatchLlmRequest: (...a: unknown[]) => (dispatchLlmRequestMock as unknown as (...args: unknown[]) => Promise<{ id: 'claude'; runPrompt: typeof runPromptMock }>)(...a),
 }));
 
 // v0.39.0 (F-039): readLlmInfoFromSettings をモック
@@ -81,7 +82,7 @@ describe('setupInputAiReadButton', () => {
     document.body.innerHTML = '';
     speakTextMock.mockClear();
     runPromptMock.mockReset();
-    resolveLlmClientMock.mockClear();
+    dispatchLlmRequestMock.mockClear();
     // 既定は整形成功を返す（個別テストで上書き）
     runPromptMock.mockResolvedValue('整形済み');
   });
@@ -164,19 +165,23 @@ describe('setupInputAiReadButton', () => {
     const btn = document.querySelector('[data-cb-input-ai]') as HTMLButtonElement;
     btn.click();
     expect(btn.disabled).toBe(true);
+    // v0.43.0 (F-041): dispatchLlmRequest が async 化したため runPrompt 呼び出しが
+    // マイクロタスク境界を 1 つ越える。runPrompt が呼ばれて resolveRun が代入される
+    // まで待つ
+    await vi.waitFor(() => expect(runPromptMock).toHaveBeenCalledTimes(1));
     resolveRun('ok');
     await vi.waitFor(() => expect(btn.disabled).toBe(false));
   });
 
-  it('resolveLlmClient に正しいプロバイダと ThinkingConfig が渡される', async () => {
+  it('dispatchLlmRequest に正しいプロバイダと ThinkingConfig が渡される', async () => {
     runPromptMock.mockResolvedValue('整形済');
     makeComposer('テスト');
     setupInputAiReadButton({ store: makeStore(), noticeFn: vi.fn() });
     (document.querySelector('[data-cb-input-ai]') as HTMLElement).click();
-    await vi.waitFor(() => expect(resolveLlmClientMock).toHaveBeenCalled());
-    // resolveLlmClient(provider, apiKey, thinking)
-    expect(resolveLlmClientMock.mock.calls[0][0]).toBe('claude');
-    expect(resolveLlmClientMock.mock.calls[0][2]).toEqual({ enabled: true, effort: 'medium' });
+    await vi.waitFor(() => expect(dispatchLlmRequestMock).toHaveBeenCalled());
+    // dispatchLlmRequest(cfg, provider, apiKey, thinking)
+    expect(dispatchLlmRequestMock.mock.calls[0][1]).toBe('claude');
+    expect(dispatchLlmRequestMock.mock.calls[0][3]).toEqual({ enabled: true, effort: 'medium' });
   });
 
   it('コードフェンス付き応答は剥がして読み上げる', async () => {
