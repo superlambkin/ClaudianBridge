@@ -16,16 +16,34 @@ const PLUGIN_ID = 'ClaudianBridge';
 
 interface VpnToggleHandle {
   destroy: () => void;
+  /** v0.43.8: 設定変更（enabled の ON/OFF）を即座に表示へ反映する */
+  refresh: () => void;
+}
+
+/**
+ * v0.43.8: 生成済みトグルの refresh 関数レジストリ。
+ * 設定タブで「OpenVPN を使用」を切り替えた瞬間に、チャット画面のトグルを
+ * 再評価（非表示化／再表示）するために外部から呼び出せるようにする。
+ */
+const activeRefreshers = new Set<() => void>();
+
+/** v0.43.8: 設定変更時にチャット画面のトグル表示を即時更新する */
+export function refreshVpnToggles(): void {
+  activeRefreshers.forEach((fn) => fn());
 }
 
 export function setupVpnToggle(app: App, store: ConfigStore): () => void {
   const handles = new Map<Element, VpnToggleHandle>();
 
   const injectInto = (container: Element): void => {
-    if (handles.has(container)) return;
+    // v0.43.8: 既存トグルは再評価のみ（設定タブの ON/OFF を即時反映）
+    const existing = handles.get(container);
+    if (existing) { existing.refresh(); return; }
     const yolo = container.querySelector(YOLO_TOGGLE_SELECTOR);
     if (!yolo || !yolo.parentElement) return;
-    handles.set(container, createVpnToggle(app, store, yolo.parentElement, yolo));
+    const handle = createVpnToggle(app, store, yolo.parentElement, yolo);
+    handles.set(container, handle);
+    activeRefreshers.add(handle.refresh);
   };
 
   const injectAll = (): void => {
@@ -33,13 +51,17 @@ export function setupVpnToggle(app: App, store: ConfigStore): () => void {
   };
 
   const removeAll = (): void => {
-    handles.forEach((h) => h.destroy());
+    handles.forEach((h) => {
+      activeRefreshers.delete(h.refresh);
+      h.destroy();
+    });
     handles.clear();
   };
 
   const rescan = (): void => {
     handles.forEach((handle, el) => {
       if (!document.contains(el)) {
+        activeRefreshers.delete(handle.refresh);
         handle.destroy();
         handles.delete(el);
       }
@@ -174,7 +196,14 @@ function createVpnToggle(
 
   const unsubscribe = controller.subscribe((status) => applyStatus(status));
 
+  // v0.43.8: 設定タブの「OpenVPN を使用」変更を即座に表示へ反映する
+  const refresh = (): void => {
+    applyVisibility();
+    applyStatus(controller.getStatus());
+  };
+
   return {
+    refresh,
     destroy: () => {
       stopExternalCheck();
       unsubscribe();

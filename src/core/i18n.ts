@@ -24,6 +24,10 @@ export interface LocaleStrings {
   networkOpenVpnBinaryPathDesc: string;
   networkOpenVpnServerOverride: string;
   networkOpenVpnServerOverrideDesc: string;
+  /** v0.43.8: OpenVPN 未インストール時の警告・ダウンロードリンク */
+  networkOpenVpnNotInstalled: string;
+  networkOpenVpnNotInstalledNotice: string;
+  networkOpenVpnDownloadLink: string;
   networkOpenVpnAutoConnect: string;
   networkOpenVpnStatus: string;
   networkOpenVpnStatusDisconnected: string;
@@ -527,6 +531,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnBinaryPathDesc: '空欄なら既定パス（C:\\Program Files\\OpenVPN\\bin\\openvpn.exe）を使用',
     networkOpenVpnServerOverride: '🌐 サーバ上書き（任意）',
     networkOpenVpnServerOverrideDesc: 'ドメイン名で接続先を上書きします。例: myqnap.myqnapcloud.com または myqnap.example.com:1194。空欄 = .ovpn の設定を使用',
+    networkOpenVpnNotInstalled: '⚠️ OpenVPN が見つかりません。下記公式サイトからインストールし、必要に応じて 🔧 バイナリパスを設定してください。',
+    networkOpenVpnNotInstalledNotice: '⚠️ OpenVPN が見つかりません。ネットワークタブの案内からインストールしてください。',
+    networkOpenVpnDownloadLink: '⬇️ OpenVPN をダウンロード（公式サイト）',
     networkOpenVpnAutoConnect: '🚀 LLM 呼び出し時に自動接続',
     networkOpenVpnStatus: '状態',
     networkOpenVpnStatusDisconnected: '🔴 切断中',
@@ -1014,6 +1021,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnBinaryPathDesc: 'If empty, the default path (C:\\Program Files\\OpenVPN\\bin\\openvpn.exe) is used',
     networkOpenVpnServerOverride: '🌐 Server override (optional)',
     networkOpenVpnServerOverrideDesc: 'Overrides the connection target with a domain. e.g. myqnap.myqnapcloud.com or myqnap.example.com:1194. Empty = use .ovpn setting',
+    networkOpenVpnNotInstalled: '⚠️ OpenVPN was not found. Install it from the official site below, and set the 🔧 binary path if needed.',
+    networkOpenVpnNotInstalledNotice: '⚠️ OpenVPN was not found. Follow the guidance in the Network tab to install it.',
+    networkOpenVpnDownloadLink: '⬇️ Download OpenVPN (official site)',
     networkOpenVpnAutoConnect: '🚀 Auto-connect on LLM call',
     networkOpenVpnStatus: 'Status',
     networkOpenVpnStatusDisconnected: '🔴 Disconnected',
@@ -1501,6 +1511,9 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnBinaryPathDesc: '为空时使用默认路径（C:\\Program Files\\OpenVPN\\bin\\openvpn.exe）',
     networkOpenVpnServerOverride: '🌐 服务器覆盖（可选）',
     networkOpenVpnServerOverrideDesc: '用域名覆盖连接目标。例: myqnap.myqnapcloud.com 或 myqnap.example.com:1194。留空 = 使用 .ovpn 设置',
+    networkOpenVpnNotInstalled: '⚠️ 未找到 OpenVPN。请从下方官网安装，并按需设置 🔧 二进制路径。',
+    networkOpenVpnNotInstalledNotice: '⚠️ 未找到 OpenVPN。请按网络选项卡中的指引进行安装。',
+    networkOpenVpnDownloadLink: '⬇️ 下载 OpenVPN（官网）',
     networkOpenVpnAutoConnect: '🚀 LLM 调用时自动连接',
     networkOpenVpnStatus: '状态',
     networkOpenVpnStatusDisconnected: '🔴 已断开',

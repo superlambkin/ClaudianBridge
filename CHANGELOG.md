@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.43.8] - 2026-09-13 — 設定変更の即時反映と OpenVPN 未導入ガイド
+
+### Added
+
+- ⬇️ **OpenVPN 未インストール検知とダウンロードリンク**: 設定 → 🌐 ネットワークで「🔐 OpenVPN を使用」を ON にした瞬間にバイナリの実在を確認し、未導入なら警告と [公式ダウンロードページ](https://openvpn.net/community-downloads/) へのリンクを表示（Notice でも案内）。空欄時は既定パス（Windows: `C:\Program Files\OpenVPN\bin\openvpn.exe`）を検査し、PATH 解決に委ねる値は誤警告を避けるため検査対象外
+
+### Fixed
+
+- 🙈 **「OpenVPN を使用」を OFF にした瞬間にチャット画面の VPN トグルが消えるように修正**: 従来は設定タブでの変更がチャット画面へ伝わらず、トグルが残っていた（`injectInto` が既存コンテナを早期 return していたため再評価されなかった）。`refreshVpnToggles()` を新設し、設定変更時に生成済みトグルを即時再評価する
+
 ## [0.43.7] - 2026-09-13 — 接続色の確実な反映と YOLO 密着配置
 
 ### Fixed
