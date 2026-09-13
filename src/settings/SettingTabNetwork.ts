@@ -4,10 +4,41 @@
  */
 import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
+import { existsSync } from 'fs';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { getOpenVpnController } from '../features/network/openvpn';
+import { refreshVpnToggles } from '../features/network/vpn-toggle';
 import type { OpenVpnSettings, OpenVpnStatus } from '../features/network/types';
+
+/** v0.43.8: OpenVPN Community 公式ダウンロードページ */
+const OPENVPN_DOWNLOAD_URL = 'https://openvpn.net/community-downloads/';
+
+/**
+ * v0.43.8: バイナリパスを解決する（openvpn.ts の start() と同一規則）。
+ * 空欄時は Windows = Program Files の既定パス、その他 = PATH 上の `openvpn`。
+ */
+function resolveBinaryPath(configured: string): string {
+  if (configured) return configured;
+  return process.platform === 'win32'
+    ? 'C:\\Program Files\\OpenVPN\\bin\\openvpn.exe'
+    : 'openvpn';
+}
+
+/**
+ * v0.43.8: OpenVPN のインストール有無を判定する。
+ * 絶対パス指定（既定パス含む）のみ実在チェックし、PATH 解決に委ねる値は
+ * 判定不能のため「インストール済み」として扱う（誤警告を避ける）。
+ */
+function isOpenVpnInstalled(configured: string): boolean {
+  const p = resolveBinaryPath(configured);
+  if (!/[\\/]/.test(p)) return true;
+  try {
+    return existsSync(p);
+  } catch {
+    return false;
+  }
+}
 
 export function renderNetworkTab(
   _app: App,
@@ -108,12 +139,25 @@ function renderOpenVpnSection(
   openvpn: OpenVpnSettings,
 ): void {
   const s = getLocaleStrings(getUILanguage());
+
+  // v0.43.8: インストール状況の警告表示枠（enabled ON かつ未検出のときのみ内容を出す）
+  const installWarnEl = containerEl.createDiv('cb-openvpn-install-warning');
+  const updateInstallWarning = (enabled: boolean, configuredPath: string): void => {
+    installWarnEl.empty();
+    if (!enabled) return;
+    if (isOpenVpnInstalled(configuredPath)) return;
+    installWarnEl.createEl('p', { text: s.networkOpenVpnNotInstalled, cls: 'setting-item-description' });
+    installWarnEl.createEl('a', { text: s.networkOpenVpnDownloadLink, href: OPENVPN_DOWNLOAD_URL });
+  };
+  updateInstallWarning(openvpn.enabled, openvpn.openvpnBinaryPath);
+
   new Setting(containerEl)
     .setName(s.networkOpenVpnEnabled)
     .setDesc(s.networkOpenVpnEnabledDesc)
     .addToggle((t) =>
       t.setValue(openvpn.enabled).onChange(async (v) => {
         const latest = store.load();
+        const configuredPath = latest.network.openvpn.openvpnBinaryPath;
         store.save({
           ...latest,
           network: {
@@ -121,7 +165,16 @@ function renderOpenVpnSection(
             openvpn: { ...latest.network.openvpn, enabled: v },
           },
         });
-        new Notice(s.noticeSaved);
+        // v0.43.8: チャット画面の VPN トグルを即時再評価（OFF → 非表示 / ON → 表示）
+        refreshVpnToggles();
+        // v0.43.8: 有効化時に OpenVPN のインストール状況を確認し、未導入ならリンクを提示
+        const installed = isOpenVpnInstalled(configuredPath);
+        if (v && !installed) {
+          new Notice(s.networkOpenVpnNotInstalledNotice);
+        } else {
+          new Notice(s.noticeSaved);
+        }
+        updateInstallWarning(v, configuredPath);
       }),
     );
   new Setting(containerEl)

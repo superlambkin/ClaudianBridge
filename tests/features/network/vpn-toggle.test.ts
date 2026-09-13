@@ -340,3 +340,59 @@ describe('vpn-toggle external connection polling (v0.43.7)', () => {
     expect(mockController.detectExternalConnection.mock.calls.length).toBe(callsBefore);
   });
 });
+
+// === v0.43.8: 設定変更（OpenVPN を使用 ON/OFF）の即時反映 ===
+describe('vpn-toggle refreshVpnToggles (v0.43.8)', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    vi.clearAllMocks();
+    mockController.getStatus.mockReturnValue('disconnected');
+    mockController.subscribe.mockReturnValue(() => {});
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('refreshVpnToggles() で enabled=false になるとその場で非表示になる', async () => {
+    const { setupVpnToggle, refreshVpnToggles } = await import('../../../src/features/network/vpn-toggle');
+    const { container } = mountContainer();
+
+    let enabled = true;
+    const store = {
+      load: () => ({
+        network: {
+          proxy: { enabled: false, url: '', noProxyHosts: '' },
+          openvpn: { enabled, configPath: '/p.ovpn', username: '', password: '', autoConnectOnLlm: true, openvpnBinaryPath: '' },
+        },
+      }),
+      save: vi.fn(),
+    };
+
+    const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, store as never);
+    const wrapper = container.querySelector('.cb-vpn-toggle') as HTMLElement;
+    expect(wrapper.style.display).not.toBe('none');
+
+    // 設定タブで「OpenVPN を使用」を OFF にした状況を再現
+    enabled = false;
+    refreshVpnToggles();
+    expect(wrapper.style.display).toBe('none');
+
+    // 再度 ON にすると再表示される
+    enabled = true;
+    refreshVpnToggles();
+    expect(wrapper.style.display).not.toBe('none');
+
+    cleanup();
+  });
+
+  it('cleanup 後は refreshVpnToggles() の影響を受けない', async () => {
+    const { setupVpnToggle, refreshVpnToggles } = await import('../../../src/features/network/vpn-toggle');
+    mountContainer();
+    const store = makeStore();
+    const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, store as never);
+    cleanup();
+    // 例外を出さずに完了すること
+    expect(() => refreshVpnToggles()).not.toThrow();
+  });
+});

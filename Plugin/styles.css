@@ -735,3 +735,11 @@
 .theme-dark .cb-vpn-switch:disabled {
   opacity: 0.4;
 }
+
+/* === v0.43.8 (F-042): OpenVPN 未インストール警告 === */
+.cb-openvpn-install-warning a {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--text-accent);
+  text-decoration: underline;
+}

@@ -4,6 +4,14 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 const mockGetOpenVpnController = vi.fn();
 
+// v0.43.8: OpenVPN インストール検知（existsSync）をテストから制御する
+const { mockExistsSync } = vi.hoisted(() => ({ mockExistsSync: vi.fn(() => true) }));
+
+vi.mock('fs', () => ({
+  existsSync: mockExistsSync,
+  default: { existsSync: mockExistsSync },
+}));
+
 vi.mock('../../src/features/network/openvpn', () => ({
   getOpenVpnController: () => mockGetOpenVpnController(),
   ensureVpnConnected: vi.fn(),
@@ -60,11 +68,12 @@ beforeAll(() => {
   HTMLElement.prototype.createEl = function (
     this: HTMLElement,
     tag: string,
-    o?: { text?: string; cls?: string },
+    o?: { text?: string; cls?: string; href?: string },
   ) {
     const e = document.createElement(tag);
     if (o?.cls) e.className = o.cls;
     if (o?.text) e.textContent = o.text;
+    if (o?.href) e.setAttribute('href', o.href);
     this.appendChild(e);
     return e;
   } as never;
@@ -139,5 +148,73 @@ describe('SettingTabNetwork', () => {
     renderNetworkTab({} as any, container, makeStore());
     const headings = Array.from(container.querySelectorAll('h3')).map((h) => h.textContent);
     expect(headings.some((t) => t?.includes('OpenVPN'))).toBe(true);
+  });
+});
+
+// === v0.43.8: OpenVPN 未インストール検知とダウンロードリンク表示 ===
+describe('SettingTabNetwork — OpenVPN install detection (v0.43.8)', () => {
+  beforeEach(() => {
+    mockGetOpenVpnController.mockReset();
+    mockExistsSync.mockReset();
+    mockExistsSync.mockReturnValue(true);
+  });
+
+  function makeStore(enabled: boolean, binaryPath: string): any {
+    return {
+      load: () => ({
+        network: {
+          proxy: { enabled: false, url: '', noProxyHosts: '' },
+          openvpn: {
+            enabled,
+            configPath: '/p.ovpn',
+            username: '',
+            password: '',
+            autoConnectOnLlm: true,
+            openvpnBinaryPath: binaryPath,
+          },
+        },
+      }),
+      save: vi.fn(),
+    };
+  }
+
+  function mockVpnController(): void {
+    mockGetOpenVpnController.mockReturnValue({
+      getStatus: () => 'disconnected',
+      getRecentLog: () => '',
+      subscribe: () => () => {},
+      start: vi.fn(),
+      stop: vi.fn(),
+      detectExternalConnection: () => 'disconnected',
+    });
+  }
+
+  it('enabled=true かつバイナリ不在ならダウンロードリンクを表示する', async () => {
+    mockExistsSync.mockReturnValue(false);
+    const { renderNetworkTab } = await import('../../src/settings/SettingTabNetwork');
+    const container = document.createElement('div');
+    mockVpnController();
+    renderNetworkTab({} as any, container, makeStore(true, String.raw`C:\Program Files\OpenVPN\bin\openvpn.exe`) as any);
+    const link = container.querySelector('a[href*="openvpn.net"]') as HTMLAnchorElement | null;
+    expect(link).not.toBeNull();
+    expect(link?.getAttribute('href')).toContain('openvpn.net/community-downloads');
+  });
+
+  it('enabled=true かつバイナリ実在ならリンクを表示しない', async () => {
+    mockExistsSync.mockReturnValue(true);
+    const { renderNetworkTab } = await import('../../src/settings/SettingTabNetwork');
+    const container = document.createElement('div');
+    mockVpnController();
+    renderNetworkTab({} as any, container, makeStore(true, String.raw`C:\Program Files\OpenVPN\bin\openvpn.exe`) as any);
+    expect(container.querySelector('a[href*="openvpn.net"]')).toBeNull();
+  });
+
+  it('enabled=false ならリンクを表示しない（未検出でも）', async () => {
+    mockExistsSync.mockReturnValue(false);
+    const { renderNetworkTab } = await import('../../src/settings/SettingTabNetwork');
+    const container = document.createElement('div');
+    mockVpnController();
+    renderNetworkTab({} as any, container, makeStore(false, '') as any);
+    expect(container.querySelector('a[href*="openvpn.net"]')).toBeNull();
   });
 });
