@@ -4,16 +4,24 @@ import type { ChildProcess } from 'child_process';
 
 // Mock child_process.spawn BEFORE importing openvpn.ts
 const mockSpawn = vi.fn();
+// v0.44.0: 孤児回収が execSync を使うため、実プロセス操作を避けてモックする
+const mockExecSync = vi.fn(() => '');
 vi.mock('child_process', () => ({
   spawn: (...args: unknown[]) => mockSpawn(...args),
+  execSync: (...args: unknown[]) => mockExecSync(...args),
 }));
 
 vi.mock('fs', () => ({
-  default: { existsSync: vi.fn(() => true), writeFileSync: vi.fn(), unlinkSync: vi.fn(), chmodSync: vi.fn() },
+  default: {
+    existsSync: vi.fn(() => true), writeFileSync: vi.fn(), unlinkSync: vi.fn(),
+    chmodSync: vi.fn(), readFileSync: vi.fn(() => ''), readdirSync: vi.fn(() => []),
+  },
   existsSync: vi.fn(() => true),
   writeFileSync: vi.fn(),
   unlinkSync: vi.fn(),
   chmodSync: vi.fn(),
+  readFileSync: vi.fn(() => ''),
+  readdirSync: vi.fn(() => []),
 }));
 
 vi.mock('os', () => ({
@@ -78,10 +86,18 @@ describe('OpenVpnController', () => {
 
   it('start() throws when configPath does not exist', async () => {
     const fs = await import('fs');
-    (fs.existsSync as ReturnType<typeof vi.fn>).mockReturnValueOnce(false);
-    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
-    const controller = getOpenVpnController();
-    await expect(controller.start(VALID_SETTINGS)).rejects.toThrow(/configPath|ファイル/);
+    // v0.44.0: reapOrphanOpenVpn も existsSync を呼ぶため、mockReturnValueOnce では
+    // その 1 回に消費されてしまう。対象パスだけ false を返す実装に差し替える。
+    (fs.existsSync as ReturnType<typeof vi.fn>).mockImplementation(
+      (p: unknown) => p !== VALID_SETTINGS.configPath,
+    );
+    try {
+      const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+      const controller = getOpenVpnController();
+      await expect(controller.start(VALID_SETTINGS)).rejects.toThrow(/configPath|ファイル/);
+    } finally {
+      (fs.existsSync as ReturnType<typeof vi.fn>).mockImplementation(() => true);
+    }
   });
 
   it('subscribe() notifier が status 変化時に呼ばれる', async () => {
@@ -408,5 +424,72 @@ describe('default binary path (v0.43.4)', () => {
     await p;
     const [binary] = mockSpawn.mock.calls[0];
     expect(binary).toBe(String.raw`C:\custom\ovpn.exe`);
+  });
+});
+
+// === v0.44.0: TAP アダプタ占有エラーの検知と PID 記録 ===
+describe('adapter-busy detection & pid file (v0.44.0)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+  });
+
+  it('start() は --writepid を渡して PID を記録する', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS });
+    await Promise.resolve();
+    (activeProc as unknown as { stderr: EventEmitter }).stderr.emit(
+      'data', Buffer.from('Initialization Sequence Completed\n'),
+    );
+    await p;
+    const args = mockSpawn.mock.calls[0][1] as string[];
+    expect(args).toContain('--writepid');
+    expect(controller.getStatus()).toBe('connected');
+  });
+
+  it('アダプタ占有エラーを検知して status=error + 専用メッセージになる', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS });
+    await Promise.resolve();
+
+    (proc as unknown as { stderr: EventEmitter }).stderr.emit(
+      'data',
+      Buffer.from('All tap-windows6 adapters on this system are currently in use or disabled.\n'),
+    );
+
+    await p;
+    expect(controller.getStatus()).toBe('error');
+    expect(controller.getLastError()).toMatch(/アダプタ/);
+  });
+
+  it('interactive service 不通も同じエラーとして扱う', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS });
+    await Promise.resolve();
+
+    (proc as unknown as { stderr: EventEmitter }).stderr.emit(
+      'data',
+      Buffer.from('create_adapter: could not talk to service: ハンドルが無効です。   [6]\n'),
+    );
+
+    await p;
+    expect(controller.getStatus()).toBe('error');
+    expect(controller.getLastError()).toMatch(/アダプタ/);
   });
 });

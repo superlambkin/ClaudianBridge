@@ -8,13 +8,133 @@
  *  - Important: 並行 ensureVpnConnected() 呼び出しで同一 Promise を共有
  *  - Important: stop() はプロセス終了を await してから status を確定
  */
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
-import { existsSync, writeFileSync, unlinkSync, chmodSync } from 'fs';
+import { existsSync, writeFileSync, unlinkSync, chmodSync, readFileSync, readdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
 import type { OpenVpnSettings, OpenVpnStatus } from './types';
+
+/** v0.44.0: 自前プロセスの識別マーカー（auth 一時ファイル名の接頭辞） */
+const AUTH_FILE_PREFIX = 'cb-openvpn-auth-';
+/** v0.44.0: --writepid で書き出す PID ファイル */
+const PID_FILE_PATH = `${tmpdir()}/cb-openvpn.pid`;
+
+/**
+ * v0.44.0: 前回セッションで残った自前の openvpn.exe を回収してアダプタを解放する。
+ *
+ * Obsidian がクラッシュ/強制終了すると onunload の stop() が走らず、openvpn.exe が
+ * 生き残って TAP アダプタを占有し続ける。その状態では新しい接続が
+ * 「All tap-windows6 adapters on this system are currently in use」で必ず失敗する。
+ *
+ * 回収対象は **本プラグインが起動したものだけ**（auth 一時ファイルの接頭辞で照合）に
+ * 限定し、OpenVPN GUI 等の外部接続は触らない。
+ *
+ * @returns 何かしらの回収・掃除を行った場合 true
+ */
+export function reapOrphanOpenVpn(): boolean {
+  let reaped = false;
+
+  // 1) --writepid の PID ファイル（本バージョン以降が残した場合の主経路）
+  try {
+    if (existsSync(PID_FILE_PATH)) {
+      const pid = Number.parseInt(readFileSync(PID_FILE_PATH, 'utf-8').trim(), 10);
+      if (Number.isFinite(pid) && pid > 0 && isOpenVpnProcess(pid)) {
+        killProcess(pid);
+        reaped = true;
+      }
+      try { unlinkSync(PID_FILE_PATH); } catch { /* ignore */ }
+    }
+  } catch { /* best-effort */ }
+
+  // 2) コマンドラインのマーカー照合（旧バージョンが残した孤児も回収）
+  try {
+    for (const pid of findOwnedOpenVpnPids()) {
+      killProcess(pid);
+      reaped = true;
+    }
+  } catch { /* best-effort */ }
+
+  // 3) 古い auth 一時ファイルの掃除（認証情報の残留を避ける）
+  try {
+    const dir = tmpdir();
+    for (const name of readdirSync(dir)) {
+      if (name.startsWith(AUTH_FILE_PREFIX)) {
+        try { unlinkSync(`${dir}/${name}`); } catch { /* ignore */ }
+      }
+    }
+  } catch { /* best-effort */ }
+
+  return reaped;
+}
+
+/** v0.44.0: 指定 PID が openvpn プロセスか（PID 再利用による誤殺を防ぐ） */
+function isOpenVpnProcess(pid: number): boolean {
+  try {
+    if (process.platform === 'win32') {
+      const out = execSync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`, {
+        encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      return /openvpn\.exe/i.test(out);
+    }
+    const out = execSync(`ps -p ${pid} -o comm=`, {
+      encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return /openvpn/i.test(out);
+  } catch {
+    return false;
+  }
+}
+
+/** v0.44.0: マーカー付き（= 本プラグイン起動）の openvpn PID 一覧 */
+function findOwnedOpenVpnPids(): number[] {
+  const pids: number[] = [];
+
+  if (process.platform === 'win32') {
+    // ネストした引用符を避けるため一時 .ps1 を書き出して実行する
+    const scriptPath = `${tmpdir()}/cb-openvpn-probe.ps1`;
+    writeFileSync(
+      scriptPath,
+      "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'openvpn.exe' } | ForEach-Object { \"$($_.ProcessId)|$($_.CommandLine)\" }\n",
+      'utf-8',
+    );
+    try {
+      const out = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`, {
+        encoding: 'utf-8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      for (const line of out.split(/\r?\n/)) {
+        if (!line.includes(AUTH_FILE_PREFIX)) continue;
+        const m = line.match(/^(\d+)\|/);
+        if (m) pids.push(Number(m[1]));
+      }
+    } finally {
+      try { unlinkSync(scriptPath); } catch { /* ignore */ }
+    }
+    return pids;
+  }
+
+  const out = execSync('ps -eo pid,args', {
+    encoding: 'utf-8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  for (const line of out.split('\n')) {
+    if (!line.includes(AUTH_FILE_PREFIX)) continue;
+    const m = line.trim().match(/^(\d+)/);
+    if (m) pids.push(Number(m[1]));
+  }
+  return pids;
+}
+
+/** v0.44.0: PID を強制終了する */
+function killProcess(pid: number): void {
+  try {
+    if (process.platform === 'win32') {
+      execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore', timeout: 5000 });
+    } else {
+      process.kill(pid, 'SIGTERM');
+    }
+  } catch { /* 既に死んでいる場合は無視 */ }
+}
 
 export interface OpenVpnController {
   start(settings: OpenVpnSettings): Promise<void>;
@@ -50,8 +170,6 @@ class OpenVpnControllerImpl implements OpenVpnController {
   /** v0.43.6: OS ルーティングまたは TUN/TAP アダプタをスキャンして外部 VPN 接続を認識 */
   detectExternalConnection(): 'connected' | 'disconnected' {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { execSync } = require('child_process') as typeof import('child_process');
       // Windows: route print で 10.8.0.0/24 経路があれば VPN 接続中とみなす
       const routeOut = execSync('route print -4', { encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'] });
       if (/10\.8\.0\.\d+\s+255\.255\.255\.\d+\s+On-link/.test(routeOut)) return 'connected';
@@ -99,6 +217,11 @@ class OpenVpnControllerImpl implements OpenVpnController {
     // 'connecting' 状態の二重ガード: startPromise 設定前に status が変わった場合に備える
     if (this.status === 'connecting' && this.startPromise) return this.startPromise;
 
+    // v0.44.0: 前回セッションの孤児プロセスが TAP アダプタを占有していると
+    // 新規接続が必ず失敗するため、まず回収してアダプタを解放する
+    // （この時点で自前プロセスは存在しない = status が connected/connecting なら上で return 済み）
+    reapOrphanOpenVpn();
+
     // バリデーション（状態変更前に同期 throw）
     if (!settings.configPath) throw new Error('configPath が未設定です');
     if (!existsSync(settings.configPath)) {
@@ -119,7 +242,7 @@ class OpenVpnControllerImpl implements OpenVpnController {
     }
 
     if (settings.username || settings.password) {
-      this.authFilePath = `${tmpdir()}/cb-openvpn-auth-${randomUUID()}`;
+      this.authFilePath = `${tmpdir()}/${AUTH_FILE_PREFIX}${randomUUID()}`;
       writeFileSync(
         this.authFilePath,
         `${settings.username}\n${settings.password}\n`,
@@ -128,6 +251,9 @@ class OpenVpnControllerImpl implements OpenVpnController {
       try { chmodSync(this.authFilePath, 0o600); } catch { /* Windows: ACL は OS 任せ */ }
       args.push('--auth-user-pass', this.authFilePath);
     }
+
+    // v0.44.0: PID を記録し、次回起動時に孤児プロセスを回収できるようにする
+    args.push('--writepid', PID_FILE_PATH);
 
     this.lastError = null;
     this.stopRequested = false;
@@ -146,7 +272,7 @@ class OpenVpnControllerImpl implements OpenVpnController {
       const message = err instanceof Error ? err.message : String(err);
       this.lastError = message;
       this.appendLog(`spawn error: ${message}\n`);
-      this.cleanupAuthFile();
+      this.cleanupRuntimeFiles();
       this.setStatus('error');
       throw err;
     }
@@ -156,7 +282,7 @@ class OpenVpnControllerImpl implements OpenVpnController {
     this.process.on('error', (err) => {
       this.lastError = err.message;
       this.appendLog(`spawn error: ${err.message}\n`);
-      this.cleanupAuthFile();
+      this.cleanupRuntimeFiles();
       this.setStatus('error');
     });
 
@@ -169,6 +295,17 @@ class OpenVpnControllerImpl implements OpenVpnController {
       this.appendLog(text);
       if (text.includes('Initialization Sequence Completed')) {
         this.setStatus('connected');
+      } else if (
+        // v0.44.0: TAP アダプタを確保できない（他クライアントが占有 / サービス不通）
+        text.includes('currently in use or disabled') ||
+        text.includes('could not talk to service')
+      ) {
+        this.lastError =
+          'OpenVPN アダプタを確保できません（他の OpenVPN クライアントが使用中か、'
+          + '管理者権限/interactive service が不足しています）';
+        this.appendLog(`${this.lastError}\n`);
+        try { this.process?.kill(); } catch { /* 既に死んでいる場合は無視 */ }
+        this.setStatus('error');
       } else if (text.includes('AUTH_FAILED') || text.includes('TLS Error')) {
         // CRITICAL fix #1: 非同期イベントリスナ内で throw しない。
         // Node は 'error' リスナー不在のまま例外を投げられ、
@@ -195,7 +332,7 @@ class OpenVpnControllerImpl implements OpenVpnController {
         this.setStatus('error');
       }
       this.process = null;
-      this.cleanupAuthFile();
+      this.cleanupRuntimeFiles();
     });
 
     return this.startPromise;
@@ -203,7 +340,7 @@ class OpenVpnControllerImpl implements OpenVpnController {
 
   async stop(): Promise<void> {
     if (!this.process) {
-      this.cleanupAuthFile();
+      this.cleanupRuntimeFiles();
       if (this.status !== 'disconnected') this.setStatus('disconnected');
       return;
     }
@@ -236,11 +373,13 @@ class OpenVpnControllerImpl implements OpenVpnController {
     // disconnected に遷移する）。
   }
 
-  private cleanupAuthFile(): void {
+  /** v0.44.0: 認証一時ファイルと PID ファイルを削除する（孤児化の痕跡を残さない） */
+  private cleanupRuntimeFiles(): void {
     if (this.authFilePath) {
       try { unlinkSync(this.authFilePath); } catch { /* ignore */ }
       this.authFilePath = null;
     }
+    try { unlinkSync(PID_FILE_PATH); } catch { /* ignore */ }
   }
 }
 
