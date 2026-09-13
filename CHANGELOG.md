@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.44.1] - 2026-09-13 — 「接続済みなのに通信できない」状態の検知
+
+### Added
+
+- ⚠️ **経路未確立の検知と警告**: `Initialization Sequence Completed` は **route 追加が失敗しても出力される**ため、非管理者で経路が入らない場合に「🟢 接続済み表示なのに LAN に到達できない」状態が発生していた（実測: `route addition failed ... アクセスが拒否されました [status=5]` が 4 件連続、VPN 経路 0 件・デフォルトルートは Wi-Fi のまま）
+  - 接続完了の 2.5 秒後に `route print` で VPN 経路の有無を検証し、無ければ **「VPN 経路が確立できませんでした（管理者権限不足の可能性）／Obsidian を管理者として実行してから再接続してください」** を Notice とネットワークタブの警告行に表示
+  - 検証は Windows のみ（`route print` 依存）。切断・再接続で警告はクリアされる
+  - `OpenVpnController.getWarning()` を追加
+
 ## [0.44.0] - 2026-09-13 — 孤児 openvpn プロセスの自動回収（アダプタ解放）
 
 ### Fixed

@@ -113,6 +113,7 @@ function createVpnToggle(
 
   // === 状態反映 ===
   let configured = true;
+  let lastWarned: string | null = null;
   const applyStatus = (status: OpenVpnStatus): void => {
     button.setAttribute('data-status', status);
     wrapper.setAttribute('data-status', status);
@@ -124,6 +125,15 @@ function createVpnToggle(
     applyVisibility();
     // v0.43.7: 接続中は外部トンネル確立を定期確認（色の取りこぼし防止）
     if (status === 'connecting') startExternalCheck(); else stopExternalCheck();
+
+    // v0.44.1: 「接続済みなのに経路が入っていない」状態を一度だけ通知する
+    const warning = controller.getWarning();
+    if (warning && warning !== lastWarned) {
+      lastWarned = warning;
+      new Notice(`⚠️ ${warning}`);
+    } else if (!warning) {
+      lastWarned = null;
+    }
   };
 
   // v0.43.7: プラグインが openvpn の成功ログを取りこぼしても、OS ルーティングに

@@ -277,6 +277,8 @@ function renderOpenVpnStatus(
 ): void {
   const s = getLocaleStrings(getUILanguage());
   const statusEl = containerEl.createDiv('cb-vpn-status');
+  // v0.44.1: 接続済みでも経路が入っていない場合の警告表示枠
+  const warnEl = containerEl.createDiv('cb-vpn-warning');
   const logEl = containerEl.createEl('pre', { cls: 'cb-vpn-log', text: '' });
 
   const labelOf = (st: OpenVpnStatus): string =>
@@ -290,6 +292,9 @@ function renderOpenVpnStatus(
 
   const updateUI = (status: OpenVpnStatus, log: string): void => {
     statusEl.setText(`${s.networkOpenVpnStatus}: ${labelOf(status)}`);
+    const warning = controller.getWarning();
+    warnEl.setText(warning ? `⚠️ ${warning}` : '');
+    warnEl.style.display = warning ? '' : 'none';
     logEl.textContent = log.slice(-2000);
   };
 

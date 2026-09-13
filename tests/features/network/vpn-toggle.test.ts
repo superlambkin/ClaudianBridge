@@ -12,6 +12,7 @@ const mockController = {
   start: vi.fn(),
   stop: vi.fn(),
   detectExternalConnection: vi.fn(() => 'disconnected' as 'disconnected' | 'connected'),
+  getWarning: vi.fn((): string | null => null),
 };
 
 const mockNotice = vi.fn();

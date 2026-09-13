@@ -118,6 +118,7 @@ describe('SettingTabNetwork', () => {
       getStatus: () => 'disconnected',
       getRecentLog: () => '',
       getLastError: () => null,
+      getWarning: () => null,
       subscribe: () => () => {},
       start: vi.fn(),
       stop: vi.fn(),
@@ -181,6 +182,7 @@ describe('SettingTabNetwork — OpenVPN install detection (v0.43.8)', () => {
   function mockVpnController(): void {
     mockGetOpenVpnController.mockReturnValue({
       getStatus: () => 'disconnected',
+      getWarning: () => null,
       getRecentLog: () => '',
       subscribe: () => () => {},
       start: vi.fn(),
@@ -256,6 +258,7 @@ describe('SettingTabNetwork — copy connection log (v0.43.9)', () => {
 
     mockGetOpenVpnController.mockReturnValue({
       getStatus: () => 'error',
+      getWarning: () => null,
       getRecentLog: () => 'AUTH_FAILED: username/password invalid\n',
       getLastError: () => 'AUTH_FAILED',
       subscribe: () => () => {},
@@ -290,6 +293,7 @@ describe('SettingTabNetwork — copy connection log (v0.43.9)', () => {
       getStatus: () => 'disconnected',
       getRecentLog: () => '',
       getLastError: () => null,
+      getWarning: () => null,
       subscribe: () => () => {},
       start: vi.fn(),
       stop: vi.fn(),
