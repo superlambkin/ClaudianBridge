@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.44.2] - 2026-09-13 — VPN 切断時の `setTimeout(...).unref` エラー修正
+
+### Fixed
+
+- 🔴 **「OpenVPN 操作に失敗: setTimeout(...).unref is not a function」で切断できない問題を修正**: `stop()` 内の `setTimeout(done, STOP_TIMEOUT_MS).unref()` は **Node 固有 API**。Obsidian（ブラウザ環境）の `setTimeout` は数値を返すため `.unref` が存在せず、**VPN 接続中にスイッチを OFF にすると必ず例外**になっていた（v0.43.0 の F-041 review fix #4 で混入した潜在バグ。テストは Node 環境で走るため `unref` が存在し検出できなかった）
+  - optional 呼び出し `stopTimer.unref?.()` に変更
+  - **ブラウザ相当（`setTimeout` が数値を返す）環境での回帰テストを追加** — 環境差で隠れていた欠陥を再発防止
+
 ## [0.44.1] - 2026-09-13 — 「接続済みなのに通信できない」状態の検知
 
 ### Added

@@ -432,7 +432,10 @@ class OpenVpnControllerImpl implements OpenVpnController {
       // 'exit' が既に発火済み（ゾンビ状態）場合の安全網
       setImmediate(done);
       // さらに念のためタイムアウト
-      setTimeout(done, STOP_TIMEOUT_MS).unref();
+      // v0.44.2: Obsidian（ブラウザ環境）の setTimeout は数値を返すため unref が無い。
+      // Node 環境の Timeout のみ unref を持つので optional 呼び出しにする。
+      const stopTimer = setTimeout(done, STOP_TIMEOUT_MS) as unknown as { unref?: () => void };
+      stopTimer.unref?.();
     });
     // status 更新は 'exit' ハンドラに任せる（stopRequested=true で
     // disconnected に遷移する）。
