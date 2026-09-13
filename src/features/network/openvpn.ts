@@ -157,6 +157,10 @@ const RECENT_LOG_MAX = 2000;
 const STOP_TIMEOUT_MS = 5000;
 /** v0.44.1: 初期化完了後、経路が確定するまで待ってから検証する時間 */
 const ROUTE_CHECK_DELAY_MS = 2500;
+/** v0.45.0: 経路が 1 本も入っていない場合の警告文 */
+const ROUTE_MISSING_MESSAGE =
+  'VPN 経路が確立できませんでした（管理者権限不足の可能性があります）。'
+  + 'Obsidian を管理者として実行してから再接続してください。';
 
 class OpenVpnControllerImpl implements OpenVpnController {
   private status: OpenVpnStatus = 'disconnected';
@@ -169,6 +173,8 @@ class OpenVpnControllerImpl implements OpenVpnController {
   private warning: string | null = null;
   /** v0.44.1: 経路検証タイマー */
   private routeCheckTimer: ReturnType<typeof setTimeout> | null = null;
+  /** v0.45.0: openvpn ログの DHCP-serv = このセッションの正しいトンネル相手 */
+  private expectedGateway: string | null = null;
   private stopRequested = false;
   /** In-flight start() の Promise（並行呼び出しの race 回避用） */
   private startPromise: Promise<void> | null = null;
@@ -201,14 +207,67 @@ class OpenVpnControllerImpl implements OpenVpnController {
    */
   private verifyRoutes(): void {
     if (this.status !== 'connected') return;
-    if (this.detectExternalConnection() === 'connected') {
-      this.setWarning(null);
+
+    const gateways = this.getVpnRouteGateways();
+    if (gateways === null) return; // route print が取れない環境は判定しない
+
+    const expected = this.expectedGateway;
+    if (!expected) {
+      // 期待ゲートウェイ不明（ログ未取得）: 経路の有無のみで判定
+      this.setWarning(gateways.length > 0 ? null : ROUTE_MISSING_MESSAGE);
       return;
     }
+
+    const hasExpected = gateways.includes(expected);
+    const stale = gateways.filter((g) => g !== expected);
+
+    if (!hasExpected) {
+      this.setWarning(
+        stale.length > 0
+          ? `VPN 経路が確立できませんでした（管理者権限不足）。`
+            + `さらに過去セッションの残骸経路（${stale.join(' / ')}）が残っており通信が妨げられます。`
+            + `管理者として実行し、残骸経路を削除してから再接続してください。`
+          : ROUTE_MISSING_MESSAGE,
+      );
+      return;
+    }
+
+    // 正常に経路が入っていても、死んだセッションの経路が混在していれば警告する
     this.setWarning(
-      'VPN 経路が確立できませんでした（管理者権限不足の可能性があります）。'
-      + 'Obsidian を管理者として実行してから再接続してください。',
+      stale.length > 0
+        ? `過去セッションの残骸経路が残っています（${stale.join(' / ')}）。`
+          + `通信が不安定になるため、管理者権限で削除するか PC を再起動してください。`
+        : null,
     );
+  }
+
+  /**
+   * v0.45.0: route print から VPN 関連経路のゲートウェイ一覧を抽出する。
+   * 対象は redirect-gateway の 0.0.0.0/1・128.0.0.0/1 と 10.8.0.0/8 宛の経路。
+   * 判定不能（route print 失敗）なら null。
+   */
+  private getVpnRouteGateways(): string[] | null {
+    try {
+      const out = execSync('route print -4', {
+        encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      const gws = new Set<string>();
+      for (const line of out.split(/\r?\n/)) {
+        const m = line.match(
+          /^\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+\d+\.\d+\.\d+\.\d+\s+\d+\s*$/,
+        );
+        if (!m) continue;
+        const [, dest, mask, gateway] = m;
+        const isVpnDest =
+          (dest === '0.0.0.0' && mask === '128.0.0.0')
+          || (dest === '128.0.0.0' && mask === '128.0.0.0')
+          || dest.startsWith('10.8.');
+        if (isVpnDest) gws.add(gateway);
+      }
+      return [...gws];
+    } catch {
+      return null;
+    }
   }
 
   private setWarning(next: string | null): void {
@@ -314,6 +373,7 @@ class OpenVpnControllerImpl implements OpenVpnController {
 
     this.lastError = null;
     this.warning = null;
+    this.expectedGateway = null;
     this.stopRequested = false;
     this.clearRouteCheck();
 
@@ -352,6 +412,10 @@ class OpenVpnControllerImpl implements OpenVpnController {
     const handleStreamChunk = (chunk: Buffer): void => {
       const text = chunk.toString();
       this.appendLog(text);
+      // v0.45.0: 「[DHCP-serv: 10.8.0.13, ...]」からこのセッションの正しいトンネル相手を記録する
+      const dhcp = text.match(/DHCP-serv:\s*([0-9.]+)/);
+      if (dhcp) this.expectedGateway = dhcp[1];
+
       if (text.includes('Initialization Sequence Completed')) {
         this.setStatus('connected');
         // v0.44.1: 初期化完了直後に経路を検証する。
