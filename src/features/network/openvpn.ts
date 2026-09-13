@@ -76,6 +76,12 @@ class OpenVpnControllerImpl implements OpenVpnController {
     // 並行呼び出し対策: 既に in-flight なら同じ Promise を返す
     if (this.startPromise) return this.startPromise;
 
+    // F-041 review fix #6: 既に connected なら新規 spawn しない（直接呼び出し時の多重起動防止）
+    if (this.status === 'connected') return;
+
+    // 'connecting' 状態の二重ガード: startPromise 設定前に status が変わった場合に備える
+    if (this.status === 'connecting' && this.startPromise) return this.startPromise;
+
     // バリデーション（状態変更前に同期 throw）
     if (!settings.configPath) throw new Error('configPath が未設定です');
     if (!existsSync(settings.configPath)) {

@@ -228,4 +228,34 @@ describe('OpenVpnController', () => {
     expect(stopResolved).toBe(true);
     expect(controller.getStatus()).toBe('disconnected');
   });
+
+  // F-041 review fix #6: start() while connected は no-op (新規 spawn しない)
+  it('start() while connected は no-op (新規 spawn しない)', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+
+    const { ensureVpnConnected, getOpenVpnController } = await import(
+      '../../../src/features/network/openvpn'
+    );
+    const controller = getOpenVpnController();
+
+    // 接続成功まで進める
+    const connP = ensureVpnConnected(VALID_SETTINGS);
+    await Promise.resolve();
+    (proc as unknown as { stderr: EventEmitter }).stderr.emit(
+      'data',
+      Buffer.from('Initialization Sequence Completed\n'),
+    );
+    await connP;
+    expect(controller.getStatus()).toBe('connected');
+
+    // 接続中に直接 start() を呼ぶ（ensureVpnConnected のラッパーガードを通らない）
+    const spawnCountBefore = mockSpawn.mock.calls.length;
+    await controller.start(VALID_SETTINGS);
+    const spawnCountAfter = mockSpawn.mock.calls.length;
+
+    // 新規 spawn されていないこと（auth ファイルも新規作成されない）
+    expect(spawnCountAfter).toBe(spawnCountBefore);
+    expect(controller.getStatus()).toBe('connected');
+  });
 });
