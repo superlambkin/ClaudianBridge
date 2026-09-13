@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.43.6] - 2026-09-13 — VPN トグルの隙間・接続色補正
+
+### Fixed
+
+- 🎨 **VPN トグルと YOLO 間の空白を縮めた**: `.cb-vpn-toggle` から不要な `margin-right: 8px` / `padding-right: 8px` を削除し、YOLO と隣接表示
+- 🟢 **接続色の補正**: openvpn.exe が別プロセス（OpenVPN GUI 等）で接続済みのとき、プラグインの自前 controller が `connecting` のままでも `route print` または `ipconfig` で 10.8.0.0/24 経路 / TUN アダプタを検出して自動的に `connected` に補正。v0.43.5 でご主人様環境でオレンジ色のままだった問題の修正
+
+### Added
+
+- `OpenVpnController.detectExternalConnection()`: OS ルーティングと NIC 情報をスキャンして VPN トンネルの存在を判定（Windows 専用・best-effort）
+
 ## [0.43.5] - 2026-09-13 — VPN トグルの非表示条件と接続色
 
 ### Changed
