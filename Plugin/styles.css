@@ -648,6 +648,13 @@
   padding-right: 0;
 }
 
+/* v0.43.7: YOLO トグルは自身も margin-left:auto を持つため、両方に auto があると
+   余白が二等分され VPN と YOLO の間に空白ができる。隣接時は YOLO 側の auto を
+   無効化し、VPN が余白を独占して YOLO に密着させる。 */
+.cb-vpn-toggle + .claudian-permission-toggle {
+  margin-left: 0;
+}
+
 .cb-vpn-label {
   font-size: 11px;
   color: var(--text-muted);
