@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.43.1] - 2026-09-13 — Claudian 画面 OpenVPN トグル (F-043)
+
+### Added
+
+- 🔌 **Claudian 画面 OpenVPN トグル**（F-043）: YOLO トグル横に VPN 接続制御ボタンを追加
+  - ワンショット方式（クリックで start / stop 即実行・接続中は disabled 防護）
+  - 状態バッジ（🔴 切断 / 🟡 接続中 pulse アニメ / 🟢 接続済 / 🔴 エラー）をリアルタイム反映
+  - 設定未完了時はクリックで Notice + 設定タブ（ネットワークタブ）へ自動遷移
+  - 複数 Claudian タブに自動追随（MutationObserver）
+
 ## [0.43.0] - 2026-09-13 — ネットワークタブ新設 + OpenVPN 接続機能 (F-041/F-042)
 
 ### Added
