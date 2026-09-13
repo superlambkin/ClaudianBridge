@@ -28,6 +28,9 @@ export interface LocaleStrings {
   networkOpenVpnNotInstalled: string;
   networkOpenVpnNotInstalledNotice: string;
   networkOpenVpnDownloadLink: string;
+  /** v0.43.9: 接続ログのコピー */
+  networkOpenVpnCopied: string;
+  networkOpenVpnCopyFailed: string;
   networkOpenVpnAutoConnect: string;
   networkOpenVpnStatus: string;
   networkOpenVpnStatusDisconnected: string;
@@ -534,6 +537,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnNotInstalled: '⚠️ OpenVPN が見つかりません。下記公式サイトからインストールし、必要に応じて 🔧 バイナリパスを設定してください。',
     networkOpenVpnNotInstalledNotice: '⚠️ OpenVPN が見つかりません。ネットワークタブの案内からインストールしてください。',
     networkOpenVpnDownloadLink: '⬇️ OpenVPN をダウンロード（公式サイト）',
+    networkOpenVpnCopied: '✅ 接続ログをクリップボードにコピーしました',
+    networkOpenVpnCopyFailed: '⚠️ コピーに失敗しました: {msg}',
     networkOpenVpnAutoConnect: '🚀 LLM 呼び出し時に自動接続',
     networkOpenVpnStatus: '状態',
     networkOpenVpnStatusDisconnected: '🔴 切断中',
@@ -1024,6 +1029,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnNotInstalled: '⚠️ OpenVPN was not found. Install it from the official site below, and set the 🔧 binary path if needed.',
     networkOpenVpnNotInstalledNotice: '⚠️ OpenVPN was not found. Follow the guidance in the Network tab to install it.',
     networkOpenVpnDownloadLink: '⬇️ Download OpenVPN (official site)',
+    networkOpenVpnCopied: '✅ Connection log copied to clipboard',
+    networkOpenVpnCopyFailed: '⚠️ Copy failed: {msg}',
     networkOpenVpnAutoConnect: '🚀 Auto-connect on LLM call',
     networkOpenVpnStatus: 'Status',
     networkOpenVpnStatusDisconnected: '🔴 Disconnected',
@@ -1514,6 +1521,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnNotInstalled: '⚠️ 未找到 OpenVPN。请从下方官网安装，并按需设置 🔧 二进制路径。',
     networkOpenVpnNotInstalledNotice: '⚠️ 未找到 OpenVPN。请按网络选项卡中的指引进行安装。',
     networkOpenVpnDownloadLink: '⬇️ 下载 OpenVPN（官网）',
+    networkOpenVpnCopied: '✅ 连接日志已复制到剪贴板',
+    networkOpenVpnCopyFailed: '⚠️ 复制失败: {msg}',
     networkOpenVpnAutoConnect: '🚀 LLM 调用时自动连接',
     networkOpenVpnStatus: '状态',
     networkOpenVpnStatusDisconnected: '🔴 已断开',
