@@ -10,6 +10,27 @@ export interface LocaleStrings {
   tabOffice: string;
   tabWhitelist: string;
   tabChangelog: string;
+  // === v0.43.0 (F-041/F-042) ===
+  tabNetwork: string;
+  networkNoticeDesktopOnly: string;
+  networkOpenVpnHeading: string;
+  networkOpenVpnEnabled: string;
+  networkOpenVpnEnabledDesc: string;
+  networkOpenVpnConfigPath: string;
+  networkOpenVpnConfigPathDesc: string;
+  networkOpenVpnUsername: string;
+  networkOpenVpnPassword: string;
+  networkOpenVpnBinaryPath: string;
+  networkOpenVpnBinaryPathDesc: string;
+  networkOpenVpnAutoConnect: string;
+  networkOpenVpnStatus: string;
+  networkOpenVpnStatusDisconnected: string;
+  networkOpenVpnStatusConnecting: string;
+  networkOpenVpnStatusConnected: string;
+  networkOpenVpnStatusError: string;
+  networkOpenVpnConnect: string;
+  networkOpenVpnDisconnect: string;
+  networkOpenVpnCopyLog: string;
   outputsMirrorHeading: string;
   outputsMirrorEnabled: string;
   outputsMirrorEnabledDesc: string;
@@ -481,6 +502,27 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabWhitelist: '🗂️ Vault表示',
     tabQuota: '🤖 LLM 残量',
     tabChangelog: '📜 変更履歴',
+    // === v0.43.0 (F-041/F-042) ===
+    tabNetwork: '🌐 ネットワーク',
+    networkNoticeDesktopOnly: '💡 OpenVPN はデスクトップ環境（Win/Mac/Linux）でのみ動作します。モバイルでは接続できません。',
+    networkOpenVpnHeading: '🔐 OpenVPN 接続',
+    networkOpenVpnEnabled: '🔐 OpenVPN を使用',
+    networkOpenVpnEnabledDesc: '有効にすると、.ovpn ファイルを使って VPN トンネルを確立します。LLM/Chroma 等の LAN 内サービスへのアクセスに使用します。',
+    networkOpenVpnConfigPath: '📁 .ovpn ファイルパス',
+    networkOpenVpnConfigPathDesc: '例: C:/Users/me/qnap.ovpn（QNAP QVPN からエクスポート）',
+    networkOpenVpnUsername: '👤 ユーザー名',
+    networkOpenVpnPassword: '🔑 パスワード',
+    networkOpenVpnBinaryPath: '🔧 openvpn バイナリパス',
+    networkOpenVpnBinaryPathDesc: '空欄なら PATH から自動解決（openvpn コマンド）',
+    networkOpenVpnAutoConnect: '🚀 LLM 呼び出し時に自動接続',
+    networkOpenVpnStatus: '状態',
+    networkOpenVpnStatusDisconnected: '🔴 切断中',
+    networkOpenVpnStatusConnecting: '🟡 接続中...',
+    networkOpenVpnStatusConnected: '🟢 接続済',
+    networkOpenVpnStatusError: '🔴 エラー',
+    networkOpenVpnConnect: '🔌 接続',
+    networkOpenVpnDisconnect: '⏹ 切断',
+    networkOpenVpnCopyLog: '📋 ログをコピー',
     outputsMirrorHeading: '🔗 Outputs フォルダミラリング',
     outputsMirrorEnabled: 'Outputs フォルダを Vault 表示に追加',
     outputsMirrorEnabledDesc: 'ドキュメント フォルダの ObsidianOutputs を Vault/Outputs として表示します（NTFS ジャンクション）',
@@ -936,6 +978,27 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabWhitelist: '🗂️ Vault Display',
     tabQuota: '🤖 LLM Quota',
     tabChangelog: '📜 Changelog',
+    // === v0.43.0 (F-041/F-042) ===
+    tabNetwork: '🌐 Network',
+    networkNoticeDesktopOnly: '💡 OpenVPN works only on desktop (Win/Mac/Linux). Not available on mobile.',
+    networkOpenVpnHeading: '🔐 OpenVPN Connection',
+    networkOpenVpnEnabled: '🔐 Enable OpenVPN',
+    networkOpenVpnEnabledDesc: 'When enabled, establishes a VPN tunnel using the .ovpn file. Used to access LAN services such as LLM/Chroma.',
+    networkOpenVpnConfigPath: '📁 .ovpn file path',
+    networkOpenVpnConfigPathDesc: 'e.g. C:/Users/me/qnap.ovpn (exported from QNAP QVPN)',
+    networkOpenVpnUsername: '👤 Username',
+    networkOpenVpnPassword: '🔑 Password',
+    networkOpenVpnBinaryPath: '🔧 openvpn binary path',
+    networkOpenVpnBinaryPathDesc: 'If empty, resolved from PATH (openvpn command)',
+    networkOpenVpnAutoConnect: '🚀 Auto-connect on LLM call',
+    networkOpenVpnStatus: 'Status',
+    networkOpenVpnStatusDisconnected: '🔴 Disconnected',
+    networkOpenVpnStatusConnecting: '🟡 Connecting...',
+    networkOpenVpnStatusConnected: '🟢 Connected',
+    networkOpenVpnStatusError: '🔴 Error',
+    networkOpenVpnConnect: '🔌 Connect',
+    networkOpenVpnDisconnect: '⏹ Disconnect',
+    networkOpenVpnCopyLog: '📋 Copy log',
     outputsMirrorHeading: '🔗 Outputs folder mirroring',
     outputsMirrorEnabled: 'Mirror Outputs folder into Vault display',
     outputsMirrorEnabledDesc: 'Shows Documents/ObsidianOutputs as Vault/Outputs via an NTFS junction',
@@ -1391,6 +1454,27 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabWhitelist: '🗂️ Vault 显示',
     tabQuota: '🤖 LLM 额度',
     tabChangelog: '📜 更新历史',
+    // === v0.43.0 (F-041/F-042) ===
+    tabNetwork: '🌐 网络',
+    networkNoticeDesktopOnly: '💡 OpenVPN 仅在桌面端（Win/Mac/Linux）可用。移动端无法连接。',
+    networkOpenVpnHeading: '🔐 OpenVPN 连接',
+    networkOpenVpnEnabled: '🔐 启用 OpenVPN',
+    networkOpenVpnEnabledDesc: '启用后，使用 .ovpn 文件建立 VPN 隧道。用于访问局域网内 LLM/Chroma 等服务。',
+    networkOpenVpnConfigPath: '📁 .ovpn 文件路径',
+    networkOpenVpnConfigPathDesc: '例: C:/Users/me/qnap.ovpn（从 QNAP QVPN 导出）',
+    networkOpenVpnUsername: '👤 用户名',
+    networkOpenVpnPassword: '🔑 密码',
+    networkOpenVpnBinaryPath: '🔧 openvpn 二进制路径',
+    networkOpenVpnBinaryPathDesc: '为空时从 PATH 自动解析（openvpn 命令）',
+    networkOpenVpnAutoConnect: '🚀 LLM 调用时自动连接',
+    networkOpenVpnStatus: '状态',
+    networkOpenVpnStatusDisconnected: '🔴 已断开',
+    networkOpenVpnStatusConnecting: '🟡 连接中...',
+    networkOpenVpnStatusConnected: '🟢 已连接',
+    networkOpenVpnStatusError: '🔴 错误',
+    networkOpenVpnConnect: '🔌 连接',
+    networkOpenVpnDisconnect: '⏹ 断开',
+    networkOpenVpnCopyLog: '📋 复制日志',
     outputsMirrorHeading: '🔗 Outputs 文件夹镜像',
     outputsMirrorEnabled: '将 Outputs 文件夹添加到 Vault 显示',
     outputsMirrorEnabledDesc: '通过 NTFS junction 将 Documents/ObsidianOutputs 显示为 Vault/Outputs',
