@@ -19,6 +19,7 @@ import { setupMessageMdSaveButtons } from './features/memory/message-md-save-but
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
 import { setupQuickReplyButtons } from './features/quick-reply/nav-buttons';
 import { setupTokenRate } from './features/token-rate';
+import { setupVpnToggle } from './features/network/vpn-toggle';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { initEdgeTtsLocal } from './features/tts/edge-tts-local';
 import { migrateFromLegacy } from './legacy/migration';
@@ -251,6 +252,10 @@ export default class ClaudianBridgePlugin extends Plugin {
       // ★ v0.30.0: トークン速度表示（入力画面下のライブ表示）
       this.offTokenRate = setupTokenRate(this.app, this.store);
       diag('token-rate wired');
+
+      // ★ v0.43.1 (F-043): Claudian 画面 OpenVPN トグル（YOLO トグル隣）
+      this.register(setupVpnToggle(this.app, this.store));
+      diag('vpn-toggle wired');
 
       // ★ v0.14.0: メッセージ結果欄の読上げボタン（コピーボタン左隣）
       this.register(setupMessageReadButtons({
