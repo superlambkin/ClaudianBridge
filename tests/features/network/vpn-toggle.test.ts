@@ -258,3 +258,85 @@ describe('vpn-toggle (F-043)', () => {
     cleanup();
   });
 });
+
+// === v0.43.7: 接続中に外部トンネルを検出して connected に補正（色の取りこぼし防止） ===
+describe('vpn-toggle external connection polling (v0.43.7)', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    vi.clearAllMocks();
+    mockController.getStatus.mockReturnValue('disconnected');
+    mockController.detectExternalConnection.mockReturnValue('disconnected');
+    mockController.subscribe.mockReturnValue(() => {});
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('connecting 中に外部 VPN を検出したら connected に補正する', async () => {
+    vi.useFakeTimers();
+    const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
+    const { container } = mountContainer();
+    let listener: ((status: string) => void) | null = null;
+    mockController.subscribe.mockImplementation((l: (status: string) => void) => {
+      listener = l;
+      return () => {};
+    });
+    const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
+
+    mockController.getStatus.mockReturnValue('connecting');
+    mockController.detectExternalConnection.mockReturnValue('connected');
+    listener!('connecting');
+
+    const sw = container.querySelector('.cb-vpn-switch') as HTMLElement;
+    expect(sw.getAttribute('data-status')).toBe('connecting');
+
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(sw.getAttribute('data-status')).toBe('connected');
+
+    cleanup();
+  });
+
+  it('外部 VPN が無ければ connecting のまま（誤検出しない）', async () => {
+    vi.useFakeTimers();
+    const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
+    const { container } = mountContainer();
+    let listener: ((status: string) => void) | null = null;
+    mockController.subscribe.mockImplementation((l: (status: string) => void) => {
+      listener = l;
+      return () => {};
+    });
+    const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
+
+    mockController.getStatus.mockReturnValue('connecting');
+    mockController.detectExternalConnection.mockReturnValue('disconnected');
+    listener!('connecting');
+
+    await vi.advanceTimersByTimeAsync(6000);
+    const sw = container.querySelector('.cb-vpn-switch') as HTMLElement;
+    expect(sw.getAttribute('data-status')).toBe('connecting');
+
+    cleanup();
+  });
+
+  it('destroy() でポーリングが停止する', async () => {
+    vi.useFakeTimers();
+    const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
+    const { container } = mountContainer();
+    let listener: ((status: string) => void) | null = null;
+    mockController.subscribe.mockImplementation((l: (status: string) => void) => {
+      listener = l;
+      return () => {};
+    });
+    const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
+
+    mockController.getStatus.mockReturnValue('connecting');
+    listener!('connecting');
+    cleanup();
+
+    const callsBefore = mockController.detectExternalConnection.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(mockController.detectExternalConnection.mock.calls.length).toBe(callsBefore);
+  });
+});
