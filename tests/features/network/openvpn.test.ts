@@ -542,9 +542,9 @@ describe('route verification (v0.44.1)', () => {
     try {
       const proc = makeMockChild();
       mockSpawn.mockReturnValue(proc);
-      // route print が VPN 経路を返す
+      // v0.45.0: ゲートウェイ付きの VPN 経路（On-link 行はゲートウェイ扱いされない）
       mockExecSync.mockReturnValue(
-        '         10.8.0.4  255.255.255.252         On-link          10.8.0.6    257\n',
+        '          0.0.0.0        128.0.0.0         10.8.0.6        10.8.0.6      1\n',
       );
       const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
       const controller = getOpenVpnController();
@@ -610,5 +610,92 @@ describe('stop() in browser-like setTimeout env (v0.44.2)', () => {
     } finally {
       (globalThis as unknown as { setTimeout: unknown }).setTimeout = origSetTimeout;
     }
+  });
+});
+
+// === v0.45.0: 残骸経路（死んだセッションのゲートウェイ）の検知 ===
+describe('stale route detection (v0.45.0)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  const LOG_LINE =
+    'Notified TAP-Windows driver to set a DHCP IP/netmask of 10.8.0.14/255.255.255.252'
+    + ' on interface {82222F2D} [DHCP-serv: 10.8.0.13, lease-time: 31536000]\n';
+
+  async function connectAndVerify(routeLines: string[]): Promise<string | null> {
+    vi.useFakeTimers();
+    try {
+      const proc = makeMockChild();
+      mockSpawn.mockReturnValue(proc);
+      mockExecSync.mockReturnValue(routeLines.join('\n'));
+
+      const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+      const controller = getOpenVpnController();
+
+      const p = controller.start({ ...VALID_SETTINGS });
+      await Promise.resolve();
+      (proc as unknown as { stdout: EventEmitter }).stdout.emit(
+        'data', Buffer.from(LOG_LINE + 'Initialization Sequence Completed\n'),
+      );
+      await p;
+      expect(controller.getStatus()).toBe('connected');
+
+      await vi.advanceTimersByTimeAsync(3000);
+      return controller.getWarning();
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+
+  const route = (gateway: string): string =>
+    `          0.0.0.0        128.0.0.0         ${gateway}        10.8.0.14      1`;
+
+  it('正しいゲートウェイの経路のみなら警告なし', async () => {
+    const w = await connectAndVerify([route('10.8.0.13')]);
+    if (process.platform === 'win32') expect(w).toBeNull();
+  });
+
+  it('残骸ゲートウェイのみなら「経路未確立 + 残骸」を警告', async () => {
+    const w = await connectAndVerify([route('10.8.0.5')]);
+    if (process.platform === 'win32') {
+      expect(w).toMatch(/確立できませんでした/);
+      expect(w).toMatch(/残骸経路/);
+      expect(w).toMatch(/10\.8\.0\.5/);
+    }
+  });
+
+  it('正しい経路と残骸が混在なら残骸のみを警告', async () => {
+    const w = await connectAndVerify([route('10.8.0.13'), route('10.8.0.9')]);
+    if (process.platform === 'win32') {
+      expect(w).toMatch(/残骸経路/);
+      expect(w).not.toMatch(/確立できませんでした/);
+      expect(w).toMatch(/10\.8\.0\.9/);
+    }
+  });
+
+  it('経路が 1 本も無ければ経路未確立を警告', async () => {
+    const w = await connectAndVerify([]);
+    if (process.platform === 'win32') {
+      expect(w).toMatch(/確立できませんでした/);
+      expect(w).not.toMatch(/残骸経路/);
+    }
+  });
+
+  it('On-link 行はゲートウェイとして扱わない', async () => {
+    const onLink = '        10.8.0.12  255.255.255.252         On-link         10.8.0.14    257';
+    const w = await connectAndVerify([route('10.8.0.13'), onLink]);
+    if (process.platform === 'win32') expect(w).toBeNull();
   });
 });
