@@ -31,6 +31,15 @@ export interface LocaleStrings {
   networkOpenVpnConnect: string;
   networkOpenVpnDisconnect: string;
   networkOpenVpnCopyLog: string;
+  // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
+  vpnToggleLabel: string;
+  vpnToggleConnecting: string;
+  vpnToggleConnected: string;
+  vpnToggleError: string;
+  vpnToggleNotConfigured: string;
+  vpnToggleTitleDisconnected: string;
+  vpnToggleTitleConnected: string;
+  vpnToggleTitleNotConfigured: string;
   outputsMirrorHeading: string;
   outputsMirrorEnabled: string;
   outputsMirrorEnabledDesc: string;
@@ -523,6 +532,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnConnect: '🔌 接続',
     networkOpenVpnDisconnect: '⏹ 切断',
     networkOpenVpnCopyLog: '📋 ログをコピー',
+    // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
+    vpnToggleLabel: 'VPN',
+    vpnToggleConnecting: '接続中...',
+    vpnToggleConnected: '接続済',
+    vpnToggleError: 'エラー',
+    vpnToggleNotConfigured: '⚠️ OpenVPN 設定が未完了です。設定タブで有効化してください。',
+    vpnToggleTitleDisconnected: 'クリックで VPN 接続',
+    vpnToggleTitleConnected: 'クリックで VPN 切断',
+    vpnToggleTitleNotConfigured: '設定が必要です',
     outputsMirrorHeading: '🔗 Outputs フォルダミラリング',
     outputsMirrorEnabled: 'Outputs フォルダを Vault 表示に追加',
     outputsMirrorEnabledDesc: 'ドキュメント フォルダの ObsidianOutputs を Vault/Outputs として表示します（NTFS ジャンクション）',
@@ -999,6 +1017,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnConnect: '🔌 Connect',
     networkOpenVpnDisconnect: '⏹ Disconnect',
     networkOpenVpnCopyLog: '📋 Copy log',
+    // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
+    vpnToggleLabel: 'VPN',
+    vpnToggleConnecting: 'Connecting...',
+    vpnToggleConnected: 'Connected',
+    vpnToggleError: 'Error',
+    vpnToggleNotConfigured: '⚠️ OpenVPN not configured. Please enable it in Settings.',
+    vpnToggleTitleDisconnected: 'Click to connect VPN',
+    vpnToggleTitleConnected: 'Click to disconnect VPN',
+    vpnToggleTitleNotConfigured: 'Configuration required',
     outputsMirrorHeading: '🔗 Outputs folder mirroring',
     outputsMirrorEnabled: 'Mirror Outputs folder into Vault display',
     outputsMirrorEnabledDesc: 'Shows Documents/ObsidianOutputs as Vault/Outputs via an NTFS junction',
@@ -1475,6 +1502,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnConnect: '🔌 连接',
     networkOpenVpnDisconnect: '⏹ 断开',
     networkOpenVpnCopyLog: '📋 复制日志',
+    // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
+    vpnToggleLabel: 'VPN',
+    vpnToggleConnecting: '连接中...',
+    vpnToggleConnected: '已连接',
+    vpnToggleError: '错误',
+    vpnToggleNotConfigured: '⚠️ OpenVPN 未配置。请在设置中启用。',
+    vpnToggleTitleDisconnected: '点击连接 VPN',
+    vpnToggleTitleConnected: '点击断开 VPN',
+    vpnToggleTitleNotConfigured: '需要配置',
     outputsMirrorHeading: '🔗 Outputs 文件夹镜像',
     outputsMirrorEnabled: '将 Outputs 文件夹添加到 Vault 显示',
     outputsMirrorEnabledDesc: '通过 NTFS junction 将 Documents/ObsidianOutputs 显示为 Vault/Outputs',
