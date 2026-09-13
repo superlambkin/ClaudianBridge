@@ -33,6 +33,7 @@ const VALID_SETTINGS = {
   password: '',
   autoConnectOnLlm: true,
   openvpnBinaryPath: '',
+  serverOverride: '',
 };
 
 /**
@@ -257,5 +258,62 @@ describe('OpenVpnController', () => {
     // 新規 spawn されていないこと（auth ファイルも新規作成されない）
     expect(spawnCountAfter).toBe(spawnCountBefore);
     expect(controller.getStatus()).toBe('connected');
+  });
+});
+// === v0.43.2 (F-044): Server Override ===
+describe('Server Override (F-044)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+  });
+
+  it('serverOverride 空 → --remote 引数なし（.ovpn の remote を使用）', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS, serverOverride: '' });
+    await Promise.resolve();
+    (activeProc as unknown as { stderr: EventEmitter }).stderr.emit('data', Buffer.from('Initialization Sequence Completed\n'));
+    await p;
+    const args = mockSpawn.mock.calls[0][1] as string[];
+    expect(args).not.toContain('--remote');
+  });
+
+  it('serverOverride host のみ → --remote host 1194（既定ポート）', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS, serverOverride: 'myqnap.myqnapcloud.com' });
+    await Promise.resolve();
+    (activeProc as unknown as { stderr: EventEmitter }).stderr.emit('data', Buffer.from('Initialization Sequence Completed\n'));
+    await p;
+    const args = mockSpawn.mock.calls[0][1] as string[];
+    const idx = args.indexOf('--remote');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args.slice(idx + 1, idx + 3)).toEqual(['myqnap.myqnapcloud.com', '1194']);
+  });
+
+  it('serverOverride host:port → --remote host port', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS, serverOverride: 'vpn.example.com:4747' });
+    await Promise.resolve();
+    (activeProc as unknown as { stderr: EventEmitter }).stderr.emit('data', Buffer.from('Initialization Sequence Completed\n'));
+    await p;
+    const args = mockSpawn.mock.calls[0][1] as string[];
+    const idx = args.indexOf('--remote');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args.slice(idx + 1, idx + 3)).toEqual(['vpn.example.com', '4747']);
   });
 });

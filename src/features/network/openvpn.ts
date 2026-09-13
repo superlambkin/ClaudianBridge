@@ -91,6 +91,12 @@ class OpenVpnControllerImpl implements OpenVpnController {
     const binary = settings.openvpnBinaryPath || 'openvpn';
     const args: string[] = ['--config', settings.configPath, '--mute-replay-warnings'];
 
+    // v0.43.2 (F-044): Server Override — CLI 引数は config ファイルの remote より優先される
+    if (settings.serverOverride) {
+      const [host, port] = settings.serverOverride.split(':');
+      args.push('--remote', host, port || '1194');
+    }
+
     if (settings.username || settings.password) {
       this.authFilePath = `${tmpdir()}/cb-openvpn-auth-${randomUUID()}`;
       writeFileSync(

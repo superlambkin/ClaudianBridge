@@ -22,6 +22,8 @@ export interface LocaleStrings {
   networkOpenVpnPassword: string;
   networkOpenVpnBinaryPath: string;
   networkOpenVpnBinaryPathDesc: string;
+  networkOpenVpnServerOverride: string;
+  networkOpenVpnServerOverrideDesc: string;
   networkOpenVpnAutoConnect: string;
   networkOpenVpnStatus: string;
   networkOpenVpnStatusDisconnected: string;
@@ -523,6 +525,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnPassword: '🔑 パスワード',
     networkOpenVpnBinaryPath: '🔧 openvpn バイナリパス',
     networkOpenVpnBinaryPathDesc: '空欄なら PATH から自動解決（openvpn コマンド）',
+    networkOpenVpnServerOverride: '🌐 サーバ上書き（任意）',
+    networkOpenVpnServerOverrideDesc: 'ドメイン名で接続先を上書きします。例: myqnap.myqnapcloud.com または myqnap.example.com:1194。空欄 = .ovpn の設定を使用',
     networkOpenVpnAutoConnect: '🚀 LLM 呼び出し時に自動接続',
     networkOpenVpnStatus: '状態',
     networkOpenVpnStatusDisconnected: '🔴 切断中',
@@ -1008,6 +1012,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnPassword: '🔑 Password',
     networkOpenVpnBinaryPath: '🔧 openvpn binary path',
     networkOpenVpnBinaryPathDesc: 'If empty, resolved from PATH (openvpn command)',
+    networkOpenVpnServerOverride: '🌐 Server override (optional)',
+    networkOpenVpnServerOverrideDesc: 'Overrides the connection target with a domain. e.g. myqnap.myqnapcloud.com or myqnap.example.com:1194. Empty = use .ovpn setting',
     networkOpenVpnAutoConnect: '🚀 Auto-connect on LLM call',
     networkOpenVpnStatus: 'Status',
     networkOpenVpnStatusDisconnected: '🔴 Disconnected',
@@ -1493,6 +1499,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnPassword: '🔑 密码',
     networkOpenVpnBinaryPath: '🔧 openvpn 二进制路径',
     networkOpenVpnBinaryPathDesc: '为空时从 PATH 自动解析（openvpn 命令）',
+    networkOpenVpnServerOverride: '🌐 服务器覆盖（可选）',
+    networkOpenVpnServerOverrideDesc: '用域名覆盖连接目标。例: myqnap.myqnapcloud.com 或 myqnap.example.com:1194。留空 = 使用 .ovpn 设置',
     networkOpenVpnAutoConnect: '🚀 LLM 调用时自动连接',
     networkOpenVpnStatus: '状态',
     networkOpenVpnStatusDisconnected: '🔴 已断开',

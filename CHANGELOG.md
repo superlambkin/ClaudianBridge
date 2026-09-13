@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.43.2] - 2026-09-13 — Server Override（サーバ上書き）機能 (F-044)
+
+### Added
+
+- 🌐 **Server Override**（F-044）: ネットワークタブに「サーバ上書き（任意）」設定を追加
+  - ドメイン名（DDNS）で `.ovpn` の接続先を上書き（`host` または `host:port` 形式・port 省略時は 1194）
+  - openvpn CLI の `--remote` 引数による標準的な上書き方式（プラグイン側の DNS 解決なし）
+  - グローバル IP 変動環境で `.ovpn` の手動修正が不要に
+  - 空欄時は従来どおり `.ovpn` の remote を使用（後方互換）
+
 ## [0.43.1] - 2026-09-13 — Claudian 画面 OpenVPN トグル (F-043)
 
 ### Added
