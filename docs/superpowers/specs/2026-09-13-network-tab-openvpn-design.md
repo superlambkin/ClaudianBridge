@@ -266,7 +266,10 @@ export interface OpenVpnController {
 }
 
 let controller: OpenVpnController | null = null;
-export function getOpenVpnController(): OpenVpnController { ... }
+export function getOpenVpnController(): OpenVpnController {
+  if (!controller) controller = createOpenVpnController();
+  return controller;
+}
 
 export async function ensureVpnConnected(settings: OpenVpnSettings): Promise<void>;
 ```
@@ -319,7 +322,7 @@ export async function ensureVpnConnected(settings: OpenVpnSettings): Promise<voi
 
 | 項目 | 対策 |
 |------|------|
-| パスワード平文 | `os.tmpdir()` に chmod 600 で一時ファイル、切断時に `unlinkSync` |
+| パスワード平文 | `os.tmpdir()` に chmod 600 で一時ファイル、切断時に `unlinkSync`（Windows では POSIX chmod が無効化されるため、ACL は OS 既定値のまま。プロセス異常終了時はファイルが残る可能性あり → 起動時に古い一時ファイルを削除するクリーンアップを実装） |
 | パストラバーサル | `configPath` はユーザー入力そのまま（OS 側権限チェックに依存） |
 | バイナリパスインジェクション | `spawn(binary, args[])` 配列渡し |
 | stderr ログサイズ | 2000 文字上限でループ防止 |
