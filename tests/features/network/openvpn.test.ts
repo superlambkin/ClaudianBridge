@@ -317,3 +317,51 @@ describe('Server Override (F-044)', () => {
     expect(args.slice(idx + 1, idx + 3)).toEqual(['vpn.example.com', '4747']);
   });
 });
+
+// === v0.43.3: Windows 版 openvpn は stdout にログを出力するための対応 ===
+describe('stdout stream monitoring (v0.43.3)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+  });
+
+  it('stdout の Initialization Sequence Completed でも status=connected になる', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS });
+    await Promise.resolve();
+    expect(controller.getStatus()).toBe('connecting');
+    // Windows 版 openvpn 2.7.x は stdout にログを出力する
+    (proc as unknown as { stdout: EventEmitter }).stdout.emit(
+      'data',
+      Buffer.from('2026-09-13 21:35:05 Initialization Sequence Completed\n'),
+    );
+    await p;
+    expect(controller.getStatus()).toBe('connected');
+  });
+
+  it('stdout の AUTH_FAILED でも status=error になる', async () => {
+    const proc = makeMockChild();
+    mockSpawn.mockReturnValue(proc);
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const p = controller.start({ ...VALID_SETTINGS });
+    await Promise.resolve();
+    (proc as unknown as { stdout: EventEmitter }).stdout.emit(
+      'data',
+      Buffer.from('AUTH: Received control message: AUTH_FAILED\n'),
+    );
+    await p;
+    expect(controller.getStatus()).toBe('error');
+    expect(controller.getLastError()).toMatch(/AUTH_FAILED/);
+  });
+});
