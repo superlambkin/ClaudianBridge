@@ -72,6 +72,18 @@ describe('vpn-toggle (F-043)', () => {
   });
 
   // ── DOM 注入 ──
+
+  it('VPN toggle is positioned to the LEFT of YOLO toggle (v0.43.5)', async () => {
+    const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
+    const { container } = mountContainer();
+    const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore() as never);
+    const wrapper = container.querySelector('.cb-vpn-toggle') as HTMLElement;
+    const yolo = container.querySelector('.claudian-permission-toggle') as HTMLElement;
+    // DOM 順で wrapper が yolo より前にあることを確認
+    expect(wrapper.compareDocumentPosition(yolo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    cleanup();
+  });
+
   it('renders toggle next to YOLO toggle in container', async () => {
     const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
     const { container } = mountContainer();
@@ -215,8 +227,8 @@ describe('vpn-toggle (F-043)', () => {
     const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
     const { container } = mountContainer();
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore({ enabled: false, configPath: '' }) as never);
-    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
-    expect(btn.disabled).toBe(true);
+    const wrapper = container.querySelector('.cb-vpn-toggle') as HTMLElement;
+    expect(wrapper.style.display).toBe('none'); // v0.43.5: 完全非表示
     cleanup();
   });
 
@@ -224,8 +236,8 @@ describe('vpn-toggle (F-043)', () => {
     const { setupVpnToggle } = await import('../../../src/features/network/vpn-toggle');
     const { container } = mountContainer();
     const cleanup = setupVpnToggle({ setting: { open: mockOpen, openTabById: mockOpenTabById } } as never, makeStore({ configPath: '' }) as never);
-    const btn = container.querySelector('.cb-vpn-switch') as HTMLButtonElement;
-    expect(btn.disabled).toBe(true);
+    const wrapper = container.querySelector('.cb-vpn-toggle') as HTMLElement;
+    expect(wrapper.style.display).toBe('none'); // v0.43.5: configPath 空でも非表示
     cleanup();
   });
 

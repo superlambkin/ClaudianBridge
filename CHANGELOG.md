@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.43.5] - 2026-09-13 — VPN トグルの非表示条件と接続色
+
+### Changed
+
+- 🙈 **OpenVPN 使用 OFF / configPath 未設定時に VPN トグルを完全非表示**（v0.43.4 までは disabled 表示だったものを hidden に変更）
+- 🟢 **接続時の色は YOLO トグルと同一の `var(--claudian-brand)`（teal-green）に統一** — 既存実装と同じだが仕様として明文化
+
+### Notes
+
+- 配置位置（YOLO の左隣）は v0.43.4 から不変 — DOM 順で `.cb-vpn-toggle` が `.claudian-permission-toggle` の前に挿入されることを確認する回帰テスト追加
+
 ## [0.43.4] - 2026-09-13 — 小改良（既定バイナリパス・YOLO トグルデザイン）
 
 ### Changed
