@@ -72,8 +72,8 @@ export default class ClaudianBridgePlugin extends Plugin {
       diag('ConfigStore created', { configPath: pluginDataDir });
 
       // v0.38.0: プロキシ設定の env 適用（Node fetch が HTTPS_PROXY を尊重する）
-      applyProxyEnv(this.store.load().general.proxy);
-      diag('proxy env applied', this.store.load().general.proxy);
+      applyProxyEnv(this.store.load().network.proxy);
+      diag('proxy env applied', this.store.load().network.proxy);
 
       // 1. 旧 data.json → 新形式 自動取り込み（旧プラグインのリネームより先に実施）
       try {
@@ -273,7 +273,7 @@ export default class ClaudianBridgePlugin extends Plugin {
       // ★ v0.10.0: 保存時に voice-config.json へエクスポート（Claudian Bridge が SSOT）
       this.store.onSave((cfg) => {
         // v0.38.0: プロキシ変更を即時 env 反映（次リクエストから有効）
-        applyProxyEnv(cfg.general.proxy);
+        applyProxyEnv(cfg.network.proxy);
         void voiceSync.exportToVoiceConfig(cfg).catch((e) => {
           console.warn('[claudian-bridge] voice-config export error:', e);
         });
