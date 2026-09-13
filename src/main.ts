@@ -42,7 +42,7 @@ import * as path from 'path';
 import { initDiagAuto, diag, installGlobalErrorHandlers } from './core/diag';
 import { getPluginDir } from './core/plugin-dir';
 import { applyProxyEnv } from './core/proxy';
-import { getOpenVpnController } from './features/network/openvpn';
+import { getOpenVpnController, reapOrphanOpenVpn } from './features/network/openvpn';
 
 // モジュールロード時に診断ログを初期化（ロード失敗の原因特定用）
 console.log('[claudian-bridge] module loading (main.ts top)');
@@ -256,6 +256,13 @@ export default class ClaudianBridgePlugin extends Plugin {
       // ★ v0.43.1 (F-043): Claudian 画面 OpenVPN トグル（YOLO トグル隣）
       this.register(setupVpnToggle(this.app, this.store));
       diag('vpn-toggle wired');
+
+      // ★ v0.44.0: 前回セッションで残った自前 openvpn プロセスを回収（TAP アダプタ解放）
+      try {
+        if (reapOrphanOpenVpn()) diag('reaped orphan openvpn process');
+      } catch (e) {
+        diag('reapOrphanOpenVpn failed', e);
+      }
 
       // ★ v0.14.0: メッセージ結果欄の読上げボタン（コピーボタン左隣）
       this.register(setupMessageReadButtons({

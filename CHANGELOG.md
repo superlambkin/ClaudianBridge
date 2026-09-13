@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.44.0] - 2026-09-13 — 孤児 openvpn プロセスの自動回収（アダプタ解放）
+
+### Fixed
+
+- 🔌 **「All tap-windows6 adapters on this system are currently in use or disabled」で接続できない問題の根本修正**: Obsidian がクラッシュ/強制終了すると `onunload` の `stop()` が走らず、プラグインが起動した `openvpn.exe` が生き残って **TAP アダプタを占有し続ける**（実測: 前回セッションのプロセスが `--auth-user-pass ...cb-openvpn-auth-...` 付きで残存）。この状態では新しい接続が必ず失敗する
+  - `reapOrphanOpenVpn()` を新設し、**(1) `--writepid` の PID ファイル**（本バージョン以降が残した場合の主経路）と **(2) コマンドラインの auth ファイル接頭辞マーカー**（旧バージョンが残した孤児も回収）の 2 経路で検出して終了させる
+  - **本プラグインが起動したものだけ**を対象とし、OpenVPN GUI 等の外部接続は触らない
+  - PID 再利用による誤殺を防ぐため、終了前にプロセス名が `openvpn` であることを確認
+  - プラグイン読み込み時（`main.ts onload`）と接続直前（`start()` 冒頭）の両方で回収する
+  - 合わせて古い auth 一時ファイルも掃除（認証情報の残留防止）
+- 📋 **アダプタ確保エラーの検知**: `currently in use or disabled` / `could not talk to service` を検出し、🔴 エラー状態と専用メッセージで通知する（従来は 🟡 接続中のまま停止し、原因が分からなかった）
+
 ## [0.43.9] - 2026-09-13 — 接続ログのコピー機能
 
 ### Added
