@@ -41,6 +41,7 @@ import * as path from 'path';
 import { initDiagAuto, diag, installGlobalErrorHandlers } from './core/diag';
 import { getPluginDir } from './core/plugin-dir';
 import { applyProxyEnv } from './core/proxy';
+import { getOpenVpnController } from './features/network/openvpn';
 
 // モジュールロード時に診断ログを初期化（ロード失敗の原因特定用）
 console.log('[claudian-bridge] module loading (main.ts top)');
@@ -404,6 +405,8 @@ export default class ClaudianBridgePlugin extends Plugin {
   async onunload(): Promise<void> {
     diag('onunload START');
     try {
+      // v0.43.0 (F-041): VPN プロセスが起動中なら明示的に停止（ゾンビプロセス防止）
+      await getOpenVpnController().stop();
       removeWhitelistCss();
       if (this.quotaHandle) {
         await unregisterClaudeQuota();
