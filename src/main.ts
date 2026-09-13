@@ -27,6 +27,7 @@ import { OfficeMenuRegistrar } from './features/office/menu';
 import { BackupMenuRegistrar } from './features/backup/menu';
 import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
+import { OutputsMirrorManager } from './features/outputs-mirror/manager';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
 import { ImageGenMenuRegistrar } from './features/image-gen/menu';
@@ -114,9 +115,19 @@ export default class ClaudianBridgePlugin extends Plugin {
         const w = c.whitelist;
         diag('whitelist config', { pluginEnabled: c.general.enabled, enabled: w.enabled });
         if (c.general.enabled && w.enabled) {
-          const css = buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders);
+          const css = buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders, c.general.hideDotFolders);
           if (css) installWhitelistCss(css);
           diag('whitelist css injected');
+        }
+      }
+
+      // v0.41.0: Outputs フォルダミラリング（起動時適用）
+      {
+        const c = this.store.load();
+        if (c.general.outputsMirrorEnabled) {
+          const manager = new OutputsMirrorManager({ vaultBasePath: vaultRoot });
+          manager.apply(true, c.general.outputsMirrorPath);
+          diag('outputs mirror applied');
         }
       }
 
@@ -284,8 +295,9 @@ export default class ClaudianBridgePlugin extends Plugin {
 
       // 外部変更検知（UI 更新は SettingTab の onChange で実施済み）。close は onunload で実施
       this.store.watch(() => {
-        const w = this.store.load().whitelist;
-        const css = w.enabled ? buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders) : null;
+        const c = this.store.load();
+        const w = c.whitelist;
+        const css = w.enabled ? buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders, c.general.hideDotFolders) : null;
         if (css) installWhitelistCss(css); else removeWhitelistCss();
       });
       diag('store.watch registered');

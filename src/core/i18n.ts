@@ -9,6 +9,20 @@ export interface LocaleStrings {
   tabTts: string;
   tabOffice: string;
   tabWhitelist: string;
+  tabChangelog: string;
+  outputsMirrorHeading: string;
+  outputsMirrorEnabled: string;
+  outputsMirrorEnabledDesc: string;
+  outputsMirrorVaultExists: string;
+  outputsMirrorPath: string;
+  outputsMirrorPathDesc: string;
+  outputsMirrorOpen: string;
+  outputsMirrorStateLinked: string;
+  outputsMirrorStateNone: string;
+  hideDotFolders: string;
+  hideDotFoldersDesc: string;
+  changelogHeading: string;
+  changelogDesc: string;
   tabQuota: string;
   settingsTitle: string;
   noticeSaved: string;
@@ -464,8 +478,22 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabSelection: '📝 テキスト挿入',
     tabTts: '🔊 テキスト読み上げ',
     tabOffice: '📄 ファイル変換',
-    tabWhitelist: '🗂️ 拡張子フィルタ',
+    tabWhitelist: '🗂️ Vault表示',
     tabQuota: '🤖 LLM 残量',
+    tabChangelog: '📜 変更履歴',
+    outputsMirrorHeading: '🔗 Outputs フォルダミラリング',
+    outputsMirrorEnabled: 'Outputs フォルダを Vault 表示に追加',
+    outputsMirrorEnabledDesc: 'ドキュメント フォルダの ObsidianOutputs を Vault/Outputs として表示します（NTFS ジャンクション）',
+    outputsMirrorVaultExists: 'Vault 内に Outputs フォルダが既に存在するため有効化できません',
+    outputsMirrorPath: 'ミラー元フォルダ',
+    outputsMirrorPathDesc: '空欄の場合は Documents/ObsidainOutputs を使用します',
+    outputsMirrorOpen: '📂 開く',
+    outputsMirrorStateLinked: 'リンク済み: {target}',
+    outputsMirrorStateNone: '未接続',
+    hideDotFolders: '. で始まるフォルダを非表示',
+    hideDotFoldersDesc: '左側一覧から .obsidian などのドット開始フォルダを除外します',
+    changelogHeading: '📜 変更履歴',
+    changelogDesc: '全バージョンの変更履歴（CHANGELOG.md）',
     settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ 保存しました',
     noticeSaveFailed: '⚠️ 保存失敗: {msg}',
@@ -905,8 +933,22 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabSelection: '📝 Text Insertion',
     tabTts: '🔊 Text To Speech',
     tabOffice: '📄 File Conversion',
-    tabWhitelist: '🗂️ Extension Filter',
+    tabWhitelist: '🗂️ Vault Display',
     tabQuota: '🤖 LLM Quota',
+    tabChangelog: '📜 Changelog',
+    outputsMirrorHeading: '🔗 Outputs folder mirroring',
+    outputsMirrorEnabled: 'Mirror Outputs folder into Vault display',
+    outputsMirrorEnabledDesc: 'Shows Documents/ObsidianOutputs as Vault/Outputs via an NTFS junction',
+    outputsMirrorVaultExists: 'Cannot enable: an Outputs folder already exists in the Vault',
+    outputsMirrorPath: 'Mirror source folder',
+    outputsMirrorPathDesc: 'Leave empty to use Documents/ObsidianOutputs',
+    outputsMirrorOpen: '📂 Open',
+    outputsMirrorStateLinked: 'Linked: {target}',
+    outputsMirrorStateNone: 'Not linked',
+    hideDotFolders: 'Hide folders starting with "."',
+    hideDotFoldersDesc: 'Excludes dot-prefixed folders such as .obsidian from the file list',
+    changelogHeading: '📜 Changelog',
+    changelogDesc: 'Full version history (CHANGELOG.md)',
     settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ Saved',
     noticeSaveFailed: '⚠️ Save failed: {msg}',
@@ -1346,8 +1388,22 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabSelection: '📝 文本插入',
     tabTts: '🔊 文本朗读',
     tabOffice: '📄 文件转换',
-    tabWhitelist: '🗂️ 扩展名过滤',
+    tabWhitelist: '🗂️ Vault 显示',
     tabQuota: '🤖 LLM 额度',
+    tabChangelog: '📜 更新历史',
+    outputsMirrorHeading: '🔗 Outputs 文件夹镜像',
+    outputsMirrorEnabled: '将 Outputs 文件夹添加到 Vault 显示',
+    outputsMirrorEnabledDesc: '通过 NTFS junction 将 Documents/ObsidianOutputs 显示为 Vault/Outputs',
+    outputsMirrorVaultExists: 'Vault 中已存在 Outputs 文件夹，无法启用',
+    outputsMirrorPath: '镜像源文件夹',
+    outputsMirrorPathDesc: '留空则使用 Documents/ObsidianOutputs',
+    outputsMirrorOpen: '📂 打开',
+    outputsMirrorStateLinked: '已链接: {target}',
+    outputsMirrorStateNone: '未链接',
+    hideDotFolders: '隐藏以 . 开头的文件夹',
+    hideDotFoldersDesc: '从左侧列表中排除 .obsidian 等点开头文件夹',
+    changelogHeading: '📜 更新历史',
+    changelogDesc: '全部版本历史（CHANGELOG.md）',
     settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ 已写入',
     noticeSaveFailed: '⚠️ 写入失败: {msg}',

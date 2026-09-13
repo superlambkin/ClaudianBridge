@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.41.0] - 2026-09-13 — Outputs フォルダミラリング + Vault表示タブ + 改定履歴ページ
+
+### Added
+
+- **Outputs フォルダミラリング**: ドキュメント/ObsidainOutputs を Vault/Outputs として NTFS ジャンクションで表示（`general.outputsMirrorEnabled` 既定 OFF・`general.outputsMirrorPath` 既定 Documents/ObsidainOutputs 動的解決）。Vault 内 Outputs 実フォルダ既存時は有効化不可（実フォルダ優先）
+- 「📂 開く」ボタン: `outputsMirrorPath` のフォルダを Explorer で開く（`shell.openPath`・不在時は自動作成）
+- **「`.` で始まるフォルダを非表示」**: `general.hideDotFolders`（既定 ON）— Whitelist CSS に dot フォルダ非表示ルール追加
+- **「📜 改定履歴」設定タブ**: CHANGELOG.md を SSOT として全バージョン表示（アコーディオン）
+- `scripts/check-changelog.mjs` + `npm run check:changelog`: リリース時に CHANGELOG 更新を強制するゲート
+
+### Changed
+
+- 設定タブ「🗂️ 拡張子フィルタ」を「🗂️ Vault表示」に改名
+
+### テスト
+
+- 追加 17 ケース（outputs-mirror 10 / changelog-parser 7）
+- **1267 PASS / 1 skipped / typecheck 0**
+
 ## [0.38.0] - 2026-09-07 — 選択ポップアップ位置設定（F-032）
 
 ### Added

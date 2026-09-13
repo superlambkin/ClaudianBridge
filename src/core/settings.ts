@@ -593,6 +593,12 @@ export interface ClaudianBridgeSettings {
     tokenRateIntervalMs: number;
     // === v0.38.0: プロキシ設定（LLM アクセス用） ===
     proxy: ProxySettings;
+    // === v0.41.0: Outputs フォルダミラリング（Documents/ObsidainOutputs → Vault/Outputs） ===
+    outputsMirrorEnabled: boolean;
+    // 空文字なら Documents/ObsidainOutputs を動的解決
+    outputsMirrorPath: string;
+    // === v0.41.0: 「. で始まるフォルダを非表示」 ===
+    hideDotFolders: boolean;
   };
   quota: QuotaSettings;
   selection: {
@@ -702,7 +708,7 @@ function normalizeThinkingField(
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, proxy: { ...DEFAULT_PROXY_SETTINGS } },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, proxy: { ...DEFAULT_PROXY_SETTINGS }, outputsMirrorEnabled: false, outputsMirrorPath: '', hideDotFolders: true },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
@@ -813,6 +819,11 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       tokenRateShowCurrent: typeof r.general?.tokenRateShowCurrent === 'boolean' ? r.general.tokenRateShowCurrent : true,
       tokenRateShowAvg: typeof r.general?.tokenRateShowAvg === 'boolean' ? r.general.tokenRateShowAvg : true,
       tokenRateShowMax: typeof r.general?.tokenRateShowMax === 'boolean' ? r.general.tokenRateShowMax : true,
+      // v0.41.0: Outputs フォルダミラリング（既定 OFF・パス空は Documents/ObsidainOutputs 動的解決）
+      outputsMirrorEnabled: typeof r.general?.outputsMirrorEnabled === 'boolean' ? r.general.outputsMirrorEnabled : false,
+      outputsMirrorPath: typeof r.general?.outputsMirrorPath === 'string' ? r.general.outputsMirrorPath : '',
+      // v0.41.0: 「. で始まるフォルダを非表示」（既定 ON）
+      hideDotFolders: typeof r.general?.hideDotFolders === 'boolean' ? r.general.hideDotFolders : true,
       // v0.32.0: トークン速度表示の更新周期（プリセット外は既定にフォールバック）
       tokenRateIntervalMs: (() => {
         const raw = r.general?.tokenRateIntervalMs;
@@ -1143,6 +1154,9 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.general.tokenRateShowCurrent !== 'boolean') return 'general.tokenRateShowCurrent は boolean である必要があります';
   if (typeof cfg.general.tokenRateShowAvg !== 'boolean') return 'general.tokenRateShowAvg は boolean である必要があります';
   if (typeof cfg.general.tokenRateShowMax !== 'boolean') return 'general.tokenRateShowMax は boolean である必要があります';
+  if (typeof cfg.general.outputsMirrorEnabled !== 'boolean') return 'general.outputsMirrorEnabled は boolean である必要があります';
+  if (typeof cfg.general.outputsMirrorPath !== 'string') return 'general.outputsMirrorPath は string である必要があります';
+  if (typeof cfg.general.hideDotFolders !== 'boolean') return 'general.hideDotFolders は boolean である必要があります';
   if (!ALLOWED_TOKEN_RATE_INTERVALS.includes(cfg.general.tokenRateIntervalMs as TokenRateIntervalMs)) return `general.tokenRateIntervalMs は ${ALLOWED_TOKEN_RATE_INTERVALS.join(' / ')} のいずれかである必要があります`;
   if (cfg.general.proxy === undefined || cfg.general.proxy === null) return 'general.proxy は必須オブジェクトです';
   if (typeof cfg.general.proxy.enabled !== 'boolean') return 'general.proxy.enabled は boolean である必要があります';
