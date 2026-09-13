@@ -3,6 +3,7 @@ import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { getPluginDir } from '../core/plugin-dir';
 import { renderGeneralTab } from './SettingTabGeneral';
+import { renderNetworkTab } from './SettingTabNetwork';
 import { renderSelectionTab } from './SettingTabSelection';
 import { renderTtsTab } from './SettingTabTts';
 import { renderOfficeTab } from './SettingTabOffice';
@@ -23,12 +24,13 @@ type RenderFn = (app: App, el: HTMLElement, store: ConfigStore, resetMigration?:
 
 interface TabDef {
   id: string;
-  labelKey: 'tabGeneral' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabQuota' | 'tabChroma' | 'tabMemory' | 'tabImageGen' | 'tabChangelog';
+  labelKey: 'tabGeneral' | 'tabNetwork' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabQuota' | 'tabChroma' | 'tabMemory' | 'tabImageGen' | 'tabChangelog';
   render: RenderFn;
 }
 
 const TABS: TabDef[] = [
   { id: 'general', labelKey: 'tabGeneral', render: renderGeneralTab },
+  { id: 'network', labelKey: 'tabNetwork', render: renderNetworkTab },
   { id: 'selection', labelKey: 'tabSelection', render: renderSelectionTab },
   { id: 'tts', labelKey: 'tabTts', render: renderTtsTab },
   { id: 'office', labelKey: 'tabOffice', render: renderOfficeTab },
