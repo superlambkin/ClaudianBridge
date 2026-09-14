@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.47.0] - 2026-09-14 — 切断時の残骸経路自動削除 (F-047)
+
+v0.46.0 の removeStaleRoutes() を基盤に、OpenVPN 切断後の
+3 秒待機 → バックグラウンド stale 検出 → 管理者起動時のみ自動削除
+する UX を追加。VPN 使用時は Obsidian を管理者起動する運用は維持。
+v0.46.0 の手動 🧹 ボタンは引き続き有効。
+
+- feat(network): cleanupAfterDisconnect() — background auto-cleanup
+- feat(network): stop() schedules cleanup via setTimeout(3000)
+- feat(i18n): networkOpenVpnAutoCleaned × 3 locales
+- tests: +4 cases (1354 total)
+
 ## [0.46.0] - 2026-09-14 — 残骸経路の 1 クリック削除 (F-046)
 
 v0.45.0 の検知ロジックを基盤に、stale 経路を 1 クリックで削除する UX を追加。
