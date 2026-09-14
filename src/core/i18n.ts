@@ -917,7 +917,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaZhipuValue: '5時間使用量',
     quotaDisplayZhipu: '智谱を表示',
     // Memory (v0.17.0: MD 保存ボタン)
-    tabMemory: 'Memory',
+    tabMemory: '🧠 Memory',
     memoryEnabled: 'MD保存ボタン',
     memoryEnabledDesc: 'Chat結果をメモリフォルダに保存するボタンをツールバーと回答ブロックに表示します',
     memoryScope: '保存範囲（ツールバー）',
@@ -1415,7 +1415,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaZhipuValue: '5h usage',
     quotaDisplayZhipu: 'Show Zhipu',
     // Memory (v0.17.0: MD save button)
-    tabMemory: 'Memory',
+    tabMemory: '🧠 Memory',
     memoryEnabled: 'MD save button',
     memoryEnabledDesc: 'Show buttons in the toolbar and answer blocks to save chat results to the memory folder',
     memoryScope: 'Save scope (toolbar)',
@@ -1913,7 +1913,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaZhipuValue: '5小时用量',
     quotaDisplayZhipu: '显示智谱',
     // Memory (v0.17.0: MD 保存按钮)
-    tabMemory: 'Memory',
+    tabMemory: '🧠 Memory',
     memoryEnabled: 'MD存储按钮',
     memoryEnabledDesc: '在工具栏和回答区块显示按钮，将聊天结果存储到记忆文件夹',
     memoryScope: '存储范围（工具栏）',
