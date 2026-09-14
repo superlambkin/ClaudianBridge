@@ -14,7 +14,7 @@ import { EventEmitter } from 'events';
 import { existsSync, writeFileSync, unlinkSync, chmodSync, readFileSync, readdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
-import type { OpenVpnSettings, OpenVpnStatus } from './types';
+import type { OpenVpnSettings, OpenVpnStatus, VpnRoute } from './types';
 
 /** v0.44.0: 自前プロセスの識別マーカー（auth 一時ファイル名の接頭辞） */
 const AUTH_FILE_PREFIX = 'cb-openvpn-auth-';
@@ -268,6 +268,40 @@ class OpenVpnControllerImpl implements OpenVpnController {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * F-046: VPN 関連ルートの dest/mask/gateway 3-tuple を抽出する。
+   * v0.45.0 の getVpnRouteGateways() を拡張し、dest/mask 情報を保持する。
+   * 判定不能（route print 失敗）なら null。
+   */
+  private getVpnRoutes(): VpnRoute[] | null {
+    try {
+      const out = execSync('route print -4', {
+        encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      const routes: VpnRoute[] = [];
+      for (const line of out.split(/\r?\n/)) {
+        const m = line.match(
+          /^\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+\d+\.\d+\.\d+\.\d+\s+\d+\s*$/,
+        );
+        if (!m) continue;
+        const [, dest, mask, gateway] = m;
+        const isVpnDest =
+          (dest === '0.0.0.0' && mask === '128.0.0.0')
+          || (dest === '128.0.0.0' && mask === '128.0.0.0')
+          || dest.startsWith('10.8.');
+        if (isVpnDest) routes.push({ dest, mask, gateway });
+      }
+      return routes;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Test-only escape hatch for getVpnRoutes(). */
+  public getVpnRoutesForTest(): VpnRoute[] | null {
+    return this.getVpnRoutes();
   }
 
   private setWarning(next: string | null): void {

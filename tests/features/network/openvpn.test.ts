@@ -699,3 +699,57 @@ describe('stale route detection (v0.45.0)', () => {
     if (process.platform === 'win32') expect(w).toBeNull();
   });
 });
+
+// === v0.46.0 (F-046): getVpnRoutes() — dest/mask/gateway 3-tuple 抽出 ===
+describe('OpenVpnController.getVpnRoutes (v0.46.0 / F-046)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  it('VPN 関連経路の dest/mask/gateway 3-tuple を返す', async () => {
+    mockExecSync.mockReturnValueOnce(`
+IPv4 Route Table
+===========================================================================
+Active Routes:
+Network Destination        Netmask          Gateway       Interface  Metric
+          0.0.0.0          0.0.0.0      192.168.1.1     192.168.1.10     25
+        128.0.0.0        128.0.0.0         10.8.0.5       10.8.0.6    100
+        10.8.0.0      255.255.255.0         10.8.0.5       10.8.0.6    100
+===========================================================================
+`.trim());
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const routes = controller.getVpnRoutesForTest();
+    expect(routes).toEqual([
+      { dest: '128.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.5' },
+      { dest: '10.8.0.0', mask: '255.255.255.0', gateway: '10.8.0.5' },
+    ]);
+  });
+
+  it('execSync が throw したら null を返す', async () => {
+    mockExecSync.mockImplementationOnce(() => { throw new Error('fail'); });
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.getVpnRoutesForTest()).toBeNull();
+  });
+
+  it('On-link 行（gateway 列が無い）はスキップして空配列を返す', async () => {
+    mockExecSync.mockReturnValueOnce(`
+        10.8.0.0      255.255.255.0        On-link        10.8.0.6    100
+`.trim());
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.getVpnRoutesForTest()).toEqual([]);
+  });
+});
