@@ -115,3 +115,50 @@ export function setupMdFileRead(app: App, store: ConfigStore): () => void {
   const evRef = app.workspace.on('file-menu', handler);
   return () => { app.workspace.offref(evRef); };
 }
+
+/**
+ * v0.49.0 (F-051): MD 画面ビューヘッダ右上に「Add to TTS」ボタンを追加。
+ * 既存アイコン（✏️ 編集/読切切替・⋮ メニュー）の左側に addAction で描画される
+ * （ItemView.addAction 公開 API・DOM ハック不要）。クリック動作は右クリック
+ * メニューと同一経路（addMdToTts）のためハイライト連動も自動的に有効。
+ */
+export function setupMdViewButton(app: App, store: ConfigStore): () => void {
+  const s = getLocaleStrings(getUILanguage());
+  const MARKER = 'data-cb-add-tts';
+
+  const scan = (): void => {
+    for (const leaf of app.workspace.getLeavesOfType('markdown')) {
+      const view = leaf.view as unknown as {
+        file?: { extension?: string } | null;
+        addAction?: (icon: string, title: string, cb: () => void) => HTMLElement | void;
+        containerEl?: HTMLElement;
+      } | null;
+      if (!view || view.file?.extension !== 'md') continue;
+      if (typeof view.addAction !== 'function') continue; // 将来の API 変更に備えたガード
+      if (view.containerEl?.querySelector(`[${MARKER}]`)) continue; // 冪等ガード
+      const el = view.addAction('volume-2', s.ttsAddToTts, () => {
+        const f = view.file;
+        if (!f) return; // 新規空タブ等 → 静かにスキップ
+        void (async () => {
+          try {
+            await addMdToTts(app, f as TFile, store.load());
+          } catch (e) {
+            console.warn('[cb-md-read] view-button failed:', e);
+            new Notice(`⚠️ MD 読み上げ失敗: ${(e as Error).message}`);
+          }
+        })();
+      });
+      if (el && typeof (el as HTMLElement).setAttribute === 'function') {
+        (el as HTMLElement).setAttribute(MARKER, '1');
+      } else if (view.containerEl) {
+        // addAction が要素を返さない環境ではアクション領域の最後の要素にマーカー
+        const last = view.containerEl.querySelector('.view-actions')?.lastElementChild;
+        last?.setAttribute(MARKER, '1');
+      }
+    }
+  };
+
+  scan();
+  const evRef = app.workspace.on('layout-change', scan);
+  return () => { app.workspace.offref(evRef); };
+}

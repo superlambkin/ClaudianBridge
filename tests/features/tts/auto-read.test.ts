@@ -44,6 +44,8 @@ function makeStore(autoRead?: { enabled: boolean; scope: 'header' | 'full' }, tt
         enabled: ttsEnabled,
         edgeTtsModulePath: '',
         autoRead: autoRead ?? { enabled: true, scope: 'header' },
+        mdReadHighlight: { enabled: true, highlightColor: '', scrollPositionPct: 40 },
+        chatReadHighlight: { enabled: true },
         // 本番デフォルト（DEFAULT_SPEECH_FILTER_OPTIONS・table=true）を反映
         speechFilter: {
           autoRead: { ...DEFAULT_SPEECH_FILTER_OPTIONS },
@@ -296,5 +298,28 @@ describe('setupAutoReadTTS', () => {
     view.callbacks.onTabStreamingChanged!('t', false);
     await vi.waitFor(() => expect(speak).toHaveBeenCalledTimes(1));
     expect(speak.mock.calls[0][0]).toContain('📢 タスクを完了しました。');
+  });
+});
+
+describe('チャット読上げハイライト連動 (v0.49.0 / F-050)', () => {
+  it('自動読み上げ中に最後の assistant メッセージがハイライトされ、完了で解除される', async () => {
+    const { setupAutoReadTTS: setup } = await import('../../../src/features/tts/auto-read');
+    let resolveSpeak: (v: boolean) => void = () => {};
+    const speak = vi.fn(() => new Promise<boolean>((res) => { resolveSpeak = res; }));
+    const view = makeView(REPORT_HTML);
+    const app = makeApp([view]);
+    const store = makeStore({ enabled: true, scope: 'full' });
+    const stop = setup({ app: app.app as never, store: store as never, speak });
+    const fire = () => {
+      view.callbacks.onTabStreamingChanged?.('tab1', true);
+      view.callbacks.onTabStreamingChanged?.('tab1', false);
+    };
+    fire();
+    await vi.waitFor(() => expect(speak).toHaveBeenCalled());
+    const last = view.containerEl.querySelector('.claudian-message-assistant') as HTMLElement;
+    expect(last.classList.contains('cb-chat-read-active')).toBe(true); // 読み上げ中
+    resolveSpeak(true); // 読み上げ完了
+    await vi.waitFor(() => expect(last.classList.contains('cb-chat-read-active')).toBe(false));
+    stop();
   });
 });
