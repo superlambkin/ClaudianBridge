@@ -231,6 +231,7 @@ export interface LocaleStrings {
   // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
   ttsMdReadHighlightEnabled: string;
   ttsMdReadHighlightHighlightColor: string;
+  ttsChatReadHighlightEnabled: string;
   mdReadColorPreset: string;
   mdReadColorPresetDesc: string;
   mdReadColorDefault: string;
@@ -735,6 +736,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
     ttsMdReadHighlightEnabled: 'MD 読み上げ時にチャンク位置をハイライト',
     ttsMdReadHighlightHighlightColor: 'ハイライト色',
+    ttsChatReadHighlightEnabled: 'Claudian 画面の自動読み上げ中にメッセージをハイライト',
     mdReadColorPreset: '🎨 ハイライト色（プリセット）',
     mdReadColorPresetDesc: '定番色から選ぶと色コードへ自動反映します',
     mdReadColorDefault: '既定（アンバー）',
@@ -1233,6 +1235,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
     ttsMdReadHighlightEnabled: 'Highlight reading position in MD Preview',
     ttsMdReadHighlightHighlightColor: 'Highlight color',
+    ttsChatReadHighlightEnabled: 'Highlight the message during Claudian auto-read',
     mdReadColorPreset: '🎨 Highlight color (preset)',
     mdReadColorPresetDesc: 'Pick a preset color and it will be applied to the color code',
     mdReadColorDefault: 'Default (amber)',
@@ -1726,6 +1729,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.33.0 (F-028): MD 读取位置高亮 / Floating Overlay
     ttsMdReadHighlightEnabled: '在 MD 朗读时高亮当前分块位置',
     ttsMdReadHighlightHighlightColor: '高亮颜色',
+    ttsChatReadHighlightEnabled: 'Claudian 自动朗读时高亮对应消息',
     mdReadColorPreset: '🎨 高亮颜色（预设）',
     mdReadColorPresetDesc: '选择常用色后自动填入颜色代码',
     mdReadColorDefault: '默认（琥珀）',
