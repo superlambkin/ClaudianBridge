@@ -8,7 +8,7 @@ status: draft
 created: 2026-06-21
 modified: 2026-07-26 08:52
 tags: 
-  - FAQ
+  - faq
   - よくある質問
 aliases: 
   - よくある質問
@@ -87,8 +87,8 @@ applied_rules_version: 2.9.2
 
 ## 🔗 関連リンク
 
-- [[クイックスタート]] — クイックスタート
-- [[機能詳細]] — 詳細な使い方
+- [[80_POC_Projects/POC_017_ClaudianBridge/08_説明書/02_ユーザーマニュアル/クイックスタート]] — クイックスタート
+- [[80_POC_Projects/POC_017_ClaudianBridge/08_説明書/02_ユーザーマニュアル/機能詳細]] — 詳細な使い方
 - [[../03_リリースノート/既知の問題]] — 既知の不具合
 
 ---

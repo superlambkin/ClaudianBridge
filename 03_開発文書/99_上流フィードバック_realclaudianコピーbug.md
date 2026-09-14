@@ -4,9 +4,9 @@ type: upstream-feedback
 template_id: poc/v3.1.0/03-上流フィードバック
 template_version: 3.5.0
 version: 1.0.0
-status: draft
-created: 2026-08-14
-modified: 2026-08-14
+status: 🟡 ドラフト
+created: 2026-08-14 17:31
+modified: 2026-08-14 12:00
 tags: 
   - realclaudian
   - upstream
@@ -52,10 +52,16 @@ When clicking the language label (e.g. "mermaid") on a code block in the Claudia
 
 The clipboard should contain the fenced code block:
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph LR
     A --> B
 ```
+
+
+</div>
 
 ### Root cause (analysis)
 

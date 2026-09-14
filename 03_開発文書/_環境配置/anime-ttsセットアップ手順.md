@@ -1,3 +1,9 @@
+---
+tags:
+  - development
+  - poc
+  - poc-017
+---
 # anime-tts (Damarcreative) セットアップ手順
 
 > 📂 路径：80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/_環境配置/anime-ttsセットアップ手順.md

@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # ClaudianBridge ドキュメント集約 デザイン仕様書
 
 > 🏷️ バージョン: v1.0
@@ -196,6 +202,8 @@ mklink /J "D:\AI-Agent\ClaudianBridge\CHANGELOG.md" "C:\Users\superlambkin\OneDr
 
 ### 全体フロー
 
+<div style="max-width:1000px">
+
 ```mermaid
 flowchart TB
     Start([タスク開始]) --> P1[①コミット準備]
@@ -215,6 +223,9 @@ flowchart TB
     P6 -.失敗.-> F6[ロールバック: .bak から復元]
     P7 -.失敗.-> F7[src/tests の整合確認]
 ```
+
+
+</div>
 
 ### フェーズ詳細
 
@@ -332,6 +343,8 @@ D:\AI-Agent\ClaudianBridge\.bak\
 
 ### テスト実行順序
 
+<div style="max-width:1000px">
+
 ```mermaid
 flowchart TB
     Start([整理完了]) --> L1[L1: ジャンクション健全性]
@@ -350,6 +363,9 @@ flowchart TB
     L5 -.NG.-> Rollback
     L6 -.NG.-> Rollback
 ```
+
+
+</div>
 
 ---
 
@@ -391,7 +407,7 @@ flowchart TB
 ### 関連リンク
 
 - [[../../../00_Vault管理/構成説明.md#POC プロジェクトパス対応規約（SSOT）|POC プロジェクトパス対応規約 SSOT]]
-- [[../../../00_Vault管理/方法論/POC開発メタプロセス|POC 開発メタプロセス]]
+- [[../../../00_Vault管理/POC開発メタプロセス|POC 開発メタプロセス]]
 
 ### 外部リンク
 

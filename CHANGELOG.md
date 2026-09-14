@@ -1,3 +1,8 @@
+---
+tags:
+  - poc
+  - poc-017
+---
 # Changelog
 
 ## [0.40.0] - 2026-09-10 — Think モード選択機能 Phase 2 (F-040)
@@ -452,7 +457,7 @@
 ### 参照
 
 - 設計書: `80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-08-19-tts-engine-change-local-bundle-cloud-server-language-mode.md`
-- 実装計画: `80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/18_TTSエンジン変更実装計画.md`
+- 実装計画: `80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/26_TTSエンジン変更実装計画.md`
 - テスト件数: 778 → **782** (+4)
 
 ## [0.26.0] - 2026-08-18

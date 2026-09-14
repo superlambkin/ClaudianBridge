@@ -7,7 +7,7 @@ created: 2026-08-29
 modified: 2026-08-29
 tags:
   - デプロイ運用
-  - VERSION
+  - version
   - rag
 language: Japanese
 applied_rules_version: 2.15.0

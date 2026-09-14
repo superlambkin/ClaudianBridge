@@ -1,3 +1,14 @@
+---
+tags:
+  - skill-superpowers-subagent-driven-development
+  - skill-superpowers-executing-plans
+version: 1.0.0
+status: 🟢 安定
+created: 2026-09-12 09:01
+title: 17_TTS読み上げ仕様改良実装計画
+type: implementation-plan
+modified: 2026-09-13 12:30
+---
 # TTS 読み上げ仕様改良 実装計画
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -1433,6 +1444,9 @@ git commit -m "chore(release): build v0.17.0 with unified TTS read spec enhancem
 
 ## 📋 タスク間依存
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph LR
     T1["Task 1<br/>設定スキーマ"] --> T2["Task 2<br/>speech-filter"]
@@ -1448,6 +1462,9 @@ graph LR
     T6 --> T9
     T8 --> T9
 ```
+
+
+</div>
 
 ---
 

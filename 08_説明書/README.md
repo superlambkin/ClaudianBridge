@@ -9,8 +9,8 @@ created: 2026-06-21
 modified: 2026-07-26 08:52
 tags: 
   - 説明書
-  - Manual
-  - Documentation
+  - manual
+  - documentation
   - ユーザードキュメント
 aliases: 
   - Manual
@@ -27,6 +27,9 @@ applied_rules_version: 2.9.2
 
 ## 📖 ドキュメント構造
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     ROOT["08_説明書/<br/>総インデックス"]
@@ -38,6 +41,9 @@ graph TB
     ROOT --> R2
     ROOT --> R3
 ```
+
+
+</div>
 
 ---
 

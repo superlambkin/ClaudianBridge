@@ -2,16 +2,16 @@
 title: "Claudian Bridge LLM 残量検知 設計"
 type: feature-design
 version: 1.0.0
-status: ✅ 已批准
-created: 2026-08-11
-modified: 2026-08-14
+status: 🟢 承認済
+created: 2026-08-11 08:01
+modified: 2026-08-14 08:01
 project_id: POC_017_ClaudianBridge
 phase: 2
 related_spec:
   - docs/superpowers/specs/2026-08-11-claudian-quota-detection-design.md
 tags:
   - LLM残量
-  - ClaudeOAuth
+  - claudeoauth
   - 使用率表示
   - ステータスバー
 language: Japanese
@@ -99,6 +99,8 @@ Claudian Chat 利用中に **自分の Claude サブスクリプション残量*
 
 ### モジュール構成
 
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     subgraph New["src/features/quota/ (新規)"]
@@ -131,7 +133,12 @@ graph TB
     J --> C
 ```
 
+
+</div>
+
 ### データフロー（全体像）
+
+<div style="max-width:1000px">
 
 ```mermaid
 flowchart TD
@@ -155,7 +162,12 @@ flowchart TD
     P --> Q[DOM 再描画]
 ```
 
+
+</div>
+
 ### イベントフロー（シーケンス図）
+
+<div style="max-width:1000px">
 
 ```mermaid
 sequenceDiagram
@@ -179,6 +191,9 @@ sequenceDiagram
     Bus->>View: onUpdate(snapshot)
     View->>DOM: render(snapshot)
 ```
+
+
+</div>
 
 ---
 
@@ -445,6 +460,8 @@ function clampRefreshSec(v: number): number {
 
 ### 配置
 
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     subgraph claudian-container["claudian-container"]
@@ -455,6 +472,9 @@ graph TB
         E[claudian-input-wrapper]
     end
 ```
+
+
+</div>
 
 ### DOM 構造（success 状態）
 
@@ -622,6 +642,8 @@ function colorFor(util: number | null): QuotaColor {
 
 ### テストピラミッド
 
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     A["🔬 Unit Tests (vitest)<br/>core.ts · view.ts · settings"]
@@ -631,6 +653,9 @@ graph TB
     B -->|重要経路 100%| D
     C -->|シナリオ 100% 合格| D
 ```
+
+
+</div>
 
 ### Unit テスト（`tests/features/quota/`）
 
@@ -830,8 +855,14 @@ graph TB
 | 1 | GitHub | [farion1231/cc-switch - Usage Query 機能](https://github.com/farion1231/cc-switch/blob/main/docs/user-manual/en/2-providers/2.5-usage-query.md) |
 | 2 | GitHub | [cc-switch/src-tauri/src/services/subscription.rs](https://github.com/farion1231/cc-switch/blob/main/src-tauri/src/services/subscription.rs) |
 | 3 | Vault MD | [[10_オブジェクトコンテキストメニュー設計\|10_オブジェクトコンテキストメニュー設計.md]]（関連 feature 実装パターン） |
-| 4 | Vault MD | [[04_データモデル\|04_データモデル.md]]（settings スキーマ拡張パターン） |
+| 4 | Vault MD | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/04_データモデル\|04_データモデル.md]]（settings スキーマ拡張パターン） |
 
 ---
 
 *🎯 Claudian Bridge LLM 残量検知 設計 v1.0.0 · MiuMiu 🐾 · 2026-08-11*
+
+## 📝 更新記録
+
+| バージョン | 日付 | 変更内容 | 変更者 |
+|-----------|:----:|---------|:------:|
+| v1.0.0 | 2026-08-11 | 初版作成 | MiuMiu 🐾 |

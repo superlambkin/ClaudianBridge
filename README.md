@@ -7,9 +7,9 @@ created: 2026-08-10
 modified: 2026-09-07
 project_id: POC_017_ClaudianBridge
 tags:
-  - README
+  - readme
   - インデックス
-  - Claudian Bridge
+  - claudian-bridge
 aliases:
   - Claudian Bridge README
 language: Japanese
@@ -122,8 +122,8 @@ applied_rules_version: 2.15.0
 - [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/00_アーキテクチャ総覧|00_アーキテクチャ総覧]]
 - [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/01_クラス設計|01_クラス設計]]
 - [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/02_シーケンス図|02_シーケンス図]]
-- [[02_設計文書/04_データ移行設計|04_データ移行設計]]
-- [[02_設計文書/05_設定画面設計|05_設定画面設計]]
+- [[02_設計文書/21_データ移行設計|21_データ移行設計]]
+- [[02_設計文書/22_設定画面設計|22_設定画面設計]]
 
 ### フェーズ 3: 開発
 - [[80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/00_開発計画|00_開発計画]]

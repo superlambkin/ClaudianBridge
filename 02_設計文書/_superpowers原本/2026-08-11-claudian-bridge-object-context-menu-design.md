@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # Claudian Bridge オブジェクトコンテキストメニュー設計
 
 > 📂 路径：docs/superpowers/specs/2026-08-11-claudian-bridge-object-context-menu-design.md
@@ -52,6 +58,9 @@ Obsidian 標準 UI（リボンアイコン、サイドバータブ、設定項�
 
 ### 3.1 判定フロー
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 flowchart TB
     A[contextmenu イベント] --> B{event.target は<br/>意味のある要素?}
@@ -69,6 +78,9 @@ flowchart TB
     J --> K[Claudian 入力欄に<br/>挿入完了]
     H -->|メニュー閉じる| Z
 ```
+
+
+</div>
 
 ### 3.2 意味のあるオブジェクトの判定
 

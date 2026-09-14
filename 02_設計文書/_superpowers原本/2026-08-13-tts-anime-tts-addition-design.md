@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # 🎙️ POC_017 Claudian Bridge — anime-tts (Damarcreative) エンジン追加設計
 
 > 📂 路径：`80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/_superpowers原本/2026-08-13-tts-anime-tts-addition-design.md`
@@ -103,6 +109,8 @@ POC_017 Claudian Bridge の「テキスト読み上げ」に、第 3 のエン�
 
 ### 4.2 依存方向
 
+<div style="max-width:1000px">
+
 ```mermaid
 graph LR
     A[core/settings.ts] --> B[features/tts/core.ts]
@@ -115,6 +123,9 @@ graph LR
     style POC_015 fill:#fdd,stroke:#c00
     POC_015[POC_015 ClaudeTTS 参照のみ・依存ゼロ]
 ```
+
+
+</div>
 
 **POC_017 → POC_015 の import 矢印は存在しない**（v0.6.0 からの不変条件を維持）。
 
@@ -198,6 +209,8 @@ interface TtsSettings {
 
 ## 6. 実行フロー
 
+<div style="max-width:1000px">
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -232,6 +245,9 @@ sequenceDiagram
         P->>P: 既存経路（変更なし）
     end
 ```
+
+
+</div>
 
 ### 6.1 Python 実行ファイル解決順
 
@@ -360,7 +376,7 @@ cd monotonic_align && python setup.py build_ext --inplace && cd ..
 | 🔧 実装 | `D:\AI-Agent\ClaudianBridge\src\core\i18n.ts` | 新規キー（ja/zh/en） |
 | 🔧 実装 | `D:\AI-Agent\ClaudianBridge\src\manifest.json` | 0.7.0 |
 | 🔧 テスト | `tests/features/tts/core.test.ts` ほか | TC-A01〜A07 |
-| 📘 設計書 | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/05_設定画面設計]] | タブ項目表に damarcreative 行追加 |
+| 📘 設計書 | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/22_設定画面設計]] | タブ項目表に damarcreative 行追加 |
 | 📘 設計書 | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/01_クラス設計]] | tts ブロック更新 |
 | 📘 要件 | [[80_POC_Projects/POC_017_ClaudianBridge/01_要件定義/01_機能要件]] | F002 更新 |
 | 📘 環境 | `80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/_環境配置/` | anime-tts セットアップ手順書（新規） |
@@ -403,7 +419,7 @@ cd monotonic_align && python setup.py build_ext --inplace && cd ..
 | 5 | Web | https://huggingface.co/tensor-diffusion/anime-tts |
 | 6 | Web | https://github.com/jaywalnut310/vits （上流 VITS） |
 | 7 | Vault MD | [[2026-08-13-tts-settings-simplification-design]]（v0.6.0 設計） |
-| 8 | Vault MD | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/05_設定画面設計]] |
+| 8 | Vault MD | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/22_設定画面設計]] |
 | 9 | LLM | Claude Sonnet 4.5 (claude.ai/code) |
 
 ---

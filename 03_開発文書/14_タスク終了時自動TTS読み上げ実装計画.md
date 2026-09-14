@@ -1,6 +1,17 @@
+---
+tags:
+  - skill-superpowers-subagent-driven-development
+  - skill-superpowers-executing-plans
+version: 1.0.0
+status: 🟢 安定
+created: 2026-09-12 09:01
+title: 14_タスク終了時自動TTS読み上げ実装計画
+type: implementation-plan
+modified: 2026-09-13 12:30
+---
 # タスク終了時自動TTS読み上げ 実装計画
 
-> 📂 路径：`80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/14_タスク終了時自動TTS読み上げ実装計画.md`
+> 📂 パス：`80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/14_タスク終了時自動TTS読み上げ実装計画.md`
 > 📍 設計書：[[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-08-14-task-completion-auto-tts-design.md]]
 > 📅 作成日：2026-08-14
 > 🐕 担当：MiuMiu 🐾

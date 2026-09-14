@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # フォルダ対応「Add to Claudian」設計書（Claudian Selection Bridge v1.2.0）
 
 > 📂 路径：`docs/superpowers/specs/2026-08-09-claudian-selection-bridge-folder-support-design.md`
@@ -52,6 +58,9 @@ realclaudian の送信時メンション解析（`zD` / `aK` / `jyt` 関数）�
 
 ### 3.1 组件与数据流
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     subgraph CSB["claudian-selection-bridge v1.2.0"]
@@ -72,6 +81,9 @@ graph TB
     CB --> AV
     CB --> GV
 ```
+
+
+</div>
 
 ### 3.2 変更ファイル
 

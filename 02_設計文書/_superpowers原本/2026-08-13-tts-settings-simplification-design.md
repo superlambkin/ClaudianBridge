@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # 🎙️ POC_017 Claudian Bridge — TTS 設定簡素化設計
 
 > 📂 路径：`80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/_superpowers原本/2026-08-13-tts-settings-simplification-design.md`
@@ -90,6 +96,8 @@ POC_017 Claudian Bridge の「テキスト読み上げ」設定を、**edge-tts 
 
 ### 4.2 依存方向
 
+<div style="max-width:1000px">
+
 ```mermaid
 graph LR
     A[core/settings.ts] --> B[core/normalizer.ts]
@@ -102,6 +110,9 @@ graph LR
     style POC_015 fill:#fdd,stroke:#c00
     POC_017 -. 参照のみ .-> POC_015[80_POC_Projects/POC_015_ClaudeTTS]
 ```
+
+
+</div>
 
 **POC_017 → POC_015 の import 矢印は存在しない**（設計上の不変条件）。
 
@@ -181,6 +192,8 @@ const DEFAULT_TTS: TtsSettings = {
 
 ### 5.4 クラス図
 
+<div style="max-width:1000px">
+
 ```mermaid
 classDiagram
     class ClaudianBridgeSettings {
@@ -203,11 +216,16 @@ classDiagram
     TtsSettings "1" --> "1" LanguageVoices
 ```
 
+
+</div>
+
 ---
 
 ## 6. マイグレーションフロー
 
 ### 6.1 初回起動時の処理
+
+<div style="max-width:1000px">
 
 ```mermaid
 sequenceDiagram
@@ -237,6 +255,9 @@ sequenceDiagram
     end
     M->>UI: SettingTab 表示
 ```
+
+
+</div>
 
 ### 6.2 通知の冪等性
 
@@ -378,7 +399,7 @@ class SettingTabTts extends PluginSettingTab {
 |:----:|------|:--------:|
 | 🔧 実装 | `.obsidian/plugins/claudian-bridge/main.js` | ビルド成果物・手動再生成 |
 | 🔧 実装 | `.obsidian/plugins/claudian-bridge/data.json` | ユーザの既存値を normalize 後に保存 |
-| 📘 設計書 | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/05_設定画面設計]] | 「テキスト読み上げ」タブ項目表を新スキーマへ |
+| 📘 設計書 | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/22_設定画面設計]] | 「テキスト読み上げ」タブ項目表を新スキーマへ |
 | 📘 設計書 | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/01_クラス設計]] | `DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.tts` を新形状に |
 | 📘 要件 | [[80_POC_Projects/POC_017_ClaudianBridge/01_要件定義/01_機能要件]] (F-002 関連) | 不要となった項目を `🗑️ 削除` フラグで残し、差分を管理 |
 | 📘 CHANGELOG | [[80_POC_Projects/POC_017_ClaudianBridge/CHANGELOG]] | v0.6.0 エントリ追加 |
@@ -414,7 +435,7 @@ class SettingTabTts extends PluginSettingTab {
 
 | # | 種別 | 参照元 |
 |:--:|:----:|------|
-| 1 | Vault MD | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/05_設定画面設計]] |
+| 1 | Vault MD | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/22_設定画面設計]] |
 | 2 | Vault MD | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/01_クラス設計]] |
 | 3 | Vault MD | [[80_POC_Projects/POC_017_ClaudianBridge/01_要件定義/01_機能要件]] |
 | 4 | Vault MD | [[80_POC_Projects/POC_017_ClaudianBridge/.obsidian/plugins/claudian-bridge/data.json]] |

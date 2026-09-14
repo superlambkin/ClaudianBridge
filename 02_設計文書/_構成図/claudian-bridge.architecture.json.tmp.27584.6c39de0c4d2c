@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Claudian Bridge v0.35.1 插件架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "inject-path",
+        "label": "内容注入链路",
+        "focus": ["obsidian", "main", "selection", "realclaudian"],
+        "note": "选中文本与右键对象如何进入 Claudian 聊天输入框。"
+      },
+      {
+        "id": "voice-path",
+        "label": "语音与 LLM",
+        "focus": ["main", "tts", "ttsengine", "claudecli"],
+        "note": "三引擎朗读与 claude -p 指令整形的调用边界。"
+      },
+      {
+        "id": "subprocess",
+        "label": "子进程与云 API",
+        "focus": ["office", "chroma", "python", "quota", "cloudapi"],
+        "note": "Python spawn 与 HTTPS 余额查询两类外部通道。"
+      },
+      {
+        "id": "config-ssot",
+        "label": "配置 SSOT",
+        "focus": ["main", "settings", "store", "legacy"],
+        "note": "data.json 单一信息源，以及旧插件配置的迁移写入。"
+      }
+    ]
+  },
+  "components": [
+    { "id": "obsidian", "type": "external", "label": "Obsidian 宿主", "sublabel": "Vault · Plugin API", "pos": [44, 312], "size": [170, 76] },
+
+    { "id": "settings", "type": "frontend", "label": "settings/", "sublabel": "8 个设置标签页", "pos": [356, 110], "size": [196, 76] },
+    { "id": "main", "type": "backend", "label": "src/main.ts", "sublabel": "onload 编排装配", "tag": "v0.35.1", "pos": [356, 290], "size": [196, 120] },
+    { "id": "store", "type": "database", "label": "core/config-store.ts", "sublabel": "data.json · SSOT", "tag": "原子写 + fs.watch", "pos": [356, 462], "size": [196, 76] },
+    { "id": "legacy", "type": "backend", "label": "legacy/", "sublabel": "旧 4 插件配置迁移", "pos": [356, 592], "size": [196, 76] },
+
+    { "id": "selection", "type": "frontend", "label": "features/selection · object", "sublabel": "选中文本 / 右键对象", "pos": [692, 60], "size": [206, 74] },
+    { "id": "uiext", "type": "frontend", "label": "features/ UI 扩展组", "sublabel": "memory · whitelist · backup", "pos": [692, 160], "size": [206, 74] },
+    { "id": "tts", "type": "backend", "label": "features/tts · llm", "sublabel": "3 引擎朗读 · 指令整形", "pos": [692, 260], "size": [206, 74] },
+    { "id": "quota", "type": "backend", "label": "features/quota", "sublabel": "5 家余额检测 · 信号灯", "pos": [692, 360], "size": [206, 74] },
+    { "id": "office", "type": "backend", "label": "features/office", "sublabel": "Office/PDF → Markdown", "pos": [692, 460], "size": [206, 74] },
+    { "id": "chroma", "type": "backend", "label": "features/chroma · chroma-fs", "sublabel": "向量库浏览 · RAG 检索", "pos": [692, 560], "size": [206, 74] },
+
+    { "id": "realclaudian", "type": "external", "label": "realclaudian 插件", "sublabel": "Claudian Chat 输入框", "pos": [1036, 62], "size": [200, 76] },
+    { "id": "ttsengine", "type": "external", "label": "TTS 引擎", "sublabel": "Edge · ClaudeTTS · Plachta", "pos": [1036, 200], "size": [200, 76] },
+    { "id": "claudecli", "type": "external", "label": "Claude Code CLI", "sublabel": "claude -p · stdin", "pos": [1036, 306], "size": [200, 76] },
+    { "id": "cloudapi", "type": "cloud", "label": "LLM 厂商 API", "sublabel": "Anthropic · DeepSeek 等 5 家", "pos": [1036, 424], "size": [200, 76] },
+    { "id": "python", "type": "external", "label": "Python 子进程", "sublabel": "markitdown · splitter", "pos": [1036, 556], "size": [200, 76] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "features/ · 功能单元层", "wraps": ["selection", "uiext", "tts", "quota", "office", "chroma"] },
+    { "kind": "region", "label": "外部依赖 · 插件 / 进程 / 云端", "wraps": ["realclaudian", "ttsengine", "claudecli", "cloudapi", "python"] }
+  ],
+  "connections": [
+    { "id": "host-lifecycle", "from": "obsidian", "to": "main", "label": "onload / onunload", "variant": "emphasis" },
+    { "id": "register-settings", "from": "main", "to": "settings", "label": "addSettingTab" },
+    { "id": "config-io", "from": "main", "to": "store", "label": "load · watch · 原子保存", "labelDy": 24 },
+    { "id": "legacy-import", "from": "legacy", "to": "store", "label": "旧配置 → 新 SSOT" },
+
+    { "id": "wire-selection", "from": "main", "to": "selection" },
+    { "id": "wire-uiext", "from": "main", "to": "uiext" },
+    { "id": "wire-tts", "from": "main", "to": "tts" },
+    { "id": "wire-quota", "from": "main", "to": "quota" },
+    { "id": "wire-office", "from": "main", "to": "office" },
+    { "id": "wire-chroma", "from": "main", "to": "chroma" },
+
+    { "id": "inject-text", "from": "selection", "to": "realclaudian", "label": "appendToActiveInput", "variant": "emphasis" },
+    { "id": "chat-ui", "from": "uiext", "to": "realclaudian", "label": "保存 · 快捷回复注入" },
+    { "id": "speak", "from": "tts", "to": "ttsengine", "label": "分块合成 · 播放" },
+    { "id": "polish", "from": "tts", "to": "claudecli", "label": "claude -p (stdin)" },
+    { "id": "quota-poll", "from": "quota", "to": "cloudapi", "label": "HTTPS 余额查询" },
+    { "id": "office-convert", "from": "office", "to": "python", "label": "spawn markitdown" },
+    { "id": "chroma-query", "from": "chroma", "to": "python", "label": "spawn chroma_inspect", "labelDy": 22 }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "核心分层",
+      "items": [
+        "main.ts 在 onload 中按固定顺序装配全部功能与标签页",
+        "core/config-store.ts 持有唯一 data.json（原子写 + fs.watch 外部变更监听）",
+        "settings/ 为单页内切的 8 个设置标签页，配置读写统一经由 ConfigStore"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "功能单元",
+      "items": [
+        "selection · object：选中文本与右键对象注入 Claudian 输入框",
+        "tts · llm：三引擎朗读、报告自动播报、claude -p 指令整形",
+        "office · chroma：均以 Python 子进程完成格式转换与向量库检索",
+        "quota：Anthropic / DeepSeek / Kimi / MiniMax / Zhipu 五家余额轮询"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "边界与迁移",
+      "items": [
+        "legacy/ 把旧 4 个插件的 data.json 转换后写入新 SSOT",
+        "对外仅三条通道：realclaudian 内部 API、Python spawn、HTTPS 请求"
+      ]
+    }
+  ]
+}

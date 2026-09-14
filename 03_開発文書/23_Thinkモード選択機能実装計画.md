@@ -1,3 +1,14 @@
+---
+tags:
+  - skill-superpowers-subagent-driven-development
+  - skill-superpowers-executing-plans
+version: 1.0.0
+status: 🟢 安定
+created: 2026-09-12 09:01
+title: 23_Thinkモード選択機能実装計画
+type: implementation-plan
+modified: 2026-09-13 12:30
+---
 # Think モード選択機能 Implementation Plan
 
 > 📂 パス：80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/23_Thinkモード選択機能実装計画.md

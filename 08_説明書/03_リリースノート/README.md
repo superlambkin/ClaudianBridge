@@ -9,7 +9,7 @@ created: 2026-06-21
 modified: 2026-08-18
 tags: 
   - リリースノート
-  - Release Notes
+  - release-notes
 aliases: 
   - リリースノート
 language: Japanese
