@@ -348,9 +348,6 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
   ragConfigPath: '',        // config.yaml 絶対パス
 };
 
-/** 既定の Python インタプリタ（office / chroma と同じ導出） */
-const DEFAULT_PYTHON_PATH = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
-
 /** Claude Code の設定ファイル既定パス（ホームディレクトリ解決） */
 export function defaultClaudeSettingsPath(): string {
   try {
@@ -424,8 +421,6 @@ export interface QuotaSettings {
   minimaxApiKey: string;
   /** 智譜（Zhipu）API キー */
   zhipuApiKey: string;
-  /** 智譜クォータ取得用 Python インタプリタ */
-  zhipuPythonPath: string;
   /** 表示モデル個別ON/OFF（v0.5.0） */
   displayModels: QuotaDisplayFlags;
   /** 表示窓（5時間 / 週間） */
@@ -744,7 +739,6 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     kimiApiKey: '',
     minimaxApiKey: '',
     zhipuApiKey: '',
-    zhipuPythonPath: DEFAULT_PYTHON_PATH,
     displayModels: { ...DEFAULT_QUOTA_DISPLAY_MODELS },
     windows: { ...DEFAULT_QUOTA_WINDOWS },
   },
@@ -880,9 +874,6 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       kimiApiKey: typeof r.quota?.kimiApiKey === 'string' ? r.quota.kimiApiKey : '',
       minimaxApiKey: typeof r.quota?.minimaxApiKey === 'string' ? r.quota.minimaxApiKey : '',
       zhipuApiKey: typeof r.quota?.zhipuApiKey === 'string' ? r.quota.zhipuApiKey : '',
-      zhipuPythonPath: typeof r.quota?.zhipuPythonPath === 'string' && r.quota.zhipuPythonPath.trim() !== ''
-        ? r.quota.zhipuPythonPath
-        : DEFAULT_PYTHON_PATH,
       displayModels: {
         claude: typeof r.quota?.displayModels?.claude === 'boolean' ? r.quota.displayModels.claude : true,
         deepseek: typeof r.quota?.displayModels?.deepseek === 'boolean' ? r.quota.displayModels.deepseek : true,
@@ -1299,7 +1290,6 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.quota?.kimiApiKey !== 'string') return 'quota.kimiApiKey は文字列である必要があります';
   if (typeof cfg.quota?.minimaxApiKey !== 'string') return 'quota.minimaxApiKey は文字列である必要があります';
   if (typeof cfg.quota?.zhipuApiKey !== 'string') return 'quota.zhipuApiKey は文字列である必要があります';
-  if (typeof cfg.quota?.zhipuPythonPath !== 'string') return 'quota.zhipuPythonPath は文字列である必要があります';
   for (const k of ['claude', 'deepseek', 'kimi', 'minimax', 'zhipu'] as const) {
     if (typeof cfg.quota?.displayModels?.[k] !== 'boolean') return `quota.displayModels.${k} は boolean である必要があります`;
   }

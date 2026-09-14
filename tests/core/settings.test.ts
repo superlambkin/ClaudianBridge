@@ -314,7 +314,6 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
       kimiApiKey: '',
       minimaxApiKey: '',
       zhipuApiKey: '',
-      zhipuPythonPath: expect.any(String),
       displayModels: { claude: true, deepseek: true, kimi: true, minimax: true, zhipu: true },
       windows: { zhipu: '5h', claude: '5h', minimax: '5h' },
     });
@@ -432,15 +431,13 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
 });
 
 describe('normalizeClaudianBridgeSettings - quota zhipu (Task 3)', () => {
-  it('quota.zhipuApiKey / zhipuPythonPath が正規化される', () => {
-    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuApiKey: 'sk-zhipu', zhipuPythonPath: 'python3' } });
+  it('quota.zhipuApiKey が正規化される', () => {
+    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuApiKey: 'sk-zhipu' } });
     expect(norm.quota.zhipuApiKey).toBe('sk-zhipu');
-    expect(norm.quota.zhipuPythonPath).toBe('python3');
   });
 
-  it('DEFAULT: zhipuApiKey は空・zhipuPythonPath は非空・displayModels.zhipu は true', () => {
+  it('DEFAULT: zhipuApiKey は空・displayModels.zhipu は true', () => {
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.zhipuApiKey).toBe('');
-    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.zhipuPythonPath).toBeTruthy();
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.displayModels.zhipu).toBe(true);
   });
 
@@ -452,18 +449,6 @@ describe('normalizeClaudianBridgeSettings - quota zhipu (Task 3)', () => {
   it('validate: quota.zhipuApiKey 型違反を返す', () => {
     const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, quota: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota, zhipuApiKey: 123 as unknown as string } };
     expect(validateClaudianBridgeSettings(bad)).toContain('quota.zhipuApiKey');
-  });
-
-  it('normalize: zhipuPythonPath 空文字 → デフォルト', () => {
-    const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
-    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuPythonPath: '   ' } });
-    expect(norm.quota.zhipuPythonPath).toBe(defaultPython);
-  });
-
-  it('normalize: zhipuPythonPath 非文字列 → デフォルト', () => {
-    const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
-    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuPythonPath: 42 as unknown as string } });
-    expect(norm.quota.zhipuPythonPath).toBe(defaultPython);
   });
 });
 

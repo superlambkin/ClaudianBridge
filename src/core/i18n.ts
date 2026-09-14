@@ -404,8 +404,6 @@ export interface LocaleStrings {
   quotaDisplayKimi: string;
   quotaDisplayMinimax: string;
   quotaZhipuApiKey: string;
-  quotaZhipuPythonPath: string;
-  quotaZhipuPythonPathPlaceholder: string;
   // v0.16.0: 表示窓（5時間 / 週間）
   quotaWindowsHeading: string;
   quotaWindowsDesc: string;
@@ -908,8 +906,6 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayKimi: 'KIMI CODE を表示',
     quotaDisplayMinimax: 'MINIMAX を表示',
     quotaZhipuApiKey: 'ZHIPU API キー',
-    quotaZhipuPythonPath: 'ZHIPU Python パス',
-    quotaZhipuPythonPathPlaceholder: 'py / python3 / フルパス',
     quotaWindowsHeading: '🪟 表示窓',
     quotaWindowsDesc: '使用率を表示する期間。Kimi は 5時間固定、DeepSeek は残金表示です',
     quotaWindowWeek: '週間',
@@ -1408,8 +1404,6 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayKimi: 'Show KIMI CODE',
     quotaDisplayMinimax: 'Show MINIMAX',
     quotaZhipuApiKey: 'ZHIPU API key',
-    quotaZhipuPythonPath: 'ZHIPU Python path',
-    quotaZhipuPythonPathPlaceholder: 'py / python3 / full path',
     quotaWindowsHeading: '🪟 Display window',
     quotaWindowsDesc: 'Period for usage display. Kimi is fixed at 5h; DeepSeek shows balance.',
     quotaWindowWeek: 'Weekly',
@@ -1908,8 +1902,6 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayKimi: '显示 KIMI CODE',
     quotaDisplayMinimax: '显示 MINIMAX',
     quotaZhipuApiKey: 'ZHIPU API 密钥',
-    quotaZhipuPythonPath: 'ZHIPU Python 路径',
-    quotaZhipuPythonPathPlaceholder: 'py / python3 / 完整路径',
     quotaWindowsHeading: '🪟 显示窗口',
     quotaWindowsDesc: '显示使用率的周期。Kimi 固定 5 小时，DeepSeek 显示余额。',
     quotaWindowWeek: '每周',
