@@ -14,6 +14,8 @@ import { EventEmitter } from 'events';
 import { existsSync, writeFileSync, unlinkSync, chmodSync, readFileSync, readdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
+import { Notice } from 'obsidian';
+import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import type { OpenVpnSettings, OpenVpnStatus, VpnRoute } from './types';
 import type { RemoveStaleResult } from './types';
 
@@ -398,6 +400,50 @@ class OpenVpnControllerImpl implements OpenVpnController {
   /** Test-only escape hatch for setting expectedGateway. */
   public setExpectedGatewayForTest(gw: string | null): void {
     this.expectedGateway = gw;
+  }
+
+  /**
+   * F-047: 切断後にバックグラウンドで stale 経路を削除する。
+   * - 非管理者起動: 静かに return（通知なし）
+   * - stale 0 件: 静かに return（通知なし）
+   * - 削除発生: 件数 + 失敗 GW を Notice 表示
+   */
+  private async cleanupAfterDisconnect(): Promise<void> {
+    if (!this.isRunningAsAdmin()) return; // 非管理者は静かに諦める
+
+    const routes = this.getVpnRoutes();
+    if (routes === null) return;
+
+    // expectedGateway = null → 全 VPN ルートを stale 扱い
+    const stale = this.findStaleRoutes(routes, null);
+    if (stale.length === 0) return;
+
+    let removed = 0;
+    const failed: string[] = [];
+    for (const r of stale) {
+      try {
+        execSync(`route delete ${r.dest} mask ${r.mask} ${r.gateway}`, {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          timeout: 3000,
+        });
+        removed++;
+      } catch {
+        failed.push(`${r.dest}/${r.mask} via ${r.gateway}`);
+      }
+    }
+
+    if (removed > 0 || failed.length > 0) {
+      const s = getLocaleStrings(getUILanguage());
+      const failedSuffix = failed.length > 0 ? `（失敗: ${failed.join(', ')}）` : '';
+      new Notice(s.networkOpenVpnAutoCleaned
+        .replace('{count}', String(removed))
+        .replace('{failed}', failedSuffix));
+    }
+  }
+
+  /** Test-only escape hatch for cleanupAfterDisconnect(). */
+  public async cleanupAfterDisconnectForTest(): Promise<void> {
+    return this.cleanupAfterDisconnect();
   }
 
   private setWarning(next: string | null): void {
