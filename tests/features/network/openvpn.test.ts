@@ -803,3 +803,44 @@ describe('OpenVpnController.findStaleRoutes (v0.46.0 / F-046)', () => {
     expect(controller.findStaleRoutesForTest(routes, '10.8.0.5')).toEqual([]);
   });
 });
+
+// === v0.46.0 (F-046): isRunningAsAdmin() — admin privilege probe ===
+describe('OpenVpnController.isRunningAsAdmin (v0.46.0 / F-046)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  it('returns true when route delete succeeds (admin allowed)', async () => {
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.isRunningAsAdminForTest()).toBe(true);
+  });
+
+  it('returns false when stderr contains ERROR_ACCESS_DENIED', async () => {
+    const err = new Error('Command failed') as Error & { stderr: Buffer };
+    err.stderr = Buffer.from('ERROR_ACCESS_DENIED');
+    mockExecSync.mockImplementationOnce(() => { throw err; });
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.isRunningAsAdminForTest()).toBe(false);
+  });
+
+  it('returns false when execSync throws unrelated error', async () => {
+    mockExecSync.mockImplementationOnce(() => { throw new Error('something else'); });
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.isRunningAsAdminForTest()).toBe(false);
+  });
+});

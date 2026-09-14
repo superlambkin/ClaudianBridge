@@ -318,6 +318,32 @@ class OpenVpnControllerImpl implements OpenVpnController {
     return this.findStaleRoutes(routes, expectedGateway);
   }
 
+  /**
+   * F-046: プロセスが管理者として実行されているか判定する。
+   * 失敗確実な route delete コマンドを試し打ちし、stderr で判定する。
+   * - exit 0 → 管理者
+   * - stderr に "ERROR_ACCESS_DENIED" → 非管理者
+   */
+  private isRunningAsAdmin(): boolean {
+    try {
+      execSync('route delete 0.0.0.0 mask 128.0.0.0 10.255.255.255', {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 3000,
+      });
+      return true;
+    } catch (e) {
+      const stderr = (e as { stderr?: Buffer | string }).stderr;
+      const text = stderr ? (typeof stderr === 'string' ? stderr : stderr.toString()) : '';
+      if (text.includes('ERROR_ACCESS_DENIED')) return false;
+      return false; // その他のエラーも安全側に倒して非管理者扱い
+    }
+  }
+
+  /** Test-only escape hatch for isRunningAsAdmin(). */
+  public isRunningAsAdminForTest(): boolean {
+    return this.isRunningAsAdmin();
+  }
+
   private setWarning(next: string | null): void {
     if (this.warning === next) return;
     this.warning = next;
