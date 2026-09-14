@@ -4,6 +4,7 @@ import type { ConfigStore } from '../../core/config-store';
 import { extractReportText, detectFinalAnswerState } from './extract-report';
 import { resolveSpeechFilter } from './speak';
 import { createLatestWinsSpeaker } from './speak-coordinator';
+import { createChatReadHighlighter } from './chat-read-highlight';
 import type { SpeakFn } from './speak-coordinator';
 import { stopAllPlayback } from './playback-registry';
 
@@ -48,7 +49,18 @@ export interface AutoReadDeps {
 
 export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
   const notice = deps.noticeFn ?? ((m: string) => { new Notice(m); });
-  const enqueue = createLatestWinsSpeaker(deps.speak, stopAllPlayback);
+  // v0.49.0 (F-050): チャット読上げハイライト。speak を薄くラップし、
+  // activate → speak → finally deactivate のライフサイクルで確実に解除する
+  // （完了・失敗・後勝ち割り込み・手動停止の全経路を finally が網羅）。
+  const highlighter = createChatReadHighlighter({ store: deps.store });
+  let highlightTargetEl: Element | null = null;
+  const speakWithHighlight: SpeakFn = (text: string) => {
+    const token = highlightTargetEl ? highlighter.activate(highlightTargetEl) : -1;
+    return deps.speak(text).finally(() => {
+      if (token >= 0) highlighter.deactivate(token);
+    });
+  };
+  const enqueue = createLatestWinsSpeaker(speakWithHighlight, stopAllPlayback);
   const hooked = new WeakSet<RealClaudianTabManagerCallbacks>();
   /** 遷移判定は view 単位ではなく tabId 単位（同一 view 内の複数 tab で独立 strmeming するため） */
   const prevStreaming = new Map<string, boolean>();
@@ -127,6 +139,8 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
         });
         if (text) {
           notice(`🔊 自動読み上げ: ${text.length} 文字を読み上げます`);
+          // v0.49.0 (F-050): 読み上げ対象のメッセージ領域をハイライトに渡す
+          highlightTargetEl = messages;
           enqueue(text);
           return;
         }
