@@ -750,3 +750,13 @@
   font-size: 0.9em;
   margin: 4px 0;
 }
+
+/* =========================================
+ * v0.49.0 (F-050): チャット読上げハイライト（メッセージ単位）
+ * ========================================= */
+.claudian-message-assistant.cb-chat-read-active {
+  background: rgba(255, 230, 128, 0.18);
+  border-left: 3px solid #e6b800;
+  border-radius: 6px;
+  transition: background 0.3s ease;
+}
