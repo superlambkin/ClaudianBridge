@@ -82,6 +82,8 @@ export class VoiceConfigSync {
           // voice-config.json には存在しないため未設定で返し、normalize 時に補填される。
           // v0.31.0 (F-028): mdReadHighlight は normalize で補填される。
           mdReadHighlight: { enabled: true, highlightColor: '', scrollPositionPct: 40 },
+          // v0.49.0 (F-050): chatReadHighlight も normalize で補填される。
+          chatReadHighlight: { enabled: true },
         },
       };
     } catch {

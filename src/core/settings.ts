@@ -476,6 +476,14 @@ export interface MdReadHighlightSettings {
   scrollPositionPct: number;
 }
 
+/**
+ * v0.49.0 (F-050): Claudian 画面の最終回答自動読み上げ中のメッセージハイライト設定。
+ */
+export interface ChatReadHighlightSettings {
+  /** ハイライト機能の有効化（デフォルト true） */
+  enabled: boolean;
+}
+
 // === v0.38.0 (F-038): 文生図（Text-to-Image）設定 ===
 export type ImageGenProviderId = 'minimax' | 'zhipu';
 export type ImageGenAspectRatio = '1:1' | '16:9' | '9:16' | '4:3';
@@ -666,6 +674,8 @@ export interface ClaudianBridgeSettings {
     edgeCloud?: TtsEdgeCloudSettings;
     /** v0.31.0 (F-028): MD ファイル「Add to TTS」読み上げ中の Preview ハイライト設定。 */
     mdReadHighlight: MdReadHighlightSettings;
+    /** v0.49.0 (F-050): Claudian 画面の自動読み上げ中のメッセージハイライト設定。 */
+    chatReadHighlight: ChatReadHighlightSettings;
     /** v0.36.0 (F-032): 聴き手プロファイル（口調・用語変換）。既定 'original'（原文） */
     mdReadProfile?: 'original' | 'workplace' | 'customer' | 'family' | 'classroom' | 'boss' | 'dr';
     /** v0.36.0 (F-032): 用語辞書（Vault 内 MD パス。任意） */
@@ -785,6 +795,8 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
       highlightColor: '',
       scrollPositionPct: 40,
     },
+    // v0.49.0 (F-050): Claudian 画面の自動読み上げ中のメッセージハイライト
+    chatReadHighlight: { enabled: true },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
@@ -991,6 +1003,12 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
             scrollPositionPct: typeof rawHighlight.scrollPositionPct === 'number' &&
               rawHighlight.scrollPositionPct >= 0 && rawHighlight.scrollPositionPct <= 100
               ? rawHighlight.scrollPositionPct : 40,
+          },
+          // v0.49.0 (F-050): Claudian 画面の自動読み上げハイライト（旧 data.json には存在しないため補填）
+          chatReadHighlight: {
+            enabled: typeof r.tts?.chatReadHighlight?.enabled === 'boolean'
+              ? r.tts.chatReadHighlight.enabled
+              : true,
           },
           // v0.36.0 (F-032): 聴き手プロファイル（未知の値は 'original' にフォールバック）
           mdReadProfile: PROFILE_VALUES.includes(r.tts?.mdReadProfile as never)
