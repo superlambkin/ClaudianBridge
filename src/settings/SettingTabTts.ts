@@ -667,6 +667,20 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
             });
           }),
       );
+    // v0.49.0 (F-050): Claudian 画面の自動読み上げハイライト
+    new Setting(containerEl)
+      .setName(s.ttsChatReadHighlightEnabled)
+      .addToggle((t) =>
+        t
+          .setValue(cfg.tts.chatReadHighlight?.enabled ?? true)
+          .onChange((v) => {
+            const latest = store.load();
+            store.save({
+              ...latest,
+              tts: { ...latest.tts, chatReadHighlight: { enabled: v } },
+            });
+          }),
+      );
     // v0.36.0 (F-032): 聴き手プロファイル（口調・用語変換）
     new Setting(containerEl)
       .setName(s.mdReadProfile)
