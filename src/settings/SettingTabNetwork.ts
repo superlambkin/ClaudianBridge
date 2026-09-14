@@ -281,6 +281,13 @@ function renderOpenVpnStatus(
   const warnEl = containerEl.createDiv('cb-vpn-warning');
   const logEl = containerEl.createEl('pre', { cls: 'cb-vpn-log', text: '' });
 
+  // F-046: 残骸経路削除ボタン（updateUI から先に参照されるためボタン本体はここで作っておく）
+  const removeBtn = containerEl.createEl('button', {
+    text: s.networkOpenVpnRemoveStale,
+    cls: 'cb-vpn-remove-stale',
+  });
+  removeBtn.style.display = 'none';
+
   const labelOf = (st: OpenVpnStatus): string =>
     st === 'connected'
       ? s.networkOpenVpnStatusConnected
@@ -295,6 +302,8 @@ function renderOpenVpnStatus(
     const warning = controller.getWarning();
     warnEl.setText(warning ? `⚠️ ${warning}` : '');
     warnEl.style.display = warning ? '' : 'none';
+    // F-046: 警告に「残骸」が含まれる場合のみ削除ボタンを表示
+    removeBtn.style.display = warning && warning.includes('残骸') ? '' : 'none';
     logEl.textContent = log.slice(-2000);
   };
 
@@ -343,7 +352,31 @@ function renderOpenVpnStatus(
     }
   });
 
-  containerEl.append(connectBtn, disconnectBtn, copyBtn);
+  // F-046: 残骸経路削除ボタンのハンドラ（ボタン本体は updateUI より上に作成済み）
+  removeBtn.addEventListener('click', async () => {
+    removeBtn.style.display = 'none'; // 多重押下防止
+    new Notice(s.networkOpenVpnRemoving);
+    try {
+      const result = await controller.removeStaleRoutes();
+      if (!result.ok) {
+        const msg = result.reason === 'need-admin'
+          ? s.networkOpenVpnNeedAdmin
+          : s.networkOpenVpnRemoveFailed;
+        new Notice(`${msg}\n${result.detail}`);
+        removeBtn.style.display = ''; // 再押下可能に
+      } else {
+        new Notice(s.networkOpenVpnRemoved.replace('{count}', String(result.removed)));
+        if (result.failed.length > 0) {
+          new Notice(`失敗: ${result.failed.join(', ')}`);
+        }
+      }
+    } catch (e) {
+      new Notice(s.networkOpenVpnRemoveFailed.replace('{msg}', (e as Error).message));
+      removeBtn.style.display = '';
+    }
+  });
+
+  containerEl.append(connectBtn, disconnectBtn, copyBtn, removeBtn);
 }
 
 /**

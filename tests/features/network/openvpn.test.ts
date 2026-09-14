@@ -699,3 +699,218 @@ describe('stale route detection (v0.45.0)', () => {
     if (process.platform === 'win32') expect(w).toBeNull();
   });
 });
+
+// === v0.46.0 (F-046): getVpnRoutes() — dest/mask/gateway 3-tuple 抽出 ===
+describe('OpenVpnController.getVpnRoutes (v0.46.0 / F-046)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  it('VPN 関連経路の dest/mask/gateway 3-tuple を返す', async () => {
+    mockExecSync.mockReturnValueOnce(`
+IPv4 Route Table
+===========================================================================
+Active Routes:
+Network Destination        Netmask          Gateway       Interface  Metric
+          0.0.0.0          0.0.0.0      192.168.1.1     192.168.1.10     25
+        128.0.0.0        128.0.0.0         10.8.0.5       10.8.0.6    100
+        10.8.0.0      255.255.255.0         10.8.0.5       10.8.0.6    100
+===========================================================================
+`.trim());
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const routes = controller.getVpnRoutesForTest();
+    expect(routes).toEqual([
+      { dest: '128.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.5' },
+      { dest: '10.8.0.0', mask: '255.255.255.0', gateway: '10.8.0.5' },
+    ]);
+  });
+
+  it('execSync が throw したら null を返す', async () => {
+    mockExecSync.mockImplementationOnce(() => { throw new Error('fail'); });
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.getVpnRoutesForTest()).toBeNull();
+  });
+
+  it('On-link 行（gateway 列が無い）はスキップして空配列を返す', async () => {
+    mockExecSync.mockReturnValueOnce(`
+        10.8.0.0      255.255.255.0        On-link        10.8.0.6    100
+`.trim());
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.getVpnRoutesForTest()).toEqual([]);
+  });
+});
+
+// === v0.46.0 (F-046): findStaleRoutes() — expected gateway でフィルタ ===
+describe('OpenVpnController.findStaleRoutes (v0.46.0 / F-046)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  it('returns routes whose gateway differs from expected', async () => {
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const routes = [
+      { dest: '128.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.5' },
+      { dest: '0.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.13' },
+      { dest: '10.8.0.0', mask: '255.255.255.0', gateway: '10.8.0.13' },
+    ];
+    expect(controller.findStaleRoutesForTest(routes, '10.8.0.5')).toEqual([
+      { dest: '0.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.13' },
+      { dest: '10.8.0.0', mask: '255.255.255.0', gateway: '10.8.0.13' },
+    ]);
+  });
+
+  it('returns all routes when expectedGateway is null (safe side)', async () => {
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const routes = [
+      { dest: '128.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.5' },
+    ];
+    expect(controller.findStaleRoutesForTest(routes, null)).toEqual(routes);
+  });
+
+  it('returns empty array when all routes match expected', async () => {
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const routes = [
+      { dest: '128.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.5' },
+    ];
+    expect(controller.findStaleRoutesForTest(routes, '10.8.0.5')).toEqual([]);
+  });
+});
+
+// === v0.46.0 (F-046): isRunningAsAdmin() — admin privilege probe ===
+describe('OpenVpnController.isRunningAsAdmin (v0.46.0 / F-046)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  it('returns true when route delete succeeds (admin allowed)', async () => {
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.isRunningAsAdminForTest()).toBe(true);
+  });
+
+  it('returns false when stderr contains ERROR_ACCESS_DENIED', async () => {
+    const err = new Error('Command failed') as Error & { stderr: Buffer };
+    err.stderr = Buffer.from('ERROR_ACCESS_DENIED');
+    mockExecSync.mockImplementationOnce(() => { throw err; });
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.isRunningAsAdminForTest()).toBe(false);
+  });
+
+  it('returns false when execSync throws unrelated error', async () => {
+    mockExecSync.mockImplementationOnce(() => { throw new Error('something else'); });
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    expect(controller.isRunningAsAdminForTest()).toBe(false);
+  });
+});
+
+// === v0.46.0 (F-046): removeStaleRoutes() — admin-gated route removal ===
+describe('OpenVpnController.removeStaleRoutes (v0.46.0 / F-046)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  it('returns need-admin when not elevated', async () => {
+    const err = new Error('denied') as Error & { stderr: Buffer };
+    err.stderr = Buffer.from('ERROR_ACCESS_DENIED');
+    mockExecSync.mockImplementationOnce(() => { throw err; });
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const result = await controller.removeStaleRoutesForTest();
+    expect(result).toEqual({ ok: false, reason: 'need-admin', detail: expect.any(String) });
+  });
+
+  it('returns no-routes when getVpnRoutes returns null', async () => {
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+    mockExecSync.mockImplementationOnce(() => { throw new Error('route print failed'); });
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const result = await controller.removeStaleRoutesForTest();
+    expect(result).toEqual({ ok: false, reason: 'no-routes', detail: expect.any(String) });
+  });
+
+  it('removes all stale routes when admin', async () => {
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+    mockExecSync.mockReturnValueOnce(`
+        128.0.0.0        128.0.0.0         10.8.0.13       10.8.0.6    100
+        10.8.0.0      255.255.255.0         10.8.0.13       10.8.0.6    100
+`);
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    controller.setExpectedGatewayForTest('10.8.0.5');
+    const result = await controller.removeStaleRoutesForTest();
+    expect(result).toEqual({ ok: true, removed: 2, failed: [] });
+  });
+
+  it('records failed routes when route delete throws', async () => {
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+    mockExecSync.mockReturnValueOnce(`
+        128.0.0.0        128.0.0.0         10.8.0.13       10.8.0.6    100
+`);
+    const fail = new Error('delete failed');
+    mockExecSync.mockImplementationOnce(() => { throw fail; });
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    controller.setExpectedGatewayForTest('10.8.0.5');
+    const result = await controller.removeStaleRoutesForTest();
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.removed).toBe(0);
+      expect(result.failed).toEqual(['128.0.0.0/128.0.0.0 via 10.8.0.13']);
+    }
+  });
+});
