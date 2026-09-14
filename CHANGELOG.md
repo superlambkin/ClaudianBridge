@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.49.1] - 2026-09-15 — Forced reflow 嵐の緊急対応 (F-050 / F-028 ホットフィックス)
+
+### Fixed
+
+- **チャット読上げハイライト (F-050)** で `scrollIntoView({behavior:'smooth'})` の同期実行が **114ms ピークの Forced reflow を連発**して Obsidian をフリーズさせていた問題を修正。`requestAnimationFrame` 経由の `behavior:'auto'` に変更し、layout thrashing を断つ
+- **MD 読上げハイライト (F-028)** も同様に `scrollIntoView({behavior:'smooth'})` + 同期 `getBoundingClientRect()` の組み合わせが reflow 嵐の原因だったため、`requestAnimationFrame` 内に同一フレームでまとめて 1 回だけ実行するよう変更（チャンク境界でのピーク 114ms → 数十 ms へ削減期待）
+
 ## [0.49.0] - 2026-09-14 — チャット読上げハイライト + MD 画面 Add to TTS ボタン (F-050 / F-051)
 
 ### Added

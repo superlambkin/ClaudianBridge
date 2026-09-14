@@ -198,18 +198,24 @@ export function highlightChunkInPreview(
   }
 
   if (firstSpan) {
-    // v0.35.0: チャンク先頭を viewport 上から scrollPositionPct% の位置へ（既定 40%）
-    const container = view.previewMode?.containerEl;
-    const scroller = (container?.querySelector('.markdown-preview-view, .markdown-reading-view') as HTMLElement | null)
-      ?? (container as HTMLElement | null);
-    const rect = scroller?.getBoundingClientRect();
-    if (scroller && typeof scroller.scrollTo === 'function' && rect) {
-      const spanTop = firstSpan.getBoundingClientRect().top;
-      const target = spanTop - rect.top - rect.height * (scrollPositionPct / 100) + scroller.scrollTop;
-      scroller.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-    } else if (typeof firstSpan.scrollIntoView === 'function') {
-      firstSpan.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    }
+    // v0.49.1 緊急対応: smooth scroll + 同期 getBoundingClientRect が Forced reflow 嵐
+    // （114ms ピーク）を引き起こすため、rAF 内で同一フレームにまとめて 1 回だけ実行。
+    // これで連続チャンクでの layout thrashing を断つ。
+    requestAnimationFrame(() => {
+      try {
+        const container = view.previewMode?.containerEl;
+        const scroller = (container?.querySelector('.markdown-preview-view, .markdown-reading-view') as HTMLElement | null)
+          ?? (container as HTMLElement | null);
+        const rect = scroller?.getBoundingClientRect();
+        if (scroller && typeof scroller.scrollTo === 'function' && rect) {
+          const spanTop = firstSpan.getBoundingClientRect().top;
+          const target = spanTop - rect.top - rect.height * (scrollPositionPct / 100) + scroller.scrollTop;
+          scroller.scrollTo({ top: Math.max(0, target), behavior: 'auto' });
+        } else if (typeof firstSpan.scrollIntoView === 'function') {
+          firstSpan.scrollIntoView({ block: 'start', behavior: 'auto' });
+        }
+      } catch { /* best-effort */ }
+    });
   }
   // v0.32.6: 一致時の診断ログ（実機確認用）
   console.log('[cb-md-read-highlight] matched chunk', chunk.index, 'anchor:', JSON.stringify(anchor.slice(0, 20)));

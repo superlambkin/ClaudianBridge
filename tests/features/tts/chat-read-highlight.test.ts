@@ -3,9 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createChatReadHighlighter } from '../../../src/features/tts/chat-read-highlight';
 import type { ConfigStore } from '../../../src/core/config-store';
 
-// jsdom には scrollIntoView が無いためスタブ
+// jsdom には scrollIntoView / requestAnimationFrame が無いためスタブ
 beforeEach(() => {
   (Element.prototype as unknown as { scrollIntoView: unknown }).scrollIntoView = vi.fn();
+  // rAF を即時実行に（テストでは同期的に検証したい）
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+    cb(performance.now());
+    return 0;
+  });
 });
 
 function makeStore(enabled: boolean, highlightColor = ''): ConfigStore {
@@ -40,7 +45,7 @@ describe('createChatReadHighlighter (v0.49.0 / F-050)', () => {
     expect(items[1].classList.contains('cb-chat-read-active')).toBe(true);
     // jsdom は 16 進色を rgb() に正規化するため
     expect(items[1].style.getPropertyValue('background')).toBe('rgb(255, 230, 128)');
-    expect(items[1].scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+    expect(items[1].scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'center' });
   });
 
   it('highlightColor が空文字ならインライン背景は付与しない（CSS 既定色）', () => {

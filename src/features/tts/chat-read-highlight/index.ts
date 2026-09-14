@@ -46,7 +46,13 @@ export function createChatReadHighlighter(deps: { store: ConfigStore }): ChatRea
       const color = cfg.tts.mdReadHighlight?.highlightColor;
       if (color) last.style.setProperty('background', color);
       current = last;
-      last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // v0.49.1 緊急対応: scrollIntoView({behavior:'smooth'}) は同期レイアウトスラスタ
+      // を引き起こし、Forced reflow 嵐（114ms ピーク）→ 描画フリーズの原因。
+      // rAF 経由で 1 回限りの即時スクロールに切替え、レイアウトスラスタを断つ。
+      requestAnimationFrame(() => {
+        try { last.scrollIntoView({ behavior: 'auto', block: 'center' }); }
+        catch { /* best-effort */ }
+      });
     } catch (e) {
       console.warn('[cb-chat-highlight] activate error:', e);
     }
