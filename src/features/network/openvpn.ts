@@ -178,6 +178,8 @@ class OpenVpnControllerImpl implements OpenVpnController {
   private warning: string | null = null;
   /** v0.44.1: 経路検証タイマー */
   private routeCheckTimer: ReturnType<typeof setTimeout> | null = null;
+  /** F-047: 切断後の stale 削除タイマー */
+  private cleanupTimer: ReturnType<typeof setTimeout> | null = null;
   /** v0.45.0: openvpn ログの DHCP-serv = このセッションの正しいトンネル相手 */
   private expectedGateway: string | null = null;
   private stopRequested = false;
@@ -679,6 +681,26 @@ class OpenVpnControllerImpl implements OpenVpnController {
     });
     // status 更新は 'exit' ハンドラに任せる（stopRequested=true で
     // disconnected に遷移する）。
+
+    // F-047: 切断成功 → 3 秒待機 → バックグラウンドで stale 経路を削除
+    this.scheduleCleanupAfterDisconnect();
+  }
+
+  /**
+   * F-047: 切断後 3 秒待って cleanupAfterDisconnect() を起動する。
+   * 3 秒は OpenVPN 自身が正常ルートを片付ける時間を確保するための待機。
+   */
+  private scheduleCleanupAfterDisconnect(): void {
+    const timer = setTimeout(() => {
+      this.cleanupAfterDisconnect().catch(() => { /* silent */ });
+    }, 3000) as unknown as { unref?: () => void };
+    timer.unref?.();
+    this.cleanupTimer = timer as unknown as ReturnType<typeof setTimeout>;
+  }
+
+  /** F-047: test escape hatch — schedules cleanup like stop() does */
+  public scheduleCleanupAfterDisconnectForTest(): void {
+    this.scheduleCleanupAfterDisconnect();
   }
 
   /** v0.44.0: 認証一時ファイルと PID ファイルを削除する（孤児化の痕跡を残さない） */

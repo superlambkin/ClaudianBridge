@@ -993,3 +993,17 @@ describe('OpenVpnController.cleanupAfterDisconnect (v0.47.0 / F-047)', () => {
     expect(mockNotice).not.toHaveBeenCalled();
   });
 });
+
+// === v0.47.0 (F-047): stop() → setTimeout(3000) でクリーンアップ起動 ===
+describe('OpenVpnController.stop scheduling (v0.47.0 / F-047)', () => {
+  it('schedules cleanupAfterDisconnect via setTimeout(3000)', async () => {
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+
+    controller.scheduleCleanupAfterDisconnectForTest();
+
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 3000);
+    setTimeoutSpy.mockRestore();
+  });
+});
