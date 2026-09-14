@@ -2,6 +2,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
 import type { ChildProcess } from 'child_process';
 
+// F-047: cleanupAfterDisconnect() が発行する Notice を捕捉する（vpn-toggle.test.ts と同じパターン）
+const mockNotice = vi.fn();
+vi.mock('obsidian', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    // i18n.ts が moment を import するためスタブを用意（getUILanguage 用・ja 固定）
+    moment: (actual as { moment?: unknown }).moment ?? { locale: () => 'ja' },
+    Notice: class {
+      constructor(public message: string) {
+        mockNotice(message);
+      }
+    },
+  };
+});
+
 // Mock child_process.spawn BEFORE importing openvpn.ts
 const mockSpawn = vi.fn();
 // v0.44.0: 孤児回収が execSync を使うため、実プロセス操作を避けてモックする
@@ -912,5 +928,82 @@ describe('OpenVpnController.removeStaleRoutes (v0.46.0 / F-046)', () => {
       expect(result.removed).toBe(0);
       expect(result.failed).toEqual(['128.0.0.0/128.0.0.0 via 10.8.0.13']);
     }
+  });
+});
+
+// === v0.47.0 (F-047): cleanupAfterDisconnect() — 切断後バックグラウンド stale 削除 ===
+describe('OpenVpnController.cleanupAfterDisconnect (v0.47.0 / F-047)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    mockNotice.mockClear();
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  it('admin + stale 1 件 → route delete 3 呼び出し + Notice 1 回', async () => {
+    // 1: admin probe 成功
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+    // 2: route print → stale 1 件（gw 10.8.0.13）
+    // NOTE: 先頭行の空白は正規表現 ^\s+ マッチに必須のため .trim() しない（F-046 Task 6 と同じ罠）
+    mockExecSync.mockReturnValueOnce(`
+        128.0.0.0        128.0.0.0         10.8.0.13       10.8.0.6    100
+`);
+    // 3: route delete 成功
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    await controller.cleanupAfterDisconnectForTest();
+    expect(mockExecSync).toHaveBeenCalledTimes(3);
+    expect(mockNotice).toHaveBeenCalledTimes(1);
+    expect(String(mockNotice.mock.calls[0][0])).toContain('1');
+    expect(String(mockNotice.mock.calls[0][0])).toContain('削除'); // ja locale
+  });
+
+  it('非管理者起動 → 1 呼び出し（probe のみ）で無音 return', async () => {
+    const err = new Error('denied') as Error & { stderr: Buffer };
+    err.stderr = Buffer.from('ERROR_ACCESS_DENIED');
+    mockExecSync.mockImplementationOnce(() => { throw err; });
+
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    await controller.cleanupAfterDisconnectForTest();
+    expect(mockExecSync).toHaveBeenCalledTimes(1); // admin probe only
+    expect(mockNotice).not.toHaveBeenCalled();
+  });
+
+  it('stale 0 件 → 2 呼び出し（probe + route print）で無音 return', async () => {
+    // 1: admin probe 成功
+    mockExecSync.mockReturnValueOnce(Buffer.from(''));
+    // 2: route print → 空テーブル（VPN ルート無し）
+
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    await controller.cleanupAfterDisconnectForTest();
+    expect(mockExecSync).toHaveBeenCalledTimes(2); // admin + route print
+    expect(mockNotice).not.toHaveBeenCalled();
+  });
+});
+
+// === v0.47.0 (F-047): stop() → setTimeout(3000) でクリーンアップ起動 ===
+describe('OpenVpnController.stop scheduling (v0.47.0 / F-047)', () => {
+  it('schedules cleanupAfterDisconnect via setTimeout(3000)', async () => {
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+
+    controller.scheduleCleanupAfterDisconnectForTest();
+
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 3000);
+    setTimeoutSpy.mockRestore();
   });
 });

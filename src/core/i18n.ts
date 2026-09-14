@@ -46,6 +46,8 @@ export interface LocaleStrings {
   networkOpenVpnRemoveFailed: string;
   networkOpenVpnNeedAdmin: string;
   networkOpenVpnRemoving: string;
+  // === v0.47.0 (F-047): 切断時の自動削除通知 ===
+  networkOpenVpnAutoCleaned: string;
   // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
   vpnToggleLabel: string;
   vpnToggleConnecting: string;
@@ -560,6 +562,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnRemoveFailed: '❌ 残骸経路の削除に失敗しました',
     networkOpenVpnNeedAdmin: '⚠️ Obsidian を管理者として再起動してから削除してください',
     networkOpenVpnRemoving: '🧹 残骸経路を削除中です…',
+    // === v0.47.0 (F-047): 切断時の自動削除通知 ===
+    networkOpenVpnAutoCleaned: '✅ 切断時に {count} 件の残骸経路を削除しました{failed}',
     // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
     vpnToggleLabel: 'VPN',
     vpnToggleConnecting: '接続中...',
@@ -1058,6 +1062,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnRemoveFailed: '❌ Failed to remove stale routes',
     networkOpenVpnNeedAdmin: '⚠️ Restart Obsidian as admin to remove',
     networkOpenVpnRemoving: '🧹 Removing stale routes…',
+    // === v0.47.0 (F-047): auto cleanup notice on disconnect ===
+    networkOpenVpnAutoCleaned: '✅ Auto-cleaned {count} stale route(s) after disconnect{failed}',
     // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
     vpnToggleLabel: 'VPN',
     vpnToggleConnecting: 'Connecting...',
@@ -1556,6 +1562,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnRemoveFailed: '❌ 删除残留路由失败',
     networkOpenVpnNeedAdmin: '⚠️ 请以管理员身份重启 Obsidian 后再删除',
     networkOpenVpnRemoving: '🧹 正在删除残留路由…',
+    // === v0.47.0 (F-047): 断开时自动删除通知 ===
+    networkOpenVpnAutoCleaned: '✅ 断开时已自动删除 {count} 条残留路由{failed}',
     // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
     vpnToggleLabel: 'VPN',
     vpnToggleConnecting: '连接中...',
