@@ -1,10 +1,10 @@
 ---
 title: "Claudian 画面 OpenVPN 制御トグル 設計仕様書"
 type: design-doc
-version: 1.0.0
+version: 1.1.0
 project_id: POC_017_ClaudianBridge
 created: 2026-09-13 18:01
-modified: 2026-09-14 00:15
+modified: 2026-09-15
 status: 🟢 安定
 tags:
   - claudianbridge

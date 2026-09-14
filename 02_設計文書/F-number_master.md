@@ -4,7 +4,7 @@ type: feature-master
 project_id: POC_017_ClaudianBridge
 status: stable
 created: 2026-08-29
-modified: 2026-09-14
+modified: 2026-09-15
 tags:
   - F-番号
   - マスター
@@ -70,6 +70,8 @@ applied_rules_version: 2.15.0
 | F046 | 残骸経路の 1 クリック削除 | v0.46.0 | 🧹 Remove stale routes ボタン（管理者ゲート）。`getVpnRoutes()` 拡張・`isRunningAsAdmin()`（route delete 試行プローブ）・`findStaleRoutes()`（期待ゲートウェイでフィルタ）・`removeStaleRoutes()`。VPN 関連ルートのみホワイトリスト化しローカル LAN は触らない | `[[30_残骸経路1クリック削除設計]]` |
 | F047 | 切断時の残骸経路自動削除 | v0.47.0 | `cleanupAfterDisconnect()` — OpenVPN 切断後 3 秒待機 → バックグラウンド stale 検出 → 管理者起動時のみ自動削除。v0.46.0 の手動 🧹 ボタンは併存 | `[[31_切断時残骸経路自動削除設計]]` |
 | F048 | Zhipu 残量取得の純 TypeScript 化 | v0.48.0 | `createZhipuProvider` を Python スクリプト spawn（Vault 内 `_query_zhipu_quota.py` + `py` + zai-sdk）から `httpGet`（`/api/monitor/usage/quota/limit`・生 Bearer キー・JWT/SDK 不要）に置換。`quota/python.ts`・`zhipuPythonPath` 設定・i18n 3 ロケール廃止。テスト 1348 total | CHANGELOG v0.48.0（inline TDD・設計書なし） |
+| F050 | チャット読上げハイライト | v0.49.0 | Claudian 画面の最終回答自動読み上げ中にメッセージブロックをハイライト + スクロール追随（メッセージ単位・`tts.chatReadHighlight.enabled` 既定 ON・世代トークンで割り込み時の誤解除を防止） | `[[32_チャット読上げハイライト設計]]` |
+| F051 | MD 画面ビューヘッダ Add to TTS ボタン | v0.49.0 | MD 画面右上（✏️ の左）に 🔊 ボタン追加（`ItemView.addAction` 公開 API・`layout-change` で冪等追加・クリックで右クリックメニューと同一の `addMdToTts` フロー） | `[[32_チャット読上げハイライト設計]]` |
 | F049 | Outputs フォルダミラリング + Vault表示タブ + 改定履歴ページ | v0.41.0 | ドキュメント/ObsidainOutputs を Vault/Outputs に NTFS ジャンクションで表示（Vault 容量削減・実フォルダ優先で有効化不可制御）。「📂 開く」ボタン（shell.openPath）。「`.` で始まるフォルダを非表示」（hideDotFolders 既定 ON）。「📜 改定履歴」タブ（CHANGELOG.md SSOT・45+ エントリ全表示）+ check:changelog リリースゲート。タブ改名: 拡張子フィルタ → Vault表示。⚠️ 旧 F041 → **F049 に振り直し**（main リポジトリで F-041 は OpenVPN 接続機能として使用済みのため衝突解消）
 `[[20_Outputsフォルダミラリング設計]]` |
 
