@@ -6,7 +6,7 @@ template_version: 3.5.0
 version: 1.1.0
 status: stable
 created: 2026-08-10
-modified: 2026-09-13 11:45
+modified: 2026-09-15
 tags: 
   - 開発文書
   - フェーズインデックス

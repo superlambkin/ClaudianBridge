@@ -2,12 +2,12 @@
 tags:
   - skill-superpowers-subagent-driven-development
   - skill-superpowers-executing-plans
-version: 1.0.0
+version: 1.1.0
 status: 🟢 安定
 created: 2026-09-13 11:38
 title: 26_TTSエンジン変更実装計画
 type: implementation-plan
-modified: 2026-09-13 12:30
+modified: 2026-09-15
 ---
 # TTS エンジン変更 実装計画 — ローカル EdgeTTS 同梱＋クラウドサーバ対応＋言語モード切替（v0.27.0）
 
