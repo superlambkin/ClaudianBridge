@@ -31,3 +31,15 @@ export const DEFAULT_OPEN_VPN_SETTINGS: OpenVpnSettings = {
   openvpnBinaryPath: '',
   serverOverride: '',
 };
+
+/** F-046: dest/mask/gateway の3-tuple（VPN 関連ルートのみ） */
+export type VpnRoute = {
+  dest: string;
+  mask: string;
+  gateway: string;
+};
+
+/** F-046: removeStaleRoutes() の戻り値 */
+export type RemoveStaleResult =
+  | { ok: true; removed: number; failed: string[] }
+  | { ok: false; reason: 'need-admin' | 'no-routes' | 'exec-failed'; detail: string };
