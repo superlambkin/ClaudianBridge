@@ -40,6 +40,12 @@ export interface LocaleStrings {
   networkOpenVpnConnect: string;
   networkOpenVpnDisconnect: string;
   networkOpenVpnCopyLog: string;
+  // === v0.46.0 (F-046): 残骸経路削除 ===
+  networkOpenVpnRemoveStale: string;
+  networkOpenVpnRemoved: string;
+  networkOpenVpnRemoveFailed: string;
+  networkOpenVpnNeedAdmin: string;
+  networkOpenVpnRemoving: string;
   // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
   vpnToggleLabel: string;
   vpnToggleConnecting: string;
@@ -548,6 +554,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnConnect: '🔌 接続',
     networkOpenVpnDisconnect: '⏹ 切断',
     networkOpenVpnCopyLog: '📋 ログをコピー',
+    // === v0.46.0 (F-046): 残骸経路削除 ===
+    networkOpenVpnRemoveStale: '🧹 残骸経路を削除',
+    networkOpenVpnRemoved: '✅ {count} 件の残骸経路を削除しました',
+    networkOpenVpnRemoveFailed: '❌ 残骸経路の削除に失敗しました',
+    networkOpenVpnNeedAdmin: '⚠️ Obsidian を管理者として再起動してから削除してください',
+    networkOpenVpnRemoving: '🧹 残骸経路を削除中です…',
     // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
     vpnToggleLabel: 'VPN',
     vpnToggleConnecting: '接続中...',
@@ -1040,6 +1052,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnConnect: '🔌 Connect',
     networkOpenVpnDisconnect: '⏹ Disconnect',
     networkOpenVpnCopyLog: '📋 Copy log',
+    // === v0.46.0 (F-046): stale route removal ===
+    networkOpenVpnRemoveStale: '🧹 Remove stale routes',
+    networkOpenVpnRemoved: '✅ Removed {count} stale routes',
+    networkOpenVpnRemoveFailed: '❌ Failed to remove stale routes',
+    networkOpenVpnNeedAdmin: '⚠️ Restart Obsidian as admin to remove',
+    networkOpenVpnRemoving: '🧹 Removing stale routes…',
     // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
     vpnToggleLabel: 'VPN',
     vpnToggleConnecting: 'Connecting...',
@@ -1532,6 +1550,12 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     networkOpenVpnConnect: '🔌 连接',
     networkOpenVpnDisconnect: '⏹ 断开',
     networkOpenVpnCopyLog: '📋 复制日志',
+    // === v0.46.0 (F-046): 残留路由删除 ===
+    networkOpenVpnRemoveStale: '🧹 删除残留路由',
+    networkOpenVpnRemoved: '✅ 已删除 {count} 条残留路由',
+    networkOpenVpnRemoveFailed: '❌ 删除残留路由失败',
+    networkOpenVpnNeedAdmin: '⚠️ 请以管理员身份重启 Obsidian 后再删除',
+    networkOpenVpnRemoving: '🧹 正在删除残留路由…',
     // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
     vpnToggleLabel: 'VPN',
     vpnToggleConnecting: '连接中...',

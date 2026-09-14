@@ -14,7 +14,8 @@ import { EventEmitter } from 'events';
 import { existsSync, writeFileSync, unlinkSync, chmodSync, readFileSync, readdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
-import type { OpenVpnSettings, OpenVpnStatus } from './types';
+import type { OpenVpnSettings, OpenVpnStatus, VpnRoute } from './types';
+import type { RemoveStaleResult } from './types';
 
 /** v0.44.0: 自前プロセスの識別マーカー（auth 一時ファイル名の接頭辞） */
 const AUTH_FILE_PREFIX = 'cb-openvpn-auth-';
@@ -151,6 +152,8 @@ export interface OpenVpnController {
   subscribe(listener: (status: OpenVpnStatus, log: string) => void): () => void;
   /** v0.43.6: OS ルーティングまたは TUN アダプタをスキャンして外部 VPN 接続を認識 */
   detectExternalConnection(): 'connected' | 'disconnected';
+  /** F-046: 残骸経路（expectedGateway 以外の VPN 関連ルート）を削除する */
+  removeStaleRoutes(): Promise<RemoveStaleResult>;
 }
 
 const RECENT_LOG_MAX = 2000;
@@ -268,6 +271,133 @@ class OpenVpnControllerImpl implements OpenVpnController {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * F-046: VPN 関連ルートの dest/mask/gateway 3-tuple を抽出する。
+   * v0.45.0 の getVpnRouteGateways() を拡張し、dest/mask 情報を保持する。
+   * 判定不能（route print 失敗）なら null。
+   */
+  private getVpnRoutes(): VpnRoute[] | null {
+    try {
+      const out = execSync('route print -4', {
+        encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      const routes: VpnRoute[] = [];
+      for (const line of out.split(/\r?\n/)) {
+        const m = line.match(
+          /^\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)\s+\d+\.\d+\.\d+\.\d+\s+\d+\s*$/,
+        );
+        if (!m) continue;
+        const [, dest, mask, gateway] = m;
+        const isVpnDest =
+          (dest === '0.0.0.0' && mask === '128.0.0.0')
+          || (dest === '128.0.0.0' && mask === '128.0.0.0')
+          || dest.startsWith('10.8.');
+        if (isVpnDest) routes.push({ dest, mask, gateway });
+      }
+      return routes;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Test-only escape hatch for getVpnRoutes(). */
+  public getVpnRoutesForTest(): VpnRoute[] | null {
+    return this.getVpnRoutes();
+  }
+
+  /**
+   * F-046: expectedGateway と異なるゲートウェイを持つルートを stale として返す。
+   * expectedGateway が null の場合は全 VPN ルートを stale 扱い（安全側）。
+   */
+  private findStaleRoutes(routes: VpnRoute[], expectedGateway: string | null): VpnRoute[] {
+    if (expectedGateway === null) return [...routes];
+    return routes.filter((r) => r.gateway !== expectedGateway);
+  }
+
+  /** Test-only escape hatch for findStaleRoutes(). */
+  public findStaleRoutesForTest(routes: VpnRoute[], expectedGateway: string | null): VpnRoute[] {
+    return this.findStaleRoutes(routes, expectedGateway);
+  }
+
+  /**
+   * F-046: プロセスが管理者として実行されているか判定する。
+   * 失敗確実な route delete コマンドを試し打ちし、stderr で判定する。
+   * - exit 0 → 管理者
+   * - stderr に "ERROR_ACCESS_DENIED" → 非管理者
+   */
+  private isRunningAsAdmin(): boolean {
+    try {
+      execSync('route delete 0.0.0.0 mask 128.0.0.0 10.255.255.255', {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 3000,
+      });
+      return true;
+    } catch (e) {
+      const stderr = (e as { stderr?: Buffer | string }).stderr;
+      const text = stderr ? (typeof stderr === 'string' ? stderr : stderr.toString()) : '';
+      if (text.includes('ERROR_ACCESS_DENIED')) return false;
+      return false; // その他のエラーも安全側に倒して非管理者扱い
+    }
+  }
+
+  /** Test-only escape hatch for isRunningAsAdmin(). */
+  public isRunningAsAdminForTest(): boolean {
+    return this.isRunningAsAdmin();
+  }
+
+  /**
+   * F-046: 残骸経路を削除する（公開 API）。
+   * 1. isRunningAsAdmin() で管理者判定
+   * 2. getVpnRoutes() で VPN ルート取得
+   * 3. findStaleRoutes() で expectedGateway 以外を抽出
+   * 4. 各 stale ルートに対し route delete を実行
+   * 5. 結果を RemoveStaleResult で返す
+   */
+  public async removeStaleRoutes(): Promise<RemoveStaleResult> {
+    if (!this.isRunningAsAdmin()) {
+      return { ok: false, reason: 'need-admin', detail: 'Obsidian を管理者として再起動してください' };
+    }
+
+    const routes = this.getVpnRoutes();
+    if (routes === null) {
+      return { ok: false, reason: 'no-routes', detail: 'route print に失敗しました' };
+    }
+
+    const stale = this.findStaleRoutes(routes, this.expectedGateway);
+    if (stale.length === 0) {
+      return { ok: true, removed: 0, failed: [] };
+    }
+
+    let removed = 0;
+    const failed: string[] = [];
+    for (const r of stale) {
+      try {
+        execSync(`route delete ${r.dest} mask ${r.mask} ${r.gateway}`, {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          timeout: 3000,
+        });
+        removed++;
+      } catch (e) {
+        failed.push(`${r.dest}/${r.mask} via ${r.gateway}`);
+      }
+    }
+
+    // 削除後に警告を再評価
+    this.verifyRoutes();
+
+    return { ok: true, removed, failed };
+  }
+
+  /** Test-only escape hatch for removeStaleRoutes(). */
+  public async removeStaleRoutesForTest(): Promise<RemoveStaleResult> {
+    return this.removeStaleRoutes();
+  }
+
+  /** Test-only escape hatch for setting expectedGateway. */
+  public setExpectedGatewayForTest(gw: string | null): void {
+    this.expectedGateway = gw;
   }
 
   private setWarning(next: string | null): void {
