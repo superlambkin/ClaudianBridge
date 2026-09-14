@@ -3,10 +3,10 @@ title: "05_デプロイ運用 · フェーズインデックス"
 type: phase-index
 template_id: poc/v3.1.0/05-デプロイ運用
 template_version: 3.5.0
-version: 1.0.0
+version: 1.1.0
 status: stable
 created: 2026-08-10
-modified: 2026-08-17 07:22
+modified: 2026-09-15
 tags:
   - デプロイ運用
   - フェーズインデックス
@@ -22,6 +22,9 @@ applied_rules_version: 2.12.0
 > 🎯 **用途**: 05_デプロイ運用/ 目次インデックス
 
 # 🚀 05_デプロイ運用 · フェーズインデックス
+
+> 📌 **最新版: v0.49.1（2026-09-15）** — Forced reflow 嵐の緊急対応ホットフィックス
+> 📦 **GitHub Release**: https://github.com/superlambkin/ClaudianBridge/releases/tag/v0.49.1
 
 > 本目次は POC_017 Claudian Bridge の**デプロイ運用フェーズ**のドキュメント一式を含む。
 > Claudian Bridge は **Obsidian デスクトッププラグイン**（ローカル Vault へデプロイ）であり、外部依存は TTS / Quota のクラウド API。

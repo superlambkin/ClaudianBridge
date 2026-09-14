@@ -4,7 +4,8 @@ type: deployment-spec
 project_id: POC_017_ClaudianBridge
 status: stable
 created: 2026-08-29
-modified: 2026-08-29
+modified: 2026-09-15
+version: 1.1.0
 tags:
   - デプロイ運用
   - version
