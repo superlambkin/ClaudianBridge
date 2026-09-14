@@ -753,3 +753,53 @@ Network Destination        Netmask          Gateway       Interface  Metric
     expect(controller.getVpnRoutesForTest()).toEqual([]);
   });
 });
+
+// === v0.46.0 (F-046): findStaleRoutes() — expected gateway でフィルタ ===
+describe('OpenVpnController.findStaleRoutes (v0.46.0 / F-046)', () => {
+  beforeEach(() => {
+    mockSpawn.mockReset();
+    mockExecSync.mockReset();
+    mockExecSync.mockReturnValue('');
+    activeProc = null;
+  });
+
+  afterEach(() => {
+    if (activeProc) {
+      activeProc.emit('exit', 0);
+      activeProc = null;
+    }
+    mockExecSync.mockReturnValue('');
+  });
+
+  it('returns routes whose gateway differs from expected', async () => {
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const routes = [
+      { dest: '128.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.5' },
+      { dest: '0.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.13' },
+      { dest: '10.8.0.0', mask: '255.255.255.0', gateway: '10.8.0.13' },
+    ];
+    expect(controller.findStaleRoutesForTest(routes, '10.8.0.5')).toEqual([
+      { dest: '0.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.13' },
+      { dest: '10.8.0.0', mask: '255.255.255.0', gateway: '10.8.0.13' },
+    ]);
+  });
+
+  it('returns all routes when expectedGateway is null (safe side)', async () => {
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const routes = [
+      { dest: '128.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.5' },
+    ];
+    expect(controller.findStaleRoutesForTest(routes, null)).toEqual(routes);
+  });
+
+  it('returns empty array when all routes match expected', async () => {
+    const { getOpenVpnController } = await import('../../../src/features/network/openvpn');
+    const controller = getOpenVpnController();
+    const routes = [
+      { dest: '128.0.0.0', mask: '128.0.0.0', gateway: '10.8.0.5' },
+    ];
+    expect(controller.findStaleRoutesForTest(routes, '10.8.0.5')).toEqual([]);
+  });
+});

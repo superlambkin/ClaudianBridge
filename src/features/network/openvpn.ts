@@ -304,6 +304,20 @@ class OpenVpnControllerImpl implements OpenVpnController {
     return this.getVpnRoutes();
   }
 
+  /**
+   * F-046: expectedGateway と異なるゲートウェイを持つルートを stale として返す。
+   * expectedGateway が null の場合は全 VPN ルートを stale 扱い（安全側）。
+   */
+  private findStaleRoutes(routes: VpnRoute[], expectedGateway: string | null): VpnRoute[] {
+    if (expectedGateway === null) return [...routes];
+    return routes.filter((r) => r.gateway !== expectedGateway);
+  }
+
+  /** Test-only escape hatch for findStaleRoutes(). */
+  public findStaleRoutesForTest(routes: VpnRoute[], expectedGateway: string | null): VpnRoute[] {
+    return this.findStaleRoutes(routes, expectedGateway);
+  }
+
   private setWarning(next: string | null): void {
     if (this.warning === next) return;
     this.warning = next;
