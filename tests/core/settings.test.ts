@@ -1021,6 +1021,27 @@ describe('mdReadHighlight.scrollPositionPct (v0.35.0)', () => {
   });
 });
 
+describe('tts.chatReadHighlight (v0.49.0 / F-050)', () => {
+  it('欠落時は既定 ON で補填される', () => {
+    const s = normalizeClaudianBridgeSettings({});
+    expect(s.tts.chatReadHighlight).toEqual({ enabled: true });
+  });
+
+  it('enabled: false は保持される', () => {
+    const s = normalizeClaudianBridgeSettings({
+      tts: { chatReadHighlight: { enabled: false } },
+    } as never);
+    expect(s.tts.chatReadHighlight.enabled).toBe(false);
+  });
+
+  it('型不正（enabled が boolean 以外）は既定 ON にフォールバック', () => {
+    const s = normalizeClaudianBridgeSettings({
+      tts: { chatReadHighlight: { enabled: 'yes' } },
+    } as never);
+    expect(s.tts.chatReadHighlight.enabled).toBe(true);
+  });
+});
+
 describe('tts.mdReadProfile / tts.termsDict (v0.36.0)', () => {
   it('既定は original・termsDict は空文字', () => {
     const cfg = normalizeClaudianBridgeSettings({});
