@@ -3,10 +3,10 @@ title: "06_振り返り · フェーズインデックス"
 type: phase-index
 template_id: poc/v3.1.0/06-振り返り総括
 template_version: 3.5.0
-version: 3.5.0
+version: 3.6.0
 status: stable
 created: 2026-06-13
-modified: 2026-07-26 08:52
+modified: 2026-09-15
 tags: 
   - 振り返り総括
   - フェーズインデックス
