@@ -231,6 +231,7 @@ export interface LocaleStrings {
   // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
   ttsMdReadHighlightEnabled: string;
   ttsMdReadHighlightHighlightColor: string;
+  ttsChatReadHighlightEnabled: string;
   mdReadColorPreset: string;
   mdReadColorPresetDesc: string;
   mdReadColorDefault: string;
@@ -735,6 +736,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
     ttsMdReadHighlightEnabled: 'MD 読み上げ時にチャンク位置をハイライト',
     ttsMdReadHighlightHighlightColor: 'ハイライト色',
+    ttsChatReadHighlightEnabled: 'Claudian 画面の自動読み上げ中にメッセージをハイライト',
     mdReadColorPreset: '🎨 ハイライト色（プリセット）',
     mdReadColorPresetDesc: '定番色から選ぶと色コードへ自動反映します',
     mdReadColorDefault: '既定（アンバー）',
@@ -917,7 +919,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaZhipuValue: '5時間使用量',
     quotaDisplayZhipu: '智谱を表示',
     // Memory (v0.17.0: MD 保存ボタン)
-    tabMemory: 'Memory',
+    tabMemory: '🧠 Memory',
     memoryEnabled: 'MD保存ボタン',
     memoryEnabledDesc: 'Chat結果をメモリフォルダに保存するボタンをツールバーと回答ブロックに表示します',
     memoryScope: '保存範囲（ツールバー）',
@@ -1233,6 +1235,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
     ttsMdReadHighlightEnabled: 'Highlight reading position in MD Preview',
     ttsMdReadHighlightHighlightColor: 'Highlight color',
+    ttsChatReadHighlightEnabled: 'Highlight the message during Claudian auto-read',
     mdReadColorPreset: '🎨 Highlight color (preset)',
     mdReadColorPresetDesc: 'Pick a preset color and it will be applied to the color code',
     mdReadColorDefault: 'Default (amber)',
@@ -1415,7 +1418,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaZhipuValue: '5h usage',
     quotaDisplayZhipu: 'Show Zhipu',
     // Memory (v0.17.0: MD save button)
-    tabMemory: 'Memory',
+    tabMemory: '🧠 Memory',
     memoryEnabled: 'MD save button',
     memoryEnabledDesc: 'Show buttons in the toolbar and answer blocks to save chat results to the memory folder',
     memoryScope: 'Save scope (toolbar)',
@@ -1726,6 +1729,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.33.0 (F-028): MD 读取位置高亮 / Floating Overlay
     ttsMdReadHighlightEnabled: '在 MD 朗读时高亮当前分块位置',
     ttsMdReadHighlightHighlightColor: '高亮颜色',
+    ttsChatReadHighlightEnabled: 'Claudian 自动朗读时高亮对应消息',
     mdReadColorPreset: '🎨 高亮颜色（预设）',
     mdReadColorPresetDesc: '选择常用色后自动填入颜色代码',
     mdReadColorDefault: '默认（琥珀）',
@@ -1913,7 +1917,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaZhipuValue: '5小时用量',
     quotaDisplayZhipu: '显示智谱',
     // Memory (v0.17.0: MD 保存按钮)
-    tabMemory: 'Memory',
+    tabMemory: '🧠 Memory',
     memoryEnabled: 'MD存储按钮',
     memoryEnabledDesc: '在工具栏和回答区块显示按钮，将聊天结果存储到记忆文件夹',
     memoryScope: '存储范围（工具栏）',

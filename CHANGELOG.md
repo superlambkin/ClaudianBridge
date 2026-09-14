@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.49.0] - 2026-09-14 — チャット読上げハイライト + MD 画面 Add to TTS ボタン (F-050 / F-051)
+
+### Added
+
+- **F-050**: チャット読上げハイライト — Claudian 画面の最終回答自動読み上げ中に、読み上げ対象のメッセージブロックをハイライト + スクロール追随（メッセージ単位・設定 `tts.chatReadHighlight.enabled` 既定 ON・ハイライト色は MD 読上げハイライト色を流用）
+- **F-051**: MD 画面ビューヘッダ右上（✏️ 編集切替の左）に「Add to TTS」ボタン追加（`ItemView.addAction` 公開 API・クリックで右クリックメニューと同一の読み上げフロー）
+
+### Changed
+
+- 設定タブ「Memory」のラベルに 🧠 アイコンを付与（i18n 3 ロケール）
+
 ## [0.48.0] - 2026-09-14 — Zhipu 残量取得の純 TypeScript 化 (F-048)
 
 Zhipu (GLM) の残量取得だけが Python スクリプト spawn 方式（Vault 内スクリプト

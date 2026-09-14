@@ -10,7 +10,7 @@ import { speakText } from './features/tts/speak';
 import { setupAutoReadTTS } from './features/tts/auto-read';
 import { setupMessageReadButtons } from './features/tts/message-read-button';
 import { setupInputAiReadButton } from './features/tts/input-ai-read-button';
-import { setupMdFileRead } from './features/tts/md-file-read';
+import { setupMdFileRead, setupMdViewButton } from './features/tts/md-file-read';
 import { setupMdReadHighlight } from './features/tts/md-read-highlight';
 // v0.33.10 緊急無効化: registerEditorExtension が MD オープン失敗を引き起こすため
 // import { mdReadEditorHighlight } from './features/tts/md-read-highlight/editor-highlight';
@@ -347,6 +347,10 @@ export default class ClaudianBridgePlugin extends Plugin {
       // ★ v0.17.0: MD ファイル右クリック「Add to TTS」
       this.register(setupMdFileRead(this.app, this.store));
       diag('md-file-read registered');
+
+      // ★ v0.49.0 (F-051): MD 画面ビューヘッダ「Add to TTS」ボタン
+      this.register(setupMdViewButton(this.app, this.store));
+      diag('md-view-button registered');
 
       // ★ v0.31.0 (F-028): MD 読み上げ位置ハイライト機能（cleanup + file-close ライフサイクル）
       this.register(setupMdReadHighlight(this.app, this.store));
