@@ -1,4 +1,5 @@
 import type { ProviderQuota } from './types';
+import type { ThinkingConfig } from '../llm/types';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 
 export type QuotaColor = 'green' | 'orange' | 'red' | 'gray';
@@ -90,10 +91,20 @@ export class QuotaBarView {
 
   private lastQuota: ProviderQuota | null = null;
   private currentLlmQuota: ProviderQuota | null = null;
+  private thinking: ThinkingConfig | null = null;
 
   /** 現在使っている LLM の Quota を設定（ツールチップ用）。表示プロバイダと異なっていてもホバーはこれを使う */
   setCurrentLlmQuota(q: ProviderQuota | null): void {
     this.currentLlmQuota = q;
+    this.renderCurrent();
+  }
+
+  /**
+   * v0.39.0 (F-039): Think モード設定（現在プロバイダ分）を設定。
+   * null のときはバッジを非表示。
+   */
+  setThinking(thinking: ThinkingConfig | null): void {
+    this.thinking = thinking;
     this.renderCurrent();
   }
 
@@ -136,6 +147,17 @@ export class QuotaBarView {
       this.el.append(label, value, model);
     } else {
       this.el.append(label, value);
+    }
+
+    // v0.39.0 (F-039): Think モード バッジ
+    if (this.thinking) {
+      const badge = this.el.ownerDocument.createElement('span');
+      badge.className = `cb-think-badge ${this.thinking.enabled ? 'cb-think-badge--on' : 'cb-think-badge--off'}`;
+      badge.textContent = this.thinking.enabled
+        ? s.settingThinkModeBadgeOn
+        : s.settingThinkModeBadgeOff;
+      badge.title = `${s.settingThinkModeEnabled}: ${this.thinking.effort}`;
+      this.el.append(badge);
     }
   }
 }

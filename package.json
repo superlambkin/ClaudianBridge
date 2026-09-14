@@ -1,6 +1,6 @@
 {
   "name": "ClaudianBridge",
-  "version": "0.30.2",
+  "version": "0.48.0",
   "description": "Unified Claudian integration: text-to-Claudian, TTS, Office-to-Markdown, extension whitelist",
   "main": "main.js",
   "scripts": {
@@ -9,6 +9,7 @@
     "test": "vitest run",
     "deploy": "node scripts/deploy.mjs",
     "typecheck": "tsc -noEmit",
+    "check:changelog": "node scripts/check-changelog.mjs",
     "bundle:edge-tts": "git subtree pull --prefix=py/edge_tts https://github.com/rany2/edge-tts.git 7.2.8 --squash"
   },
   "devDependencies": {

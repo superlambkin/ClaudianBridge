@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import type { ClaudianBridgeSettings } from '../../core/settings';
 
 export type LlmProviderId = 'claude' | 'deepseek' | 'kimi' | 'minimax' | 'zhipu' | 'unknown';
 
@@ -52,4 +53,25 @@ export function readLlmInfoFromSettings(settingsPath?: string): LlmInfo {
   } catch {
     return { provider: 'unknown', model: null, baseUrl: null, authTokenPresent: false };
   }
+}
+
+/**
+ * v0.39.0 (F-039): プロバイダ別 API キーを settings.quota から解決。
+ * Claude は settings.json の ANTHROPIC_* を直接参照するため undefined。
+ * Partial<Pick<>> を採用し、呼び出し側が一部フィールドのみでも渡せる。
+ */
+export function resolveApiKey(
+  provider: LlmProviderId,
+  quotaSettings: Partial<Pick<ClaudianBridgeSettings['quota'], 'deepseekApiKey' | 'kimiApiKey' | 'minimaxApiKey' | 'zhipuApiKey'>>,
+): string | undefined {
+  if (provider === 'claude' || provider === 'unknown') return undefined;
+  const key = (() => {
+    switch (provider) {
+      case 'deepseek': return quotaSettings.deepseekApiKey;
+      case 'kimi':     return quotaSettings.kimiApiKey;
+      case 'minimax':  return quotaSettings.minimaxApiKey;
+      case 'zhipu':    return quotaSettings.zhipuApiKey;
+    }
+  })();
+  return key && key.trim() !== '' ? key : undefined;
 }

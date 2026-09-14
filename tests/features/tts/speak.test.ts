@@ -150,3 +150,19 @@ describe('speakText: 言語モード（v0.27.0）', () => {
     expect(addTextToTTS.mock.calls[0][2].addToTtsLanguageMode).toBe('auto');
   });
 });
+
+describe('speakText: F-028 onChunkStart 連携', () => {
+  beforeEach(() => { addTextToTTS.mockReset(); addTextToTTS.mockResolvedValue(true); noticeMock.mockClear(); });
+
+  it('SpeakTextOpts.onChunkStart が addTextToTTS の第 4 引数として渡される', async () => {
+    const hook = vi.fn();
+    await speakText('md', 'テキスト', makeCfg(), { onChunkStart: hook });
+    expect(addTextToTTS).toHaveBeenCalledTimes(1);
+    expect(addTextToTTS.mock.calls[0][3]).toBe(hook);
+  });
+
+  it('onChunkStart 未指定時は addTextToTTS に undefined を渡す（後方互換）', async () => {
+    await speakText('md', 'テキスト', makeCfg(), { noticeOnEmpty: false });
+    expect(addTextToTTS.mock.calls[0][3]).toBeUndefined();
+  });
+});

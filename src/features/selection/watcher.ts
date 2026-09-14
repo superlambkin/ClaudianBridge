@@ -66,13 +66,15 @@ export function setupSelectionWatcher(app: App, store: ConfigStore, onTts?: (tex
       const selNow = window.getSelection();
       if (!selNow || selNow.rangeCount === 0) return;
       const rect = selNow.getRangeAt(0).getBoundingClientRect();
+      // === v0.38.0 (F-032): 設定値変更レース防止のため発火時点で再取得 ===
+      const cfgAtFire = store.load();
       popupEl = buildPopup(
         app,
         async () => { cancelAndHide(); await addTextToClaudian(app, capturedText); },
         async () => { cancelAndHide(); await onTts?.(capturedText); }
       );
       document.body.appendChild(popupEl);
-      positionPopup(popupEl, rect);
+      positionPopup(popupEl, rect, cfgAtFire.selection.popupPosition);
     }, cfg.selection.delayMs);
   }
 

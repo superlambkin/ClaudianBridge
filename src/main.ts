@@ -3,18 +3,23 @@ import { ConfigStore } from './core/config-store';
 import { ClaudianBridgeSettingTab } from './settings/ClaudianBridgeSettingTab';
 import { setupSelectionWatcher } from './features/selection/watcher';
 import { setupCodeCopyFence } from './features/code-copy-fence';
+import { setupMermaidRender } from './features/mermaid-render';
+import { initMermaidLog } from './features/mermaid-render/logger';
 import { addFolderToClaudian } from './features/selection/core';
 import { speakText } from './features/tts/speak';
 import { setupAutoReadTTS } from './features/tts/auto-read';
 import { setupMessageReadButtons } from './features/tts/message-read-button';
 import { setupInputAiReadButton } from './features/tts/input-ai-read-button';
 import { setupMdFileRead } from './features/tts/md-file-read';
+import { setupMdReadHighlight } from './features/tts/md-read-highlight';
+// v0.33.10 緊急無効化: registerEditorExtension が MD オープン失敗を引き起こすため
+// import { mdReadEditorHighlight } from './features/tts/md-read-highlight/editor-highlight';
 import { setupMdSaveButton } from './features/memory/md-save-button';
 import { setupMessageMdSaveButtons } from './features/memory/message-md-save-button';
-import { polishInstruction } from './features/llm/claude-cli';
 import { setupToolbarButtons } from './features/tts/toolbar-buttons';
 import { setupQuickReplyButtons } from './features/quick-reply/nav-buttons';
 import { setupTokenRate } from './features/token-rate';
+import { setupVpnToggle } from './features/network/vpn-toggle';
 import { VoiceConfigSync } from './features/tts/voice-config-sync';
 import { initEdgeTtsLocal } from './features/tts/edge-tts-local';
 import { migrateFromLegacy } from './legacy/migration';
@@ -23,8 +28,10 @@ import { OfficeMenuRegistrar } from './features/office/menu';
 import { BackupMenuRegistrar } from './features/backup/menu';
 import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
+import { OutputsMirrorManager } from './features/outputs-mirror/manager';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
+import { ImageGenMenuRegistrar } from './features/image-gen/menu';
 import { installChromaFsHideCss, removeChromaFsHideCss } from './features/chroma-fs/hide-internal';
 import { registerRagMenu } from './features/chroma-fs/rag-menu';
 import { registerObjectContextMenu } from './features/object';
@@ -34,6 +41,8 @@ import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS } from './core/settings';
 import * as path from 'path';
 import { initDiagAuto, diag, installGlobalErrorHandlers } from './core/diag';
 import { getPluginDir } from './core/plugin-dir';
+import { applyProxyEnv } from './core/proxy';
+import { getOpenVpnController, reapOrphanOpenVpn } from './features/network/openvpn';
 
 // モジュールロード時に診断ログを初期化（ロード失敗の原因特定用）
 console.log('[claudian-bridge] module loading (main.ts top)');
@@ -63,6 +72,10 @@ export default class ClaudianBridgePlugin extends Plugin {
       initEdgeTtsLocal(pluginDir);
       this.store = new ConfigStore(pluginDataDir);
       diag('ConfigStore created', { configPath: pluginDataDir });
+
+      // v0.38.0: プロキシ設定の env 適用（Node fetch が HTTPS_PROXY を尊重する）
+      applyProxyEnv(this.store.load().network.proxy);
+      diag('proxy env applied', this.store.load().network.proxy);
 
       // 1. 旧 data.json → 新形式 自動取り込み（旧プラグインのリネームより先に実施）
       try {
@@ -104,9 +117,19 @@ export default class ClaudianBridgePlugin extends Plugin {
         const w = c.whitelist;
         diag('whitelist config', { pluginEnabled: c.general.enabled, enabled: w.enabled });
         if (c.general.enabled && w.enabled) {
-          const css = buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders);
+          const css = buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders, c.general.hideDotFolders);
           if (css) installWhitelistCss(css);
           diag('whitelist css injected');
+        }
+      }
+
+      // v0.41.0: Outputs フォルダミラリング（起動時適用）
+      {
+        const c = this.store.load();
+        if (c.general.outputsMirrorEnabled) {
+          const manager = new OutputsMirrorManager({ vaultBasePath: vaultRoot });
+          manager.apply(true, c.general.outputsMirrorPath);
+          diag('outputs mirror applied');
         }
       }
 
@@ -230,6 +253,17 @@ export default class ClaudianBridgePlugin extends Plugin {
       this.offTokenRate = setupTokenRate(this.app, this.store);
       diag('token-rate wired');
 
+      // ★ v0.43.1 (F-043): Claudian 画面 OpenVPN トグル（YOLO トグル隣）
+      this.register(setupVpnToggle(this.app, this.store));
+      diag('vpn-toggle wired');
+
+      // ★ v0.44.0: 前回セッションで残った自前 openvpn プロセスを回収（TAP アダプタ解放）
+      try {
+        if (reapOrphanOpenVpn()) diag('reaped orphan openvpn process');
+      } catch (e) {
+        diag('reapOrphanOpenVpn failed', e);
+      }
+
       // ★ v0.14.0: メッセージ結果欄の読上げボタン（コピーボタン左隣）
       this.register(setupMessageReadButtons({
         app: this.app,
@@ -238,9 +272,9 @@ export default class ClaudianBridgePlugin extends Plugin {
       diag('message read button registered');
 
       // ★ v0.16.0: AI読み上げボタン（✨ 入力文を整形して読み上げ）
+      //   v0.39.0 (F-039): polish コールバック廃止。dispatch 経由で LlmClient を直接取得
       this.register(setupInputAiReadButton({
         store: this.store,
-        polish: (text) => polishInstruction(text),
       }));
       diag('input-ai-read button registered');
 
@@ -251,6 +285,8 @@ export default class ClaudianBridgePlugin extends Plugin {
 
       // ★ v0.10.0: 保存時に voice-config.json へエクスポート（Claudian Bridge が SSOT）
       this.store.onSave((cfg) => {
+        // v0.38.0: プロキシ変更を即時 env 反映（次リクエストから有効）
+        applyProxyEnv(cfg.network.proxy);
         void voiceSync.exportToVoiceConfig(cfg).catch((e) => {
           console.warn('[claudian-bridge] voice-config export error:', e);
         });
@@ -261,14 +297,20 @@ export default class ClaudianBridgePlugin extends Plugin {
       this.register(setupCodeCopyFence(this.store));
       diag('code-copy-fence registered');
 
+      // v0.33.0: チャット内 mermaid 自動描画（設定 OFF 時は無効）
+      initMermaidLog(pluginDir);
+      this.register(setupMermaidRender(this.app, this, this.store));
+      diag('mermaid-render registered');
+
       // === v0.2.0: Object context menu ===
       registerObjectContextMenu(this, this.store);
       diag('object context menu registered');
 
       // 外部変更検知（UI 更新は SettingTab の onChange で実施済み）。close は onunload で実施
       this.store.watch(() => {
-        const w = this.store.load().whitelist;
-        const css = w.enabled ? buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders) : null;
+        const c = this.store.load();
+        const w = c.whitelist;
+        const css = w.enabled ? buildWhitelistCss(w.extensions, w.alwaysShowFolders, w.hideUnderscoreFolders, c.general.hideDotFolders) : null;
         if (css) installWhitelistCss(css); else removeWhitelistCss();
       });
       diag('store.watch registered');
@@ -306,6 +348,17 @@ export default class ClaudianBridgePlugin extends Plugin {
       this.register(setupMdFileRead(this.app, this.store));
       diag('md-file-read registered');
 
+      // ★ v0.31.0 (F-028): MD 読み上げ位置ハイライト機能（cleanup + file-close ライフサイクル）
+      this.register(setupMdReadHighlight(this.app, this.store));
+      diag('md-read-highlight setup registered');
+
+      // 🚨 v0.33.10 緊急無効化: registerEditorExtension で MD が開けなくなる
+      // 重大不具合が発生（CM6 モジュール二重バンドルが原因の疑い）。
+      // Live Preview ハイライトは将来、@codemirror の externals 設定を
+      // 検証した上で再導入する。
+      // this.registerEditorExtension([mdReadEditorHighlight]);
+      // diag('md-read-highlight editor extension registered');
+
       // 6. Chroma Inspector 統合: registerView + ribbon/command
       // chroma-inspector プラグインは disableLegacyPluginsOnce() で先に無効化済みなので
       // アイコン重複は発生しない。chroma.enabled=false のときは view / ribbon / command を
@@ -337,6 +390,12 @@ export default class ClaudianBridgePlugin extends Plugin {
         diag('chroma registered');
       }
 
+      // ★ v0.38.0 (F-038): 文生図機能（リボン + コマンドパレット）
+      if (this.store.load().imageGen.enabled) {
+        ImageGenMenuRegistrar.register(this, this.store);
+        diag('image-gen menu registered');
+      }
+
       // 7. Claude 残量検出 (v0.3.0): quotaEnabled=true のとき onload で起動
       // 設計書 §アーキテクチャ & データフロー に従い、onload から register。
       // registerClaudeQuota() 自体は冪等なので SettingTab からの呼び出しと共存可能。
@@ -358,6 +417,8 @@ export default class ClaudianBridgePlugin extends Plugin {
   async onunload(): Promise<void> {
     diag('onunload START');
     try {
+      // v0.43.0 (F-041): VPN プロセスが起動中なら明示的に停止（ゾンビプロセス防止）
+      await getOpenVpnController().stop();
       removeWhitelistCss();
       if (this.quotaHandle) {
         await unregisterClaudeQuota();

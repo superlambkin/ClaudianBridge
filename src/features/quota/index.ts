@@ -3,6 +3,7 @@ import { Platform } from 'obsidian';
 import { MultiQuotaService } from './service';
 import { QuotaBarView } from './view';
 import { readLlmInfoFromSettings } from './llm-info';
+import type { ThinkingConfig } from '../llm/types';
 import type { ConfigStore } from '../../core/config-store';
 
 export interface ClaudeQuotaHandle {
@@ -92,12 +93,15 @@ export async function registerClaudeQuota(
   const getEnv = (store as unknown as { getEnv?: (k: string) => string | undefined }).getEnv
     ?? ((k: string) => process.env[k]);
   const view = new QuotaBarView();
-  // 現在使用中モデル + 現在 LLM の Quota を settings.json から読み取り、インジケータに設定（データ収集周期ごとに再読込）
+  // 現在使用中モデル + 現在 LLM の Quota + Think モード を settings.json から読み取り、インジケータに設定（データ収集周期ごとに再読込）
   const refreshModel = (): void => {
     try {
-      const llm = readLlmInfoFromSettings(store.load().quota?.claudeSettingsPath);
+      const loaded = store.load();
+      const llm = readLlmInfoFromSettings(loaded.quota?.claudeSettingsPath);
       view.setModel(llm.model);
       view.setCurrentLlmQuota(service.getQuotaFor(llm.provider));
+      // v0.39.0 (F-039): Think モード バッジ用に現在プロバイダの設定を渡す
+      view.setThinking(getThinkingForProvider(loaded, service.getCurrentLlmProvider()));
     } catch { /* best-effort */ }
   };
 
@@ -160,4 +164,16 @@ export async function registerClaudeQuota(
 /** unregisterClaudeQuota() — for plugin onunload */
 export async function unregisterClaudeQuota(): Promise<void> {
   if (_handle) await _handle.dispose();
+}
+
+/**
+ * v0.39.0 (F-039): 現在プロバイダに対応する Think モード設定を返す。
+ * 'unknown' や未知のプロバイダは null（バッジ非表示）。
+ */
+function getThinkingForProvider(
+  settings: ReturnType<ConfigStore['load']>,
+  provider: ReturnType<MultiQuotaService['getCurrentLlmProvider']>,
+): ThinkingConfig | null {
+  if (provider === 'unknown') return null;
+  return settings.thinking[provider] ?? null;
 }

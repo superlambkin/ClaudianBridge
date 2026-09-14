@@ -303,6 +303,34 @@ describe('ClaudeQuotaService lifecycle', () => {
     await local.stop();
   });
 
+  it('emit で workspace.trigger は this=workspace で呼ばれる（v0.32.5 this 束縛修正）', async () => {
+    // Obsidian の Workspace.trigger は内部で this._ を参照するため、
+    // 非バインド呼び出しだけ「Cannot read properties of undefined (reading '_')」になる。
+    const workspace = {
+      _: { events: {} }, // trigger 内部で参照される実在フィールドのシミュレート
+      trigger(this: { _: unknown }, name: string) {
+        // this._ が無ければ実 Obsidian と同じ例外を投げる
+        if (this._ === undefined) throw new TypeError("Cannot read properties of undefined (reading '_')");
+        return { ok: true, name };
+      },
+    };
+    const local = new ClaudeQuotaService({
+      app: { workspace } as never,
+      store: {} as never,
+      refreshSec: 60,
+    });
+    // 修正前は emit 内で throw → console.warn が出て trigger の戻りが得られない。
+    // 修正後は this 束縛により例外が出ない。
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await local.start();
+    expect(warnSpy).not.toHaveBeenCalledWith(
+      '[claudian-bridge] workspace.trigger(EVENT_QUOTA_UPDATED) failed:',
+      expect.anything(),
+    );
+    warnSpy.mockRestore();
+    await local.stop();
+  });
+
   it('refreshSec=0 のとき start でタイマー起動しない', async () => {
     const local = new ClaudeQuotaService({ app: {} as never, store: {} as never, refreshSec: 0 });
     await local.start();

@@ -1,0 +1,138 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { openInPreview } from '../../../../src/features/tts/md-file-read-flow';
+
+vi.mock('obsidian', () => ({
+  Notice: vi.fn(),
+}));
+
+describe('openInPreview (v0.33.4)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function makeView(mode: 'source' | 'preview' | 'live') {
+    const setState = vi.fn();
+    const getMode = vi.fn(() => mode);
+    const containerEl = document.createElement('div');
+    const view: Record<string, unknown> = {
+      file: { path: '/a.md' },
+      previewMode: { containerEl },
+      getMode,
+      setState,
+    };
+    return { view, setState, getMode };
+  }
+
+  it('openLinkText でファイルを開く → leaf.setViewState で読書モード（preview）に切替（v0.32.7 正式 API）', async () => {
+    const { view, setState } = makeView('source');
+    const setViewState = vi.fn().mockResolvedValue(undefined);
+    const leaf = { view, setViewState };
+
+    const app = {
+      workspace: {
+        openLinkText: vi.fn().mockResolvedValue(undefined),
+        getLeavesOfType: vi.fn(() => [leaf]),
+        setActiveLeaf: vi.fn(),
+      },
+      vault: {
+        getAbstractFileByPath: vi.fn().mockReturnValue({ path: '/a.md' }),
+      },
+    };
+
+    await openInPreview(app as never, '/a.md');
+
+    // 1. openLinkText でファイルが開かれた
+    expect(app.workspace.openLinkText).toHaveBeenCalledWith('/a.md', '', false);
+    // 2. setActiveLeaf で焦点
+    expect(app.workspace.setActiveLeaf).toHaveBeenCalled();
+    // 3. v0.32.7: setState（無効キーの疑い）ではなく leaf.setViewState を使用
+    expect(setViewState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'markdown',
+        state: expect.objectContaining({ file: '/a.md', mode: 'preview' }),
+      }),
+    );
+    // setState は廃止
+    expect(setState).not.toHaveBeenCalled();
+  });
+
+  it('既に preview モードなら setViewState も呼ばない（不要な再 render を防ぐ）', async () => {
+    const { view, setState } = makeView('preview');
+    const setViewState = vi.fn().mockResolvedValue(undefined);
+    const leaf = { view, setViewState };
+
+    const app = {
+      workspace: {
+        openLinkText: vi.fn().mockResolvedValue(undefined),
+        getLeavesOfType: vi.fn(() => [leaf]),
+        setActiveLeaf: vi.fn(),
+      },
+      vault: {
+        getAbstractFileByPath: vi.fn().mockReturnValue({ path: '/a.md' }),
+      },
+    };
+
+    await openInPreview(app as never, '/a.md');
+
+    expect(setViewState).not.toHaveBeenCalled();
+    expect(setState).not.toHaveBeenCalled();
+  });
+
+  it('setViewState 後に view が再生成されても、新しい containerEl の render を待つ（v0.32.8）', async () => {
+    const oldView = makeView('source').view;
+    // setViewState 呼び出し後に leaf.view を新しいインスタンスへ差し替え
+    const newContainer = document.createElement('div');
+    newContainer.innerHTML = '<p>新ビューのコンテンツ</p>';
+    const newView = {
+      file: { path: '/a.md' },
+      previewMode: { containerEl: newContainer },
+      getMode: () => 'preview',
+      setState: vi.fn(),
+    };
+    const setViewState = vi.fn().mockImplementation(async () => {
+      leaf.view = newView;
+    });
+    const leaf: { view: unknown; setViewState: ReturnType<typeof vi.fn> } = {
+      view: oldView,
+      setViewState,
+    };
+
+    const app = {
+      workspace: {
+        openLinkText: vi.fn().mockResolvedValue(undefined),
+        getLeavesOfType: vi.fn(() => [leaf]),
+        setActiveLeaf: vi.fn(),
+      },
+      vault: {
+        getAbstractFileByPath: vi.fn().mockReturnValue({ path: '/a.md' }),
+      },
+    };
+
+    const start = Date.now();
+    await openInPreview(app as never, '/a.md');
+    const elapsed = Date.now() - start;
+
+    // 新 containerEl の render を検出して即抜ける（2.5 秒待たない）
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it('ファイルが見つからないとき Notice を表示して早期 return', async () => {
+    const setState = vi.fn();
+    const app = {
+      workspace: {
+        openLinkText: vi.fn(),
+        getLeavesOfType: vi.fn(() => [{ view: { ...makeView('source').view, setState } }]),
+        setActiveLeaf: vi.fn(),
+      },
+      vault: {
+        getAbstractFileByPath: vi.fn().mockReturnValue(null),
+      },
+    };
+
+    await openInPreview(app as never, '/missing.md');
+
+    expect(app.workspace.openLinkText).not.toHaveBeenCalled();
+    expect(app.workspace.setActiveLeaf).not.toHaveBeenCalled();
+  });
+});

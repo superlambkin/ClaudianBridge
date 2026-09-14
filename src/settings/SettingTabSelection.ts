@@ -1,6 +1,7 @@
 import { Notice, Setting } from 'obsidian';
 import type { App } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
+import type { PopupPosition } from '../core/settings';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 
 export function renderSelectionTab(_app: App, containerEl: HTMLElement, store: ConfigStore): void {
@@ -52,6 +53,29 @@ export function renderSelectionTab(_app: App, containerEl: HTMLElement, store: C
           draw();
         }
       }));
+
+    // === v0.38.0 (F-032): ポップアップ位置 ===
+    new Setting(containerEl)
+      .setName(s.selectionPopupPosition)
+      .setDesc(s.selectionPopupPositionDesc)
+      .addDropdown((dd) => {
+        dd.addOption('top-right', s.selectionPopupPositionTopRight);
+        dd.addOption('bottom', s.selectionPopupPositionBottom);
+        dd.setValue(cfg.selection.popupPosition);
+        dd.onChange(async (value) => {
+          try {
+            const latest = store.load();
+            store.save({
+              ...latest,
+              selection: { ...latest.selection, popupPosition: value as PopupPosition },
+            });
+            new Notice(s.noticeSaved);
+          } catch (e) {
+            new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+            draw();
+          }
+        });
+      });
 
     // Object context menu
     containerEl.createEl('h3', { text: s.objectMenuHeading });

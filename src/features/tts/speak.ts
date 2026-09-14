@@ -6,6 +6,9 @@
 import { Notice } from 'obsidian';
 import type { ClaudianBridgeSettings, SpeechFilterOptions } from '../../core/settings';
 import type { TtsSettings } from './core';
+import { getPlaybackController } from './playback-controller';
+import { abortCurrentLlm } from './llm-session';
+import { mdReadState } from './md-read-highlight/state';
 import { addTextToTTS } from './core';
 import { filterSpeechText } from './speech-filter';
 
@@ -16,6 +19,8 @@ export interface SpeakTextOpts {
   noticeOnEmpty?: boolean;
   /** 失敗時に再試行する元テキスト（⑤AI のみ使用） */
   fallbackText?: string;
+  /** v0.31.0 (F-028): 各チャンク speak 直前に呼ばれる hook。MD ハイライト等のチャンク単位 UI 連動用 */
+  onChunkStart?: (idx: number) => void;
 }
 
 /** 読み上げタイプ → フィルタ設定を解決。md は selection を共有（設計書 7 章） */
@@ -56,13 +61,22 @@ export async function speakText(
     return false;
   }
 
+  // v0.37.1: 自動読上げなど MD(Add to TTS) 以外の読み上げ開始時は、
+  // 進行中の MD 読上げ/LLM 原稿生成を即停止・初期化する
+  if (type !== 'md') {
+    abortCurrentLlm();
+    if (mdReadState.get()) mdReadState.clear();
+  }
+
   const filter = resolveSpeechFilter(cfg, type);
   const optimized = filterSpeechText(trimmed, filter);
   if (!optimized.trim()) return true; // フィルタ後空なら読まない（エラー扱いしない）
 
   const settings = toTtsSettings(cfg, type);
-  const ok = await addTextToTTS(null, optimized, settings);
+  const ok = await addTextToTTS(null, optimized, settings, opts?.onChunkStart);
   if (ok) return true;
+  // v0.35.2: 別 MD 切替による abort は失敗扱いしない
+  if (getPlaybackController().isAborted()) return true;
 
   // 失敗時: fallbackText があれば元文で再試行（⑤）、なければエラー Notice
   if (opts?.fallbackText && opts.fallbackText.trim() !== '') {

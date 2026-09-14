@@ -13,6 +13,9 @@ import { Notice } from 'obsidian';
 import type { ConfigStore } from '../../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import { isTtsPlaying, stopAllPlayback, onPlaybackChange } from './playback-registry';
+import { abortCurrentLlm } from './llm-session';
+import { getPlaybackController } from './playback-controller';
+import { mdReadState } from './md-read-highlight/state';
 import { withFullTextState, isFullTextState } from '../../core/settings';
 
 const TOOLBAR_SELECTOR = '.claudian-input-toolbar';
@@ -100,16 +103,27 @@ function makeMuteButton(store: ConfigStore, refreshAll: () => void): HTMLButtonE
     btn.disabled = true;
     try {
       const cfg = store.load();
-      // v0.12.5: 常に停止を試みる（再生検知が不確実でも確実に音声を止める）
+      // v0.37.2 (F-033 fix): ミュート系操作は進行中の LLM 原稿生成セッションも即中断する。
+      // 音声再生前（「📝 原稿生成中…」状態）では active セットが空のため
+      // stopAllPlayback() だけだと LLM 子プロセスが止まらず、Notice が消えない。
+      // セッション未開始時は abortCurrentLlm() が no-op（ctrl?.abort()）。
       const stopped = stopAllPlayback();
       const playing = isTtsPlaying() || stopped > 0;
       if (cfg.tts.enabled && playing) {
+        abortCurrentLlm();
+        getPlaybackController().stop();
+        mdReadState.clear(); // v0.37.2: overlay 状態も完全リセット
         // 再生中 → 停止のみ（enabled は変更しない）
         new Notice(stopped > 0 ? `🔇 再生停止 (${stopped})` : '🔇 再生停止');
       } else {
         const next = !cfg.tts.enabled;
         store.save({ ...cfg, tts: { ...cfg.tts, enabled: next } });
-        if (!next) stopAllPlayback();
+        if (!next) {
+          stopAllPlayback();
+          abortCurrentLlm();
+          getPlaybackController().stop();
+          mdReadState.clear(); // v0.37.2: ミュート時は overlay もクリア
+        }
         new Notice(next ? '🔊 ミュート解除' : '🔇 ミュート');
       }
     } catch (e) {

@@ -11,6 +11,13 @@ export interface TokenRateState {
   isStreaming: boolean;
 }
 
+export interface TokenRateVisible {
+  ttft: boolean;
+  current: boolean;
+  avg: boolean;
+  max: boolean;
+}
+
 export interface CounterOptions {
   charPerToken?: number;
   intervalMs?: number;
@@ -19,15 +26,20 @@ export interface CounterOptions {
   insertAfter?: Element | null;
   /** 指定時はこの要素の直前に .cb-token-rate を挿入する（insertAfter より優先） */
   insertBefore?: Element | null;
+  /** 表示項目の選択（既定: 全 true） */
+  visible?: Partial<TokenRateVisible>;
 }
 
 const DEFAULTS: Required<CounterOptions> = {
   charPerToken: 3,
-  intervalMs: 500,
+  intervalMs: 250,  // v0.32.0: 500→250
   fadeOutMs: 3000,
   insertAfter: null,
   insertBefore: null,
+  visible: {},
 };
+
+const DEFAULT_VISIBLE: TokenRateVisible = { ttft: true, current: true, avg: true, max: true };
 
 export function createTokenRateCounter(
   containerEl: HTMLElement,
@@ -49,17 +61,19 @@ export function createTokenRateCounter(
 
   const el = document.createElement('div');
   el.className = 'cb-token-rate';
+  const vis: TokenRateVisible = { ...DEFAULT_VISIBLE, ...opts.visible };
+  const SEGMENTS: Array<{ key: keyof TokenRateVisible; html: string }> = [
+    { key: 'ttft', html: '<span class="cb-token-rate-ttft">首 0.0s</span>' },
+    { key: 'current', html: '<span class="cb-token-rate-label">現在</span><span class="cb-token-rate-value">0.0</span><span class="cb-token-rate-unit">tok/s</span>' },
+    { key: 'avg', html: '<span class="cb-token-rate-avg">平均 0.0 tok/s</span>' },
+    { key: 'max', html: '<span class="cb-token-rate-max">最大 0.0 tok/s</span>' },
+  ];
+  const visibleSegments = SEGMENTS.filter((sg) => vis[sg.key]);
   el.innerHTML =
-    '<span class="cb-token-rate-ttft">首 0.0s</span>' +
-    '<span class="cb-token-rate-sep">·</span>' +
-    '<span class="cb-token-rate-label">現在</span>' +
-    '<span class="cb-token-rate-value">0.0</span>' +
-    '<span class="cb-token-rate-unit">tok/s</span>' +
-    '<span class="cb-token-rate-sep">·</span>' +
-    '<span class="cb-token-rate-avg">平均 0.0 tok/s</span>' +
-    '<span class="cb-token-rate-sep">·</span>' +
-    '<span class="cb-token-rate-max">最大 0.0 tok/s</span>' +
+    visibleSegments.map((sg) => sg.html).join('<span class="cb-token-rate-sep">·</span>') +
     '<span class="cb-token-rate-dot"></span>';
+  el.setAttribute('data-visible', visibleSegments.map((sg) => sg.key).join(','));
+  el.setAttribute('data-interval', String(opts.intervalMs));
   if (opts.insertAfter) {
     opts.insertAfter.insertAdjacentElement('afterend', el);
   } else if (opts.insertBefore) {
@@ -75,13 +89,20 @@ export function createTokenRateCounter(
   let lastAssistantEl: Element | null = null;
   let lastUserEl: Element | null = null;
   let cycleStartTime: number | null = null;
+  let rateAnchorEl: Element | null = null;
+  // 縮小窓（dTokens < 0）検出後の隔離フラグ: 次の 1 窓を baseline-only にする
+  //（縮小 → 復帰の 2 窓で全文字数が一括計上される偽スパイク防止）
+  let quarantine = false;
+  // 前回 tick 時点の isStreaming を保持し、true → false 遷移時に最大値をリセットする
+  let wasStreaming = false;
 
-  const getAssistant = (): { el: Element | null; chars: number } => {
+  const getAssistant = (): { el: Element | null; chars: number | null } => {
     let list = document.querySelectorAll('[data-role="assistant"].claudian-message-assistant, [data-role="assistant"]');
     if (list.length === 0) list = document.querySelectorAll('.claudian-message-assistant, .claudian-message');
     const target = list.length ? list[list.length - 1] : null;
     if (target) return { el: target, chars: target.textContent?.length ?? 0 };
-    return { el: null, chars: (document.body.textContent?.length ?? 0) - (el.textContent?.length ?? 0) };
+    // フォールバック（body 全文字数）は廃止: 偽スパイク防止のため null を返す
+    return { el: null, chars: null };
   };
 
   const getLastUserEl = (): Element | null => {
@@ -98,42 +119,103 @@ export function createTokenRateCounter(
       lastUserEl = userEl;
       cycleStartTime = now;
       state.ttftMs = null;
+      // avgRate の分母（state.startTime）を新サイクル開始時刻にリセット。
+      // start() から長時間経過したケース（長い沈黙→ユーザー送信）で
+      // 「平均 0.0 tok/s」になる症状を防止する。
+      state.startTime = now;
+      state.lastTokens = state.lastTokens;
+      state.lastUpdateTime = now;
     }
     // フォールバック: ユーザー要素が無い環境では新しいアシスタント要素出現を起点にする
     if (cycleStartTime === null && assistantEl !== lastAssistantEl) {
       lastAssistantEl = assistantEl;
       cycleStartTime = now;
+      state.startTime = now;
+      state.lastUpdateTime = now;
     }
     lastAssistantEl = assistantEl;
-    const tokens = chars / opts.charPerToken;
+    const tokens = chars !== null ? chars / opts.charPerToken : state.lastTokens;
+    // avgRate ゲート用: assistant 分岐の前で前 tick 末の state.lastTokens を参照し
+    // 「この tick で新規コンテンツが増えたか」を判定する。dTokens > 0 = streaming 中、
+    // dTokens = 0 = streaming 停止/アイドル。停止後は elapsed だけ増えて avgRate が
+    // shrink して 0 に近づく現象を防止し、最終的な平均値で凍結する（v0.38.3）。
+    const dTokensForAvg = chars !== null ? tokens - state.lastTokens : 0;
     if (state.startTime === null) {
       state.startTime = now;
-      state.startChars = chars;
+      state.startChars = chars ?? 0;
       state.lastTokens = tokens;
       state.lastUpdateTime = now;
-    } else {
+      rateAnchorEl = assistantEl;
+    } else if (chars !== null) {
+      // 初回アンカー確立（rateAnchorEl === null）・既存アンカーからの要素交代は
+      // いずれも baseline-only（再注入時の全文字数一括計上スパイク防止のため
+      // rate/maxRate を更新せず lastTokens / lastUpdateTime / rateAnchorEl のみ設定）
+      const elementChanged = assistantEl !== rateAnchorEl;
       const dt = (now - state.lastUpdateTime) / 1000;
       const dTokens = tokens - state.lastTokens;
-      state.rate = dt > 0 ? dTokens / dt : 0;
-      if (state.rate > state.maxRate) state.maxRate = state.rate;
+      if (quarantine || elementChanged) {
+        // 縮小窓の直後の復帰窓（quarantine）・初回アンカー確立 / 要素交代は
+        // baseline-only: rate/maxRate を更新せずベースラインのみ引き直す
+        // 同時に state.startTime も now に再設定し、avgRate 分母を
+        // 「現在観測中の生成の開始時刻」に揃える（mid-stream 再注入時の
+        // 巨大 avgRate スパイク／クロスサイクル累積による 0.0 表示を防止）
+        quarantine = false;
+        state.startTime = now;
+      } else if (dTokens >= 0 && dt > 0) {
+        state.rate = dTokens / dt;
+        if (state.rate > state.maxRate) state.maxRate = state.rate;
+      }
+      // dTokens < 0（DOM 再構成による減少）のときは次の 1 窓も baseline-only にする。
+      // 要素交代のときは baseline-only 済みなのでフラグは立てない
+      quarantine = dTokens < 0;
       state.lastTokens = tokens;
       state.lastUpdateTime = now;
+      rateAnchorEl = assistantEl;
+    } else {
+      // アシスタント要素が消失した窓: レート計算はスキップし
+      // 次回計算の dt 基準（lastUpdateTime）の更新のみ行う。
+      // アンカーも解除し、同一要素の再 attach 時も初回確立（baseline-only）扱いにする
+      state.lastUpdateTime = now;
+      rateAnchorEl = null;
     }
-    state.currentChars = chars;
+    state.currentChars = chars ?? state.currentChars;
     // 平均 = 累積トークン / 経過秒
-    const elapsed = state.startTime !== null ? (now - state.startTime) / 1000 : 0;
-    state.avgRate = elapsed > 0 ? tokens / elapsed : 0;
+    // 新規コンテンツ増加中（dTokensForAvg > 0）のときのみ更新。
+    // コンテンツ増加が止まった tick（dTokensForAvg = 0）以降は elapsed だけ増えて
+    // avgRate が shrink して 0 に近づく現象を防止し、最終的な平均値で凍結する。
+    // wasStreaming ゲート（v0.38.3 初回実装）と異なり MutationObserver への依存が
+    // ないため、jsdom + fake timers で MO コールバックが遅延するテスト環境でも
+    // 安定して動作する。
+    // elapsed = 0（baseline-only tick で state.startTime が now にリセットされた
+    // 直後 / 一括配信の初回観測）のときは intervalMs を経過時間の下限として
+    // avgRate = tokens / (intervalMs / 1000) を採用し、avgRate = 0 のまま
+    // 凍結される回帰を防止する（v0.38.3 派生）。
+    if (chars !== null && dTokensForAvg > 0 && state.startTime !== null) {
+      const elapsed = (now - state.startTime) / 1000;
+      const effectiveElapsed = elapsed > 0 ? elapsed : opts.intervalMs / 1000;
+      state.avgRate = tokens / effectiveElapsed;
+    }
     // TTFT = サイクル開始（ユーザー送信）から最初のアシスタントコンテンツまで
-    if (state.ttftMs === null && cycleStartTime !== null && assistantEl !== null && chars > 0) {
+    if (state.ttftMs === null && cycleStartTime !== null && assistantEl !== null && (chars ?? 0) > 0) {
       state.ttftMs = Math.max(0, now - cycleStartTime);
     }
     state.isStreaming = now - lastChangeTime < 2500;
     el.classList.toggle('is-streaming', state.isStreaming);
-    el.querySelector('.cb-token-rate-ttft')!.textContent =
-      `首 ${(state.ttftMs !== null ? state.ttftMs / 1000 : 0).toFixed(1)}s`;
-    el.querySelector('.cb-token-rate-value')!.textContent = state.rate.toFixed(1);
-    el.querySelector('.cb-token-rate-avg')!.textContent = `平均 ${state.avgRate.toFixed(1)} tok/s`;
-    el.querySelector('.cb-token-rate-max')!.textContent = `最大 ${state.maxRate.toFixed(1)} tok/s`;
+    // streaming 終了遷移（true → false）検出: 次のストリームに備えて最大値をリセット。
+    // 同一カウンターが複数ストリームを跨いで生存する場合、
+    // 過去の最大値が累積して新しいストリームの最大値と比較できなくなる問題を防止。
+    if (wasStreaming && !state.isStreaming) {
+      state.maxRate = 0;
+    }
+    wasStreaming = state.isStreaming;
+    const setText = (selector: string, text: string): void => {
+      const target = el.querySelector(selector);
+      if (target) target.textContent = text;
+    };
+    setText('.cb-token-rate-ttft', `首 ${(state.ttftMs !== null ? state.ttftMs / 1000 : 0).toFixed(1)}s`);
+    setText('.cb-token-rate-value', state.rate.toFixed(1));
+    setText('.cb-token-rate-avg', `平均 ${state.avgRate.toFixed(1)} tok/s`);
+    setText('.cb-token-rate-max', `最大 ${state.maxRate.toFixed(1)} tok/s`);
   };
 
   const handleMutation = (mutations: MutationRecord[]): void => {
@@ -151,10 +233,18 @@ export function createTokenRateCounter(
 
   const start = (): void => {
     const now = Date.now();
+    // mid-stream 再注入（既存アシスタント要素ありでカウンター recreate）の
+    // 検出: 注入時点で既にコンテンツが存在する場合、state.startChars と
+    // state.lastTokens を既存値に同期しておき、初回 tick で
+    // dTokensForAvg = 0 → avgRate 更新スキップ → 巨大スパイクを防止。
+    // 注入時にアシスタント要素が無い場合（一括配信 / 通常の新規ストリーム）は
+    // state.lastTokens = 0 のままで、初回 tick でコンテンツ増加として検出される。
+    const { chars: initialChars } = getAssistant();
+    const initialTokens = initialChars !== null ? initialChars / opts.charPerToken : 0;
     state.startTime = now;
     state.lastUpdateTime = now;
-    state.startChars = state.currentChars;
-    state.lastTokens = state.currentChars / opts.charPerToken;
+    state.startChars = initialChars ?? 0;
+    state.lastTokens = initialTokens;
     lastChangeTime = now;
     observer = new MutationObserver(handleMutation);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
@@ -164,6 +254,8 @@ export function createTokenRateCounter(
   const stop = (): void => {
     if (intervalId !== null) { clearInterval(intervalId); intervalId = null; }
     state.isStreaming = false;
+    state.maxRate = 0;
+    wasStreaming = false;
     el.classList.remove('is-streaming');
     fadeTimer = setTimeout(() => el.classList.add('is-fading'), opts.fadeOutMs);
   };
@@ -175,5 +267,51 @@ export function createTokenRateCounter(
     el.remove();
   };
 
-  return { start, stop, destroy, getState: () => ({ ...state }) };
+  // 個別セグメントリセット: クリックされた数値だけを 0 に戻し、
+  // state.startTime / state.lastTokens / streaming 状態は維持して
+  // カウンタは継続（次の新規コンテンツ増加時に通常の更新ロジックで再計算）。
+  // 平均は凍結ロジック（dTokensForAvg > 0）の対象なので、リセット後は
+  // 次サイクル開始時に baseline-only で再計算される。
+  const reset = (key: 'ttft' | 'current' | 'avg' | 'max'): void => {
+    switch (key) {
+      case 'ttft':
+        state.ttftMs = null;
+        break;
+      case 'current':
+        state.rate = 0;
+        break;
+      case 'avg':
+        state.avgRate = 0;
+        break;
+      case 'max':
+        state.maxRate = 0;
+        break;
+    }
+  };
+
+  // クリックイベント委譲: .cb-token-rate 内の各数値セグメントがクリックされたとき
+  // 該当 key の reset() を発火させる。イベントバブリングを使い 1 リッスンで全セグメント
+  // をカバー。stopPropagation で chat 入力欄などへの伝播を防ぐ。
+  const onSegmentClick = (e: Event): void => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    // クリックされた要素またはその祖先にセグメント識別クラスがあるか確認
+    const ttft = target.closest('.cb-token-rate-ttft');
+    const value = target.closest('.cb-token-rate-value');
+    const avg = target.closest('.cb-token-rate-avg');
+    const max = target.closest('.cb-token-rate-max');
+    let key: 'ttft' | 'current' | 'avg' | 'max' | null = null;
+    if (ttft) key = 'ttft';
+    else if (value) key = 'current';
+    else if (avg) key = 'avg';
+    else if (max) key = 'max';
+    if (key === null) return;
+    e.stopPropagation();
+    reset(key);
+  };
+  el.addEventListener('click', onSegmentClick);
+  // カーソルを pointer にしてクリック可能であることを示す
+  el.classList.add('cb-token-rate-clickable');
+
+  return { start, stop, destroy, reset, getState: () => ({ ...state }) };
 }

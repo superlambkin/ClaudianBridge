@@ -3,6 +3,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupToolbarButtons } from '../../../src/features/tts/toolbar-buttons';
 import { registerPlayback, resetPlaybackRegistry } from '../../../src/features/tts/playback-registry';
 import type { ConfigStore } from '../../../src/core/config-store';
+import { beginLlmSession, abortCurrentLlm, isCurrent, endLlmSession } from '../../../src/features/tts/llm-session';
+import { getPlaybackController } from '../../../src/features/tts/playback-controller';
+import { mdReadState, __resetMdReadSubscribersForTesting } from '../../../src/features/tts/md-read-highlight/state';
 
 vi.mock('obsidian', () => ({
   Notice: class { constructor(_m: string) {} },
@@ -49,7 +52,7 @@ async function waitForBtn(toolbar: HTMLElement, mark: string): Promise<HTMLButto
 
 describe('setupToolbarButtons (mute)', () => {
   let cleanup: (() => void) | undefined;
-  beforeEach(() => { document.body.innerHTML = ''; resetPlaybackRegistry(); });
+  beforeEach(() => { document.body.innerHTML = ''; resetPlaybackRegistry(); endLlmSession(); getPlaybackController().reset(); mdReadState.clear(); __resetMdReadSubscribersForTesting(); });
   afterEach(() => { cleanup?.(); cleanup = undefined; vi.restoreAllMocks(); });
 
   it('ツールバーにミュートボタンを注入する（有効・非再生 = 🔊）', async () => {
@@ -120,6 +123,91 @@ describe('setupToolbarButtons (mute)', () => {
     cleanup!();
     cleanup = undefined;
     expect(toolbar.querySelector('[data-cb-mute]')).toBeNull();
+  });
+
+  // v0.37.2 (F-033 fix): 再生中止ボタン押下時、進行中の LLM 原稿生成セッションも
+  // 即時中断しないと「📝 原稿生成中…」Notice が消えなくなる（音声再生前は無 handle なので
+  // stopAllPlayback() だけだと LLM 子プロセスが残る）。
+  it('再生中止ボタン押下時、進行中の LLM セッションも中断される', async () => {
+    const { store } = makeStore();
+    cleanup = setupToolbarButtons(store);
+    const toolbar = addToolbar();
+    const btn = await waitForBtn(toolbar, '[data-cb-mute]');
+
+    // LLM 原稿生成中をシミュレート（音声は未開始 = active セット空）
+    const session = beginLlmSession('/test.md');
+    expect(session.signal.aborted).toBe(false);
+
+    btn.click();
+
+    // signal が abort されれば md-file-read-flow.ts:127 isCancelled() が true を返し
+    // ループ脱出 → md-file-read-flow.ts:210 progress.hide() で「📝 原稿生成中…」が消える
+    expect(session.signal.aborted).toBe(true);
+  });
+
+  it('再生中止ボタン押下時、PlaybackController が aborted 状態になる', async () => {
+    const { store } = makeStore();
+    cleanup = setupToolbarButtons(store);
+    const toolbar = addToolbar();
+    const btn = await waitForBtn(toolbar, '[data-cb-mute]');
+
+    // 再生中のシミュレート（active ハンドル 1 件登録）
+    const unregister = registerPlayback({ engine: 'edge', stop: vi.fn() });
+    expect(getPlaybackController().isAborted()).toBe(false);
+
+    btn.click();
+
+    expect(getPlaybackController().isAborted()).toBe(true);
+    unregister();
+  });
+
+  it('非再生時の ⏹ クリックは LLM 中断しない（enabled トグル動作を維持）', async () => {
+    const { store, saves } = makeStore();
+    cleanup = setupToolbarButtons(store);
+    const toolbar = addToolbar();
+    const btn = await waitForBtn(toolbar, '[data-cb-mute]');
+
+    // LLM セッションを開始していない状態で ⏹ クリック → enabled トグル
+    expect(saves).toHaveLength(0);
+    btn.click();
+    expect(saves).toHaveLength(1); // enabled=false を保存
+    expect((saves[0] as { tts: { enabled: boolean } }).tts.enabled).toBe(false);
+  });
+
+  // v0.37.2 (追加要件): ミュートボタン押下時、MD 読み上げ状態（overlay）も完全リセット。
+  // overlay が残ったままだと「別 MD を ⏹」してもハイライト/進捗 UI が旧ファイルに居続ける。
+  it('ミュートボタン押下時、mdReadState（overlay 状態）も clear される', async () => {
+    const { store } = makeStore();
+    cleanup = setupToolbarButtons(store);
+    const toolbar = addToolbar();
+    const btn = await waitForBtn(toolbar, '[data-cb-mute]');
+
+    // MD 読上げ中の overlay 状態をシミュレート
+    mdReadState.register('/a.md', [{ index: 0, startLine: 0, anchor: 'A', text: 'A', headingLevel: 0 as const }]);
+    expect(mdReadState.get()).not.toBeNull();
+
+    // 再生中をシミュレート（active ハンドル 1 件登録 → 停止分岐に入る）
+    const unregister = registerPlayback({ engine: 'edge', stop: vi.fn() });
+    btn.click();
+
+    // overlay 状態がクリアされ、ハイライト UI が消える
+    expect(mdReadState.get()).toBeNull();
+    unregister();
+  });
+
+  it('ミュートボタン押下時（enabled=false への切替）、mdReadState も clear される', async () => {
+    const { store } = makeStore();
+    cleanup = setupToolbarButtons(store);
+    const toolbar = addToolbar();
+    const btn = await waitForBtn(toolbar, '[data-cb-mute]');
+
+    mdReadState.register('/a.md', [{ index: 0, startLine: 0, anchor: 'A', text: 'A', headingLevel: 0 as const }]);
+    expect(mdReadState.get()).not.toBeNull();
+
+    // 再生していない状態で 🔊 をクリック → enabled=false（ミュート）に切替
+    btn.click();
+
+    expect(mdReadState.get()).toBeNull();
   });
 });
 
