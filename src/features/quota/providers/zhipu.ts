@@ -1,82 +1,73 @@
-import * as path from 'path';
 import type { ProviderQuota, QuotaProvider } from '../types';
-import { runPython, parseJsonOutput } from '../python';
 import type { QuotaWindow } from '../../../core/settings';
-
-export interface ZhipuProviderOptions {
-  getKey: () => string | undefined;
-  getPythonPath: () => string;
-  getVaultRoot: () => string;
-  /** 表示窓（5h / week）。week は unit 6（週間）を優先 */
-  getWindow: () => QuotaWindow;
-}
-
-/** Vault 内のヘルパースクリプト相対パス */
-const SCRIPT_VAULT_REL = '00_Vault管理/_設定ファイル/_scripts/_query_zhipu_quota.py';
+import { httpGet } from '../http';
 
 /**
  * 智谱 (Zhipu) GLM Coding Plan 使用率プロバイダ。
  *
- * Python スクリプト（zai-sdk）を spawn し、5 時間窓使用率 % を取得する。
- * - 成功: value = "<pct>%"
+ * GET https://open.bigmodel.cn/api/monitor/usage/quota/limit
+ * Authorization: Bearer ZHIPU_API_KEY (fallback: ZAI_API_KEY) — 生キーで可（JWT 生成不要）
+ *
+ * レスポンス: { code, data: { limits: [{ unit, percentage, nextResetTime, remaining }] } }
+ * - unit: 3 = 5時間窓、6 = 週間窓。window 設定で優先窓を選択（無ければ片方にフォールバック）
+ * - 200: 使用率% ("<pct>%")
  * - 401/403: expired
- * - その他 / Python 不在 / JSON 不正: error
+ * - その他 / code != 200 / limits 不在: error
  */
-export function createZhipuProvider(opts: ZhipuProviderOptions): QuotaProvider {
+export function createZhipuProvider(
+  getKey: () => string | undefined = () => process.env.ZHIPU_API_KEY ?? process.env.ZAI_API_KEY,
+  opts?: { getWindow?: () => QuotaWindow },
+): QuotaProvider {
+  const keyOf = getKey;
+  const windowOf = opts?.getWindow ?? (() => '5h' as const);
   return {
     id: 'zhipu',
     label: 'Zhipu',
     envKeys: ['ZHIPU_API_KEY', 'ZAI_API_KEY'],
-    isConfigured: () => Boolean(opts.getKey()),
+    isConfigured: () => Boolean(keyOf()),
     async fetch(): Promise<ProviderQuota> {
-      const key = opts.getKey();
+      const key = keyOf();
       if (!key) {
         return { status: 'error', providerId: 'zhipu', label: 'Zhipu', value: '', pct: null, error: 'no key' };
       }
-      const scriptPath = path.join(opts.getVaultRoot(), SCRIPT_VAULT_REL);
-      const run = await runPython({
-        pythonPath: opts.getPythonPath(),
-        scriptPath,
-        args: [],
-        cwd: path.dirname(scriptPath),
-        timeoutMs: 30_000,
-        env: { ZHIPU_API_KEY: key, ZHIPU_WINDOW: opts.getWindow() },
+      const res = await httpGet('https://open.bigmodel.cn/api/monitor/usage/quota/limit', {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'Accept-Language': 'en-US,en',
       });
-      if (run.exitCode !== 0) {
-        return {
-          status: 'error',
-          providerId: 'zhipu',
-          label: 'Zhipu',
-          value: '',
-          pct: null,
-          error: run.stderr.trim() || `exit ${run.exitCode}`,
-        };
+      if (res.status === 401 || res.status === 403) {
+        return { status: 'expired', providerId: 'zhipu', label: 'Zhipu', value: '', pct: null, error: `HTTP ${res.status}` };
       }
-      const parsed = parseJsonOutput<{ ok: boolean; pct?: number; nextResetTime?: string | number | null; unit?: number; remaining?: number | null; error?: string }>(run.stdout);
-      if (!parsed.ok) {
-        return { status: 'error', providerId: 'zhipu', label: 'Zhipu', value: '', pct: null, error: `python: ${parsed.error}` };
+      if (!res.ok) {
+        return { status: 'error', providerId: 'zhipu', label: 'Zhipu', value: '', pct: null, error: `HTTP ${res.status}` };
       }
-      const d = parsed.data;
-      if (!d.ok) {
-        return {
-          status: d.error === 'expired' ? 'expired' : 'error',
-          providerId: 'zhipu',
-          label: 'Zhipu',
-          value: '',
-          pct: null,
-          error: d.error ?? 'unknown',
-        };
+      const json = (await res.json()) as {
+        code?: number;
+        data?: { limits?: Array<{ unit?: number; percentage?: number | string; nextResetTime?: string | number | null; remaining?: number | null }> };
+      };
+      if (json.code !== 200) {
+        return { status: 'error', providerId: 'zhipu', label: 'Zhipu', value: '', pct: null, error: `code ${json.code}` };
       }
-      const pct = typeof d.pct === 'number' && Number.isFinite(d.pct) ? d.pct : null;
+      const limits = json.data?.limits ?? [];
+      const weekly = windowOf() === 'week';
+      const preferred = weekly ? 6 : 3;
+      const fallback = weekly ? 3 : 6;
+      const limit = limits.find((l) => l.unit === preferred) ?? limits.find((l) => l.unit === fallback);
+      if (!limit) {
+        return { status: 'error', providerId: 'zhipu', label: 'Zhipu', value: '', pct: null, error: 'limit not found' };
+      }
+      const pct = typeof limit.percentage === 'number' && Number.isFinite(limit.percentage)
+        ? Math.round(limit.percentage)
+        : null;
       return {
         status: 'success',
         providerId: 'zhipu',
         label: 'Zhipu',
         value: pct !== null ? `${pct}%` : '--',
         pct,
-        detail: d.unit === 6 ? 'week' : '5h',
-        remaining: typeof d.remaining === 'number' ? d.remaining.toLocaleString() : null,
-        resetAt: d.nextResetTime ?? null,
+        detail: limit.unit === 6 ? 'week' : '5h',
+        remaining: typeof limit.remaining === 'number' ? limit.remaining.toLocaleString() : null,
+        resetAt: limit.nextResetTime ?? null,
       };
     },
   };

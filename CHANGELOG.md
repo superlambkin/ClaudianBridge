@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.48.0] - 2026-09-14 — Zhipu 残量取得の純 TypeScript 化 (F-048)
+
+Zhipu (GLM) の残量取得だけが Python スクリプト spawn 方式（Vault 内スクリプト
++ `py` + zai-sdk の 3 依存）で、環境不備（スクリプトパス不一致・SDK 未導入）で
+接続テストが失敗する障害が発生していた。実機検証により
+`/api/monitor/usage/quota/limit` が生 API キーの Bearer 認証で動作することを確認
+したため、DeepSeek/Kimi/MiniMax と同じ `httpGet` 方式に置き換え、Python 依存を
+完全削除。「ZHIPU Python パス」設定も廃止。
+
+- feat(quota): createZhipuProvider() — pure TypeScript via httpGet (raw Bearer key)
+- refactor(quota): remove python.ts / runPython plumbing (quota feature)
+- refactor(settings): drop quota.zhipuPythonPath (old data.json keys are ignored)
+- refactor(i18n): remove quotaZhipuPythonPath × 3 locales
+- tests: zhipu 10 cases rewritten with fetch mock; python/settings tests removed (1348 total)
+
 ## [0.47.0] - 2026-09-14 — 切断時の残骸経路自動削除 (F-047)
 
 v0.46.0 の removeStaleRoutes() を基盤に、OpenVPN 切断後の
