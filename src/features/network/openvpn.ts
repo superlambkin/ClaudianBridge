@@ -152,6 +152,8 @@ export interface OpenVpnController {
   subscribe(listener: (status: OpenVpnStatus, log: string) => void): () => void;
   /** v0.43.6: OS ルーティングまたは TUN アダプタをスキャンして外部 VPN 接続を認識 */
   detectExternalConnection(): 'connected' | 'disconnected';
+  /** F-046: 残骸経路（expectedGateway 以外の VPN 関連ルート）を削除する */
+  removeStaleRoutes(): Promise<RemoveStaleResult>;
 }
 
 const RECENT_LOG_MAX = 2000;
