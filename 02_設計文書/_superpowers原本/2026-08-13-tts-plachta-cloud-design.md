@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # ☁️ POC_017 Claudian Bridge — TTS Plachta Cloud エンジン置換設計
 
 > 📂 路径：`80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/_superpowers原本/2026-08-13-tts-plachta-cloud-design.md`
@@ -92,6 +98,8 @@ Iron Law「3回以上の修正で毎回新問題が出る」 → クラウド化
 
 ## 4. アーキテクチャ
 
+<div style="max-width:1000px">
+
 ```mermaid
 graph LR
   UI[UI: ▶ テスト button] --> CO[core.ts: addTextToTTS]
@@ -107,7 +115,12 @@ graph LR
   style API fill:#ffd,stroke:#c80
 ```
 
+
+</div>
+
 ### 4.2 通信シーケンス
+
+<div style="max-width:1000px">
 
 ```mermaid
 sequenceDiagram
@@ -130,6 +143,9 @@ sequenceDiagram
     P->>U: Audio.play() で再生
 ```
 
+
+</div>
+
 ---
 
 ## 5. コンポーネント
@@ -146,7 +162,7 @@ sequenceDiagram
 | `src/core/i18n.ts` | `ttsEnginePlachta`・`ttsPlachtaSpeaker`・`ttsPlachtaLanguage` 等のキー追加（ja/zh/en） | 🔧 |
 | `src/manifest.json` | version 0.7.x → 0.8.0 | 🔧 |
 | `80_POC_Projects/POC_017_ClaudianBridge/CHANGELOG.md` | v0.8.0 エントリ追加（anime-tts 削除・plachta 置換） | 🔧 |
-| `80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/05_設定画面設計.md` | タブ項目表を 3 エンジンに | 🔧 |
+| `80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/22_設定画面設計.md` | タブ項目表を 3 エンジンに | 🔧 |
 | `80_POC_Projects/POC_017_ClaudianBridge/01_要件定義書/01_機能要件.md` | F002 を plachta に更新 | 🔧 |
 
 ---
@@ -377,7 +393,7 @@ audio.play();
 | 🔧 実装 | `D:\AI-Agent\ClaudianBridge\src\core\i18n.ts` | 新規キー 3 言語 |
 | 🔧 マニフェスト | `D:\AI-Agent\ClaudianBridge\src\manifest.json` | 0.8.0 |
 | 📘 CHANGELOG | [[80_POC_Projects/POC_017_ClaudianBridge/CHANGELOG]] | v0.8.0 エントリ |
-| 📘 設計書 | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/05_設定画面設計]] | 3 エンジン化 |
+| 📘 設計書 | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/22_設定画面設計]] | 3 エンジン化 |
 | 📘 設計書 | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/01_クラス設計]] | tts ブロック更新 |
 | 📘 要件 | [[80_POC_Projects/POC_017_ClaudianBridge/01_要件定義/01_機能要件]] | F002 更新 |
 | 📘 環境 | `80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/_環境配置/` | anime-tts 手順書を「（削除予定）」に注記 |

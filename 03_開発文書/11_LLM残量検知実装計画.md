@@ -2,9 +2,9 @@
 title: "Claudian Bridge LLM 残量検知 実装計画"
 type: implementation-plan
 version: 1.0.0
-status: ✅ 已批准
-created: 2026-08-11
-modified: 2026-08-11
+status: 🟢 承認済
+created: 2026-08-11 08:18
+modified: 2026-08-11 12:00
 project_id: POC_017_ClaudianBridge
 phase: 3
 related_design:
@@ -12,8 +12,10 @@ related_design:
 tags:
   - 実装計画
   - LLM残量
-  - ClaudeOAuth
-  - TDD
+  - claudeoauth
+  - tdd
+  - skill-superpowers-subagent-driven-development
+  - skill-superpowers-executing-plans
 language: Japanese
 applied_rules_version: 2.9.2
 ---

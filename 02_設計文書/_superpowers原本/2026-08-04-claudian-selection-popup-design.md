@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # 划词弹出 Add to Claudian 设计文档（Claudian Selection Bridge）
 
 > 📂 路径：docs/superpowers/specs/2026-08-04-claudian-selection-popup-design.md
@@ -148,6 +154,9 @@ async function addTextToClaudian(app, text) {
 
 ## 五、数据流
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 flowchart LR
     A["selectionchange 事件"] --> B{范围校验}
@@ -160,6 +169,9 @@ flowchart LR
     G -->|点击| H["成功: 插入纯文本 + 隐藏按钮 + 清除选区<br/>失败: 保持弹窗与选区供重试"]
     G -->|4.5 隐藏触发器| E
 ```
+
+
+</div>
 
 ---
 

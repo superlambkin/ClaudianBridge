@@ -9,7 +9,7 @@ created: 2026-06-21
 modified: 2026-07-26 08:52
 tags: 
   - 製品紹介
-  - Product
+  - product
 aliases: 
   - 製品紹介
 language: Japanese

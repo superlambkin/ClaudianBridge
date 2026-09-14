@@ -1,6 +1,18 @@
+---
+tags:
+  - development
+  - poc
+  - poc-017
+version: 1.0.0
+status: 🟢 安定
+created: 2026-09-12 09:06
+title: 13_ClaudeTTS設定融合とTTS長文対応実装計画
+type: implementation-plan
+modified: 2026-09-13 12:30
+---
 # ClaudeTTS設定融合とTTS長文対応 実装計画
 
-> 📂 路径：`80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/13_ClaudeTTS設定融合とTTS長文対応実装計画.md`
+> 📂 パス：`80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/13_ClaudeTTS設定融合とTTS長文対応実装計画.md`
 > 📅 作成日：2026-08-14
 > 🐕 担当：MiuMiu 🐾
 > 🔗 設計書：[[../02_設計文書/2026-08-14-claude-tts-settings-merger-design|設定融合設計]] / [[../02_設計文書/2026-08-14-tts-long-text-chunking-design|長文チャンキング設計]]

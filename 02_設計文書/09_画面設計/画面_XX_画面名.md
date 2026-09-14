@@ -9,8 +9,8 @@ created: 2026-06-21
 modified: 2026-07-26 08:52
 tags: 
   - 画面設計
-  - UI
-  - Screen
+  - ui
+  - screen
 aliases: 
   - Screen_XX
 language: Japanese
@@ -38,6 +38,9 @@ applied_rules_version: 2.9.2
 
 ## 📊 画面フローチャート
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     Start([画面表示]) --> Header[TopAppBar]
@@ -47,6 +50,9 @@ graph TB
     FAB --> Action2[操作 2]
     Action1 --> End([戻る/遷移])
 ```
+
+
+</div>
 
 ---
 
@@ -61,6 +67,9 @@ graph TB
 
 ## 🔄 状態定義
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 stateDiagram-v2
     [*] --> Loading: 画面表示
@@ -70,6 +79,9 @@ stateDiagram-v2
     Content --> Loading: 更新
     Content --> [*]: 戻る
 ```
+
+
+</div>
 
 ---
 

@@ -1,3 +1,9 @@
+---
+tags:
+  - manual
+  - poc
+  - poc-017
+---
 # v0.39.0 — Think モード選択機能 (F-039)
 
 ## ✨ Highlights

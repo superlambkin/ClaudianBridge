@@ -3,14 +3,14 @@ title: "05_API設計"
 type: api-design
 template_id: poc/v3.1.0/05-API設計
 template_version: 3.5.0
-version: 4.0.0
-status: stable
-created: 2026-06-13
-modified: 2026-08-14
+version: 4.1.0
+status: 🟢 安定
+created: 2026-06-13 09:20
+modified: 2026-09-13 11:00
 tags:
   - API設計
   - 外部API
-  - Python CLI
+  - python-cli
   - claudian-bridge
 aliases:
   - API Design
@@ -26,7 +26,7 @@ applied_rules_version: 2.9.2
 
 # 🔌 API 設計
 
-> **関連プロジェクト**: [[../README|フェーズインデックス]] | [[01_クラス設計|クラス設計]] | [[08_セキュリティ設計|セキュリティ設計]]
+> **関連プロジェクト**: [[../README|フェーズインデックス]] | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/01_クラス設計|クラス設計]] | [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/08_セキュリティ設計|セキュリティ設計]]
 
 ---
 
@@ -242,6 +242,9 @@ GET /call/tts_fn/<event_id>/results
 
 **ソース**: `src/features/quota/http.ts`
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph LR
     A["呼び出し"] --> B{"getRequestUrl<br/>(初回キャッシュ)"}
@@ -250,6 +253,9 @@ graph LR
     C --> E["HttpResponse<br/>{ status, ok, json() }"]
     D --> E
 ```
+
+
+</div>
 
 | 環境 | 関数 | 理由 |
 |------|------|------|
@@ -368,6 +374,9 @@ realclaudian プラグインの内部 API を参照する:
 
 **呼び出しシーケンス**:
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 sequenceDiagram
     participant CB as claudian-bridge
@@ -383,6 +392,9 @@ sequenceDiagram
     end
 ```
 
+
+</div>
+
 ### 3.2 claude-tts HTTP ブリッジ
 
 **ソース**: `src/features/tts/core.ts:claudettsHttpSpeak`
@@ -395,6 +407,55 @@ sequenceDiagram
 | 終了判定 | exit code 0 + stderr/stdout に `使い方` / `usage` を含まないこと |
 
 **注意**: `claude-tts` が未配置でも false 返却で NoOp（claudian-bridge は依存しない）。
+
+---
+
+## 🧠 カテゴリ 4: Think モード LLM プロバイダ（v0.39.0/v0.40.0 追加）
+
+**ソース**: `src/features/llm/dispatch.ts` + `src/features/llm/{deepseek,kimi,minimax,zhipu}-api.ts`
+
+`LlmClient` 抽象化により、Think モード選択（F-039/F-040）で 5 プロバイダを直接呼び出す。
+
+| プロバイダ | モジュール | 認証 | 備考 |
+|-----------|-----------|------|------|
+| Claude | `claude-cli.ts`（`claude -p`） | CLI ログイン | stdin 渡し・30 秒タイムアウト |
+| DeepSeek | `deepseek-api.ts` | API Key Bearer | OpenAI 互換 chat completions |
+| Zhipu | `zhipu-api.ts` | API Key Bearer | GLM 系モデル |
+| MiniMax | `minimax-api.ts` | API Key Bearer | chat モデル |
+| Kimi | `kimi-api.ts` | API Key Bearer | coding 用途 |
+
+`dispatch(provider, prompt)` がプロバイダを振分け、タイムアウト・失敗時はエラーを呼び出し元に返す（Fail-soft・クラッシュ禁止）。
+
+## 🗣️ カテゴリ 5: TTS 周辺 API（v0.27.0〜v0.37.0 追加）
+
+| API | ソース | 内容 |
+|-----|--------|------|
+| ローカル edge_tts spawn | `features/tts/edge-tts-local.ts` | 同梱 `py/edge_tts`（src-layout）を Python subprocess で実行。`resolvePythonCmd`（Ubuntu は `python3` 自動検出）・停止は `SIGTERM → SIGKILL`（`killProcessTree`） |
+| クラウド EdgeTTS（HTTPS POST プロキシ） | 同上 | `tts.edgeCloud = { serverUrl, authToken, timeout }` で任意サーバに POST。旧 `claudettsHttpSpeak`（POC_015 依存）は削除済み |
+| LLM 原稿書き換え | `features/tts/llm-rewrite.ts` + `llm-session.ts` | 見出し単位セクションを `claude -p` で書き換え。並列数 `tts.llmRewriteConcurrency`（1〜8・既定 2）・キャッシュ `llm-rewrite-cache.json`（100 件 LRU・内容ハッシュキー）。失敗時は従来トークン変換へフォールバック |
+| `speakChunks(chunks, speakFn, onCancel?, onChunkStart?)` | `features/tts/chunking.ts` | v0.33.0: `onChunkStart` hook 追加（既存呼び出しは後方互換） |
+| `shell.openPath` | `features/outputs-mirror` / EdgeTTS 📂 ボタン | Electron `shell.openPath` で OS ファイルマネージャを開く（フォルダ不在時は自動作成・失敗時 Notice） |
+
+## 🪞 カテゴリ 6: Outputs フォルダミラリング（v0.41.0 追加）
+
+**ソース**: `src/features/outputs-mirror/manager.ts`
+
+| 項目 | 値 |
+|------|-----|
+| エントリ | `OutputsMirrorManager.apply(enabled, externalPath): MirrorState` / `status(): { linked, target? }` |
+| 作成 | `fs.symlinkSync(externalPath, vaultOutputsPath, "junction")`（Windows のみ・`process.platform === 'win32'` 判定） |
+| 事前条件 | Vault 内 `Outputs` が実フォルダ → `vault_exists`（fs 操作なし・外部側無視）。外部不在 → `mkdirSync` で自動作成 |
+| 削除 | `lstatSync` でシンボリックリンク確認後に `rmdirSync`。実フォルダは絶対に削除しない |
+| MirrorState | `linked` / `vault_exists` / `created` / `removed` / `inactive` / `error` |
+| 失敗時 | Notice 通知 + `error` 状態・プラグインは継続動作（Fail-soft） |
+
+## 📜 カテゴリ 7: 改定履歴タブ + リリースゲート（v0.41.0 追加）
+
+| 項目 | 値 |
+|------|-----|
+| `ChangelogParser.parse(markdown)` | CHANGELOG.md（ビルド時 esbuild loader で同梱・SSOT） → `{version, date, title, sections[]}[]` |
+| `SettingTabChangelog` | 全エントリをアコーディオン（新しい順）で描画 |
+| `scripts/check-changelog.mjs` | `package.json` のバージョンが CHANGELOG.md に `## [X.Y.Z]` として存在するか照合。**存在しなければ非 0 終了**（`npm run check:changelog` / リリースゲート） |
 
 ---
 
@@ -413,10 +474,19 @@ sequenceDiagram
 | splitter | Python CLI spawn | `00_Vault管理/_設定ファイル/_scripts/split_*.py` | — | 分割時 |
 | chroma-runner | Python CLI spawn | `<vault>/_chroma_inspect.py` | — | クエリ時 |
 | Raw SQL | ローカル SQLite (better-sqlite3 readonly) | `chroma.sqlite3` | 設定 `enableRawSql=true` | クエリ時 |
+| Think モード LLM | 外部 HTTP / CLI | `dispatch.ts` → DeepSeek / Zhipu / MiniMax / Kimi API / `claude -p` | API Key / CLI ログイン | オンデマンド（F-039/F-040） |
+| ローカル EdgeTTS | Python CLI spawn | `<plugin>/py/edge_tts`（git subtree 同梱） | — | 読上げ時 |
+| クラウド EdgeTTS | 外部 HTTPS POST | `tts.edgeCloud.serverUrl`（任意サーバ） | AuthToken | 読上げ時 |
+| 自己更新 | 外部 HTTPS | GitHub Releases（`Plugin/` 配布源） | なし（公開 URL） | 手動（「更新を確認」） |
+| Outputs ミラリング | ローカル fs（NTFS ジャンクション） | `fs.symlinkSync(..., "junction")` | — | 設定反映時 |
+| 改定履歴 | ビルド時同梱 | `CHANGELOG.md`（esbuild loader）→ `ChangelogParser` | — | 設定表示時 |
 
 ---
 
 ## ⏱️ ライフサイクル / ポーリング
+
+
+<div style="max-width:1000px">
 
 ```mermaid
 graph TB
@@ -435,6 +505,9 @@ graph TB
     NX --> EM["emit → View 更新"]
 ```
 
+
+</div>
+
 | タイマー | 既定値 | 範囲 | 役割 |
 |----------|--------|------|------|
 | `refreshSec` | 60 秒 | 10〜600 秒（0 で停止） | 全プロバイダ再フェッチ |
@@ -444,9 +517,21 @@ graph TB
 
 ## 🔗 関連ドキュメント
 
-- [[01_クラス設計|クラス設計]]
-- [[08_セキュリティ設計|セキュリティ設計]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/01_クラス設計|クラス設計]]
+- [[80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/08_セキュリティ設計|セキュリティ設計]]
 - [[../README|フェーズインデックス]]
+
+---
+
+## 🕘 改定履歴（プラグイン v0.33.0 → v0.41.0）
+
+| バージョン | 日付 | 機能改良内容 |
+|-----------|:----:|-------------|
+| v0.33.0 | 2026-09-02 | `speakChunks` に `onChunkStart` hook 追加（後方互換）— MD 読み上げハイライトとの連携 API |
+| v0.36.0〜0.37.2 | 2026-09-05 | LLM 原稿書き換え API 群（セクション分割書き換え・並列生成・LRU キャッシュ・フォールバック） |
+| v0.38.0 | 2026-09-07 | `positionPopup(el, rect, mode?)` に第 3 引数 `mode` 追加（ビューポートクランプ / 反転は両モード共通） |
+| v0.39.0/v0.40.0 | 2026-09-11 | `LlmClient` 抽象化 + `dispatch.ts` で 5 プロバイダ直接呼び出し（Think モード選択 F-039/F-040） |
+| v0.41.0 | 2026-09-13 | `OutputsMirrorManager.apply/status`（ジャンクション API）・`ChangelogParser` + `check-changelog.mjs` リリースゲート・`shell.openPath`「📂 開く」ボタン |
 
 ---
 
@@ -457,7 +542,8 @@ graph TB
 | v2.0.0 | 2026-06-13 | 初版（15 API + エラーコード + OpenAPI） | MiuMiu 🐾 |
 | v3.5.0 | 2026-07-26 | Web テンプレ流用版 | MiuMiu 🐾 |
 | v4.0.0 | 2026-08-13 | claudian-bridge 実コード（manifest 0.8.0）に全面書き換え：外部 HTTP 4 件 + Plachta VITS 3 ステップ + Python CLI 3 系統 + 内部プラグイン API 1 件を SSOT 化 | MiuMiu 🐾 |
+| v4.1.0 | 2026-09-13 | v0.41.0 準拠更新（改定履歴セクション新設 + Think モード LLM / EdgeTTS ローカル・クラウド / Outputs ミラリング / 改定履歴リリースゲート API 追記） | MiuMiu 🐾 |
 
 ---
 
-*🔌 API 設計 v4.0.0 · claudian-bridge 0.8.0 実コード準拠 · MiuMiu 🐾*
+*🔌 API 設計 v4.1.0 · claudian-bridge 0.41.0 実コード準拠 · MiuMiu 🐾*

@@ -8,10 +8,10 @@ status: draft
 created: 2026-06-21
 modified: 2026-07-26 08:52
 tags: 
-  - RTM
+  - rtm
   - 要件追跡
   - トレーサビリティマトリックス
-  - POC
+  - poc
 aliases: 
   - 要件追跡行列
   - Requirements Traceability Matrix
@@ -103,9 +103,9 @@ RTM は要件からテストまでの完全なトレースを保証し、以下�
 
 ## 🔗 関連リンク
 
-- [[01_要件定義/01_機能要件]] — F-番号定義
-- [[01_要件定義/06_合格基準_AC]] — AC 定義
-- [[01_テストケース]] — T-番号定義
+- [[80_POC_Projects/POC_005_RAG/01_要件定義/01_機能要件]] — F-番号定義
+- [[80_POC_Projects/POC_005_RAG/01_要件定義/06_合格基準_AC]] — AC 定義
+- [[80_POC_Projects/POC_017_ClaudianBridge/04_テスト文書/01_テストケース]] — T-番号定義
 
 ---
 

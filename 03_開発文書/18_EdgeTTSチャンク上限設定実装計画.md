@@ -1,3 +1,14 @@
+---
+tags:
+  - skill-superpowers-subagent-driven-development
+  - skill-superpowers-executing-plans
+version: 1.0.0
+status: 🟢 安定
+created: 2026-09-12 09:01
+title: 18_EdgeTTSチャンク上限設定実装計画
+type: implementation-plan
+modified: 2026-09-13 12:30
+---
 # EdgeTTS チャンク上限単独設定 実装計画
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -463,6 +474,9 @@ git commit -m "chore(release): build v0.18.0 with per-engine chunk limit setting
 
 ## 📋 タスク間依存
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph LR
     T1["Task 1<br/>設定スキーマ"] --> T2["Task 2<br/>core/speak"]
@@ -470,6 +484,9 @@ graph LR
     T2 --> T4["Task 4<br/>ビルド・UAT"]
     T3 --> T4
 ```
+
+
+</div>
 
 ---
 

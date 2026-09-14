@@ -10,7 +10,7 @@ modified: 2026-07-26 08:52
 tags: 
   - 対話まとめ
   - 開発ログ
-  - Daily Log
+  - daily-log
 aliases: 
   - 日報
   - 毎日記録

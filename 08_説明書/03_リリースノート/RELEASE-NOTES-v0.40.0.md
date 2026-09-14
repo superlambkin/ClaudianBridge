@@ -1,3 +1,9 @@
+---
+tags:
+  - manual
+  - poc
+  - poc-017
+---
 # v0.40.0 — Think モード選択機能 Phase 2 (F-040)
 
 ## ✨ Highlights

@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # Claudian Bridge 智谱（Zhipu）LLM 残量プロバイダ追加 設計書
 
 > 📂 パス：80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/_superpowers原本/2026-08-15-zhipu-quota-provider-design.md
@@ -67,6 +73,9 @@ GLM Coding Plan の使用率は専用エンドポイント `GET {host}/api/monit
 
 ## 四、アーキテクチャ
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     View[QuotaBarView] --> Svc[MultiQuotaService]
@@ -80,6 +89,9 @@ graph TB
     P --> Svc
     Svc --> View
 ```
+
+
+</div>
 
 ### 4.1 データフロー
 
@@ -155,6 +167,9 @@ export interface QuotaSettings {
 
 ### 6.2 処理フロー
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     A["API Key 取得"] --> B["ZhipuAiClient(api_key) 生成"]
@@ -164,6 +179,9 @@ graph TB
     E --> F["limits から 5h 窓抽出<br/>type==TOKENS_LIMIT && unit==3"]
     F --> G["JSON 出力"]
 ```
+
+
+</div>
 
 ### 6.3 エラー応答
 

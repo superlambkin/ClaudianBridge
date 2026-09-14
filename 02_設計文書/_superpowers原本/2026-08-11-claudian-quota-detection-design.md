@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # Claudian Bridge LLM 残量検知 設計（原本）
 
 > 📂 路径：docs/superpowers/specs/2026-08-11-claudian-quota-detection-design.md
@@ -46,6 +52,9 @@ Claudian Chat 利用中に **自分の Claude サブスクリプション残量*
 
 ### 2.1 モジュール構成
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     subgraph New["src/features/quota/ (新規)"]
@@ -78,7 +87,13 @@ graph TB
     J --> C
 ```
 
+
+</div>
+
 ### 2.2 データフロー
+
+
+<div style="max-width:1000px">
 
 ```mermaid
 flowchart TD
@@ -101,6 +116,9 @@ flowchart TD
     O --> P[QuotaBarView.onUpdate]
     P --> Q[DOM 再描画]
 ```
+
+
+</div>
 
 ---
 
@@ -281,6 +299,9 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS = {
 
 ### 6.1 配置
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     subgraph claudian-container
@@ -291,6 +312,9 @@ graph TB
         E[input-wrapper]
     end
 ```
+
+
+</div>
 
 ### 6.2 カラー閾値
 

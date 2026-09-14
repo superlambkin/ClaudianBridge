@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # Claudian Selection Bridge 多动作弹窗 RFC
 
 > 📂 路径：docs/superpowers/specs/2026-08-06-claudian-selection-bridge-multiaction.md
@@ -239,6 +245,9 @@ function webSpeechSpeak(text, settings) {
 
 ClaudeTTS 是 OS 层 Python 服务，不能直接从 Obsidian 进程发 HTTP。需要约定一个**轻量桥接协议**：
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 flowchart LR
   OB[Obsidian Plugin] -->|fetch POST| B[Local Bridge<br/>127.0.0.1:7890/speak]
@@ -246,6 +255,9 @@ flowchart LR
   C -->|HTTP 回调或音频| Bridge
   Bridge -->|音频流| OB
 ```
+
+
+</div>
 
 | 项 | 值 |
 |------|------|
@@ -260,6 +272,9 @@ flowchart LR
 ---
 
 ## 七、数据流
+
+
+<div style="max-width:1000px">
 
 ```mermaid
 sequenceDiagram
@@ -286,6 +301,9 @@ sequenceDiagram
     W-->>P: 维持选中,显示 Notice
   end
 ```
+
+
+</div>
 
 ---
 
@@ -598,6 +616,9 @@ TTS 引擎下拉 → 选中 "Edge TTS (优先 Microsoft voice)"
 
 **架构**:
 
+
+<div style="max-width:1000px">
+
 ```mermaid
 flowchart LR
   A[划词] --> B[addTextToTTS]
@@ -608,6 +629,9 @@ flowchart LR
   F --> G[cancel previous]
   G --> H[play new]
 ```
+
+
+</div>
 
 **Settings UI 设计**(Settings → TTS 引擎区,新增 "MiniMax" 子区):
 

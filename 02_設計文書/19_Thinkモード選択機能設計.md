@@ -1,3 +1,13 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+status: 🟢 安定
+version: 1.0.0
+created: 2026-09-12 09:06
+modified: 2026-09-12 09:06
+---
 # Think モード選択機能 設計仕様書
 
 > 📂 パス：80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/19_Thinkモード選択機能設計.md
@@ -50,6 +60,8 @@ ClaudianBridge の整形機能（MD 読み上げ・AI 読み上げボタン）�
 
 ## 3. アーキテクチャ
 
+<div style="max-width:1000px">
+
 ```mermaid
 graph TB
     subgraph UI["設定 UI（SettingTabGeneral）"]
@@ -95,6 +107,9 @@ graph TB
     QV --> CSS
     QV --> LLI
 ```
+
+
+</div>
 
 ---
 
@@ -190,6 +205,8 @@ export interface LlmClient {
 
 ### 5.1 起動時
 
+<div style="max-width:1000px">
+
 ```mermaid
 sequenceDiagram
     participant O as Obsidian
@@ -209,7 +226,12 @@ sequenceDiagram
     V-->>O: 🧠 OFF 表示
 ```
 
+
+</div>
+
 ### 5.2 polishInstruction 呼び出し
+
+<div style="max-width:1000px">
 
 ```mermaid
 sequenceDiagram
@@ -232,6 +254,9 @@ sequenceDiagram
     CLI-->>BTN: string | null
     BTN-->>U: 整形済み指示文で AI 読み上げ
 ```
+
+
+</div>
 
 ---
 
@@ -309,6 +334,8 @@ sequenceDiagram
 
 ## 9. 段階リリース計画
 
+<div style="max-width:1000px">
+
 ```mermaid
 gantt
     title Think モード選択機能 段階リリース
@@ -330,6 +357,9 @@ gantt
     quota 統合       :b6, after b5, 1d
     Phase 2 リリース :milestone, after b6, 0d
 ```
+
+
+</div>
 
 | リリース | 内容 | 価値 |
 |----------|------|------|
@@ -357,3 +387,9 @@ gantt
 | 実装計画書 | ✅ [[23_Thinkモード選択機能実装計画\|23_Thinkモード選択機能実装計画]] に分離 |
 | Phase 1 (v0.39.0, F-039) | ✅ リリース済（Claude のみ）|
 | Phase 2 (v0.40.0, F-040) | ✅ リリース済（DeepSeek / Zhipu / MiniMax / Kimi 追加）|
+
+## 📝 更新記録
+
+| バージョン | 日付 | 変更内容 | 変更者 |
+|-----------|:----:|---------|:------:|
+| v1.0.0 | 2026-09-12 | 初版作成 | MiuMiu 🐾 |

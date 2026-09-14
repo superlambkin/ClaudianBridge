@@ -1,3 +1,9 @@
+---
+tags:
+  - design
+  - poc
+  - poc-017
+---
 # Claudian Bridge クォータ表示窓選択トグル 設計書
 
 > 📂 パス：80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/_superpowers原本/2026-08-16-quota-window-toggle-design.md
