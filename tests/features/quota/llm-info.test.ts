@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as fs from 'fs';
-import { detectProviderFromBaseUrl, readLlmInfoFromSettings } from '../../../src/features/quota/llm-info';
+import {
+  detectProviderFromBaseUrl,
+  readLlmInfoFromSettings,
+  resolveApiKey,
+} from '../../../src/features/quota/llm-info';
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof fs>();
@@ -67,5 +71,48 @@ describe('readLlmInfoFromSettings', () => {
     const info = readLlmInfoFromSettings('C:\\x\\settings.json');
     expect(info.provider).toBe('claude');
     expect(info.authTokenPresent).toBe(false);
+  });
+});
+
+// === F-040 (Phase 2) ===
+describe('resolveApiKey', () => {
+  it('provider=deepseek で settings.deepseekApiKey を返す', () => {
+    const key = resolveApiKey('deepseek', { deepseekApiKey: 'sk-xxx' });
+    expect(key).toBe('sk-xxx');
+  });
+
+  it('provider=zhipu で settings.zhipuApiKey を返す', () => {
+    const key = resolveApiKey('zhipu', { zhipuApiKey: 'zai-xxx' });
+    expect(key).toBe('zai-xxx');
+  });
+
+  it('provider=minimax で settings.minimaxApiKey を返す', () => {
+    const key = resolveApiKey('minimax', { minimaxApiKey: 'mini-xxx' });
+    expect(key).toBe('mini-xxx');
+  });
+
+  it('provider=kimi で settings.kimiApiKey を返す', () => {
+    const key = resolveApiKey('kimi', { kimiApiKey: 'kimi-xxx' });
+    expect(key).toBe('kimi-xxx');
+  });
+
+  it('空文字キーは undefined として扱う', () => {
+    const key = resolveApiKey('deepseek', { deepseekApiKey: '' });
+    expect(key).toBeUndefined();
+  });
+
+  it('キー省略時は undefined として扱う', () => {
+    const key = resolveApiKey('deepseek', {});
+    expect(key).toBeUndefined();
+  });
+
+  it('provider=claude は undefined（ANTHROPIC_* を直接参照するため）', () => {
+    const key = resolveApiKey('claude', { deepseekApiKey: 'sk-xxx' });
+    expect(key).toBeUndefined();
+  });
+
+  it('provider=unknown は undefined を返す', () => {
+    const key = resolveApiKey('unknown', { deepseekApiKey: 'sk-xxx' });
+    expect(key).toBeUndefined();
   });
 });

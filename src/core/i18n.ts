@@ -9,6 +9,67 @@ export interface LocaleStrings {
   tabTts: string;
   tabOffice: string;
   tabWhitelist: string;
+  tabChangelog: string;
+  // === v0.43.0 (F-041/F-042) ===
+  tabNetwork: string;
+  networkNoticeDesktopOnly: string;
+  networkOpenVpnHeading: string;
+  networkOpenVpnEnabled: string;
+  networkOpenVpnEnabledDesc: string;
+  networkOpenVpnConfigPath: string;
+  networkOpenVpnConfigPathDesc: string;
+  networkOpenVpnUsername: string;
+  networkOpenVpnPassword: string;
+  networkOpenVpnBinaryPath: string;
+  networkOpenVpnBinaryPathDesc: string;
+  networkOpenVpnServerOverride: string;
+  networkOpenVpnServerOverrideDesc: string;
+  /** v0.43.8: OpenVPN 未インストール時の警告・ダウンロードリンク */
+  networkOpenVpnNotInstalled: string;
+  networkOpenVpnNotInstalledNotice: string;
+  networkOpenVpnDownloadLink: string;
+  /** v0.43.9: 接続ログのコピー */
+  networkOpenVpnCopied: string;
+  networkOpenVpnCopyFailed: string;
+  networkOpenVpnAutoConnect: string;
+  networkOpenVpnStatus: string;
+  networkOpenVpnStatusDisconnected: string;
+  networkOpenVpnStatusConnecting: string;
+  networkOpenVpnStatusConnected: string;
+  networkOpenVpnStatusError: string;
+  networkOpenVpnConnect: string;
+  networkOpenVpnDisconnect: string;
+  networkOpenVpnCopyLog: string;
+  // === v0.46.0 (F-046): 残骸経路削除 ===
+  networkOpenVpnRemoveStale: string;
+  networkOpenVpnRemoved: string;
+  networkOpenVpnRemoveFailed: string;
+  networkOpenVpnNeedAdmin: string;
+  networkOpenVpnRemoving: string;
+  // === v0.47.0 (F-047): 切断時の自動削除通知 ===
+  networkOpenVpnAutoCleaned: string;
+  // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
+  vpnToggleLabel: string;
+  vpnToggleConnecting: string;
+  vpnToggleConnected: string;
+  vpnToggleError: string;
+  vpnToggleNotConfigured: string;
+  vpnToggleTitleDisconnected: string;
+  vpnToggleTitleConnected: string;
+  vpnToggleTitleNotConfigured: string;
+  outputsMirrorHeading: string;
+  outputsMirrorEnabled: string;
+  outputsMirrorEnabledDesc: string;
+  outputsMirrorVaultExists: string;
+  outputsMirrorPath: string;
+  outputsMirrorPathDesc: string;
+  outputsMirrorOpen: string;
+  outputsMirrorStateLinked: string;
+  outputsMirrorStateNone: string;
+  hideDotFolders: string;
+  hideDotFoldersDesc: string;
+  changelogHeading: string;
+  changelogDesc: string;
   tabQuota: string;
   settingsTitle: string;
   noticeSaved: string;
@@ -17,11 +78,21 @@ export interface LocaleStrings {
   generalEnabledDesc: string;
   generalCodeCopyFence: string;
   generalCodeCopyFenceDesc: string;
+  generalMermaidRender: string;
+  generalMermaidRenderDesc: string;
   // === v0.21.0: バックアップ機能 ===
   generalBackupEnabled: string;
   generalBackupEnabledDesc: string;
   // === v0.21.1: バックアップ完了時ダイアログ自動クローズ ===
   generalBackupAutoClose: string;
+  // === v0.38.0: プロキシ設定 ===
+  generalProxyHeading: string;
+  generalProxyEnabled: string;
+  generalProxyEnabledDesc: string;
+  generalProxyUrl: string;
+  generalProxyUrlDesc: string;
+  generalProxyNoProxy: string;
+  generalProxyNoProxyDesc: string;
   generalBackupAutoCloseDesc: string;
   selectionEnabled: string;
   selectionEnabledDesc: string;
@@ -29,6 +100,11 @@ export interface LocaleStrings {
   selectionFolderEnabledDesc: string;
   selectionDelayMs: string;
   selectionDelayMsDesc: string;
+  // === v0.38.0 (F-032): 選択ポップアップ位置 ===
+  selectionPopupPosition: string;
+  selectionPopupPositionDesc: string;
+  selectionPopupPositionTopRight: string;
+  selectionPopupPositionBottom: string;
   objectMenuHeading: string;
   objectMenuEnabled: string;
   objectMenuEnabledDesc: string;
@@ -152,6 +228,52 @@ export interface LocaleStrings {
   ttsSpeechFilterThinking: string;
   // v0.18.1: ツール呼び出し除外
   ttsSpeechFilterToolCommands: string;
+  // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
+  ttsMdReadHighlightEnabled: string;
+  ttsMdReadHighlightHighlightColor: string;
+  mdReadColorPreset: string;
+  mdReadColorPresetDesc: string;
+  mdReadColorDefault: string;
+  mdReadColorYellow: string;
+  mdReadColorGreen: string;
+  mdReadColorBlue: string;
+  mdReadColorPink: string;
+  mdReadColorOrange: string;
+  mdReadColorPurple: string;
+  mdReadColorGray: string;
+  mdReadColorDarkDefault: string;
+  mdReadColorDarkYellow: string;
+  mdReadColorDarkGreen: string;
+  mdReadColorDarkBlue: string;
+  mdReadColorDarkPink: string;
+  mdReadColorDarkOrange: string;
+  mdReadColorDarkPurple: string;
+  mdReadColorDarkGray: string;
+  mdReadColorCustom: string;
+  mdReadScrollPosition: string;
+  mdReadScrollPositionDesc: string;
+  mdReadProfile: string;
+  mdReadProfileDesc: string;
+  mdReadProfileOriginal: string;
+  mdReadProfileWorkplace: string;
+  mdReadProfileCustomer: string;
+  mdReadProfileFamily: string;
+  mdReadProfileClassroom: string;
+  mdReadProfileBoss: string;
+  mdReadProfileDr: string;
+  mdReadTermsDict: string;
+  mdReadTermsDictDesc: string;
+  ttsLlmRewriteCache: string;
+  ttsLlmRewriteCacheDesc: string;
+  ttsLlmRewriteConcurrency: string;
+  ttsLlmRewriteConcurrencyDesc: string;
+  ttsMdReadOverlayPause: string;
+  ttsMdReadOverlayResume: string;
+  ttsMdReadOverlaySkipToHeading: string;
+  ttsMdReadOverlayMute: string;
+  ttsMdReadOverlayNoPreview: string;
+  // v0.33.6: 互換用（旧キー参照が残る場合に備え noPreview → noLivePreview 追加）
+  // 既存 ttsMdReadOverlayNoPreview を流用
   resetMigration: string;
   resetMigrationDesc: string;
   resetMigrationButton: string;
@@ -282,8 +404,6 @@ export interface LocaleStrings {
   quotaDisplayKimi: string;
   quotaDisplayMinimax: string;
   quotaZhipuApiKey: string;
-  quotaZhipuPythonPath: string;
-  quotaZhipuPythonPathPlaceholder: string;
   // v0.16.0: 表示窓（5時間 / 週間）
   quotaWindowsHeading: string;
   quotaWindowsDesc: string;
@@ -320,6 +440,81 @@ export interface LocaleStrings {
   tokenRateLabel: string;
   tokenRateDesc: string;
   tokenRateSuffix: string;
+  tokenRateShowTtft: string;
+  tokenRateShowCurrent: string;
+  tokenRateShowAvg: string;
+  tokenRateShowMax: string;
+  tokenRateIntervalLabel: string;
+  tokenRateIntervalDesc: string;
+  tokenRateInterval100: string;
+  tokenRateInterval250: string;
+  tokenRateInterval500: string;
+  tokenRateInterval1000: string;
+  tokenRateInterval2000: string;
+  // === v0.32.10: 自己更新機能 ===
+  updateCheckButton: string;
+  updateChecking: string;
+  updateUpToDate: string;
+  updateSuccess: string;
+  updateCheckFailed: string;
+  updateBackupFailed: string;
+  updateDownloadFailed: string;
+  updateReloadFailed: string;
+  // === v0.38.0 (F-038): 文生図（Text-to-Image）===
+  tabImageGen: string;
+  imageGenEnabled: string;
+  imageGenEnabledDesc: string;
+  imageGenProvider: string;
+  imageGenProviderDesc: string;
+  imageGenProviderMinimax: string;
+  imageGenProviderZhipu: string;
+  imageGenAspectRatio: string;
+  imageGenAspectRatioDesc: string;
+  imageGenAspectRatio_1_1: string;
+  imageGenAspectRatio_16_9: string;
+  imageGenAspectRatio_9_16: string;
+  imageGenAspectRatio_4_3: string;
+  imageGenPromptMaxChars: string;
+  imageGenPromptMaxCharsDesc: string;
+  imageGenAutoInsert: string;
+  imageGenAutoInsertDesc: string;
+  imageGenStyle: string;
+  imageGenStyleDesc: string;
+  imageGenStyleStandard: string;
+  imageGenStyleScientific: string;
+  imageGenStyleAnime: string;
+  imageGenStylePhoto: string;
+  imageGenNoticeNoKey: string;
+  imageGenNoticeExpired: string;
+  imageGenNoticeError: string;
+  imageGenNoticeSaved: string;
+  imageGenModalTitle: string;
+  imageGenModalGenerate: string;
+  imageGenModalCancel: string;
+  imageGenModalClose: string;
+  imageGenModalInsert: string;
+  imageGenModalSaveOnly: string;
+  imageGenModalPreviewEmpty: string;
+  imageGenStageSending: string;
+  imageGenStageSaving: string;
+  imageGenStageInserting: string;
+  // === v0.39.0 (F-039): Think モード設定 ===
+  settingThinkModeTitle: string;
+  settingThinkModeDescription: string;
+  settingThinkModeCurrentProvider: string;
+  settingThinkModeProviderClaude: string;
+  settingThinkModeProviderDeepseek: string;
+  settingThinkModeProviderKimi: string;
+  settingThinkModeProviderMiniMax: string;
+  settingThinkModeProviderZhipu: string;
+  settingThinkModeEnabled: string;
+  settingThinkModeEffort: string;
+  settingThinkModeEffortOff: string;
+  settingThinkModeEffortLow: string;
+  settingThinkModeEffortMedium: string;
+  settingThinkModeEffortHigh: string;
+  settingThinkModeBadgeOn: string;
+  settingThinkModeBadgeOff: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -328,8 +523,67 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tabSelection: '📝 テキスト挿入',
     tabTts: '🔊 テキスト読み上げ',
     tabOffice: '📄 ファイル変換',
-    tabWhitelist: '🗂️ 拡張子フィルタ',
+    tabWhitelist: '🗂️ Vault表示',
     tabQuota: '🤖 LLM 残量',
+    tabChangelog: '📜 変更履歴',
+    // === v0.43.0 (F-041/F-042) ===
+    tabNetwork: '🌐 ネットワーク',
+    networkNoticeDesktopOnly: '💡 OpenVPN はデスクトップ環境（Win/Mac/Linux）でのみ動作します。モバイルでは接続できません。',
+    networkOpenVpnHeading: '🔐 OpenVPN 接続',
+    networkOpenVpnEnabled: '🔐 OpenVPN を使用',
+    networkOpenVpnEnabledDesc: '有効にすると、.ovpn ファイルを使って VPN トンネルを確立します。LLM/Chroma 等の LAN 内サービスへのアクセスに使用します。',
+    networkOpenVpnConfigPath: '📁 .ovpn ファイルパス',
+    networkOpenVpnConfigPathDesc: '例: C:/Users/me/qnap.ovpn（QNAP QVPN からエクスポート）',
+    networkOpenVpnUsername: '👤 ユーザー名',
+    networkOpenVpnPassword: '🔑 パスワード',
+    networkOpenVpnBinaryPath: '🔧 openvpn バイナリパス',
+    networkOpenVpnBinaryPathDesc: '空欄なら既定パス（C:\\Program Files\\OpenVPN\\bin\\openvpn.exe）を使用',
+    networkOpenVpnServerOverride: '🌐 サーバ上書き（任意）',
+    networkOpenVpnServerOverrideDesc: 'ドメイン名で接続先を上書きします。例: myqnap.myqnapcloud.com または myqnap.example.com:1194。空欄 = .ovpn の設定を使用',
+    networkOpenVpnNotInstalled: '⚠️ OpenVPN が見つかりません。下記公式サイトからインストールし、必要に応じて 🔧 バイナリパスを設定してください。',
+    networkOpenVpnNotInstalledNotice: '⚠️ OpenVPN が見つかりません。ネットワークタブの案内からインストールしてください。',
+    networkOpenVpnDownloadLink: '⬇️ OpenVPN をダウンロード（公式サイト）',
+    networkOpenVpnCopied: '✅ 接続ログをクリップボードにコピーしました',
+    networkOpenVpnCopyFailed: '⚠️ コピーに失敗しました: {msg}',
+    networkOpenVpnAutoConnect: '🚀 LLM 呼び出し時に自動接続',
+    networkOpenVpnStatus: '状態',
+    networkOpenVpnStatusDisconnected: '🔴 切断中',
+    networkOpenVpnStatusConnecting: '🟡 接続中...',
+    networkOpenVpnStatusConnected: '🟢 接続済',
+    networkOpenVpnStatusError: '🔴 エラー',
+    networkOpenVpnConnect: '🔌 接続',
+    networkOpenVpnDisconnect: '⏹ 切断',
+    networkOpenVpnCopyLog: '📋 ログをコピー',
+    // === v0.46.0 (F-046): 残骸経路削除 ===
+    networkOpenVpnRemoveStale: '🧹 残骸経路を削除',
+    networkOpenVpnRemoved: '✅ {count} 件の残骸経路を削除しました',
+    networkOpenVpnRemoveFailed: '❌ 残骸経路の削除に失敗しました',
+    networkOpenVpnNeedAdmin: '⚠️ Obsidian を管理者として再起動してから削除してください',
+    networkOpenVpnRemoving: '🧹 残骸経路を削除中です…',
+    // === v0.47.0 (F-047): 切断時の自動削除通知 ===
+    networkOpenVpnAutoCleaned: '✅ 切断時に {count} 件の残骸経路を削除しました{failed}',
+    // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
+    vpnToggleLabel: 'VPN',
+    vpnToggleConnecting: '接続中...',
+    vpnToggleConnected: '接続済',
+    vpnToggleError: 'エラー',
+    vpnToggleNotConfigured: '⚠️ OpenVPN 設定が未完了です。設定タブで有効化してください。',
+    vpnToggleTitleDisconnected: 'クリックで VPN 接続',
+    vpnToggleTitleConnected: 'クリックで VPN 切断',
+    vpnToggleTitleNotConfigured: '設定が必要です',
+    outputsMirrorHeading: '🔗 Outputs フォルダミラリング',
+    outputsMirrorEnabled: 'Outputs フォルダを Vault 表示に追加',
+    outputsMirrorEnabledDesc: 'ドキュメント フォルダの ObsidianOutputs を Vault/Outputs として表示します（NTFS ジャンクション）',
+    outputsMirrorVaultExists: 'Vault 内に Outputs フォルダが既に存在するため有効化できません',
+    outputsMirrorPath: 'ミラー元フォルダ',
+    outputsMirrorPathDesc: '空欄の場合は Documents/ObsidainOutputs を使用します',
+    outputsMirrorOpen: '📂 開く',
+    outputsMirrorStateLinked: 'リンク済み: {target}',
+    outputsMirrorStateNone: '未接続',
+    hideDotFolders: '. で始まるフォルダを非表示',
+    hideDotFoldersDesc: '左側一覧から .obsidian などのドット開始フォルダを除外します',
+    changelogHeading: '📜 変更履歴',
+    changelogDesc: '全バージョンの変更履歴（CHANGELOG.md）',
     settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ 保存しました',
     noticeSaveFailed: '⚠️ 保存失敗: {msg}',
@@ -337,11 +591,20 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalEnabledDesc: 'Claudian Bridge 全体を ON/OFF',
     generalCodeCopyFence: '🔧 コードコピー時にフェンス付与',
     generalCodeCopyFenceDesc: 'Claudian チャットのコードブロックをコピーするとき、``` のコードフェンスを自動で付与します（Mermaid 等の貼り付け崩れを防止）',
+    generalMermaidRender: '📊 Mermaid 自動描画',
+    generalMermaidRenderDesc: 'Claudian チャット内の mermaid コードブロックを自動的に図として描画します',
     // v0.21.0
     generalBackupEnabled: '💾 右クリックバックアップ',
     generalBackupEnabledDesc: 'ファイル/フォルダ右クリックメニューに「バックアップ」を追加（OFF で非表示）',
     // v0.21.1
     generalBackupAutoClose: '⏱️ 完了時にダイアログを自動で閉じる',
+    generalProxyHeading: '🌐 プロキシ設定',
+    generalProxyEnabled: '🌐 プロキシ使用',
+    generalProxyEnabledDesc: '有効にすると、LLM アクセス（画像生成・残量検知）がプロキシ経由になります',
+    generalProxyUrl: '🔗 プロキシ URL',
+    generalProxyUrlDesc: '例: http://proxy.example.com:8080',
+    generalProxyNoProxy: '🚫 プロキシ除外ホスト',
+    generalProxyNoProxyDesc: 'カンマ区切り。例: localhost,127.0.0.1,.local',
     generalBackupAutoCloseDesc: 'バックアップ成功後、1.5秒後にダイアログを自動で閉じます（失敗時は閉じません）',
     selectionEnabled: '🌐 機能 ON/OFF',
     selectionEnabledDesc: '選択テキストを Claudian 入力に挿入する機能を有効化',
@@ -349,6 +612,11 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     selectionFolderEnabledDesc: 'フォルダを右クリック → Add to Claudian を有効化',
     selectionDelayMs: '⏱️ ポップアップ遅延 (ms)',
     selectionDelayMsDesc: '選択後フローティングボタンが表示されるまでの遅延',
+    // === v0.38.0 (F-032) ===
+    selectionPopupPosition: '🌐 ポップアップ位置',
+    selectionPopupPositionDesc: 'テキスト選択時のポップアップ表示位置',
+    selectionPopupPositionTopRight: '右上',
+    selectionPopupPositionBottom: '下',
     objectMenuHeading: '🖱️ オブジェクト右クリックメニュー',
     objectMenuEnabled: '✅ 有効化',
     objectMenuEnabledDesc: '画像・リンク・コードブロックなどのオブジェクトを右クリックして Claudian に送信',
@@ -464,6 +732,50 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterCode: 'コードブロック',
     ttsSpeechFilterThinking: '思考ブロック',
     ttsSpeechFilterToolCommands: 'ツール呼び出し',
+    // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
+    ttsMdReadHighlightEnabled: 'MD 読み上げ時にチャンク位置をハイライト',
+    ttsMdReadHighlightHighlightColor: 'ハイライト色',
+    mdReadColorPreset: '🎨 ハイライト色（プリセット）',
+    mdReadColorPresetDesc: '定番色から選ぶと色コードへ自動反映します',
+    mdReadColorDefault: '既定（アンバー）',
+    mdReadColorYellow: '黄色',
+    mdReadColorGreen: '緑',
+    mdReadColorBlue: '水色',
+    mdReadColorPink: '桃',
+    mdReadColorOrange: 'オレンジ',
+    mdReadColorPurple: '紫',
+    mdReadColorGray: 'グレー',
+    mdReadColorDarkDefault: '濃いアンバー',
+    mdReadColorDarkYellow: '濃い黄',
+    mdReadColorDarkGreen: '濃い緑',
+    mdReadColorDarkBlue: '濃い青',
+    mdReadColorDarkPink: '濃い赤',
+    mdReadColorDarkOrange: '濃いオレンジ',
+    mdReadColorDarkPurple: '濃い紫',
+    mdReadColorDarkGray: '濃いグレー',
+    mdReadColorCustom: 'カスタム',
+    mdReadScrollPosition: '📍 自動スクロール位置',
+    mdReadScrollPositionDesc: '読み上げ中のハイライトを画面上から何%の位置に表示するか（0=最上部 〜 100=最下部）',
+    mdReadProfile: '👂 聴き手プロファイル',
+    mdReadProfileDesc: '聞く相手に合わせて口調・専門用語を変換します（既定は原文のまま）',
+    mdReadProfileOriginal: '原文（デフォルト）',
+    mdReadProfileWorkplace: '職場（技術）',
+    mdReadProfileCustomer: '顧客（仕様説明）',
+    mdReadProfileFamily: '家族（やさしい）',
+    mdReadProfileClassroom: '教室（学生）',
+    mdReadProfileBoss: '上司（報告）',
+    mdReadProfileDr: 'DR（査読）',
+    mdReadTermsDict: '📖 用語辞書（任意）',
+    mdReadTermsDictDesc: '用語 → やさしい表現 の対照表 MD パス（テーブルまたは「- 用語 → 表現」形式）',
+    ttsLlmRewriteCache: '🧠 LLM 原稿書き換えキャッシュ',
+    ttsLlmRewriteCacheDesc: '書き換え結果をキャッシュして再読上げを高速化（既定 ON）',
+    ttsLlmRewriteConcurrency: '🔀 LLM 並列生成数',
+    ttsLlmRewriteConcurrencyDesc: '原稿生成を並列実行して待ち時間を短縮（1〜8・既定 2）',
+    ttsMdReadOverlayPause: '一時停止',
+    ttsMdReadOverlayResume: '再開',
+    ttsMdReadOverlaySkipToHeading: '次の見出しへ',
+    ttsMdReadOverlayMute: 'ミュート',
+    ttsMdReadOverlayNoPreview: 'Preview モードで表示中のみハイライトできます',
     resetMigration: '🔄 旧設定をやり直す',
     resetMigrationDesc: '旧プラグインの data.json から再取り込み（実行後に Obsidian を再起動）',
     resetMigrationButton: '🔄 移行リセット',
@@ -594,8 +906,6 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayKimi: 'KIMI CODE を表示',
     quotaDisplayMinimax: 'MINIMAX を表示',
     quotaZhipuApiKey: 'ZHIPU API キー',
-    quotaZhipuPythonPath: 'ZHIPU Python パス',
-    quotaZhipuPythonPathPlaceholder: 'py / python3 / フルパス',
     quotaWindowsHeading: '🪟 表示窓',
     quotaWindowsDesc: '使用率を表示する期間。Kimi は 5時間固定、DeepSeek は残金表示です',
     quotaWindowWeek: '週間',
@@ -630,14 +940,148 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateLabel: 'トークン速度を表示',
     tokenRateDesc: 'レスポンス生成速度を入力画面の下にライブ表示します',
     tokenRateSuffix: 'tok/s',
+    tokenRateShowTtft: '首（TTFT）を表示',
+    tokenRateShowCurrent: '現在速度を表示',
+    tokenRateShowAvg: '平均速度を表示',
+    tokenRateShowMax: '最大速度を表示',
+    tokenRateIntervalLabel: '更新周期',
+    tokenRateIntervalDesc: '表示の更新頻度（短いほど滑らか・CPU負荷増）',
+    tokenRateInterval100: '0.1 秒（高頻度）',
+    tokenRateInterval250: '0.25 秒（既定・推奨）',
+    tokenRateInterval500: '0.5 秒',
+    tokenRateInterval1000: '1 秒（省 CPU）',
+    tokenRateInterval2000: '2 秒（最低負荷）',
+    // v0.32.10: 自己更新機能
+    updateCheckButton: '更新を確認',
+    updateChecking: '🔄 更新を確認中...',
+    updateUpToDate: '✅ 最新版です',
+    updateSuccess: '✅ {version} に更新しました',
+    updateCheckFailed: '❌ 更新確認に失敗: {msg}',
+    updateBackupFailed: '❌ バックアップ作成失敗。中断します: {msg}',
+    updateDownloadFailed: '❌ ダウンロード失敗。バックアップから手動復元できます: {msg}',
+    updateReloadFailed: '❌ 再起動失敗。手動で復元してください: {msg}',
+    // === v0.38.0 (F-038): 文生図（Text-to-Image）===
+    tabImageGen: '🎨 文生図',
+    imageGenEnabled: '🌐 機能 ON/OFF',
+    imageGenEnabledDesc: 'リボン / コマンドパレットから画像生成を有効化します',
+    imageGenProvider: '🛠 既定プロバイダ',
+    imageGenProviderDesc: '画像生成に使用する API プロバイダ',
+    imageGenProviderMinimax: 'MiniMax (image-01)',
+    imageGenProviderZhipu: 'Zhipu (GLM-Image)',
+    imageGenAspectRatio: '📐 既定アスペクト比',
+    imageGenAspectRatioDesc: '新規生成時の既定のアスペクト比',
+    imageGenAspectRatio_1_1: '1:1（正方形）',
+    imageGenAspectRatio_16_9: '16:9（横長）',
+    imageGenAspectRatio_9_16: '9:16（縦長）',
+    imageGenAspectRatio_4_3: '4:3（標準）',
+    imageGenPromptMaxChars: '📝 プロンプト上限',
+    imageGenPromptMaxCharsDesc: 'プロンプト文字数の上限（100〜8000）',
+    imageGenAutoInsert: '📥 自動挿入',
+    imageGenAutoInsertDesc: '生成成功時にアクティブノートへ ![[ ]] を挿入',
+    imageGenStyle: '🎨 スタイル',
+    imageGenStyleDesc: 'scientific-illustrator 相当の科学イラストやアニメ調、写真リアルを選択',
+    imageGenStyleStandard: '🎨 標準（API 既定）',
+    imageGenStyleScientific: '📊 科学的イラスト（scientific-illustrator 相当）',
+    imageGenStyleAnime: '🎬 アニメ調（Studio Ghibli 風）',
+    imageGenStylePhoto: '📷 写真リアル',
+    imageGenNoticeNoKey: '⚠️ {provider} の API キーが未設定です。ClaudianBridge 設定の LLM 残量タブで設定してください',
+    imageGenNoticeExpired: '⚠️ {provider} の API キーが無効です（期限切れ）',
+    imageGenNoticeError: '⚠️ 画像生成失敗: {msg}',
+    imageGenNoticeSaved: '✅ 画像を保存しました',
+    imageGenModalTitle: '🎨 画像生成',
+    imageGenModalGenerate: '生成',
+    imageGenModalCancel: 'キャンセル',
+    imageGenModalClose: '閉じる',
+    imageGenModalInsert: 'ノートに挿入',
+    imageGenModalSaveOnly: '保存のみ',
+    imageGenModalPreviewEmpty: 'ここに生成画像が表示されます',
+    imageGenStageSending: '{provider} に送信中...',
+    imageGenStageSaving: '保存中...',
+    imageGenStageInserting: 'ノートに挿入中...',
+    // === v0.39.0 (F-039): Think モード設定 ===
+    settingThinkModeTitle: 'Think モード',
+    settingThinkModeDescription: 'LLM プロバイダごとに Think モードを設定します。MD 読み上げ・AI 読み上げボタンに影響します。',
+    settingThinkModeCurrentProvider: '現在の LLM プロバイダ',
+    settingThinkModeProviderClaude: 'Claude',
+    settingThinkModeProviderDeepseek: 'DeepSeek',
+    settingThinkModeProviderKimi: 'Kimi',
+    settingThinkModeProviderMiniMax: 'MiniMax',
+    settingThinkModeProviderZhipu: 'Zhipu (GLM)',
+    settingThinkModeEnabled: 'Think モード',
+    settingThinkModeEffort: 'エフォート',
+    settingThinkModeEffortOff: 'OFF',
+    settingThinkModeEffortLow: '低',
+    settingThinkModeEffortMedium: '中',
+    settingThinkModeEffortHigh: '高',
+    settingThinkModeBadgeOn: '🧠 ON',
+    settingThinkModeBadgeOff: '🧠 OFF',
   },
   en: {
     tabGeneral: '🎛️ General',
     tabSelection: '📝 Text Insertion',
     tabTts: '🔊 Text To Speech',
     tabOffice: '📄 File Conversion',
-    tabWhitelist: '🗂️ Extension Filter',
+    tabWhitelist: '🗂️ Vault Display',
     tabQuota: '🤖 LLM Quota',
+    tabChangelog: '📜 Changelog',
+    // === v0.43.0 (F-041/F-042) ===
+    tabNetwork: '🌐 Network',
+    networkNoticeDesktopOnly: '💡 OpenVPN works only on desktop (Win/Mac/Linux). Not available on mobile.',
+    networkOpenVpnHeading: '🔐 OpenVPN Connection',
+    networkOpenVpnEnabled: '🔐 Enable OpenVPN',
+    networkOpenVpnEnabledDesc: 'When enabled, establishes a VPN tunnel using the .ovpn file. Used to access LAN services such as LLM/Chroma.',
+    networkOpenVpnConfigPath: '📁 .ovpn file path',
+    networkOpenVpnConfigPathDesc: 'e.g. C:/Users/me/qnap.ovpn (exported from QNAP QVPN)',
+    networkOpenVpnUsername: '👤 Username',
+    networkOpenVpnPassword: '🔑 Password',
+    networkOpenVpnBinaryPath: '🔧 openvpn binary path',
+    networkOpenVpnBinaryPathDesc: 'If empty, the default path (C:\\Program Files\\OpenVPN\\bin\\openvpn.exe) is used',
+    networkOpenVpnServerOverride: '🌐 Server override (optional)',
+    networkOpenVpnServerOverrideDesc: 'Overrides the connection target with a domain. e.g. myqnap.myqnapcloud.com or myqnap.example.com:1194. Empty = use .ovpn setting',
+    networkOpenVpnNotInstalled: '⚠️ OpenVPN was not found. Install it from the official site below, and set the 🔧 binary path if needed.',
+    networkOpenVpnNotInstalledNotice: '⚠️ OpenVPN was not found. Follow the guidance in the Network tab to install it.',
+    networkOpenVpnDownloadLink: '⬇️ Download OpenVPN (official site)',
+    networkOpenVpnCopied: '✅ Connection log copied to clipboard',
+    networkOpenVpnCopyFailed: '⚠️ Copy failed: {msg}',
+    networkOpenVpnAutoConnect: '🚀 Auto-connect on LLM call',
+    networkOpenVpnStatus: 'Status',
+    networkOpenVpnStatusDisconnected: '🔴 Disconnected',
+    networkOpenVpnStatusConnecting: '🟡 Connecting...',
+    networkOpenVpnStatusConnected: '🟢 Connected',
+    networkOpenVpnStatusError: '🔴 Error',
+    networkOpenVpnConnect: '🔌 Connect',
+    networkOpenVpnDisconnect: '⏹ Disconnect',
+    networkOpenVpnCopyLog: '📋 Copy log',
+    // === v0.46.0 (F-046): stale route removal ===
+    networkOpenVpnRemoveStale: '🧹 Remove stale routes',
+    networkOpenVpnRemoved: '✅ Removed {count} stale routes',
+    networkOpenVpnRemoveFailed: '❌ Failed to remove stale routes',
+    networkOpenVpnNeedAdmin: '⚠️ Restart Obsidian as admin to remove',
+    networkOpenVpnRemoving: '🧹 Removing stale routes…',
+    // === v0.47.0 (F-047): auto cleanup notice on disconnect ===
+    networkOpenVpnAutoCleaned: '✅ Auto-cleaned {count} stale route(s) after disconnect{failed}',
+    // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
+    vpnToggleLabel: 'VPN',
+    vpnToggleConnecting: 'Connecting...',
+    vpnToggleConnected: 'Connected',
+    vpnToggleError: 'Error',
+    vpnToggleNotConfigured: '⚠️ OpenVPN not configured. Please enable it in Settings.',
+    vpnToggleTitleDisconnected: 'Click to connect VPN',
+    vpnToggleTitleConnected: 'Click to disconnect VPN',
+    vpnToggleTitleNotConfigured: 'Configuration required',
+    outputsMirrorHeading: '🔗 Outputs folder mirroring',
+    outputsMirrorEnabled: 'Mirror Outputs folder into Vault display',
+    outputsMirrorEnabledDesc: 'Shows Documents/ObsidianOutputs as Vault/Outputs via an NTFS junction',
+    outputsMirrorVaultExists: 'Cannot enable: an Outputs folder already exists in the Vault',
+    outputsMirrorPath: 'Mirror source folder',
+    outputsMirrorPathDesc: 'Leave empty to use Documents/ObsidianOutputs',
+    outputsMirrorOpen: '📂 Open',
+    outputsMirrorStateLinked: 'Linked: {target}',
+    outputsMirrorStateNone: 'Not linked',
+    hideDotFolders: 'Hide folders starting with "."',
+    hideDotFoldersDesc: 'Excludes dot-prefixed folders such as .obsidian from the file list',
+    changelogHeading: '📜 Changelog',
+    changelogDesc: 'Full version history (CHANGELOG.md)',
     settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ Saved',
     noticeSaveFailed: '⚠️ Save failed: {msg}',
@@ -645,11 +1089,20 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalEnabledDesc: 'Toggle Claudian Bridge globally',
     generalCodeCopyFence: '🔧 Add fences when copying code',
     generalCodeCopyFenceDesc: 'When copying a code block from Claudian chat, automatically wrap it in ``` fences (prevents broken pastes such as Mermaid diagrams).',
+    generalMermaidRender: '📊 Auto-render Mermaid',
+    generalMermaidRenderDesc: 'Automatically render mermaid code blocks in the Claudian chat as diagrams',
     // v0.21.0
     generalBackupEnabled: '💾 Right-click backup',
     generalBackupEnabledDesc: 'Add "Backup" to file/folder right-click menu (hide when OFF)',
     // v0.21.1
     generalBackupAutoClose: '⏱️ Auto-close dialog on completion',
+    generalProxyHeading: '🌐 Proxy settings',
+    generalProxyEnabled: '🌐 Use proxy',
+    generalProxyEnabledDesc: 'When enabled, LLM access (image generation, quota detection) goes through the proxy',
+    generalProxyUrl: '🔗 Proxy URL',
+    generalProxyUrlDesc: 'Example: http://proxy.example.com:8080',
+    generalProxyNoProxy: '🚫 Bypass hosts',
+    generalProxyNoProxyDesc: 'Comma-separated. Example: localhost,127.0.0.1,.local',
     generalBackupAutoCloseDesc: 'Automatically closes the dialog 1.5s after a successful backup (not on failure)',
     selectionEnabled: '🌐 Enable Feature',
     selectionEnabledDesc: 'Insert selected text into Claudian input',
@@ -657,6 +1110,11 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     selectionFolderEnabledDesc: 'Enable right-click → Add to Claudian on folders',
     selectionDelayMs: '⏱️ Popup delay (ms)',
     selectionDelayMsDesc: 'Delay before the floating button appears after selection',
+    // === v0.38.0 (F-032) ===
+    selectionPopupPosition: 'Popup position',
+    selectionPopupPositionDesc: 'Position of the popup on text selection',
+    selectionPopupPositionTopRight: 'Top right',
+    selectionPopupPositionBottom: 'Bottom',
     objectMenuHeading: '🖱️ Object context menu',
     objectMenuEnabled: '✅ Enable',
     objectMenuEnabledDesc: 'Right-click objects like images, links, code blocks to send to Claudian',
@@ -772,6 +1230,50 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterCode: 'Code block',
     ttsSpeechFilterThinking: 'Thinking block',
     ttsSpeechFilterToolCommands: 'Tool calls',
+    // v0.33.0 (F-028): MD 読み上げ位置ハイライト / Floating Overlay
+    ttsMdReadHighlightEnabled: 'Highlight reading position in MD Preview',
+    ttsMdReadHighlightHighlightColor: 'Highlight color',
+    mdReadColorPreset: '🎨 Highlight color (preset)',
+    mdReadColorPresetDesc: 'Pick a preset color and it will be applied to the color code',
+    mdReadColorDefault: 'Default (amber)',
+    mdReadColorYellow: 'Yellow',
+    mdReadColorGreen: 'Green',
+    mdReadColorBlue: 'Light blue',
+    mdReadColorPink: 'Pink',
+    mdReadColorOrange: 'Orange',
+    mdReadColorPurple: 'Purple',
+    mdReadColorGray: 'Gray',
+    mdReadColorDarkDefault: 'Dark amber',
+    mdReadColorDarkYellow: 'Dark yellow',
+    mdReadColorDarkGreen: 'Dark green',
+    mdReadColorDarkBlue: 'Dark blue',
+    mdReadColorDarkPink: 'Dark red',
+    mdReadColorDarkOrange: 'Dark orange',
+    mdReadColorDarkPurple: 'Dark purple',
+    mdReadColorDarkGray: 'Dark gray',
+    mdReadColorCustom: 'Custom',
+    mdReadScrollPosition: '📍 Auto-scroll position',
+    mdReadScrollPositionDesc: 'Where to place the highlight on screen while reading (0=top 〜 100=bottom)',
+    mdReadProfile: '👂 Listener profile',
+    mdReadProfileDesc: 'Transform tone and terminology for the audience (default: original text)',
+    mdReadProfileOriginal: 'Original (default)',
+    mdReadProfileWorkplace: 'Workplace (technical)',
+    mdReadProfileCustomer: 'Customer (spec review)',
+    mdReadProfileFamily: 'Family (simple)',
+    mdReadProfileClassroom: 'Classroom (students)',
+    mdReadProfileBoss: 'Boss (report)',
+    mdReadProfileDr: 'DR (document review)',
+    mdReadTermsDict: '📖 Terms dictionary (optional)',
+    mdReadTermsDictDesc: 'Path to a MD file mapping terms to plain expressions (table or "- term → expr")',
+    ttsLlmRewriteCache: '🧠 LLM rewrite cache',
+    ttsLlmRewriteCacheDesc: 'Cache the rewritten script for faster re-reads (default ON)',
+    ttsLlmRewriteConcurrency: '🔀 LLM parallel generation',
+    ttsLlmRewriteConcurrencyDesc: 'Run script generation in parallel to reduce wait (1-8, default 2)',
+    ttsMdReadOverlayPause: 'Pause',
+    ttsMdReadOverlayResume: 'Resume',
+    ttsMdReadOverlaySkipToHeading: 'Skip to next heading',
+    ttsMdReadOverlayMute: 'Mute',
+    ttsMdReadOverlayNoPreview: 'Highlight only works in Preview mode',
     resetMigration: '🔄 Re-import Legacy Settings',
     resetMigrationDesc: 'Re-import from legacy plugin data.json (requires Obsidian restart)',
     resetMigrationButton: '🔄 Reset Migration',
@@ -902,8 +1404,6 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayKimi: 'Show KIMI CODE',
     quotaDisplayMinimax: 'Show MINIMAX',
     quotaZhipuApiKey: 'ZHIPU API key',
-    quotaZhipuPythonPath: 'ZHIPU Python path',
-    quotaZhipuPythonPathPlaceholder: 'py / python3 / full path',
     quotaWindowsHeading: '🪟 Display window',
     quotaWindowsDesc: 'Period for usage display. Kimi is fixed at 5h; DeepSeek shows balance.',
     quotaWindowWeek: 'Weekly',
@@ -938,14 +1438,148 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateLabel: 'Show token rate',
     tokenRateDesc: 'Display live token generation rate below input',
     tokenRateSuffix: 'tok/s',
+    tokenRateShowTtft: 'Show TTFT',
+    tokenRateShowCurrent: 'Show current rate',
+    tokenRateShowAvg: 'Show average rate',
+    tokenRateShowMax: 'Show max rate',
+    tokenRateIntervalLabel: 'Update interval',
+    tokenRateIntervalDesc: 'Display refresh rate (shorter = smoother, more CPU)',
+    tokenRateInterval100: '0.1 sec (frequent)',
+    tokenRateInterval250: '0.25 sec (default)',
+    tokenRateInterval500: '0.5 sec',
+    tokenRateInterval1000: '1 sec (low CPU)',
+    tokenRateInterval2000: '2 sec (minimal)',
+    // v0.32.10: self-update
+    updateCheckButton: 'Check for Updates',
+    updateChecking: '🔄 Checking for updates...',
+    updateUpToDate: '✅ Up to date',
+    updateSuccess: '✅ Updated to {version}',
+    updateCheckFailed: '❌ Update check failed: {msg}',
+    updateBackupFailed: '❌ Backup failed. Aborting: {msg}',
+    updateDownloadFailed: '❌ Download failed. Restore manually from backup: {msg}',
+    updateReloadFailed: '❌ Reload failed. Restore manually: {msg}',
+    // === v0.38.0 (F-038): Text-to-Image ===
+    tabImageGen: '🎨 Text to Image',
+    imageGenEnabled: '🌐 Enable feature',
+    imageGenEnabledDesc: 'Enable image generation from ribbon / command palette',
+    imageGenProvider: '🛠 Default provider',
+    imageGenProviderDesc: 'API provider used for image generation',
+    imageGenProviderMinimax: 'MiniMax (image-01)',
+    imageGenProviderZhipu: 'Zhipu (GLM-Image)',
+    imageGenAspectRatio: '📐 Default aspect ratio',
+    imageGenAspectRatioDesc: 'Default aspect ratio for new generations',
+    imageGenAspectRatio_1_1: '1:1 (Square)',
+    imageGenAspectRatio_16_9: '16:9 (Landscape)',
+    imageGenAspectRatio_9_16: '9:16 (Portrait)',
+    imageGenAspectRatio_4_3: '4:3 (Standard)',
+    imageGenPromptMaxChars: '📝 Prompt max chars',
+    imageGenPromptMaxCharsDesc: 'Prompt character limit (100–8000)',
+    imageGenAutoInsert: '📥 Auto insert',
+    imageGenAutoInsertDesc: 'Insert ![[ ]] into the active note after generation',
+    imageGenStyle: '🎨 Style',
+    imageGenStyleDesc: 'Select from scientific illustration (scientific-illustrator equivalent), anime, or photorealistic',
+    imageGenStyleStandard: '🎨 Standard (API default)',
+    imageGenStyleScientific: '📊 Scientific illustration (scientific-illustrator equivalent)',
+    imageGenStyleAnime: '🎬 Anime (Studio Ghibli style)',
+    imageGenStylePhoto: '📷 Photorealistic',
+    imageGenNoticeNoKey: '⚠️ {provider} API key is not configured. Please set it in the ClaudianBridge settings → LLM quota tab',
+    imageGenNoticeExpired: '⚠️ {provider} API key is invalid (expired)',
+    imageGenNoticeError: '⚠️ Image generation failed: {msg}',
+    imageGenNoticeSaved: '✅ Image saved',
+    imageGenModalTitle: '🎨 Generate Image',
+    imageGenModalGenerate: 'Generate',
+    imageGenModalCancel: 'Cancel',
+    imageGenModalClose: 'Close',
+    imageGenModalInsert: 'Insert into note',
+    imageGenModalSaveOnly: 'Save only',
+    imageGenModalPreviewEmpty: 'Generated image will appear here',
+    imageGenStageSending: 'Sending to {provider}...',
+    imageGenStageSaving: 'Saving...',
+    imageGenStageInserting: 'Inserting into note...',
+    // === v0.39.0 (F-039): Think Mode settings ===
+    settingThinkModeTitle: 'Think Mode',
+    settingThinkModeDescription: 'Configure thinking mode per LLM provider. Affects MD read-aloud and AI read-aloud buttons.',
+    settingThinkModeCurrentProvider: 'Current LLM provider',
+    settingThinkModeProviderClaude: 'Claude',
+    settingThinkModeProviderDeepseek: 'DeepSeek',
+    settingThinkModeProviderKimi: 'Kimi',
+    settingThinkModeProviderMiniMax: 'MiniMax',
+    settingThinkModeProviderZhipu: 'Zhipu (GLM)',
+    settingThinkModeEnabled: 'Think Mode',
+    settingThinkModeEffort: 'Effort',
+    settingThinkModeEffortOff: 'OFF',
+    settingThinkModeEffortLow: 'Low',
+    settingThinkModeEffortMedium: 'Medium',
+    settingThinkModeEffortHigh: 'High',
+    settingThinkModeBadgeOn: '🧠 ON',
+    settingThinkModeBadgeOff: '🧠 OFF',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
     tabSelection: '📝 文本插入',
     tabTts: '🔊 文本朗读',
     tabOffice: '📄 文件转换',
-    tabWhitelist: '🗂️ 扩展名过滤',
+    tabWhitelist: '🗂️ Vault 显示',
     tabQuota: '🤖 LLM 额度',
+    tabChangelog: '📜 更新历史',
+    // === v0.43.0 (F-041/F-042) ===
+    tabNetwork: '🌐 网络',
+    networkNoticeDesktopOnly: '💡 OpenVPN 仅在桌面端（Win/Mac/Linux）可用。移动端无法连接。',
+    networkOpenVpnHeading: '🔐 OpenVPN 连接',
+    networkOpenVpnEnabled: '🔐 启用 OpenVPN',
+    networkOpenVpnEnabledDesc: '启用后，使用 .ovpn 文件建立 VPN 隧道。用于访问局域网内 LLM/Chroma 等服务。',
+    networkOpenVpnConfigPath: '📁 .ovpn 文件路径',
+    networkOpenVpnConfigPathDesc: '例: C:/Users/me/qnap.ovpn（从 QNAP QVPN 导出）',
+    networkOpenVpnUsername: '👤 用户名',
+    networkOpenVpnPassword: '🔑 密码',
+    networkOpenVpnBinaryPath: '🔧 openvpn 二进制路径',
+    networkOpenVpnBinaryPathDesc: '为空时使用默认路径（C:\\Program Files\\OpenVPN\\bin\\openvpn.exe）',
+    networkOpenVpnServerOverride: '🌐 服务器覆盖（可选）',
+    networkOpenVpnServerOverrideDesc: '用域名覆盖连接目标。例: myqnap.myqnapcloud.com 或 myqnap.example.com:1194。留空 = 使用 .ovpn 设置',
+    networkOpenVpnNotInstalled: '⚠️ 未找到 OpenVPN。请从下方官网安装，并按需设置 🔧 二进制路径。',
+    networkOpenVpnNotInstalledNotice: '⚠️ 未找到 OpenVPN。请按网络选项卡中的指引进行安装。',
+    networkOpenVpnDownloadLink: '⬇️ 下载 OpenVPN（官网）',
+    networkOpenVpnCopied: '✅ 连接日志已复制到剪贴板',
+    networkOpenVpnCopyFailed: '⚠️ 复制失败: {msg}',
+    networkOpenVpnAutoConnect: '🚀 LLM 调用时自动连接',
+    networkOpenVpnStatus: '状态',
+    networkOpenVpnStatusDisconnected: '🔴 已断开',
+    networkOpenVpnStatusConnecting: '🟡 连接中...',
+    networkOpenVpnStatusConnected: '🟢 已连接',
+    networkOpenVpnStatusError: '🔴 错误',
+    networkOpenVpnConnect: '🔌 连接',
+    networkOpenVpnDisconnect: '⏹ 断开',
+    networkOpenVpnCopyLog: '📋 复制日志',
+    // === v0.46.0 (F-046): 残留路由删除 ===
+    networkOpenVpnRemoveStale: '🧹 删除残留路由',
+    networkOpenVpnRemoved: '✅ 已删除 {count} 条残留路由',
+    networkOpenVpnRemoveFailed: '❌ 删除残留路由失败',
+    networkOpenVpnNeedAdmin: '⚠️ 请以管理员身份重启 Obsidian 后再删除',
+    networkOpenVpnRemoving: '🧹 正在删除残留路由…',
+    // === v0.47.0 (F-047): 断开时自动删除通知 ===
+    networkOpenVpnAutoCleaned: '✅ 断开时已自动删除 {count} 条残留路由{failed}',
+    // === v0.43.1 (F-043): Claudian 画面 VPN トグル ===
+    vpnToggleLabel: 'VPN',
+    vpnToggleConnecting: '连接中...',
+    vpnToggleConnected: '已连接',
+    vpnToggleError: '错误',
+    vpnToggleNotConfigured: '⚠️ OpenVPN 未配置。请在设置中启用。',
+    vpnToggleTitleDisconnected: '点击连接 VPN',
+    vpnToggleTitleConnected: '点击断开 VPN',
+    vpnToggleTitleNotConfigured: '需要配置',
+    outputsMirrorHeading: '🔗 Outputs 文件夹镜像',
+    outputsMirrorEnabled: '将 Outputs 文件夹添加到 Vault 显示',
+    outputsMirrorEnabledDesc: '通过 NTFS junction 将 Documents/ObsidianOutputs 显示为 Vault/Outputs',
+    outputsMirrorVaultExists: 'Vault 中已存在 Outputs 文件夹，无法启用',
+    outputsMirrorPath: '镜像源文件夹',
+    outputsMirrorPathDesc: '留空则使用 Documents/ObsidianOutputs',
+    outputsMirrorOpen: '📂 打开',
+    outputsMirrorStateLinked: '已链接: {target}',
+    outputsMirrorStateNone: '未链接',
+    hideDotFolders: '隐藏以 . 开头的文件夹',
+    hideDotFoldersDesc: '从左侧列表中排除 .obsidian 等点开头文件夹',
+    changelogHeading: '📜 更新历史',
+    changelogDesc: '全部版本历史（CHANGELOG.md）',
     settingsTitle: 'Claudian Bridge',
     noticeSaved: '✅ 已写入',
     noticeSaveFailed: '⚠️ 写入失败: {msg}',
@@ -953,11 +1587,20 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     generalEnabledDesc: '全局开关 Claudian Bridge',
     generalCodeCopyFence: '🔧 复制代码时添加围栏',
     generalCodeCopyFenceDesc: '从 Claudian 聊天复制代码块时，自动补全 ``` 代码围栏（防止 Mermaid 等粘贴后无法渲染）',
+    generalMermaidRender: '📊 Mermaid 自动渲染',
+    generalMermaidRenderDesc: '自动将 Claudian 聊天中的 mermaid 代码块渲染为图形',
     // v0.21.0
     generalBackupEnabled: '💾 右键备份',
     generalBackupEnabledDesc: '在文件/文件夹右键菜单中添加"备份"（关闭时不显示）',
     // v0.21.1
     generalBackupAutoClose: '⏱️ 完成时自动关闭对话框',
+    generalProxyHeading: '🌐 代理设置',
+    generalProxyEnabled: '🌐 使用代理',
+    generalProxyEnabledDesc: '启用后,LLM 访问（图像生成、配额检测）将通过代理',
+    generalProxyUrl: '🔗 代理 URL',
+    generalProxyUrlDesc: '例如: http://proxy.example.com:8080',
+    generalProxyNoProxy: '🚫 跳过主机',
+    generalProxyNoProxyDesc: '逗号分隔。例如: localhost,127.0.0.1,.local',
     generalBackupAutoCloseDesc: '备份成功后 1.5 秒自动关闭对话框（失败时不关闭）',
     selectionEnabled: '🌐 启用功能',
     selectionEnabledDesc: '将选中文本插入 Claudian 输入框',
@@ -965,6 +1608,11 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     selectionFolderEnabledDesc: '启用文件夹右键 → Add to Claudian',
     selectionDelayMs: '⏱️ 弹窗延迟 (毫秒)',
     selectionDelayMsDesc: '选中后到悬浮按钮出现的延迟',
+    // === v0.38.0 (F-032) ===
+    selectionPopupPosition: '弹出位置',
+    selectionPopupPositionDesc: '文本选择时弹出框的显示位置',
+    selectionPopupPositionTopRight: '右上',
+    selectionPopupPositionBottom: '下方',
     objectMenuHeading: '🖱️ 对象右键菜单',
     objectMenuEnabled: '✅ 启用',
     objectMenuEnabledDesc: '右键图片、链接、代码块等对象发送到 Claudian',
@@ -1075,6 +1723,50 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     ttsSpeechFilterCode: '代码块',
     ttsSpeechFilterThinking: '思考块',
     ttsSpeechFilterToolCommands: '工具调用',
+    // v0.33.0 (F-028): MD 读取位置高亮 / Floating Overlay
+    ttsMdReadHighlightEnabled: '在 MD 朗读时高亮当前分块位置',
+    ttsMdReadHighlightHighlightColor: '高亮颜色',
+    mdReadColorPreset: '🎨 高亮颜色（预设）',
+    mdReadColorPresetDesc: '选择常用色后自动填入颜色代码',
+    mdReadColorDefault: '默认（琥珀）',
+    mdReadColorYellow: '黄色',
+    mdReadColorGreen: '绿色',
+    mdReadColorBlue: '浅蓝',
+    mdReadColorPink: '粉色',
+    mdReadColorOrange: '橙色',
+    mdReadColorPurple: '紫色',
+    mdReadColorGray: '灰色',
+    mdReadColorDarkDefault: '深琥珀',
+    mdReadColorDarkYellow: '深黄',
+    mdReadColorDarkGreen: '深绿',
+    mdReadColorDarkBlue: '深蓝',
+    mdReadColorDarkPink: '深红',
+    mdReadColorDarkOrange: '深橙',
+    mdReadColorDarkPurple: '深紫',
+    mdReadColorDarkGray: '深灰',
+    mdReadColorCustom: '自定义',
+    mdReadScrollPosition: '📍 自动滚动位置',
+    mdReadScrollPositionDesc: '朗读时高亮显示在屏幕纵向的位置（0=最上 〜 100=最下）',
+    mdReadProfile: '👂 听众配置',
+    mdReadProfileDesc: '根据听众转换语气与专业术语（默认原文照读）',
+    mdReadProfileOriginal: '原文（默认）',
+    mdReadProfileWorkplace: '职场（技术）',
+    mdReadProfileCustomer: '客户（规格说明）',
+    mdReadProfileFamily: '家人（通俗易懂）',
+    mdReadProfileClassroom: '教室（学生）',
+    mdReadProfileBoss: '上司（汇报）',
+    mdReadProfileDr: 'DR（文档评审）',
+    mdReadTermsDict: '📖 术语词典（可选）',
+    mdReadTermsDictDesc: '术语 → 通俗表达 的对照表 MD 路径（表格或「- 术语 → 表达」形式）',
+    ttsLlmRewriteCache: '🧠 LLM 改写缓存',
+    ttsLlmRewriteCacheDesc: '缓存改写稿以加速再次朗读（默认开启）',
+    ttsLlmRewriteConcurrency: '🔀 LLM 并行生成数',
+    ttsLlmRewriteConcurrencyDesc: '并行生成改写稿以减少等待（1-8，默认 2）',
+    ttsMdReadOverlayPause: '暂停',
+    ttsMdReadOverlayResume: '继续',
+    ttsMdReadOverlaySkipToHeading: '跳到下一标题',
+    ttsMdReadOverlayMute: '静音',
+    ttsMdReadOverlayNoPreview: '仅在 Preview 模式下可高亮显示',
     ttsVoicesHint: '所选引擎的音色。切换引擎时下拉框内容也会切换',
     ttsVoiceZh: '中文 (zh)',
     ttsVoiceJa: '日语 (ja)',
@@ -1210,8 +1902,6 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     quotaDisplayKimi: '显示 KIMI CODE',
     quotaDisplayMinimax: '显示 MINIMAX',
     quotaZhipuApiKey: 'ZHIPU API 密钥',
-    quotaZhipuPythonPath: 'ZHIPU Python 路径',
-    quotaZhipuPythonPathPlaceholder: 'py / python3 / 完整路径',
     quotaWindowsHeading: '🪟 显示窗口',
     quotaWindowsDesc: '显示使用率的周期。Kimi 固定 5 小时，DeepSeek 显示余额。',
     quotaWindowWeek: '每周',
@@ -1246,6 +1936,81 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     tokenRateLabel: '显示令牌速率',
     tokenRateDesc: '在输入框下方实时显示响应生成速率',
     tokenRateSuffix: 'tok/s',
+    tokenRateShowTtft: '显示首字延迟',
+    tokenRateShowCurrent: '显示当前速率',
+    tokenRateShowAvg: '显示平均速率',
+    tokenRateShowMax: '显示最大速率',
+    tokenRateIntervalLabel: '更新周期',
+    tokenRateIntervalDesc: '显示更新频率（越短越流畅・CPU 负载越高）',
+    tokenRateInterval100: '0.1 秒（高频）',
+    tokenRateInterval250: '0.25 秒（默认）',
+    tokenRateInterval500: '0.5 秒',
+    tokenRateInterval1000: '1 秒（低 CPU）',
+    tokenRateInterval2000: '2 秒（最低负载）',
+    // v0.32.10: 自我更新功能
+    updateCheckButton: '检查更新',
+    updateChecking: '🔄 正在检查更新...',
+    updateUpToDate: '✅ 已是最新版本',
+    updateSuccess: '✅ 已更新到 {version}',
+    updateCheckFailed: '❌ 检查更新失败: {msg}',
+    updateBackupFailed: '❌ 备份创建失败，已中止: {msg}',
+    updateDownloadFailed: '❌ 下载失败，可从备份手动恢复: {msg}',
+    updateReloadFailed: '❌ 重启失败，请手动恢复: {msg}',
+    // === v0.38.0 (F-038): 文生图 ===
+    tabImageGen: '🎨 文生图',
+    imageGenEnabled: '🌐 启用功能',
+    imageGenEnabledDesc: '从侧栏图标 / 命令面板启用图像生成',
+    imageGenProvider: '🛠 默认提供商',
+    imageGenProviderDesc: '用于图像生成的 API 提供商',
+    imageGenProviderMinimax: 'MiniMax (image-01)',
+    imageGenProviderZhipu: 'Zhipu (GLM-Image)',
+    imageGenAspectRatio: '📐 默认宽高比',
+    imageGenAspectRatioDesc: '新生成图像的默认宽高比',
+    imageGenAspectRatio_1_1: '1:1（正方形）',
+    imageGenAspectRatio_16_9: '16:9（横版）',
+    imageGenAspectRatio_9_16: '9:16（竖版）',
+    imageGenAspectRatio_4_3: '4:3（标准）',
+    imageGenPromptMaxChars: '📝 提示词上限',
+    imageGenPromptMaxCharsDesc: '提示词字符数上限（100〜8000）',
+    imageGenAutoInsert: '📥 自动插入',
+    imageGenAutoInsertDesc: '生成成功后自动将 ![[ ]] 插入当前笔记',
+    imageGenStyle: '🎨 风格',
+    imageGenStyleDesc: '可选择 scientific-illustrator 相当的科学绘图、动漫风或照片写实',
+    imageGenStyleStandard: '🎨 标准（API 默认）',
+    imageGenStyleScientific: '📊 科学绘图（scientific-illustrator 相当）',
+    imageGenStyleAnime: '🎬 动漫风（吉卜力风格）',
+    imageGenStylePhoto: '📷 照片写实',
+    imageGenNoticeNoKey: '⚠️ {provider} 的 API 密钥未配置。请在 ClaudianBridge 设置 → LLM 配额 标签页中配置',
+    imageGenNoticeExpired: '⚠️ {provider} 的 API 密钥无效（已过期）',
+    imageGenNoticeError: '⚠️ 图像生成失败: {msg}',
+    imageGenNoticeSaved: '✅ 图像已写入',
+    imageGenModalTitle: '🎨 图像生成',
+    imageGenModalGenerate: '生成',
+    imageGenModalCancel: '取消',
+    imageGenModalClose: '关闭',
+    imageGenModalInsert: '插入笔记',
+    imageGenModalSaveOnly: '仅写入',
+    imageGenModalPreviewEmpty: '生成的图像将显示在此处',
+    imageGenStageSending: '正在发送到 {provider}...',
+    imageGenStageSaving: '正在写入...',
+    imageGenStageInserting: '正在插入笔记...',
+    // === v0.39.0 (F-039): Think 模式设置 ===
+    settingThinkModeTitle: 'Think 模式',
+    settingThinkModeDescription: '按 LLM 提供商配置 Think 模式。影响 MD 朗读・AI 朗读按钮。',
+    settingThinkModeCurrentProvider: '当前 LLM 提供商',
+    settingThinkModeProviderClaude: 'Claude',
+    settingThinkModeProviderDeepseek: 'DeepSeek',
+    settingThinkModeProviderKimi: 'Kimi',
+    settingThinkModeProviderMiniMax: 'MiniMax',
+    settingThinkModeProviderZhipu: 'Zhipu (GLM)',
+    settingThinkModeEnabled: 'Think 模式',
+    settingThinkModeEffort: '思考强度',
+    settingThinkModeEffortOff: 'OFF',
+    settingThinkModeEffortLow: '低',
+    settingThinkModeEffortMedium: '中',
+    settingThinkModeEffortHigh: '高',
+    settingThinkModeBadgeOn: '🧠 ON',
+    settingThinkModeBadgeOff: '🧠 OFF',
   },
 };
 

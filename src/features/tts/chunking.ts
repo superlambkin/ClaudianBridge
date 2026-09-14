@@ -8,6 +8,8 @@
  */
 
 /** デフォルト区切り文字（日本語・英語の句読点 + 改行） */
+import { getPlaybackController } from './playback-controller';
+
 export const DEFAULT_DELIMITERS = ['。', '！', '？', '.', '!', '?', '\n'];
 
 /**
@@ -61,16 +63,61 @@ export function chunkText(text: string, maxChunkSize: number, delimiters: string
 /**
  * チャンク配列を順に speak し、全チャンク成功で true を返す。
  * speakFn が false を返すか onCancel() が true を返したら中断して false。
+ *
+ * v0.31.0 (F-028): 各 chunk speak 直前に onChunkStart(idx) を呼ぶ（MD ハイライト連動用）。
  */
 export async function speakChunks(
   chunks: string[],
-  speakFn: (text: string) => Promise<boolean>,
+  speakFn: (text: string, idx: number) => Promise<boolean>,
   onCancel?: () => boolean,
+  onChunkStart?: (idx: number) => void,
 ): Promise<boolean> {
-  for (const chunk of chunks) {
+  const pc = getPlaybackController();
+  for (let i = 0; i < chunks.length; i++) {
     if (onCancel?.()) return false;
-    const ok = await speakFn(chunk);
-    if (!ok) return false;
+    // v0.35.2: stop() による即時中止
+    if (pc.isAborted()) return false;
+    onChunkStart?.(i);
+    const ok = await speakFn(chunks[i], i);
+    if (!ok) {
+      // v0.35.0: スキップ要求（⏭）による中断なら次チャンクへ続行
+      if (pc.consumeSkip()) continue;
+      return false;
+    }
+    pc.consumeSkip(); // 正常完了時は残スキップ要求を破棄（次チャンクへ自然進行）
   }
   return true;
+}
+
+/** 見出し行（markdown heading）の直前位置を検出する */
+const HEADING_LINE_RE = /(^|\n)([ \t]{0,3}#{1,6}[ \t]+[^\n]*)/g;
+/** セクション先頭の見出し記号（# と後続空白）を読み上げ用に除去する */
+const HEADING_STRIP_RE = /^[ \t]{0,3}#{1,6}[ \t]+/;
+
+/**
+ * v0.35.0: 見出し行で強制新チャンクし、各セクションを既存 chunkText で
+ * 文末（。！？\n 等）優先パックする。core.ts と md-file-read-flow.ts の
+ * 両方から使用することでハイライト index の完全一致を維持する。
+ * v0.35.x: 見出しの # 記号は読み上げ用に除去（章境界は維持）。
+ */
+export function chunkTextNatural(text: string, maxChunkSize: number): string[] {
+  const sections: string[] = [];
+  let last = 0;
+  let foundHeading = false;
+  for (const m of text.matchAll(HEADING_LINE_RE)) {
+    foundHeading = true;
+    const at = (m.index ?? 0) + m[1].length;
+    if (at > last) sections.push(text.slice(last, at));
+    last = at;
+  }
+  if (!foundHeading) return chunkText(text, maxChunkSize);
+  sections.push(text.slice(last));
+  const out: string[] = [];
+  for (const s of sections) {
+    const trimmed = s.replace(/^\n+|\n+$/g, '');
+    // v0.35.x: 章見出しの # を除去（本文として読む）
+    const cleaned = trimmed.replace(HEADING_STRIP_RE, '');
+    if (cleaned.trim()) out.push(...chunkText(cleaned, maxChunkSize));
+  }
+  return out;
 }

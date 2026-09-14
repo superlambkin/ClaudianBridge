@@ -159,3 +159,99 @@ describe('QuotaBarView', () => {
     expect(document.querySelector('.cb-quota-indicator')).toBeNull();
   });
 });
+
+describe('QuotaBarView: Think モード バッジ (v0.39.0, F-039)', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  function mount(anchorCls = 'new-tab-btn') {
+    const anchor = document.createElement('button');
+    anchor.className = anchorCls;
+    document.body.appendChild(anchor);
+    const view = new QuotaBarView();
+    view.mount(anchor);
+    return { anchor, view };
+  }
+
+  function makeQuota(over: Partial<ProviderQuota> = {}): ProviderQuota {
+    return { status: 'success', providerId: 'deepseek', label: 'DeepSeek', value: '¥110.00', pct: null, ...over };
+  }
+
+  it('setThinking していないと バッジは描画されない', () => {
+    const { view } = mount();
+    view.render(makeQuota());
+    expect(document.querySelector('.cb-think-badge')).toBeNull();
+  });
+
+  it('setThinking(null) は バッジを消去', () => {
+    const { view } = mount();
+    view.setThinking({ enabled: true, effort: 'medium' });
+    view.render(makeQuota());
+    expect(document.querySelector('.cb-think-badge')).not.toBeNull();
+    view.setThinking(null);
+    expect(document.querySelector('.cb-think-badge')).toBeNull();
+  });
+
+  it('enabled=true で バッジ ON 表示（cb-think-badge--on）', () => {
+    const { view } = mount();
+    view.render(makeQuota());
+    view.setThinking({ enabled: true, effort: 'medium' });
+    const badge = document.querySelector('.cb-think-badge')!;
+    expect(badge).not.toBeNull();
+    expect(badge.classList.contains('cb-think-badge--on')).toBe(true);
+    expect(badge.classList.contains('cb-think-badge--off')).toBe(false);
+    expect(badge.textContent).toBe('🧠 ON');
+  });
+
+  it('enabled=false で バッジ OFF 表示（cb-think-badge--off）', () => {
+    const { view } = mount();
+    view.render(makeQuota());
+    view.setThinking({ enabled: false, effort: 'low' });
+    const badge = document.querySelector('.cb-think-badge')!;
+    expect(badge).not.toBeNull();
+    expect(badge.classList.contains('cb-think-badge--off')).toBe(true);
+    expect(badge.classList.contains('cb-think-badge--on')).toBe(false);
+    expect(badge.textContent).toBe('🧠 OFF');
+  });
+
+  it('ツールチップは "Think Mode: <effort>" 形式（既定 locale=en）', () => {
+    const { view } = mount();
+    view.render(makeQuota());
+    view.setThinking({ enabled: true, effort: 'high' });
+    const badge = document.querySelector('.cb-think-badge')!;
+    expect(badge.title).toBe('Think Mode: high');
+  });
+
+  it('effort=off のときも ツールチップに effort 値が出る', () => {
+    const { view } = mount();
+    view.render(makeQuota());
+    view.setThinking({ enabled: false, effort: 'off' });
+    const badge = document.querySelector('.cb-think-badge')!;
+    expect(badge.title).toBe('Think Mode: off');
+  });
+
+  it('バッジは value/model の右隣に配置される', () => {
+    const { view } = mount();
+    view.setModel('deepseek-v4');
+    view.render(makeQuota());
+    view.setThinking({ enabled: true, effort: 'medium' });
+    const el = document.querySelector('.cb-quota-indicator')!;
+    const label = el.querySelector('.cb-quota-indicator__label')!;
+    const value = el.querySelector('.cb-quota-indicator__value')!;
+    const model = el.querySelector('.cb-quota-indicator__model')!;
+    const badge = el.querySelector('.cb-think-badge')!;
+    expect(el.children[0]).toBe(label);
+    expect(el.children[1]).toBe(value);
+    expect(el.children[2]).toBe(model);
+    expect(el.children[3]).toBe(badge);
+  });
+
+  it('setThinking は 直前の Quota を再描画する', () => {
+    const { view } = mount();
+    view.render(makeQuota({ label: 'Claude', value: '40%', pct: 40 }));
+    // setThinking 呼び出し時点で再描画 → バッジが反映される
+    view.setThinking({ enabled: true, effort: 'medium' });
+    const label = document.querySelector('.cb-quota-indicator__label')!;
+    expect(label.textContent).toBe('Claude');
+    expect(document.querySelector('.cb-think-badge')).not.toBeNull();
+  });
+});

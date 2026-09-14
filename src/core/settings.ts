@@ -52,6 +52,18 @@ export {
 } from '../features/chroma/defaults';
 import { MAX_QUERY_RESULTS, MIN_QUERY_RESULTS, MAX_PREVIEW_LENGTH, MIN_PREVIEW_LENGTH } from '../features/chroma/defaults';
 
+// === v0.39.0 (F-039): Think モード選択機能 ===
+import type { ThinkingConfig, ThinkingEffort } from '../features/llm/types';
+
+// === v0.43.0 (F-041/F-042): ネットワークタブ・OpenVPN 接続機能 ===
+import type { OpenVpnSettings } from '../features/network/types';
+import { DEFAULT_OPEN_VPN_SETTINGS } from '../features/network/types';
+
+// === v0.32.0: トークン速度表示の更新周期 ===
+export const ALLOWED_TOKEN_RATE_INTERVALS = [100, 250, 500, 1000, 2000] as const;
+export const DEFAULT_TOKEN_RATE_INTERVAL_MS = 250;
+export type TokenRateIntervalMs = typeof ALLOWED_TOKEN_RATE_INTERVALS[number];
+
 export interface OfficeSettings {
   enabled: boolean;
   pythonPath: string;
@@ -336,9 +348,6 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaSettings = {
   ragConfigPath: '',        // config.yaml 絶対パス
 };
 
-/** 既定の Python インタプリタ（office / chroma と同じ導出） */
-const DEFAULT_PYTHON_PATH = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
-
 /** Claude Code の設定ファイル既定パス（ホームディレクトリ解決） */
 export function defaultClaudeSettingsPath(): string {
   try {
@@ -412,8 +421,6 @@ export interface QuotaSettings {
   minimaxApiKey: string;
   /** 智譜（Zhipu）API キー */
   zhipuApiKey: string;
-  /** 智譜クォータ取得用 Python インタプリタ */
-  zhipuPythonPath: string;
   /** 表示モデル個別ON/OFF（v0.5.0） */
   displayModels: QuotaDisplayFlags;
   /** 表示窓（5時間 / 週間） */
@@ -430,6 +437,8 @@ export const DEFAULT_QUOTA_DISPLAY_MODELS: QuotaDisplayFlags = {
 
 // === v0.17.0: MD保存ボタン設定 ===
 export type MemoryScope = 'pair' | 'conversation';
+// === v0.38.0 (F-032): 選択ポップアップ位置 ===
+export type PopupPosition = 'top-right' | 'bottom';
 
 export interface MemorySettings {
   /** MD保存ボタン全体の有効/無効（既定 true） */
@@ -455,6 +464,120 @@ export function normalizeMemorySettings(raw: unknown): MemorySettings {
   };
 }
 
+/**
+ * v0.31.0 (F-028): MD ファイル「Add to TTS」読み上げ中の Preview ハイライト設定。
+ */
+export interface MdReadHighlightSettings {
+  /** ハイライト機能の有効化（デフォルト true） */
+  enabled: boolean;
+  /** チャンクのアクティブ背景色（CSS color 文字列）。空文字ならデフォルト色 */
+  highlightColor: string;
+  /** v0.35.0: ハイライトの画面上スクロール位置（%・0=最上部 〜 100=最下部・既定 40） */
+  scrollPositionPct: number;
+}
+
+// === v0.38.0 (F-038): 文生図（Text-to-Image）設定 ===
+export type ImageGenProviderId = 'minimax' | 'zhipu';
+export type ImageGenAspectRatio = '1:1' | '16:9' | '9:16' | '4:3';
+export type ImageGenStyle = 'standard' | 'scientific' | 'anime' | 'photo';
+export const IMAGE_GEN_PROVIDER_IDS: readonly ImageGenProviderId[] = ['minimax', 'zhipu'];
+export const IMAGE_GEN_ASPECT_RATIOS: readonly ImageGenAspectRatio[] = ['1:1', '16:9', '9:16', '4:3'];
+export const IMAGE_GEN_STYLES: readonly ImageGenStyle[] = ['standard', 'scientific', 'anime', 'photo'];
+export const IMAGE_GEN_PROMPT_MAX_CHARS_MIN = 100;
+export const IMAGE_GEN_PROMPT_MAX_CHARS_MAX = 8000;
+export const IMAGE_GEN_PROMPT_MAX_CHARS_DEFAULT = 2000;
+
+// === v0.38.0: プロキシ設定（LLM アクセス用） ===
+export interface ProxySettings {
+  /** プロキシ使用の ON/OFF（既定 false） */
+  enabled: boolean;
+  /** プロキシ URL（例: "http://proxy.example.com:8080"） */
+  url: string;
+  /** プロキシ除外ホスト（カンマ区切り、例: "localhost,127.0.0.1,.local"） */
+  noProxyHosts: string;
+}
+
+export const DEFAULT_PROXY_SETTINGS: ProxySettings = {
+  enabled: false,
+  url: '',
+  noProxyHosts: 'localhost,127.0.0.1,.local',
+};
+
+export const PROXY_URL_MAX_LEN = 500;
+export const PROXY_NO_PROXY_MAX_LEN = 1000;
+
+export function normalizeProxySettings(raw: unknown): ProxySettings {
+  const r = (raw ?? {}) as Partial<ProxySettings>;
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_PROXY_SETTINGS.enabled,
+    url: typeof r.url === 'string' ? r.url.slice(0, PROXY_URL_MAX_LEN) : DEFAULT_PROXY_SETTINGS.url,
+    noProxyHosts: typeof r.noProxyHosts === 'string'
+      ? r.noProxyHosts.slice(0, PROXY_NO_PROXY_MAX_LEN)
+      : DEFAULT_PROXY_SETTINGS.noProxyHosts,
+  };
+}
+
+/**
+ * v0.43.0 (F-041/F-042): OpenVPN 設定の正規化。
+ * 部分指定・型違い・欠落はいずれも DEFAULT_OPEN_VPN_SETTINGS でフォールバックする。
+ */
+export function normalizeOpenVpnSettings(raw: unknown): OpenVpnSettings {
+  const r = (raw ?? {}) as Partial<OpenVpnSettings>;
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_OPEN_VPN_SETTINGS.enabled,
+    configPath: typeof r.configPath === 'string' ? r.configPath : DEFAULT_OPEN_VPN_SETTINGS.configPath,
+    username: typeof r.username === 'string' ? r.username : DEFAULT_OPEN_VPN_SETTINGS.username,
+    password: typeof r.password === 'string' ? r.password : DEFAULT_OPEN_VPN_SETTINGS.password,
+    autoConnectOnLlm: typeof r.autoConnectOnLlm === 'boolean' ? r.autoConnectOnLlm : DEFAULT_OPEN_VPN_SETTINGS.autoConnectOnLlm,
+    openvpnBinaryPath: typeof r.openvpnBinaryPath === 'string' ? r.openvpnBinaryPath : DEFAULT_OPEN_VPN_SETTINGS.openvpnBinaryPath,
+    serverOverride: typeof r.serverOverride === 'string' ? r.serverOverride : DEFAULT_OPEN_VPN_SETTINGS.serverOverride,
+  };
+}
+
+export interface ImageGenSettings {
+  /** 機能全体の ON/OFF（既定 true） */
+  enabled: boolean;
+  /** 既定 provider（既定 'minimax'） */
+  provider: ImageGenProviderId;
+  /** 既定 aspect ratio（既定 '1:1'） */
+  aspectRatio: ImageGenAspectRatio;
+  /** プロンプトの文字数上限（既定 2000、API 仕様に応じ [100, 8000] にクランプ） */
+  promptMaxChars: number;
+  /** 成功時に Vault ノートへ自動挿入するか（既定 true） */
+  autoInsertToActive: boolean;
+  /** 画像スタイル（既定 'standard'）。`scientific-illustrator` スキル相当のスタイルも選択可能 */
+  style: ImageGenStyle;
+}
+
+export const DEFAULT_IMAGE_GEN_SETTINGS: ImageGenSettings = {
+  enabled: true,
+  provider: 'minimax',
+  aspectRatio: '1:1',
+  promptMaxChars: IMAGE_GEN_PROMPT_MAX_CHARS_DEFAULT,
+  autoInsertToActive: true,
+  style: 'standard',
+};
+
+export function normalizeImageGenSettings(raw: unknown): ImageGenSettings {
+  const r = (raw ?? {}) as Partial<ImageGenSettings>;
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_IMAGE_GEN_SETTINGS.enabled,
+    provider: r.provider === 'zhipu' ? 'zhipu' : DEFAULT_IMAGE_GEN_SETTINGS.provider,
+    aspectRatio: IMAGE_GEN_ASPECT_RATIOS.includes(r.aspectRatio as ImageGenAspectRatio)
+      ? (r.aspectRatio as ImageGenAspectRatio)
+      : DEFAULT_IMAGE_GEN_SETTINGS.aspectRatio,
+    promptMaxChars: typeof r.promptMaxChars === 'number' && Number.isFinite(r.promptMaxChars)
+      ? Math.max(IMAGE_GEN_PROMPT_MAX_CHARS_MIN, Math.min(IMAGE_GEN_PROMPT_MAX_CHARS_MAX, Math.round(r.promptMaxChars)))
+      : DEFAULT_IMAGE_GEN_SETTINGS.promptMaxChars,
+    autoInsertToActive: typeof r.autoInsertToActive === 'boolean'
+      ? r.autoInsertToActive
+      : DEFAULT_IMAGE_GEN_SETTINGS.autoInsertToActive,
+    style: IMAGE_GEN_STYLES.includes(r.style as ImageGenStyle)
+      ? (r.style as ImageGenStyle)
+      : DEFAULT_IMAGE_GEN_SETTINGS.style,
+  };
+}
+
 export interface ClaudianBridgeSettings {
   general: {
     enabled: boolean;
@@ -465,6 +588,8 @@ export interface ClaudianBridgeSettings {
     quotaSwitchSec: number;  // v0.4.0: provider rotation interval
     // v0.9.0: Claudian チャットのコードブロックコピー時に ``` フェンスを付与
     codeCopyFence: boolean;
+    // v0.33.0: チャット内 mermaid 自動描画
+    mermaidRender: boolean;
     // === v0.21.0: バックアップ機能 ===
     backupEnabled: boolean;
     // === v0.21.1: バックアップ完了時にダイアログを自動で閉じる ===
@@ -475,12 +600,32 @@ export interface ClaudianBridgeSettings {
     quickReplyEnabled: boolean;
     // === v0.30.0: トークン速度表示 ===
     tokenRateEnabled: boolean;
+    // === v0.31.0: トークン速度表示の表示項目選択 ===
+    tokenRateShowTtft: boolean;
+    tokenRateShowCurrent: boolean;
+    tokenRateShowAvg: boolean;
+    tokenRateShowMax: boolean;
+    // === v0.32.0: トークン速度表示の更新周期 ===
+    tokenRateIntervalMs: number;
+    // === v0.41.0: Outputs フォルダミラリング（Documents/ObsidainOutputs → Vault/Outputs） ===
+    outputsMirrorEnabled: boolean;
+    // 空文字なら Documents/ObsidainOutputs を動的解決
+    outputsMirrorPath: string;
+    // === v0.41.0: 「. で始まるフォルダを非表示」 ===
+    hideDotFolders: boolean;
+  };
+  // === v0.43.0 (F-041/F-042): ネットワークセクション（プロキシ + OpenVPN）===
+  network: {
+    proxy: ProxySettings;
+    openvpn: OpenVpnSettings;
   };
   quota: QuotaSettings;
   selection: {
     enabled: boolean;
     folderEnabled: boolean;
     delayMs: number;
+    // === v0.38.0 (F-032): 選択ポップアップ位置 ===
+    popupPosition: PopupPosition;
     // === v0.2.0: Object context menu ===
     objectMenuEnabled: boolean;
     objectMenuExcludeSelectors: string[];
@@ -519,22 +664,81 @@ export interface ClaudianBridgeSettings {
     autoReadReportScript?: boolean;
     /** v0.27.0: クラウド EdgeTTS プロキシ設定（任意: normalize で補填される） */
     edgeCloud?: TtsEdgeCloudSettings;
+    /** v0.31.0 (F-028): MD ファイル「Add to TTS」読み上げ中の Preview ハイライト設定。 */
+    mdReadHighlight: MdReadHighlightSettings;
+    /** v0.36.0 (F-032): 聴き手プロファイル（口調・用語変換）。既定 'original'（原文） */
+    mdReadProfile?: 'original' | 'workplace' | 'customer' | 'family' | 'classroom' | 'boss' | 'dr';
+    /** v0.36.0 (F-032): 用語辞書（Vault 内 MD パス。任意） */
+    termsDict?: string;
+    /** v0.37.0 (F-033): LLM 原稿書き換え結果のキャッシュ（既定 ON） */
+    llmRewriteCache?: boolean;
+    /** v0.37.1: LLM 並列生成数（1〜8・既定 2） */
+    llmRewriteConcurrency?: number;
   };
   office: OfficeSettings;
   whitelist: WhitelistSettings;
   chroma: ChromaSettings;
   memory: MemorySettings;
+  // === v0.38.0 (F-038): 文生図（Text-to-Image）===
+  imageGen: ImageGenSettings;
+  // === v0.39.0 (F-039): Think モード選択機能 ===
+  /** プロバイダ別 Think モード設定 */
+  thinking: {
+    claude: ThinkingConfig;
+    deepseek: ThinkingConfig;
+    kimi: ThinkingConfig;
+    minimax: ThinkingConfig;
+    zhipu: ThinkingConfig;
+  };
+}
+
+/** v0.36.0 (F-032): 聴き手プロファイルの有効値一覧 */
+const PROFILE_VALUES = ['original', 'workplace', 'customer', 'family', 'classroom', 'boss', 'dr'] as const;
+
+// === v0.39.0 (F-039): Think モード選択機能 — プロバイダ別デフォルト ===
+export const DEFAULT_THINKING_CONFIGS = {
+  claude:  { enabled: true,  effort: 'medium' } as ThinkingConfig,
+  deepseek:{ enabled: false, effort: 'medium' } as ThinkingConfig,
+  kimi:    { enabled: false, effort: 'medium' } as ThinkingConfig,
+  minimax: { enabled: false, effort: 'medium' } as ThinkingConfig,
+  zhipu:   { enabled: false, effort: 'medium' } as ThinkingConfig,
+};
+
+// === v0.39.0 (F-039): ThinkingConfig の runtime 検証 ===
+/** ThinkingEffort の有効値判定（'off' | 'low' | 'medium' | 'high'） */
+function isValidEffort(effort: unknown): effort is ThinkingEffort {
+  return effort === 'off' || effort === 'low' || effort === 'medium' || effort === 'high';
+}
+
+/**
+ * ThinkingConfig の部分指定を runtime 検証して補完する。
+ * オブジェクト自体欠落・enabled 型違い・effort 不正値はいずれも fallback に倒す。
+ */
+function normalizeThinkingField(
+  raw: Partial<ThinkingConfig> | undefined,
+  fallback: ThinkingConfig,
+): ThinkingConfig {
+  if (!raw) return fallback;
+  const effort: ThinkingEffort = isValidEffort(raw.effort) ? raw.effort : fallback.effort;
+  return {
+    enabled: typeof raw.enabled === 'boolean' ? raw.enabled : fallback.enabled,
+    effort,
+  };
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, outputsMirrorEnabled: false, outputsMirrorPath: '', hideDotFolders: true },
+  // === v0.43.0 (F-041/F-042): ネットワークセクション（プロキシ + OpenVPN）===
+  network: {
+    proxy: { ...DEFAULT_PROXY_SETTINGS },
+    openvpn: { ...DEFAULT_OPEN_VPN_SETTINGS },
+  },
   quota: {
     claudeSettingsPath: defaultClaudeSettingsPath(),
     deepseekApiKey: '',
     kimiApiKey: '',
     minimaxApiKey: '',
     zhipuApiKey: '',
-    zhipuPythonPath: DEFAULT_PYTHON_PATH,
     displayModels: { ...DEFAULT_QUOTA_DISPLAY_MODELS },
     windows: { ...DEFAULT_QUOTA_WINDOWS },
   },
@@ -542,6 +746,8 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     enabled: true,
     folderEnabled: true,
     delayMs: 300,
+    // === v0.38.0 (F-032) ===
+    popupPosition: 'top-right',
     objectMenuEnabled: true,
     objectMenuExcludeSelectors: [...DEFAULT_OBJECT_EXCLUDE_SELECTORS],
     objectMenuTypeFlags: { button: true, input: true, link: true, element: true },
@@ -573,11 +779,20 @@ export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
     // v0.28.0 (F026): 完了報告の読上げ用スクリプト整形（既定 ON）
     autoReadReportScript: true,
     edgeCloud: { ...DEFAULT_TTS_EDGE_CLOUD },
+    // v0.31.0 (F-028): MD ファイル「Add to TTS」読み上げ中の Preview ハイライト
+    mdReadHighlight: {
+      enabled: true,
+      highlightColor: '',
+      scrollPositionPct: 40,
+    },
   },
   office: { ...DEFAULT_OFFICE_SETTINGS },
   whitelist: { ...DEFAULT_WHITELIST_SETTINGS },
   chroma: { ...DEFAULT_CHROMA_SETTINGS },
   memory: { ...DEFAULT_MEMORY_SETTINGS },
+  imageGen: { ...DEFAULT_IMAGE_GEN_SETTINGS },
+  // === v0.39.0 (F-039): Think モード選択機能 ===
+  thinking: { ...DEFAULT_THINKING_CONFIGS },
 };
 
 export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSettings {
@@ -610,6 +825,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       quotaRefreshSec: clampRefreshSec(r.general?.quotaRefreshSec),
       quotaSwitchSec: clampSwitchSec(r.general?.quotaSwitchSec),
       codeCopyFence: typeof r.general?.codeCopyFence === 'boolean' ? r.general.codeCopyFence : true,
+      // v0.33.0: チャット内 mermaid 自動描画
+      mermaidRender: typeof r.general?.mermaidRender === 'boolean' ? r.general.mermaidRender : true,
       // v0.21.0: バックアップ機能
       backupEnabled: typeof r.general?.backupEnabled === 'boolean' ? r.general.backupEnabled : true,
       // v0.21.1: バックアップ完了時にダイアログを自動で閉じる（既定 ON）
@@ -620,6 +837,34 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       quickReplyEnabled: typeof r.general?.quickReplyEnabled === 'boolean' ? r.general.quickReplyEnabled : true,
       // v0.30.0: トークン速度表示
       tokenRateEnabled: typeof r.general?.tokenRateEnabled === 'boolean' ? r.general.tokenRateEnabled : false,
+      // v0.31.0: トークン速度表示の表示項目選択（既定 ON）
+      tokenRateShowTtft: typeof r.general?.tokenRateShowTtft === 'boolean' ? r.general.tokenRateShowTtft : true,
+      tokenRateShowCurrent: typeof r.general?.tokenRateShowCurrent === 'boolean' ? r.general.tokenRateShowCurrent : true,
+      tokenRateShowAvg: typeof r.general?.tokenRateShowAvg === 'boolean' ? r.general.tokenRateShowAvg : true,
+      tokenRateShowMax: typeof r.general?.tokenRateShowMax === 'boolean' ? r.general.tokenRateShowMax : true,
+      // v0.41.0: Outputs フォルダミラリング（既定 OFF・パス空は Documents/ObsidainOutputs 動的解決）
+      outputsMirrorEnabled: typeof r.general?.outputsMirrorEnabled === 'boolean' ? r.general.outputsMirrorEnabled : false,
+      outputsMirrorPath: typeof r.general?.outputsMirrorPath === 'string' ? r.general.outputsMirrorPath : '',
+      // v0.41.0: 「. で始まるフォルダを非表示」（既定 ON）
+      hideDotFolders: typeof r.general?.hideDotFolders === 'boolean' ? r.general.hideDotFolders : true,
+      // v0.32.0: トークン速度表示の更新周期（プリセット外は既定にフォールバック）
+      tokenRateIntervalMs: (() => {
+        const raw = r.general?.tokenRateIntervalMs;
+        return ALLOWED_TOKEN_RATE_INTERVALS.includes(raw as TokenRateIntervalMs)
+          ? (raw as TokenRateIntervalMs)
+          : DEFAULT_TOKEN_RATE_INTERVAL_MS;
+      })(),
+    },
+    // === v0.43.0 (F-041/F-042): ネットワークセクション ===
+    // 旧 general.proxy は新 network.proxy へマイグレーション（既存ユーザー設定の引き継ぎ）。
+    // 新 network.proxy がある場合はそちらを優先。
+    network: {
+      proxy: normalizeProxySettings(
+        (r as { network?: { proxy?: unknown }; general?: { proxy?: unknown } }).network?.proxy ??
+        (r as { general?: { proxy?: unknown } }).general?.proxy ??
+        DEFAULT_PROXY_SETTINGS,
+      ),
+      openvpn: normalizeOpenVpnSettings((r as { network?: { openvpn?: unknown } }).network?.openvpn),
     },
     quota: {
       claudeSettingsPath: typeof r.quota?.claudeSettingsPath === 'string' && r.quota.claudeSettingsPath.trim() !== ''
@@ -629,9 +874,6 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       kimiApiKey: typeof r.quota?.kimiApiKey === 'string' ? r.quota.kimiApiKey : '',
       minimaxApiKey: typeof r.quota?.minimaxApiKey === 'string' ? r.quota.minimaxApiKey : '',
       zhipuApiKey: typeof r.quota?.zhipuApiKey === 'string' ? r.quota.zhipuApiKey : '',
-      zhipuPythonPath: typeof r.quota?.zhipuPythonPath === 'string' && r.quota.zhipuPythonPath.trim() !== ''
-        ? r.quota.zhipuPythonPath
-        : DEFAULT_PYTHON_PATH,
       displayModels: {
         claude: typeof r.quota?.displayModels?.claude === 'boolean' ? r.quota.displayModels.claude : true,
         deepseek: typeof r.quota?.displayModels?.deepseek === 'boolean' ? r.quota.displayModels.deepseek : true,
@@ -649,6 +891,8 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       enabled: r.selection?.enabled ?? true,
       folderEnabled: r.selection?.folderEnabled ?? true,
       delayMs: r.selection?.delayMs ?? 300,
+      // === v0.38.0 (F-032): popupPosition は 'bottom' のみ保持、それ以外は 'top-right' ===
+      popupPosition: r.selection?.popupPosition === 'bottom' ? 'bottom' : 'top-right',
       objectMenuEnabled: typeof r.selection?.objectMenuEnabled === 'boolean' ? r.selection.objectMenuEnabled : true,
       objectMenuExcludeSelectors: Array.isArray(r.selection?.objectMenuExcludeSelectors)
         ? r.selection.objectMenuExcludeSelectors.filter((s): s is string => typeof s === 'string')
@@ -734,10 +978,33 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       // 呼び出し元で個別に上書きしないため、ここでは v0.27 フィールドのみ採用。
       ...(() => {
         const v027 = normalizeTtsSettings(r.tts);
+        // v0.31.0 (F-028): MD 読み上げ位置ハイライト（旧 data.json には存在しないため補填）
+        const rawHighlight = (r.tts?.mdReadHighlight ?? {}) as Partial<MdReadHighlightSettings>;
         return {
           addToTtsLanguageMode: v027.addToTtsLanguageMode,
           autoReadLanguageMode: v027.autoReadLanguageMode,
           edgeCloud: v027.edgeCloud,
+          mdReadHighlight: {
+            enabled: typeof rawHighlight.enabled === 'boolean' ? rawHighlight.enabled : true,
+            highlightColor: typeof rawHighlight.highlightColor === 'string' ? rawHighlight.highlightColor : '',
+            // v0.35.0: スクロール位置（0〜100 外は既定 40 にフォールバック）
+            scrollPositionPct: typeof rawHighlight.scrollPositionPct === 'number' &&
+              rawHighlight.scrollPositionPct >= 0 && rawHighlight.scrollPositionPct <= 100
+              ? rawHighlight.scrollPositionPct : 40,
+          },
+          // v0.36.0 (F-032): 聴き手プロファイル（未知の値は 'original' にフォールバック）
+          mdReadProfile: PROFILE_VALUES.includes(r.tts?.mdReadProfile as never)
+            ? (r.tts?.mdReadProfile as ClaudianBridgeSettings['tts']['mdReadProfile'])
+            : 'original',
+          // v0.36.0 (F-032): 用語辞書パス（任意）
+          termsDict: typeof r.tts?.termsDict === 'string' ? r.tts.termsDict : '',
+          // v0.37.0 (F-033): LLM 原稿書き換えキャッシュ（既定 ON）
+          llmRewriteCache: r.tts?.llmRewriteCache !== false,
+          // v0.37.1: LLM 並列生成数（1〜8・既定 2）
+          llmRewriteConcurrency: (() => {
+            const v = r.tts?.llmRewriteConcurrency;
+            return typeof v === 'number' && Number.isInteger(v) ? Math.max(1, Math.min(8, v)) : 2;
+          })(),
         };
       })(),
     },
@@ -745,6 +1012,16 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
     whitelist: normalizeWhitelistSettings(r.whitelist),
     chroma,
     memory: normalizeMemorySettings(r.memory),
+    // === v0.38.0 (F-038): 文生図設定 ===
+    imageGen: normalizeImageGenSettings(r.imageGen),
+    // === v0.39.0 (F-039): Think モード default 補完 + runtime 検証 ===
+    thinking: {
+      claude:   normalizeThinkingField(r.thinking?.claude,   DEFAULT_THINKING_CONFIGS.claude),
+      deepseek: normalizeThinkingField(r.thinking?.deepseek, DEFAULT_THINKING_CONFIGS.deepseek),
+      kimi:     normalizeThinkingField(r.thinking?.kimi,     DEFAULT_THINKING_CONFIGS.kimi),
+      minimax:  normalizeThinkingField(r.thinking?.minimax,  DEFAULT_THINKING_CONFIGS.minimax),
+      zhipu:    normalizeThinkingField(r.thinking?.zhipu,    DEFAULT_THINKING_CONFIGS.zhipu),
+    },
   };
 }
 
@@ -896,14 +1173,44 @@ function normalizeTtsSpeechFilters(r: { tts?: unknown }): TtsSpeechFilters {
 export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): string | null {
   if (typeof cfg.general.enabled !== 'boolean') return 'general.enabled は boolean である必要があります';
   if (typeof cfg.general.codeCopyFence !== 'boolean') return 'general.codeCopyFence は boolean である必要があります';
+  if (typeof cfg.general.mermaidRender !== 'boolean') return 'general.mermaidRender は boolean である必要があります';
   if (typeof cfg.general.backupEnabled !== 'boolean') return 'general.backupEnabled は boolean である必要があります';
   if (typeof cfg.general.backupAutoClose !== 'boolean') return 'general.backupAutoClose は boolean である必要があります';
   if (typeof cfg.general.quickReplyShowAllOptions !== 'boolean') return 'general.quickReplyShowAllOptions は boolean である必要があります';
   if (typeof cfg.general.quickReplyEnabled !== 'boolean') return 'general.quickReplyEnabled は boolean である必要があります';
   if (typeof cfg.general.tokenRateEnabled !== 'boolean') return 'general.tokenRateEnabled は boolean である必要があります';
+  if (typeof cfg.general.tokenRateShowTtft !== 'boolean') return 'general.tokenRateShowTtft は boolean である必要があります';
+  if (typeof cfg.general.tokenRateShowCurrent !== 'boolean') return 'general.tokenRateShowCurrent は boolean である必要があります';
+  if (typeof cfg.general.tokenRateShowAvg !== 'boolean') return 'general.tokenRateShowAvg は boolean である必要があります';
+  if (typeof cfg.general.tokenRateShowMax !== 'boolean') return 'general.tokenRateShowMax は boolean である必要があります';
+  if (typeof cfg.general.outputsMirrorEnabled !== 'boolean') return 'general.outputsMirrorEnabled は boolean である必要があります';
+  if (typeof cfg.general.outputsMirrorPath !== 'string') return 'general.outputsMirrorPath は string である必要があります';
+  if (typeof cfg.general.hideDotFolders !== 'boolean') return 'general.hideDotFolders は boolean である必要があります';
+  if (!ALLOWED_TOKEN_RATE_INTERVALS.includes(cfg.general.tokenRateIntervalMs as TokenRateIntervalMs)) return `general.tokenRateIntervalMs は ${ALLOWED_TOKEN_RATE_INTERVALS.join(' / ')} のいずれかである必要があります`;
+  // === v0.43.0 (F-041/F-042): ネットワークセクションの検証 ===
+  if (cfg.network === undefined || cfg.network === null) return 'network は必須オブジェクトです';
+  if (cfg.network.proxy === undefined || cfg.network.proxy === null) return 'network.proxy は必須オブジェクトです';
+  if (typeof cfg.network.proxy.enabled !== 'boolean') return 'network.proxy.enabled は boolean である必要があります';
+  if (typeof cfg.network.proxy.url !== 'string') return 'network.proxy.url は string である必要があります';
+  if (typeof cfg.network.proxy.noProxyHosts !== 'string') return 'network.proxy.noProxyHosts は string である必要があります';
+  if (cfg.network.proxy.enabled && !cfg.network.proxy.url) return 'network.proxy.enabled=true のとき url は必須です';
+  if (cfg.network.openvpn === undefined || cfg.network.openvpn === null) return 'network.openvpn は必須オブジェクトです';
+  if (typeof cfg.network.openvpn.enabled !== 'boolean') return 'network.openvpn.enabled は boolean である必要があります';
+  if (typeof cfg.network.openvpn.configPath !== 'string') return 'network.openvpn.configPath は string である必要があります';
+  if (cfg.network.openvpn.enabled && !cfg.network.openvpn.configPath) return 'network.openvpn.enabled=true のとき configPath は必須です';
+  if (typeof cfg.network.openvpn.serverOverride !== 'string') return 'network.openvpn.serverOverride は string である必要があります';
+  if (cfg.network.openvpn.serverOverride) {
+    const soParts = cfg.network.openvpn.serverOverride.split(':');
+    if (soParts.length > 2) return 'network.openvpn.serverOverride は host または host:port 形式で指定してください';
+    if (soParts.length === 2 && (!/^\d+$/.test(soParts[1]) || Number(soParts[1]) < 1 || Number(soParts[1]) > 65535)) {
+      return 'network.openvpn.serverOverride の port は 1-65535 の数値で指定してください';
+    }
+  }
   if (typeof cfg.selection.enabled !== 'boolean') return 'selection.enabled は boolean である必要があります';
   if (typeof cfg.selection.folderEnabled !== 'boolean') return 'selection.folderEnabled は boolean である必要があります';
   if (!Number.isInteger(cfg.selection.delayMs) || cfg.selection.delayMs < 0) return 'selection.delayMs は 0 以上の整数である必要があります';
+  // === v0.38.0 (F-032) ===
+  if (cfg.selection.popupPosition !== 'top-right' && cfg.selection.popupPosition !== 'bottom') return 'selection.popupPosition は "top-right" または "bottom" である必要があります';
   if (typeof cfg.selection.objectMenuEnabled !== 'boolean') return 'selection.objectMenuEnabled は boolean である必要があります';
   if (!Array.isArray(cfg.selection.objectMenuExcludeSelectors)) return 'selection.objectMenuExcludeSelectors は配列である必要があります';
   if (typeof cfg.selection.objectMenuTypeFlags !== 'object' || cfg.selection.objectMenuTypeFlags === null) return 'selection.objectMenuTypeFlags はオブジェクトである必要があります';
@@ -983,13 +1290,20 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.quota?.kimiApiKey !== 'string') return 'quota.kimiApiKey は文字列である必要があります';
   if (typeof cfg.quota?.minimaxApiKey !== 'string') return 'quota.minimaxApiKey は文字列である必要があります';
   if (typeof cfg.quota?.zhipuApiKey !== 'string') return 'quota.zhipuApiKey は文字列である必要があります';
-  if (typeof cfg.quota?.zhipuPythonPath !== 'string') return 'quota.zhipuPythonPath は文字列である必要があります';
   for (const k of ['claude', 'deepseek', 'kimi', 'minimax', 'zhipu'] as const) {
     if (typeof cfg.quota?.displayModels?.[k] !== 'boolean') return `quota.displayModels.${k} は boolean である必要があります`;
   }
   for (const k of ['zhipu', 'claude', 'minimax'] as const) {
     if (cfg.quota?.windows?.[k] !== '5h' && cfg.quota?.windows?.[k] !== 'week') return `quota.windows.${k} は 5h または week である必要があります`;
   }
+  // === v0.38.0 (F-038): 文生図設定の検証 ===
+  if (cfg.imageGen === undefined || cfg.imageGen === null) return 'imageGen は必須オブジェクトです';
+  if (typeof cfg.imageGen.enabled !== 'boolean') return 'imageGen.enabled は boolean である必要があります';
+  if (!IMAGE_GEN_PROVIDER_IDS.includes(cfg.imageGen.provider)) return `imageGen.provider は ${IMAGE_GEN_PROVIDER_IDS.join(' / ')} のいずれかである必要があります`;
+  if (!IMAGE_GEN_ASPECT_RATIOS.includes(cfg.imageGen.aspectRatio)) return `imageGen.aspectRatio は ${IMAGE_GEN_ASPECT_RATIOS.join(' / ')} のいずれかである必要があります`;
+  if (!IMAGE_GEN_STYLES.includes(cfg.imageGen.style)) return `imageGen.style は ${IMAGE_GEN_STYLES.join(' / ')} のいずれかである必要があります`;
+  if (typeof cfg.imageGen.promptMaxChars !== 'number' || !Number.isFinite(cfg.imageGen.promptMaxChars)) return 'imageGen.promptMaxChars は数値である必要があります';
+  if (typeof cfg.imageGen.autoInsertToActive !== 'boolean') return 'imageGen.autoInsertToActive は boolean である必要があります';
   return null;
 }
 

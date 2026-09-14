@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState, TTS_LANGUAGE_MODES, DEFAULT_TTS_EDGE_CLOUD, normalizeTtsSettings, TtsLanguageMode } from '../../src/core/settings';
+import { ALLOWED_TOKEN_RATE_INTERVALS, DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, DEFAULT_TTS_CLI_SETTINGS, DEFAULT_TOKEN_RATE_INTERVAL_MS, DEFAULT_THINKING_CONFIGS, normalizeClaudianBridgeSettings, normalizeWhitelistSettings, validateClaudianBridgeSettings, withFullTextState, isFullTextState, TTS_LANGUAGE_MODES, DEFAULT_TTS_EDGE_CLOUD, normalizeTtsSettings, TtsLanguageMode } from '../../src/core/settings';
+import { DEFAULT_OPEN_VPN_SETTINGS } from '../../src/features/network/types';
 
 describe('settings', () => {
   it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS は全フィールドを持つ', () => {
@@ -193,6 +194,81 @@ describe('settings', () => {
       ]);
     });
   });
+
+  // === v0.38.0 (F-038): Text-to-Image settings ===
+  describe('imageGen (v0.38.0 F-038)', () => {
+    it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen は全フィールドを持つ', () => {
+      expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen).toMatchObject({
+        enabled: true,
+        provider: 'minimax',
+        aspectRatio: '1:1',
+        promptMaxChars: 2000,
+        autoInsertToActive: true,
+      });
+    });
+
+    it('normalize は imageGen の欠落キーをデフォルトで埋める', () => {
+      const norm = normalizeClaudianBridgeSettings({});
+      expect(norm.imageGen.enabled).toBe(true);
+      expect(norm.imageGen.provider).toBe('minimax');
+      expect(norm.imageGen.aspectRatio).toBe('1:1');
+      expect(norm.imageGen.promptMaxChars).toBe(2000);
+      expect(norm.imageGen.autoInsertToActive).toBe(true);
+    });
+
+    it('normalize は imageGen の個別フィールド上書きを尊重する', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        imageGen: { enabled: false, provider: 'zhipu', aspectRatio: '16:9', promptMaxChars: 1000, autoInsertToActive: false },
+      });
+      expect(norm.imageGen.enabled).toBe(false);
+      expect(norm.imageGen.provider).toBe('zhipu');
+      expect(norm.imageGen.aspectRatio).toBe('16:9');
+      expect(norm.imageGen.promptMaxChars).toBe(1000);
+      expect(norm.imageGen.autoInsertToActive).toBe(false);
+    });
+
+    it('normalize は不正な provider を minimax にフォールバック', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        imageGen: { provider: 'openai' as unknown as 'minimax' },
+      });
+      expect(norm.imageGen.provider).toBe('minimax');
+    });
+
+    it('normalize は不正な aspectRatio を 1:1 にフォールバック', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        imageGen: { aspectRatio: '21:9' as unknown as '1:1' },
+      });
+      expect(norm.imageGen.aspectRatio).toBe('1:1');
+    });
+
+    it('normalize は promptMaxChars を [100,8000] にクランプ', () => {
+      expect(normalizeClaudianBridgeSettings({ imageGen: { promptMaxChars: 10 } }).imageGen.promptMaxChars).toBe(100);
+      expect(normalizeClaudianBridgeSettings({ imageGen: { promptMaxChars: 99999 } }).imageGen.promptMaxChars).toBe(8000);
+      expect(normalizeClaudianBridgeSettings({ imageGen: { promptMaxChars: 500 } }).imageGen.promptMaxChars).toBe(500);
+    });
+
+    it('normalize は promptMaxChars 非数値を 2000 にフォールバック', () => {
+      const norm = normalizeClaudianBridgeSettings({
+        imageGen: { promptMaxChars: 'bad' as unknown as number },
+      });
+      expect(norm.imageGen.promptMaxChars).toBe(2000);
+    });
+
+    it('validate は imageGen.enabled が boolean でないとエラー', () => {
+      const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, imageGen: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen, enabled: 'yes' as unknown as boolean } };
+      expect(validateClaudianBridgeSettings(bad)).toContain('imageGen.enabled');
+    });
+
+    it('validate は imageGen.provider が未知の値だとエラー', () => {
+      const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, imageGen: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen, provider: 'openai' as unknown as 'minimax' } };
+      expect(validateClaudianBridgeSettings(bad)).toContain('imageGen.provider');
+    });
+
+    it('validate は imageGen.aspectRatio が未知の値だとエラー', () => {
+      const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, imageGen: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.imageGen, aspectRatio: '21:9' as unknown as '1:1' } };
+      expect(validateClaudianBridgeSettings(bad)).toContain('imageGen.aspectRatio');
+    });
+  });
 });
 
 describe('normalizeClaudianBridgeSettings - quota', () => {
@@ -238,7 +314,6 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
       kimiApiKey: '',
       minimaxApiKey: '',
       zhipuApiKey: '',
-      zhipuPythonPath: expect.any(String),
       displayModels: { claude: true, deepseek: true, kimi: true, minimax: true, zhipu: true },
       windows: { zhipu: '5h', claude: '5h', minimax: '5h' },
     });
@@ -312,6 +387,37 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
     expect(s.selection.objectMenuTypeFlags.element).toBe(false);
   });
 
+  // === F-032: selection.popupPosition ===
+  it('DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.selection.popupPosition は "top-right"', () => {
+    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.selection.popupPosition).toBe('top-right');
+  });
+
+  it('normalize は popupPosition 未指定時に "top-right" を既定とする', () => {
+    const norm = normalizeClaudianBridgeSettings({ selection: { delayMs: 400 } });
+    expect(norm.selection.popupPosition).toBe('top-right');
+  });
+
+  it('normalize は popupPosition="bottom" を保持する', () => {
+    const norm = normalizeClaudianBridgeSettings({ selection: { popupPosition: 'bottom' } });
+    expect(norm.selection.popupPosition).toBe('bottom');
+  });
+
+  it('normalize は popupPosition 不正値を "top-right" にフォールバック', () => {
+    const norm = normalizeClaudianBridgeSettings({ selection: { popupPosition: 'left' as never } });
+    expect(norm.selection.popupPosition).toBe('top-right');
+  });
+
+  it('validate は popupPosition が "top-right" / "bottom" 以外の場合エラーを返す', () => {
+    const bad = {
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      selection: {
+        ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.selection,
+        popupPosition: 'left' as never,
+      },
+    };
+    expect(validateClaudianBridgeSettings(bad)).toContain('popupPosition');
+  });
+
   it('validate は objectMenuTypeFlags.button が boolean でない場合エラーを返す', () => {
     const bad = {
       ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
@@ -325,15 +431,13 @@ describe('normalizeClaudianBridgeSettings - quota', () => {
 });
 
 describe('normalizeClaudianBridgeSettings - quota zhipu (Task 3)', () => {
-  it('quota.zhipuApiKey / zhipuPythonPath が正規化される', () => {
-    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuApiKey: 'sk-zhipu', zhipuPythonPath: 'python3' } });
+  it('quota.zhipuApiKey が正規化される', () => {
+    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuApiKey: 'sk-zhipu' } });
     expect(norm.quota.zhipuApiKey).toBe('sk-zhipu');
-    expect(norm.quota.zhipuPythonPath).toBe('python3');
   });
 
-  it('DEFAULT: zhipuApiKey は空・zhipuPythonPath は非空・displayModels.zhipu は true', () => {
+  it('DEFAULT: zhipuApiKey は空・displayModels.zhipu は true', () => {
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.zhipuApiKey).toBe('');
-    expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.zhipuPythonPath).toBeTruthy();
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota.displayModels.zhipu).toBe(true);
   });
 
@@ -345,18 +449,6 @@ describe('normalizeClaudianBridgeSettings - quota zhipu (Task 3)', () => {
   it('validate: quota.zhipuApiKey 型違反を返す', () => {
     const bad = { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS, quota: { ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.quota, zhipuApiKey: 123 as unknown as string } };
     expect(validateClaudianBridgeSettings(bad)).toContain('quota.zhipuApiKey');
-  });
-
-  it('normalize: zhipuPythonPath 空文字 → デフォルト', () => {
-    const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
-    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuPythonPath: '   ' } });
-    expect(norm.quota.zhipuPythonPath).toBe(defaultPython);
-  });
-
-  it('normalize: zhipuPythonPath 非文字列 → デフォルト', () => {
-    const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
-    const norm = normalizeClaudianBridgeSettings({ quota: { zhipuPythonPath: 42 as unknown as string } });
-    expect(norm.quota.zhipuPythonPath).toBe(defaultPython);
   });
 });
 
@@ -839,5 +931,271 @@ describe('TtsLanguageMode / TtsEdgeCloudSettings', () => {
       const tts = normalizeTtsSettings({ autoReadReportScript: 'yes' as unknown as boolean });
       expect(tts.autoReadReportScript).toBe(true);
     });
+  });
+});
+
+describe('normalizeClaudianBridgeSettings - tokenRateShow* (表示項目選択)', () => {
+  it('既定は全 ON', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.general.tokenRateShowTtft).toBe(true);
+    expect(cfg.general.tokenRateShowCurrent).toBe(true);
+    expect(cfg.general.tokenRateShowAvg).toBe(true);
+    expect(cfg.general.tokenRateShowMax).toBe(true);
+  });
+
+  it('欠落キーは true で補完（後方互換）', () => {
+    const cfg = normalizeClaudianBridgeSettings({ general: { tokenRateShowCurrent: false } });
+    expect(cfg.general.tokenRateShowCurrent).toBe(false);
+    expect(cfg.general.tokenRateShowTtft).toBe(true);
+    expect(cfg.general.tokenRateShowAvg).toBe(true);
+    expect(cfg.general.tokenRateShowMax).toBe(true);
+  });
+
+  it('validate: boolean 以外はエラーメッセージ', () => {
+    const base = DEFAULT_CLAUDIAN_BRIDGE_SETTINGS;
+    const cfg = { ...base, general: { ...base.general, tokenRateShowMax: 'yes' } } as typeof base;
+    expect(validateClaudianBridgeSettings(cfg)).toContain('tokenRateShowMax');
+  });
+});
+
+describe('tokenRateIntervalMs (更新周期設定)', () => {
+  it('既定は 250ms', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.general.tokenRateIntervalMs).toBe(250);
+  });
+
+  it('不正値（プリセット外）は 250 にフォールバック', () => {
+    const cfg = normalizeClaudianBridgeSettings({ general: { tokenRateIntervalMs: 300 } });
+    expect(cfg.general.tokenRateIntervalMs).toBe(250);
+  });
+
+  it('プリセット値（100/500/1000/2000）はそのまま通る', () => {
+    for (const v of [100, 500, 1000, 2000]) {
+      expect(normalizeClaudianBridgeSettings({ general: { tokenRateIntervalMs: v } })
+        .general.tokenRateIntervalMs).toBe(v);
+    }
+  });
+
+  it('validate: プリセット外はエラー', () => {
+    const base = DEFAULT_CLAUDIAN_BRIDGE_SETTINGS;
+    const cfg = { ...base, general: { ...base.general, tokenRateIntervalMs: 333 } } as typeof base;
+    expect(validateClaudianBridgeSettings(cfg)).toContain('tokenRateIntervalMs');
+  });
+
+  it('export 定数: ALLOWED は 5 値・DEFAULT は 250', () => {
+    expect(ALLOWED_TOKEN_RATE_INTERVALS).toEqual([100, 250, 500, 1000, 2000]);
+    expect(DEFAULT_TOKEN_RATE_INTERVAL_MS).toBe(250);
+  });
+});
+
+describe('general.mermaidRender (チャット内 mermaid 自動描画)', () => {
+  it('既定は true', () => {
+    expect(normalizeClaudianBridgeSettings({}).general.mermaidRender).toBe(true);
+  });
+
+  it('保存済みの false を尊重する', () => {
+    expect(normalizeClaudianBridgeSettings({ general: { mermaidRender: false } }).general.mermaidRender).toBe(false);
+  });
+
+  it('異常値は true にフォールバック', () => {
+    expect(normalizeClaudianBridgeSettings({ general: { mermaidRender: 'yes' } }).general.mermaidRender).toBe(true);
+  });
+
+  it('validate: boolean 以外はエラー', () => {
+    const base = DEFAULT_CLAUDIAN_BRIDGE_SETTINGS;
+    const cfg = { ...base, general: { ...base.general, mermaidRender: 'yes' } } as unknown as typeof base;
+    expect(validateClaudianBridgeSettings(cfg)).toContain('mermaidRender');
+  });
+});
+
+describe('mdReadHighlight.scrollPositionPct (v0.35.0)', () => {
+  it('既定は 40', () => {
+    expect(normalizeClaudianBridgeSettings({}).tts.mdReadHighlight.scrollPositionPct).toBe(40);
+  });
+  it('0〜100 外は 40 にフォールバック', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { mdReadHighlight: { scrollPositionPct: 200 } } }).tts.mdReadHighlight.scrollPositionPct).toBe(40);
+    expect(normalizeClaudianBridgeSettings({ tts: { mdReadHighlight: { scrollPositionPct: -1 } } }).tts.mdReadHighlight.scrollPositionPct).toBe(40);
+  });
+  it('設定値は尊重される', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { mdReadHighlight: { scrollPositionPct: 70 } } }).tts.mdReadHighlight.scrollPositionPct).toBe(70);
+  });
+});
+
+describe('tts.mdReadProfile / tts.termsDict (v0.36.0)', () => {
+  it('既定は original・termsDict は空文字', () => {
+    const cfg = normalizeClaudianBridgeSettings({});
+    expect(cfg.tts.mdReadProfile).toBe('original');
+    expect(cfg.tts.termsDict).toBe('');
+  });
+
+  it('workplace 〜 dr が許可される', () => {
+    for (const p of ['workplace', 'customer', 'family', 'classroom', 'boss', 'dr'] as const) {
+      expect(normalizeClaudianBridgeSettings({ tts: { mdReadProfile: p } }).tts.mdReadProfile).toBe(p);
+    }
+  });
+
+  it('未知の値は original にフォールバック', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { mdReadProfile: 'unknown' } }).tts.mdReadProfile).toBe('original');
+  });
+
+  it('termsDict は文字列を尊重', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { termsDict: '00_Vault管理/Tech_用語対照表.md' } }).tts.termsDict)
+      .toBe('00_Vault管理/Tech_用語対照表.md');
+  });
+});
+
+describe('tts.llmRewriteCache (v0.37.0)', () => {
+  it('既定は true', () => {
+    expect(normalizeClaudianBridgeSettings({}).tts.llmRewriteCache).toBe(true);
+  });
+  it('false は尊重', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteCache: false } }).tts.llmRewriteCache).toBe(false);
+  });
+  it('非 boolean は true フォールバック', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteCache: 'no' } }).tts.llmRewriteCache).toBe(true);
+  });
+});
+
+describe('tts.llmRewriteConcurrency (v0.37.1)', () => {
+  it('既定は 2', () => {
+    expect(normalizeClaudianBridgeSettings({}).tts.llmRewriteConcurrency).toBe(2);
+  });
+  it('1〜8 外は clamp（0→1・9→8・非数→2）', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteConcurrency: 0 } }).tts.llmRewriteConcurrency).toBe(1);
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteConcurrency: 9 } }).tts.llmRewriteConcurrency).toBe(8);
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteConcurrency: 'x' } }).tts.llmRewriteConcurrency).toBe(2);
+  });
+  it('設定値は尊重（1〜8）', () => {
+    expect(normalizeClaudianBridgeSettings({ tts: { llmRewriteConcurrency: 4 } }).tts.llmRewriteConcurrency).toBe(4);
+  });
+});
+
+describe('Think モード default (v0.39.0 F-039)', () => {
+  it('thinking 欠落時に 5 プロバイダ分 default が補完される', () => {
+    const result = normalizeClaudianBridgeSettings({});
+    expect(result.thinking.claude).toEqual(DEFAULT_THINKING_CONFIGS.claude);
+    expect(result.thinking.deepseek).toEqual(DEFAULT_THINKING_CONFIGS.deepseek);
+    expect(result.thinking.kimi).toEqual(DEFAULT_THINKING_CONFIGS.kimi);
+    expect(result.thinking.minimax).toEqual(DEFAULT_THINKING_CONFIGS.minimax);
+    expect(result.thinking.zhipu).toEqual(DEFAULT_THINKING_CONFIGS.zhipu);
+  });
+
+  it('Claude だけ enabled=true、他は enabled=false', () => {
+    const result = normalizeClaudianBridgeSettings({});
+    expect(result.thinking.claude.enabled).toBe(true);
+    expect(result.thinking.deepseek.enabled).toBe(false);
+    expect(result.thinking.kimi.enabled).toBe(false);
+    expect(result.thinking.minimax.enabled).toBe(false);
+    expect(result.thinking.zhipu.enabled).toBe(false);
+  });
+
+  it('既存ユーザーの thinking 設定はそのまま保持される', () => {
+    const result = normalizeClaudianBridgeSettings({
+      thinking: {
+        claude: { enabled: false, effort: 'high' },
+        deepseek: { enabled: true, effort: 'low' },
+        kimi: { enabled: false, effort: 'medium' },
+        minimax: { enabled: true, effort: 'high' },
+        zhipu: { enabled: true, effort: 'low' },
+      },
+    });
+    expect(result.thinking.claude.enabled).toBe(false);
+    expect(result.thinking.deepseek.enabled).toBe(true);
+    expect(result.thinking.deepseek.effort).toBe('low');
+  });
+
+  it('部分設定（Claude のみ）は他プロバイダを default で補完', () => {
+    const result = normalizeClaudianBridgeSettings({
+      thinking: {
+        claude: { enabled: false, effort: 'high' },
+      },
+    });
+    expect(result.thinking.claude.enabled).toBe(false);
+    expect(result.thinking.deepseek).toEqual(DEFAULT_THINKING_CONFIGS.deepseek);
+    expect(result.thinking.zhipu).toEqual(DEFAULT_THINKING_CONFIGS.zhipu);
+  });
+
+  it('不正な effort は default でフォールバック', () => {
+    const result = normalizeClaudianBridgeSettings({
+      thinking: {
+        claude: { enabled: true, effort: 'invalid' as unknown as 'low' },
+        deepseek: { enabled: true, effort: 'low' },
+        kimi: { enabled: true, effort: 'medium' },
+        minimax: { enabled: true, effort: 'high' },
+        zhipu: { enabled: true, effort: 'off' },
+      },
+    });
+    expect(result.thinking.claude.effort).toBe('medium');  // fallback
+    expect(result.thinking.deepseek.effort).toBe('low');
+    expect(result.thinking.kimi.effort).toBe('medium');
+    expect(result.thinking.minimax.effort).toBe('high');
+    expect(result.thinking.zhipu.effort).toBe('off');
+  });
+});
+
+describe('ClaudianBridgeSettings network section (v0.43.0 F-041/F-042)', () => {
+  // 検証用の valid 設定を作るヘルパー。network.proxy + network.openvpn は個別テストで上書きする。
+  const makeValidConfig = () => ({
+    ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+    network: {
+      proxy: { enabled: false, url: '', noProxyHosts: 'localhost' },
+      openvpn: { ...DEFAULT_OPEN_VPN_SETTINGS },
+    },
+  });
+
+  it('normalize: general.proxy を network.proxy へ移送', () => {
+    const result = normalizeClaudianBridgeSettings({
+      general: { proxy: { enabled: true, url: 'http://p:8080', noProxyHosts: 'localhost' } } as any,
+    });
+    expect(result.network.proxy).toEqual({ enabled: true, url: 'http://p:8080', noProxyHosts: 'localhost' });
+  });
+
+  it('normalize: 新 network.proxy があればそちらを優先', () => {
+    const result = normalizeClaudianBridgeSettings({
+      general: { proxy: { enabled: false, url: '', noProxyHosts: '' } } as any,
+      network: { proxy: { enabled: true, url: 'http://new:8080', noProxyHosts: '' } } as any,
+    });
+    expect(result.network.proxy.enabled).toBe(true);
+    expect(result.network.proxy.url).toBe('http://new:8080');
+  });
+
+  it('normalize: network.openvpn 不在時は DEFAULT_OPEN_VPN_SETTINGS で初期化', () => {
+    const result = normalizeClaudianBridgeSettings({} as any);
+    expect(result.network.openvpn).toEqual(DEFAULT_OPEN_VPN_SETTINGS);
+  });
+
+  it('validate: network.proxy 欠落でエラー', () => {
+    const cfg = { ...makeValidConfig(), network: { openvpn: DEFAULT_OPEN_VPN_SETTINGS } } as any;
+    expect(validateClaudianBridgeSettings(cfg)).toMatch(/network\.proxy/);
+  });
+
+  it('validate: enabled=true + configPath 空 でエラー', () => {
+    const cfg = makeValidConfig();
+    cfg.network.openvpn = { ...DEFAULT_OPEN_VPN_SETTINGS, enabled: true, configPath: '' };
+    expect(validateClaudianBridgeSettings(cfg)).toMatch(/configPath/);
+  });
+
+  it('validate: enabled=false + configPath 空 は OK', () => {
+    const cfg = makeValidConfig();
+    cfg.network.openvpn = { ...DEFAULT_OPEN_VPN_SETTINGS, enabled: false, configPath: '' };
+    expect(validateClaudianBridgeSettings(cfg)).toBeNull();
+  });
+
+  // === v0.43.2 (F-044): Server Override ===
+  it('normalize: serverOverride 不在時は空文字で初期化', () => {
+    const result = normalizeClaudianBridgeSettings({} as any);
+    expect(result.network.openvpn.serverOverride).toBe('');
+  });
+
+  it('validate: serverOverride の port 非数値でエラー', () => {
+    const cfg = makeValidConfig();
+    cfg.network.openvpn = { ...DEFAULT_OPEN_VPN_SETTINGS, serverOverride: 'vpn.example.com:abc' };
+    expect(validateClaudianBridgeSettings(cfg)).toMatch(/serverOverride/);
+  });
+
+  it('validate: serverOverride host のみ（port 省略）は OK', () => {
+    const cfg = makeValidConfig();
+    cfg.network.openvpn = { ...DEFAULT_OPEN_VPN_SETTINGS, serverOverride: 'myqnap.myqnapcloud.com' };
+    expect(validateClaudianBridgeSettings(cfg)).toBeNull();
   });
 });

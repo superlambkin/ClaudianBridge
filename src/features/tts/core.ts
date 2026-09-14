@@ -3,7 +3,8 @@ import { Notice } from 'obsidian';
 import type { PlachtaSettings, TtsChunkMaxChars, TtsCliSpeechFilter, TtsEdgeCloudSettings, TtsEngine } from '../../core/settings';
 import { DEFAULT_CHUNK_MAX_CHARS, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../../core/settings';
 import { plachtaSpeakChunksPipelined, playObjectUrl } from './plachta-tts';
-import { chunkText, speakChunks } from './chunking';
+import { chunkText, speakChunks, chunkTextNatural } from './chunking';
+import { getPlaybackController } from './playback-controller';
 import { registerPlayback, stopAllPlayback, getStopEpoch } from './playback-registry';
 import { localEdgeTtsSpeak } from './edge-tts-local';
 
@@ -78,16 +79,22 @@ export const SAMPLE_TEXT: Record<'zh' | 'ja' | 'en', string> = {
  * v0.27.1: lang を明示渡しできる（チャンク分割時に全文判定結果を全チャンクへ統一適用）。
  * 未指定時は従来どおり text から auto 判定する。
  */
-export async function edgeCloudHttpSpeak(
+/**
+ * v0.35.0: Edge クラウドへテキストを送り音声 Blob を取得する（再生はしない）。
+ * 先行取得パイプライン（fetchEdgeBlobPipelined）から利用される。
+ */
+async function fetchEdgeBlob(
   text: string,
   settings: TtsSettings,
   noticeFn: NoticeFn,
   lang?: TtsLang,
-): Promise<boolean> {
+): Promise<Blob | null> {
+  // v0.35.2: 別 MD 切替時の即時中止に従う
+  if (getPlaybackController().isAborted()) return null;
   const cloud = settings.edgeCloud;
   if (!cloud?.serverUrl) {
     noticeFn('⚠️ クラウドサーバ URL 未設定。設定タブで edgeCloud.serverUrl を入力してください');
-    return false;
+    return null;
   }
 
   const resolvedLang = lang ?? pickLang(text, settings.addToTtsLanguageMode ?? 'auto');
@@ -111,16 +118,26 @@ export async function edgeCloudHttpSpeak(
     clearTimeout(timer);
     if (!res.ok) {
       noticeFn(`⚠️ クラウド EdgeTTS 失敗 (HTTP ${res.status})`);
-      return false;
+      return null;
     }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    return await playObjectUrl(url, noticeFn, 'edge');
+    return await res.blob();
   } catch (e) {
     clearTimeout(timer);
     noticeFn(`⚠️ クラウド EdgeTTS エラー: ${(e as Error).message}`);
-    return false;
+    return null;
   }
+}
+
+export async function edgeCloudHttpSpeak(
+  text: string,
+  settings: TtsSettings,
+  noticeFn: NoticeFn,
+  lang?: TtsLang,
+): Promise<boolean> {
+  const blob = await fetchEdgeBlob(text, settings, noticeFn, lang);
+  if (blob === null) return false;
+  const url = URL.createObjectURL(blob);
+  return await playObjectUrl(url, noticeFn, 'edge');
 }
 
 /* ============================================================================
@@ -226,7 +243,12 @@ export { filterSpeechText } from './speech-filter';
  * Dispatcher
  * ========================================================================== */
 
-export async function addTextToTTS(_app: App | null, text: string, settings: TtsSettings): Promise<boolean> {
+export async function addTextToTTS(
+  _app: App | null,
+  text: string,
+  settings: TtsSettings,
+  onChunkStart?: (idx: number) => void,
+): Promise<boolean> {
   const noticeFn = (m: string): void => { new Notice(m); };
 
   // v0.17.0: テキスト最適化（speech_filter）は speakText 側で適用済み。ここでは適用しない（二重フィルタ防止）。
@@ -260,14 +282,18 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
   // v0.27.1: 言語は分割前の全文で 1 回だけ判定する。
   // チャンクごとに auto 判定すると、区切り方次第で英語/中国語チャンクが生まれ音声が途中で変わるため。
   const readLang = pickLang(trimmed, settings.addToTtsLanguageMode ?? 'auto');
-  const chunks = limit > 0 && trimmed.length > limit ? chunkText(trimmed, limit) : [trimmed];
+  // v0.35.0: 見出し行で強制新チャンク＋文末優先パック（ハイライト登録側と同一関数）
+  const chunks = limit > 0 && trimmed.length > limit ? chunkTextNatural(trimmed, limit) : [trimmed];
   if (chunks.length > 1) {
     console.log(`[claudian-bridge TTS] chunking: ${trimmed.length} chars → ${chunks.length} chunks (engine: ${settings.engine}, lang: ${readLang})`);
   }
 
   // v0.10.0 UAT: plachta はパイプライン再生（次チャンクを先行合成してギャップ解消）
   if (settings.engine === 'plachta') {
-    const plachtaOk = await plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress);
+    // v0.34.0: onChunkStart 指定時のみ第 5 引数で伝播（MD 読み上げハイライト用・下線原因⑥）
+    const plachtaOk = onChunkStart !== undefined
+      ? await plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress, onChunkStart)
+      : await plachtaSpeakChunksPipelined(chunks, settings, noticeFn, showProgress);
     // v0.18.x (F1): 後続の外部停止（後勝ち中断）で失敗してもエラー扱いしない
     if (!plachtaOk && getStopEpoch() > stopEpochAtStart) return true;
     return plachtaOk;
@@ -284,17 +310,41 @@ export async function addTextToTTS(_app: App | null, text: string, settings: Tts
     ? `⏳ [${engineLabels[settings.engine]}] 音声生成中…（読み上げ）`
     : `▶ [${engineLabels[settings.engine]}] 読み上げ中…`;
   showProgress(progressMsg);
-  const result = await speakChunks(chunks, async (chunk) => {
+  // v0.35.0: Edge 先行変換（plachta パイプラインと同型）
+  // チャンク i の再生中にチャンク i+1 の音声を fetch し、Blob URL を先に用意する。
+  let pendingEdge: Promise<string | null> | null = null;
+  const speakEdgeWithPrefetch = async (text: string, idx: number): Promise<boolean> => {
+    // v0.35.2: 別 MD 切替時の即時中止に従う
+    if (getPlaybackController().isAborted()) return false;
+    let url: string | null = null;
+    if (pendingEdge) {
+      url = await pendingEdge;
+      pendingEdge = null;
+    }
+    if (url === null) {
+      const blob = await fetchEdgeBlob(text, settings, noticeFn, readLang);
+      if (blob === null) return false;
+      url = URL.createObjectURL(blob);
+    }
+    if (idx + 1 < chunks.length) {
+      pendingEdge = fetchEdgeBlob(chunks[idx + 1], settings, noticeFn, readLang)
+        .then((b) => (b ? URL.createObjectURL(b) : null));
+    }
+    return await playObjectUrl(url, noticeFn, 'edge');
+  };
+  const result = await speakChunks(chunks, async (chunk, idx) => {
     if (settings.engine === 'edge') {
-      return edgeCloudHttpSpeak(chunk, settings, noticeFn, readLang);  // v0.27.0: claudettsHttpSpeak → edgeCloudHttpSpeak
+      return speakEdgeWithPrefetch(chunk, idx);  // v0.35.0: 先行取得パイプライン
     }
     if (settings.engine === 'edge-local') {
       return localEdgeTtsSpeak(chunk, settings, noticeFn, readLang);
     }
     return webSpeechSpeak(chunk, settings, noticeFn, readLang);
-  });
+  }, undefined, onChunkStart);
   showProgress(null);
   // v0.18.x (F1): 後続の外部停止（後勝ち中断）で失敗してもエラー扱いしない
   if (!result && getStopEpoch() > stopEpochAtStart) return true;
+  // v0.35.2: 別 MD 切替時の abort もエラー扱いしない
+  if (!result && getPlaybackController().isAborted()) return true;
   return result;
 }

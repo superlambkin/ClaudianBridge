@@ -215,12 +215,12 @@ export class ClaudeQuotaService {
   /** 全購読者にスナップショットを通知 */
   private emit(): void {
     const snap = this.snapshot;
-    // workspace.trigger は Obsidian 内部で例外を投げることがある（未知イベント名/環境依存）。
-    // quota 機能の通知は自前の listeners で完結するため、workspace 連携は best-effort とし
-    // 例外が onload を失敗させないよう try/catch で保護する。
+    // v0.32.5 修正: trigger を取り出して呼ぶと this が欠落し、
+    // Obsidian 内部の this._ 参照で TypeError になる（実機ログで確認）。
+    // workspace.trigger(...) のメソッド呼び出し形式で this を束縛する。
     try {
-      const trigger = (this.opts.app as { workspace?: { trigger?: (n: string, ...a: unknown[]) => void } }).workspace?.trigger;
-      if (typeof trigger === 'function') trigger(EVENT_QUOTA_UPDATED, snap);
+      const workspace = (this.opts.app as { workspace?: { trigger?: (n: string, ...a: unknown[]) => void } }).workspace;
+      if (typeof workspace?.trigger === 'function') workspace.trigger(EVENT_QUOTA_UPDATED, snap);
     } catch (e) {
       console.warn('[claudian-bridge] workspace.trigger(EVENT_QUOTA_UPDATED) failed:', e);
     }

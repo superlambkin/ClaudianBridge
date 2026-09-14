@@ -1,140 +1,309 @@
----
-tags:
-  - poc
-  - poc-017
----
 # Changelog
 
-## [0.40.0] - 2026-09-10 — Think モード選択機能 Phase 2 (F-040)
+## [0.48.0] - 2026-09-14 — Zhipu 残量取得の純 TypeScript 化 (F-048)
+
+Zhipu (GLM) の残量取得だけが Python スクリプト spawn 方式（Vault 内スクリプト
++ `py` + zai-sdk の 3 依存）で、環境不備（スクリプトパス不一致・SDK 未導入）で
+接続テストが失敗する障害が発生していた。実機検証により
+`/api/monitor/usage/quota/limit` が生 API キーの Bearer 認証で動作することを確認
+したため、DeepSeek/Kimi/MiniMax と同じ `httpGet` 方式に置き換え、Python 依存を
+完全削除。「ZHIPU Python パス」設定も廃止。
+
+- feat(quota): createZhipuProvider() — pure TypeScript via httpGet (raw Bearer key)
+- refactor(quota): remove python.ts / runPython plumbing (quota feature)
+- refactor(settings): drop quota.zhipuPythonPath (old data.json keys are ignored)
+- refactor(i18n): remove quotaZhipuPythonPath × 3 locales
+- tests: zhipu 10 cases rewritten with fetch mock; python/settings tests removed (1348 total)
+
+## [0.47.0] - 2026-09-14 — 切断時の残骸経路自動削除 (F-047)
+
+v0.46.0 の removeStaleRoutes() を基盤に、OpenVPN 切断後の
+3 秒待機 → バックグラウンド stale 検出 → 管理者起動時のみ自動削除
+する UX を追加。VPN 使用時は Obsidian を管理者起動する運用は維持。
+v0.46.0 の手動 🧹 ボタンは引き続き有効。
+
+- feat(network): cleanupAfterDisconnect() — background auto-cleanup
+- feat(network): stop() schedules cleanup via setTimeout(3000)
+- feat(i18n): networkOpenVpnAutoCleaned × 3 locales
+- tests: +4 cases (1354 total)
+
+## [0.46.0] - 2026-09-14 — 残骸経路の 1 クリック削除 (F-046)
+
+v0.45.0 の検知ロジックを基盤に、stale 経路を 1 クリックで削除する UX を追加。
+VPN 使用時は Obsidian を管理者起動する運用を前提に、ボタン押下時に
+管理者判定 → stale 抽出 → route delete → 結果通知のフローを提供。
+VPN 関連ルートのみを厳格にホワイトリスト化し、ローカル LAN は触らない。
+
+- feat(network): 🧹 Remove stale routes button (admin-gated)
+- feat(network): getVpnRoutes() — extend v0.45.0 extractor with dest/mask
+- feat(network): isRunningAsAdmin() — privilege probe via route delete trial
+- feat(network): findStaleRoutes() — filter by expected gateway
+- feat(network): removeStaleRoutes() — orchestrate admin + delete + re-verify
+- feat(i18n): 5 keys × 3 locales (ja/en/zh)
+- tests: +8 cases (1350 total)
+
+## [0.45.0] - 2026-09-13 — 残骸経路（死んだセッション）の検知
 
 ### Added
 
-- 🧠 **Think モード選択機能 Phase 2 (F-040)**: Phase 1 (v0.39.0) で Claude のみだった Think モードを **DeepSeek / Zhipu / MiniMax / Kimi** の 4 プロバイダに拡張。設定 → ClaudianBridge → 一般 → Think モード で 5 プロバイダ全てを個別 ON/OFF + エフォート選択可能
-- **4 つの API 直接呼び出しクライアント**: `createDeepSeekClient` / `createZhipuClient` / `createMiniMaxClient` / `createKimiClient` を新設（`LlmClient` インターフェース準拠）
-- **`resolveApiKey(provider, quotaSettings)`**: 4 プロバイダの API キーを `quotaSettings` から統一解決（空文字・未設定は `undefined`）
-- **`resolveLlmClient` dispatch を 5 プロバイダ対応に拡張**: `switch` 文で 5 プロバイダを独立 case に分離、`unknown` は warn ログ + Claude フォールバック
+- 🔍 **残骸経路の検知**: 過去セッションの openvpn が残した経路（ゲートウェイが既に存在しない）が混在していると、**通信がブラックホール化する**のに v0.44.1 は「経路が 1 本でもある = 正常」と誤判定していた（実測: 現行セッションのゲートウェイは `10.8.0.13` なのに、経路は `10.8.0.5` / `10.8.0.9` の残骸 4 件のみ → 全通信がデッド）
+  - openvpn ログの `[DHCP-serv: x.x.x.x]` から **そのセッションの正しいゲートウェイを記録**し、経路のゲートウェイと照合する
+  - ① 正しいゲートウェイの経路が無い → 「経路未確立（管理者権限不足）＋残骸経路あり」を警告
+  - ② 正しい経路はあるが残骸が混在 → 「残骸経路が残っている（削除するか再起動を）」を警告
+  - ③ 正しい経路のみ → 警告なし
+  - `On-link` 行はゲートウェイとして扱わない（従来の誤判定要因）
 
-### Changed
-
-- **`polishInstruction` 呼び出しに `apiKey` 引数を追加**（Task 13）: `input-ai-read-button.ts` / `md-file-read-flow.ts` から `resolveApiKey` 経由で API キーを渡すよう変更
-- **`dispatch.ts` の v0.39.0 スタブ削除**: Phase 1 で残っていた `deepseek`/`kimi`/`minimax`/`zhipu`/`unknown` → Claude フォールバックを撤廃し、4 プロバイダを独立 case に分離
-- **Kimi の thinking 実装方式**: 当初 `thinking.type=enabled|disabled` を body に送信していたが、Moonshot は body の `thinking` フィールドを no-op として無視するため、**モデル切替方式**（`moonshot-v1-128k` ↔ `kimi-thinking-preview`）に変更
-- **MiniMax モデル名更新**: 旧 `minimax-text-01` → 現行 `MiniMax-M3`
-
-### プロバイダ別 thinking マッピング
-
-| プロバイダ | エンドポイント | モデル | thinking ON | thinking OFF | エフォートマッピング |
-|------------|----------------|--------|-------------|--------------|----------------------|
-| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | deepseek-reasoner 等 | `thinking.type=enabled` + `reasoning_effort` | `thinking.type=disabled` | low / high / max（medium は high にフォールバック）|
-| Zhipu (GLM-4.5) | `https://api.z.ai/api/paas/v4/chat/completions` | `glm-4.5` | `thinking.type=enabled` | `thinking.type=disabled` | （reasoning_effort 未サポート）|
-| MiniMax | `https://api.minimaxi.com/v1/chat/completions` | **`MiniMax-M3`** | `thinking.type=enabled` | `thinking.type=disabled` | low / medium / high（medium は `adaptive` にマッピング）|
-| Kimi (Moonshot) | `https://api.moonshot.cn/v1/chat/completions` | `moonshot-v1-128k` ↔ `kimi-thinking-preview` | `kimi-thinking-preview` モデル | `moonshot-v1-128k` モデル | モデル切替で実装（thinking フィールド非送信）|
-
-### ⚠️ 既知の制限
-
-- **Kimi の `kimi-thinking-preview` は preview ティア**: レート制限が厳しい可能性あり
-- **Moonshot の `reasoning_effort` サポートは未確認**: 公式ドキュメントで明示されていないため送信しない
-- **非 Claude プロバイダの `apiKey` 実配線回帰テストは未実装**: dispatch.test.ts で 5 プロバイダの引数伝播は網羅済みだが、実 API キーでの E2E スモークテストは不在
-
-### テスト
-
-- Phase 2 追加: **+34 件**（DeepSeek 6 + Zhipu 5 + MiniMax 5 + Kimi 4 + dispatch 6 + resolveApiKey 8）
-- **全体: 1250 PASS / 1 SKIP** / typecheck 0
-- コミット: `e14841b`, `e8c96e8`, `bb99a40`, `45eeebe`, `04df269`, `d41132a`, `54533d2`
-
-### Housekeeping
-
-- `plugin/manifest.json` + `src/manifest.json` + `package.json` を v0.40.0 に更新
-- 23 stale comments 修正（commit `662f81e`, `06ac9eb`）
-
----
-
-## [0.39.0] - 2026-09-08 — Think モード選択機能 (F-039)
-
-### Added
-
-- 🧠 **Think モード選択機能 (F-039)**: 設定 → ClaudianBridge → 一般 → Think モード で Claude / DeepSeek / Zhipu / MiniMax / Kimi ごとに Think モード（ON/OFF + エフォート low/medium/high）を個別選択可能
-- `LlmClient` インターフェース抽象化により将来の chat 系 API 呼び出しも同インターフェースで実装可能
-- quota ステータスバーに 🧠 ON/OFF バッジを追加
-
-### Changed
-
-- `claude-cli.ts` に `createClaudeClient(thinking)` factory を追加（既存 `disableThinking` は deprecated）
-- `polishInstruction` 呼び出しを `resolveLlmClient` 経由に変更
-
-### 互換性
-
-- 既存ユーザーの設定はそのまま動作（`normalizeClaudianBridgeSettings` が default 補完）
-
----
-
-## [0.38.0] - 2026-09-07 — 文生図 + スタイル + MD/style 除外 + プロキシ (F-038)
-
-### Added
-
-- 🎨 **文生図機能 (F-038)**: リボン + コマンドパレット → モーダル → MiniMax image-01 / Zhipu GLM-Image API → `output/Assets/` 保存 → アクティブノート `![[]]` 挿入
-- 🖌️ **画像スタイル選択**: モーダルに standard / scientific / anime / photo ドロップダウン（scientific-illustrator スキルを Text-to-Image にマージ）
-- 🌐 **LLM プロキシ設定**: 一般タブに「プロキシ設定」セクション（enabled / url / noProxyHosts）— HTTPS_PROXY 検出で Node fetch フォールバック強制
-
-### Changed
-
-- 📄 MD 読み上げクリーン化: `<style>`/`<script>` ブロックを「Add to TTS」で必ず除外
-
-### テスト
-
-- proxy 14 件・style-prompts 6 件・md-file-read style/script 4 件・文生圖 60+ 件追加。**1171 件 PASS** / typecheck 0
-
-## [0.35.1] - 2026-09-04 — UAT 修正 + ハイライト色パレット化
+## [0.44.2] - 2026-09-13 — VPN 切断時の `setTimeout(...).unref` エラー修正
 
 ### Fixed
 
-- ⏭ スキップで合成中も即中断: 最新の再生ハンドル（ローカル音声生成の spawn 含む）に停止を指示し、「音声生成中」で固まる問題を解消
-- 番号付き見出しの誤分割: 文末区切りを「。」「！」「？」改行のみに限定
-- 下線の一部不足: チャンク下線の終端を次チャンク先頭まで拡張
+- 🔴 **「OpenVPN 操作に失敗: setTimeout(...).unref is not a function」で切断できない問題を修正**: `stop()` 内の `setTimeout(done, STOP_TIMEOUT_MS).unref()` は **Node 固有 API**。Obsidian（ブラウザ環境）の `setTimeout` は数値を返すため `.unref` が存在せず、**VPN 接続中にスイッチを OFF にすると必ず例外**になっていた（v0.43.0 の F-041 review fix #4 で混入した潜在バグ。テストは Node 環境で走るため `unref` が存在し検出できなかった）
+  - optional 呼び出し `stopTimer.unref?.()` に変更
+  - **ブラウザ相当（`setTimeout` が数値を返す）環境での回帰テストを追加** — 環境差で隠れていた欠陥を再発防止
+
+## [0.44.1] - 2026-09-13 — 「接続済みなのに通信できない」状態の検知
 
 ### Added
 
-- ハイライト色パレット化: プリセット 16 色（通常 8 + 濃い 8）のスウォッチグリッド＋カスタムピッカー
+- ⚠️ **経路未確立の検知と警告**: `Initialization Sequence Completed` は **route 追加が失敗しても出力される**ため、非管理者で経路が入らない場合に「🟢 接続済み表示なのに LAN に到達できない」状態が発生していた（実測: `route addition failed ... アクセスが拒否されました [status=5]` が 4 件連続、VPN 経路 0 件・デフォルトルートは Wi-Fi のまま）
+  - 接続完了の 2.5 秒後に `route print` で VPN 経路の有無を検証し、無ければ **「VPN 経路が確立できませんでした（管理者権限不足の可能性）／Obsidian を管理者として実行してから再接続してください」** を Notice とネットワークタブの警告行に表示
+  - 検証は Windows のみ（`route print` 依存）。切断・再接続で警告はクリアされる
+  - `OpenVpnController.getWarning()` を追加
+
+## [0.44.0] - 2026-09-13 — 孤児 openvpn プロセスの自動回収（アダプタ解放）
+
+### Fixed
+
+- 🔌 **「All tap-windows6 adapters on this system are currently in use or disabled」で接続できない問題の根本修正**: Obsidian がクラッシュ/強制終了すると `onunload` の `stop()` が走らず、プラグインが起動した `openvpn.exe` が生き残って **TAP アダプタを占有し続ける**（実測: 前回セッションのプロセスが `--auth-user-pass ...cb-openvpn-auth-...` 付きで残存）。この状態では新しい接続が必ず失敗する
+  - `reapOrphanOpenVpn()` を新設し、**(1) `--writepid` の PID ファイル**（本バージョン以降が残した場合の主経路）と **(2) コマンドラインの auth ファイル接頭辞マーカー**（旧バージョンが残した孤児も回収）の 2 経路で検出して終了させる
+  - **本プラグインが起動したものだけ**を対象とし、OpenVPN GUI 等の外部接続は触らない
+  - PID 再利用による誤殺を防ぐため、終了前にプロセス名が `openvpn` であることを確認
+  - プラグイン読み込み時（`main.ts onload`）と接続直前（`start()` 冒頭）の両方で回収する
+  - 合わせて古い auth 一時ファイルも掃除（認証情報の残留防止）
+- 📋 **アダプタ確保エラーの検知**: `currently in use or disabled` / `could not talk to service` を検出し、🔴 エラー状態と専用メッセージで通知する（従来は 🟡 接続中のまま停止し、原因が分からなかった）
+
+## [0.43.9] - 2026-09-13 — 接続ログのコピー機能
+
+### Added
+
+- 📋 **接続状態ログのコピー**: 設定 → 🌐 ネットワークの OpenVPN セクションに「📋 ログをコピー」ボタンを追加。接続状態・.ovpn パス・バイナリパス・サーバ上書き・直近ログ（最大 2000 文字）をまとめてクリップボードへコピーする（不具合報告・解析用）
+  - `navigator.clipboard` が使えない環境では textarea + `execCommand` へフォールバック
+  - 成功・失敗を Notice で通知
+  - i18n 2 キー × 3 言語追加
+
+## [0.43.8] - 2026-09-13 — 設定変更の即時反映と OpenVPN 未導入ガイド
+
+### Added
+
+- ⬇️ **OpenVPN 未インストール検知とダウンロードリンク**: 設定 → 🌐 ネットワークで「🔐 OpenVPN を使用」を ON にした瞬間にバイナリの実在を確認し、未導入なら警告と [公式ダウンロードページ](https://openvpn.net/community-downloads/) へのリンクを表示（Notice でも案内）。空欄時は既定パス（Windows: `C:\Program Files\OpenVPN\bin\openvpn.exe`）を検査し、PATH 解決に委ねる値は誤警告を避けるため検査対象外
+
+### Fixed
+
+- 🙈 **「OpenVPN を使用」を OFF にした瞬間にチャット画面の VPN トグルが消えるように修正**: 従来は設定タブでの変更がチャット画面へ伝わらず、トグルが残っていた（`injectInto` が既存コンテナを早期 return していたため再評価されなかった）。`refreshVpnToggles()` を新設し、設定変更時に生成済みトグルを即時再評価する
+
+## [0.43.7] - 2026-09-13 — 接続色の確実な反映と YOLO 密着配置
+
+### Fixed
+
+- 🟢 **接続後にスイッチが緑にならない問題の根本修正**: v0.43.6 の補正はプラグイン初期化時の 1 回のみだったため、「接続ボタン押下 → 接続中」の経路では効果がなかった。**接続中（connecting）の間 2 秒間隔で OS ルーティングを確認**し、トンネル確立を検出したら connected（緑）に補正するようにした。プラグインが openvpn の成功ログを取りこぼしても色が正しく反映される。切断・destroy でポーリングは停止する
+- 🎨 **VPN トグルと YOLO の間の空白を完全解消**: YOLO トグル自身が `margin-left: auto` を持つため、VPN 側にも auto があると余白が二等分されて間に空白ができていた。隣接セレクタ `.cb-vpn-toggle + .claudian-permission-toggle { margin-left: 0 }` で YOLO 側の auto を無効化し、VPN が余白を独占して密着させた
+
+## [0.43.6] - 2026-09-13 — VPN トグルの隙間・接続色補正
+
+### Fixed
+
+- 🎨 **VPN トグルと YOLO 間の空白を縮めた**: `.cb-vpn-toggle` から不要な `margin-right: 8px` / `padding-right: 8px` を削除し、YOLO と隣接表示
+- 🟢 **接続色の補正**: openvpn.exe が別プロセス（OpenVPN GUI 等）で接続済みのとき、プラグインの自前 controller が `connecting` のままでも `route print` または `ipconfig` で 10.8.0.0/24 経路 / TUN アダプタを検出して自動的に `connected` に補正。v0.43.5 でご主人様環境でオレンジ色のままだった問題の修正
+
+### Added
+
+- `OpenVpnController.detectExternalConnection()`: OS ルーティングと NIC 情報をスキャンして VPN トンネルの存在を判定（Windows 専用・best-effort）
+
+## [0.43.5] - 2026-09-13 — VPN トグルの非表示条件と接続色
+
+### Changed
+
+- 🙈 **OpenVPN 使用 OFF / configPath 未設定時に VPN トグルを完全非表示**（v0.43.4 までは disabled 表示だったものを hidden に変更）
+- 🟢 **接続時の色は YOLO トグルと同一の `var(--claudian-brand)`（teal-green）に統一** — 既存実装と同じだが仕様として明文化
+
+### Notes
+
+- 配置位置（YOLO の左隣）は v0.43.4 から不変 — DOM 順で `.cb-vpn-toggle` が `.claudian-permission-toggle` の前に挿入されることを確認する回帰テスト追加
+
+## [0.43.4] - 2026-09-13 — 小改良（既定バイナリパス・YOLO トグルデザイン）
+
+### Changed
+
+- 🔧 **openvpn バイナリパスの既定値**: 空欄時に Windows は `C:\Program Files\OpenVPN\bin\openvpn.exe` を自動使用、Linux/Mac は従来どおり `openvpn`（PATH 解決）
+- 🔌 **VPN トグルを YOLO トグルと同デザインに刷新**: 32×18 ピル型スイッチ + ブランドカラー（`var(--claudian-brand)`）を使用。connected で右移動・connecting で脈動・error で赤ノブ。3 秒後にボタンの意味が一目で分かる
+
+## [0.43.3] - 2026-09-13 — Windows 版 openvpn の stdout ログ監視対応
+
+### Fixed
+
+- 🔌 **OpenVPN 接続検出の修正**: Windows 版 openvpn 2.7.x はログを **stdout** に出力するため、stderr のみ監視していると接続成功（`Initialization Sequence Completed`）や `AUTH_FAILED` を検出できず「🟡 接続中」のまま停止する問題を修正（stdout + stderr の両ストリームを監視）
+  - 実測: Windows 2.7.7 では stdout に全ログ出力・stderr は空。WSL/Linux 版 2.7.0 は従来どおり stderr 系で動作
+  - 非管理者実行時の `open_tun` 失敗（`ERROR: command failed`）も exit ハンドラ経由で 🔴 エラー化
+
+## [0.43.2] - 2026-09-13 — Server Override（サーバ上書き）機能 (F-044)
+
+### Added
+
+- 🌐 **Server Override**（F-044）: ネットワークタブに「サーバ上書き（任意）」設定を追加
+  - ドメイン名（DDNS）で `.ovpn` の接続先を上書き（`host` または `host:port` 形式・port 省略時は 1194）
+  - openvpn CLI の `--remote` 引数による標準的な上書き方式（プラグイン側の DNS 解決なし）
+  - グローバル IP 変動環境で `.ovpn` の手動修正が不要に
+  - 空欄時は従来どおり `.ovpn` の remote を使用（後方互換）
+
+## [0.43.1] - 2026-09-13 — Claudian 画面 OpenVPN トグル (F-043)
+
+### Added
+
+- 🔌 **Claudian 画面 OpenVPN トグル**（F-043）: YOLO トグル横に VPN 接続制御ボタンを追加
+  - ワンショット方式（クリックで start / stop 即実行・接続中は disabled 防護）
+  - 状態バッジ（🔴 切断 / 🟡 接続中 pulse アニメ / 🟢 接続済 / 🔴 エラー）をリアルタイム反映
+  - 設定未完了時はクリックで Notice + 設定タブ（ネットワークタブ）へ自動遷移
+  - 複数 Claudian タブに自動追随（MutationObserver）
+
+## [0.43.0] - 2026-09-13 — ネットワークタブ新設 + OpenVPN 接続機能 (F-041/F-042)
+
+### Added
+
+- 🌐 **ネットワークタブ新設**（F-042）: 一般タブとテキスト挿入タブの間に「🌐 ネットワーク」タブを新設。プロキシ設定（v0.38.0）を一般タブから移動し、OpenVPN 接続セクションを新設
+- 🔐 **OpenVPN 接続機能**（F-041）: `.ovpn` ファイルを使った VPN トンネル確立（デスクトップ環境のみ・Win/Mac/Linux）
+  - 手動接続/切断ボタン + LLM 呼び出し時の自動接続（`network.openvpn.autoConnectOnLlm` 既定 ON）
+  - LAN 内 LLM/Chroma サーバへのアクセス用途
+  - auth-user-pass 対応（ユーザー名・パスワードを別途指定・一時ファイルは chmod 600）
+  - 状態管理 4 値（disconnected / connecting / connected / error）+ stderr 監視 + リアルタイムログ表示
+  - `ensureVpnConnected()` による LLM dispatch 前の自動接続フック（TTS の AI 読み上げ経路も対応）
+  - プラグイン無効化時に VPN も自動切断（ゾンビプロセス防止）
+- i18n 20 キー追加（ja / en / zh-CN）
+
+### Changed
+
+- 一般タブからプロキシ設定を削除し、ネットワークタブへ移動（`general.proxy` → `network.proxy`・旧キーは normalize 時に自動移送・後方互換維持）
+
+### ⚠️ 制限事項
+
+- OpenVPN はデスクトップ環境でのみ動作（モバイルでは不可・UI に注記表示）
+
+## [0.41.0] - 2026-09-13 — Outputs フォルダミラリング + Vault表示タブ + 改定履歴ページ
+
+### Added
+
+- **Outputs フォルダミラリング**: ドキュメント/ObsidainOutputs を Vault/Outputs として NTFS ジャンクションで表示（`general.outputsMirrorEnabled` 既定 OFF・`general.outputsMirrorPath` 既定 Documents/ObsidainOutputs 動的解決）。Vault 内 Outputs 実フォルダ既存時は有効化不可（実フォルダ優先）
+- 「📂 開く」ボタン: `outputsMirrorPath` のフォルダを Explorer で開く（`shell.openPath`・不在時は自動作成）
+- **「`.` で始まるフォルダを非表示」**: `general.hideDotFolders`（既定 ON）— Whitelist CSS に dot フォルダ非表示ルール追加
+- **「📜 改定履歴」設定タブ**: CHANGELOG.md を SSOT として全バージョン表示（アコーディオン）
+- `scripts/check-changelog.mjs` + `npm run check:changelog`: リリース時に CHANGELOG 更新を強制するゲート
+
+### Changed
+
+- 設定タブ「🗂️ 拡張子フィルタ」を「🗂️ Vault表示」に改名
 
 ### テスト
 
-- パレット 4 件・スキップ統合 1 件・終端計算 2 件・scrollPositionPct 3 件追加。**1002 件 PASS** / typecheck 0
+- 追加 17 ケース（outputs-mirror 10 / changelog-parser 7）
+- **1267 PASS / 1 skipped / typecheck 0**
 
-## [0.35.0] - 2026-09-04 — MD 読み上げ再生制御強化（F-031）
+## [0.38.0] - 2026-09-07 — 選択ポップアップ位置設定（F-032）
 
 ### Added
 
-- ⏸/⏭ ボタン実働化: PlaybackController（新設）経由で音声本体を制御
-- chunkTextNatural（見出し強制分割）: 見出し行で必ず新チャンク。TTS 本体とハイライト登録で index 完全一致
-- Edge 先行音声変換: チャンク i 再生中にチャンク i+1 の音声を事前取得
-- ハイライト色プリセットプルダウン: 定番 8 色から選択
-- 自動スクロール位置設定: scrollPositionPct（0〜100・既定 40）をスライダー指定
-- ファイル名を先に読み上げ: Add to TTS 起動時に basename を本文より先に再生
+- `selection.popupPosition: 'top-right' | 'bottom'` を新設（**既定 `'top-right'`**）
+- 設定タブ「選択」→「🌐 ポップアップ位置」dropdown で切替可能
+- `positionPopup` に第 3 引数 `mode` を追加（ビューポート端のクランプ / 反転ロジックは両モード共通）
+- マイグレーション: 未設定・不正値は `'top-right'` を既定、`'bottom'` 明示のみ保持
+- i18n 対応（ja / en / zh）
+
+### Changed
+
+- **既存ユーザーの可視挙動変更**: ポップアップ位置が「下」→「右上」に変わる（設定で `'bottom'` に戻せる）
 
 ### テスト
 
-- PlaybackController 5 件・chunkTextNatural/speakChunks 制御 5 件・scrollPositionPct 3 件追加。**995 件 PASS**
+- 追加 13 ケース（settings 5 / i18n 1 / popup 5 / watcher 2）
+- **1082 PASS / 1 skipped / typecheck 0**
 
-## [0.34.0] - 2026-09-04 — チャット内 Mermaid 自動描画（F-030）
+
+## [0.37.2] - 2026-09-05 — 原稿生成 Notice 残留バグ根治 + deploy 自立化
+
+### Fixed
+
+- LLM 原稿生成 Notice「📝 原稿生成中 n/m…」が音声再生中も残っていたバグを根治（`progressHidden` フラグ + `onProgress(X/X)` で冪等 hide）
+- チャンク 2 の下線欠落（heading + body disjoint 解消）
+- ミュート時の LLM 原稿生成セッション即中断
+- ツールバーミュートで進行中セッション・ハイライトが完全クリアされない問題
+
+### Changed
+
+- LLM プロンプトで表（ヘッダー行含む）を読み上げない指示を追加
+- `scripts/deploy.mjs` 自立化（`_devtools/obsidian-deploy.mjs` 依存解消）
+
+
+## [0.37.1] - 2026-09-05 — LLM 原稿です・ます調統一 + 並列生成 + ストリーミング読上げ（F-033 拡張・レビュー修正込み）
 
 ### Added
 
-- チャットメッセージ内の  を Obsidian 標準 MarkdownRenderer で自動描画
-- 確定判定 1.2s・図⇔コード切替ボタン・エラーログ debug.mermaid.log
-- 設定 general.mermaidRender（既定 ON）/ i18n ja/zh/en
+- LLM 原稿を全プロファイルで「です・ます調」に統一（プロンプト追記）
+- LLM 並列生成数（1〜8・既定 2）を設定画面で変更可能（`tts.llmRewriteConcurrency`）
+- 生成中断の堅牢化：llm-session（世代ガード）・file-open/mute での abort・新規 Add-to-TTS での中断
+- 空/見出しのみセクションの除外・DR [BEEP] マーカー除去・boss 口頭キュー化・キャッシュ内容ハッシュ・フォールバック原文 anchor・terms-dict ヘッダ/空語釈/複合語修正
 
 ### テスト
 
-- mermaid-render 9 件追加。**989 件 PASS**
+- 1058 件 PASS / typecheck 0（llm-session・並列・設定 clamp・回帰 e2e 追加）
 
-## [0.33.0] - 2026-09-02 — MD 読み上げ位置ハイライト（F-028）
+
+## [0.37.0] - 2026-09-05 — MD 読み上げ LLM 原稿書き換え（F-033）
 
 ### Added
 
-- MD ファイル右クリック「Add to TTS」でプレビューを開いたままチャンク進行に合わせて下線ハイライトが移動
-- ハイライト色プリセット・設定画面トグル・スクロール制御
+- プロファイル非 original のとき、MD を Claude CLI（claude -p）で聞き手向け口頭原稿に書き換えてから読み上げ
+- 見出し単位でセクション分割し、各セクションを LLM で書き換え（プロファイル別プロンプト）
+- 書き換え中は Notice「原稿生成中 n/m…」を表示
+- 結果は `llm-rewrite-cache.json`（100 件 LRU）にキャッシュ（`tts.llmRewriteCache` 既定 ON）
+- ハイライトは書き換え時「見出し単位の粗ハイライト」へ切替
+- LLM 失敗時は従来のトークン変換（F-032）へフォールバック
+
+### テスト
+
+- llm-rewrite 5 件 / llm-rewrite-cache 5 件 / 統合 e2e 2 件 / 設定キー 3 件追加。1044 件 PASS / typecheck 0
 
 
+## [0.36.0] - 2026-09-05 — MD 読み上げ聴き手プロファイル（F-032）
+
+### Added
+
+- 聴き手プロファイル（7 種）: Add to TTS の読み上げ内容を聞く相手に合わせて変換。設定「テキスト読み上げ」タブにプルダウン追加（既定 original＝原文のまま）
+  - workplace（職場・技術）: 略語を 1 文字ずつカタカナ読みに展開（API → エー ピー アイ）
+  - customer（顧客・仕様説明）: コードブロック省略＋丁寧語化（だ → です）
+  - family（家族・やさしい）: コード除外＋数字を漢数字＋用語の口語置換
+  - classroom（教室・学生）: 用語辞書の語直後に「とは 〇〇」解説を付記
+  - boss（上司・報告）: 🎯 結論 見出しに「結論：」マーカー＋数字漢数字
+  - dr（DR・査読）: 誤字疑いキーワード（原文ママ/TBD/FIXME 等）に [BEEP] マーカー＋Web Audio 警告音（880Hz・80ms）・修正提案を TODO: プレフィックス化
+- 用語辞書（tts.termsDict）: Vault 内 MD パスを指定し「用語 → やさしい表現」対照表（テーブル or - 用語 → 表現）を読み込み
+
+### テスト
+
+- profile 15 件 / terms-dict 3 件 / audio-beep 2 件 / 設定キー 4 件 / E2E 2 件追加。1032 件 PASS / typecheck 0
+
+
+## [0.32.10] - 2026-09-04 — 自己更新機能（F-029）
+
+### Added
+
+- **自己更新機能**: 設定一般タブのバージョン行右に「更新を確認」ボタンを追加。GitHub Releases の最新版を semver 比較で検知し、バックアップ（`.backup/<UTC-ISO>/`）→ 3 ファイル DL → disable/enable 自動リロード
+- `Plugin/` ディレクトリ新設（main.js / manifest.json / styles.css の Git tracked 配布源・`gh release create` で手動アップロード）
+- `scripts/deploy.mjs` を Plugin/ からのコピー方式に改修（デプロイ SSOT 化）
+
+### テスト
+
+- self-update 単体 + 統合テスト 19 件追加（update-checker 9 / backup-manager 3 / update-downloader 2 / reloader 2 / flow 3）
+
+### 既知の問題
+
+- `tests/features/tts/core.test.ts` の plachta 伝播テスト 1 件が本機能以前から失敗（`ee25827` で混入・無関係）
 
 ## [0.32.9] - 2026-09-03 — TTS/ハイライト チャンク index 一致化 + 不一致 Notice
 
@@ -185,6 +354,7 @@ tags:
 
 ---
 
+## [0.33.2] - 2026-09-02 — MD 読み上げハイライト DOM 配線バグ修正（F-028）
 
 ### Fixed
 
@@ -209,6 +379,7 @@ tags:
 
 ---
 
+## [0.33.0] - 2026-09-02 — MD 読み上げ位置ハイライト（F-028）
 
 ### Added
 
@@ -457,7 +628,7 @@ tags:
 ### 参照
 
 - 設計書: `80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-08-19-tts-engine-change-local-bundle-cloud-server-language-mode.md`
-- 実装計画: `80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/26_TTSエンジン変更実装計画.md`
+- 実装計画: `80_POC_Projects/POC_017_ClaudianBridge/03_開発文書/18_TTSエンジン変更実装計画.md`
 - テスト件数: 778 → **782** (+4)
 
 ## [0.26.0] - 2026-08-18

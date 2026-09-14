@@ -41,17 +41,6 @@ export interface ConnectionTestResult {
   error?: string;
 }
 
-/** Vault ルートを安全に解決（app.vault.adapter.getBasePath → basePath → cwd） */
-export function resolveVaultRoot(app: App | undefined): string {
-  if (!app) return process.cwd();
-  try {
-    const adapter = (app.vault?.adapter as { getBasePath?: () => string; basePath?: string } | undefined);
-    if (adapter?.getBasePath) return adapter.getBasePath();
-    if (adapter?.basePath) return adapter.basePath;
-  } catch { /* ignore */ }
-  return process.cwd();
-}
-
 /** プロバイダに一時 API キーを渡して接続テスト（fetch を 1 回実行） */
 export async function testProviderConnection(
   provider: QuotaProvider,
@@ -107,8 +96,6 @@ export class MultiQuotaService {
     });
     const getEnv = opts.getEnv ?? ((k: string) => process.env[k]);
     const cfg = opts.store.load();
-    const vaultRoot = resolveVaultRoot(opts.app);
-    const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
     this.providers = [
       createDeepSeekProvider(() => resolveApiKey(cfg.quota?.deepseekApiKey, getEnv, ['DEEPSEEK_API_KEY'])),
       createKimiProvider(() => resolveApiKey(cfg.quota?.kimiApiKey, getEnv, ['KIMI_CODING_API_KEY', 'KIMI_API_KEY'])),
@@ -116,12 +103,10 @@ export class MultiQuotaService {
         () => resolveApiKey(cfg.quota?.minimaxApiKey, getEnv, ['MINIMAX_CN_API_KEY', 'MINIMAX_API_KEY']),
         { getWindow: () => cfg.quota?.windows?.minimax ?? '5h' },
       ),
-      createZhipuProvider({
-        getKey: () => resolveApiKey(cfg.quota?.zhipuApiKey, getEnv, ['ZHIPU_API_KEY', 'ZAI_API_KEY']),
-        getPythonPath: () => (cfg.quota?.zhipuPythonPath && cfg.quota.zhipuPythonPath.trim() !== '' ? cfg.quota.zhipuPythonPath : defaultPython),
-        getVaultRoot: () => vaultRoot,
-        getWindow: () => cfg.quota?.windows?.zhipu ?? '5h',
-      }),
+      createZhipuProvider(
+        () => resolveApiKey(cfg.quota?.zhipuApiKey, getEnv, ['ZHIPU_API_KEY', 'ZAI_API_KEY']),
+        { getWindow: () => cfg.quota?.windows?.zhipu ?? '5h' },
+      ),
     ].filter((p) => p.isConfigured());
   }
 

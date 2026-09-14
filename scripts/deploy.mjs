@@ -1,24 +1,27 @@
 #!/usr/bin/env node
 /**
  * Deploy Claudian Bridge build artifacts + Python helper scripts to the Obsidian vault.
- * Thin wrapper around the shared deploy tool in D:\AI-Agent\_devtools.
+ * Self-contained: no shared _devtools dependency.
  *
  * The Python helpers (_chroma_inspect.py / _run_markitdown.py / split_*.py) live in
  * the repo's python/ directory and are copied flat into the deployed plugin folder,
  * because at runtime the plugin resolves them from <pluginDir>.
  */
-import { spawnSync } from "child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { resolveVaultPath } from "../../_devtools/obsidian-deploy.mjs";
 
-const shared = fileURLToPath(new URL("../../_devtools/obsidian-deploy.mjs", import.meta.url));
-const result = spawnSync(
-  process.execPath,
-  [shared, "ClaudianBridge", "--markers", "Claudian Bridge,ClaudianBridge"],
-  { stdio: "inherit" }
-);
+// v0.37.2: 自立化。優先順位: 1) 環境変数 CLAUDIAN_VAULT_PATH, 2) 環境変数 OBSIDIAN_VAULT_PATH,
+// 3) ハードコード既定（このリポジトリ専用）
+function resolveVaultPath() {
+  const env = process.env.CLAUDIAN_VAULT_PATH || process.env.OBSIDIAN_VAULT_PATH;
+  if (env && existsSync(env)) return env;
+  const FALLBACK = "C:/Users/superlambkin/OneDrive/Edge/Obsidian Vault";
+  if (existsSync(FALLBACK)) return FALLBACK;
+  throw new Error(
+    `❌ Vault path を解決できません。CLAUDIAN_VAULT_PATH 環境変数を設定してください（未設定・パス不一致）`
+  );
+}
 
 // Deploy the Python helper scripts so the plugin folder is self-contained.
 const PY_FILES = [
@@ -46,6 +49,34 @@ const RAG_FILES = [
 ];
 const dest = join(resolveVaultPath(), ".obsidian", "plugins", "ClaudianBridge");
 mkdirSync(dest, { recursive: true });
+
+// --- Plugin 3 ファイル: Plugin/ (SSOT) から Vault へコピー ---
+const pluginDir = join(process.cwd(), "Plugin");
+const PLUGIN_FILES = ["main.js", "manifest.json", "styles.css"];
+let pluginOk = true;
+for (const f of PLUGIN_FILES) {
+  const src = join(pluginDir, f);
+  if (!existsSync(src)) {
+    console.error(`❌ Plugin file missing: ${src} (run: npm run build)`);
+    pluginOk = false;
+    continue;
+  }
+  const target = join(dest, f);
+  copyFileSync(src, target);
+  console.log(`✅ Plugin/${f} -> ${target}`);
+}
+// マーカー検証
+const deployedMain = join(dest, "main.js");
+if (pluginOk && existsSync(deployedMain)) {
+  const content = readFileSync(deployedMain, "utf-8");
+  const missing = ["Claudian Bridge", "ClaudianBridge"].filter((m) => !content.includes(m));
+  if (missing.length > 0) {
+    console.error(`❌ Deploy FAILED: markers not found in deployed main.js: ${missing.join(", ")}`);
+    pluginOk = false;
+  } else {
+    console.log("🔍 Markers verified: Claudian Bridge, ClaudianBridge");
+  }
+}
 
 /** Recursively copy a directory. Returns false if source does not exist. */
 function copyDirSync(src, dest) {
@@ -101,4 +132,4 @@ if (!copyDirSync(edgeTtsSrc, edgeTtsDest)) {
   console.log(`✅ py/edge_tts -> ${edgeTtsDest}`);
 }
 
-process.exit(result.status === 0 && pyOk ? 0 : 1);
+process.exit(pluginOk && pyOk ? 0 : 1);

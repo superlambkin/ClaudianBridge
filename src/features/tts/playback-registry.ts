@@ -9,6 +9,10 @@ import type { TtsEngine } from '../../core/settings';
 export interface TtsPlaybackHandle {
   engine: TtsEngine;
   stop: () => void;
+  /** v0.35.0: 一時停止（PlaybackController 用・任意） */
+  pause?: () => void;
+  /** v0.35.0: 再開（任意） */
+  resume?: () => void;
 }
 
 const active = new Set<TtsPlaybackHandle>();
@@ -61,6 +65,19 @@ export function registerPlayback(handle: TtsPlaybackHandle): () => void {
 
 export function isTtsPlaying(): boolean {
   return active.size > 0;
+}
+
+/**
+ * v0.35.0: 最新のアクティブハンドルのみ停止する（⏭ スキップ用）。
+ * stopAllPlayback() と異なり stopEpoch を進めないため、
+ * ディスパッチャは「外部停止」ではなくスキップによる中断として扱える。
+ */
+export function stopCurrentHandle(): void {
+  const handles = [...active];
+  const last = handles.at(-1);
+  if (last) {
+    try { last.stop(); } catch { /* ベストエフォート */ }
+  }
 }
 
 export function stopAllPlayback(): number {

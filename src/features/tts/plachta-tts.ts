@@ -1,4 +1,5 @@
 import type { TtsSettings } from './core';
+import { getPlaybackController } from './playback-controller';
 import type { PlachtaSettings, PlachtaLanguage, TtsEngine } from '../../core/settings';
 import { registerPlayback } from './playback-registry';
 
@@ -167,6 +168,14 @@ export async function playObjectUrl(
           try { audio.pause(); } catch { /* ignore */ }
           finish(false);
         },
+        // v0.35.0: 一時停止/再開ハンドル（PlaybackController 用）
+        pause: () => { try { audio.pause(); } catch { /* ignore */ } },
+        resume: () => { void audio.play().catch(() => { /* ignore */ }); },
+      });
+      // v0.35.0: 再生開始時に PlaybackController へバインド
+      getPlaybackController().bindAudio({
+        pause: () => { try { audio.pause(); } catch { /* ignore */ } },
+        resume: () => { void audio.play().catch(() => { /* ignore */ }); },
       });
       audio.onended = () => finish(true);
       audio.onerror = () => { noticeFn('⚠️ 再生失敗'); finish(false); };
@@ -204,6 +213,7 @@ export async function plachtaSpeakChunksPipelined(
   settings: TtsSettings,
   noticeFn: (m: string) => void,
   onProgress?: (msg: string | null) => void,
+  onChunkStart?: (idx: number) => void,
 ): Promise<boolean> {
   if (chunks.length === 0) return true;
   onProgress?.('⏳ 音声生成中…');
@@ -219,6 +229,8 @@ export async function plachtaSpeakChunksPipelined(
       pending = plachtaSynthesize(chunks[i + 1], settings, noticeFn);
     }
     if (i === 0) onProgress?.('▶ 読み上げ中…');
+    // v0.34.0: チャンク再生開始を通知（MD 読み上げハイライト用・下線原因⑥）
+    onChunkStart?.(i);
     const ok = await playObjectUrl(url, noticeFn);
     if (!ok) {
       onProgress?.(null);

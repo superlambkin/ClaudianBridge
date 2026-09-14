@@ -37,6 +37,21 @@
   border-radius: 50%;
   background: var(--text-muted);
 }
+/* 数値セグメントをクリックでリセットできることを示す */
+.cb-token-rate-clickable .cb-token-rate-ttft,
+.cb-token-rate-clickable .cb-token-rate-value,
+.cb-token-rate-clickable .cb-token-rate-avg,
+.cb-token-rate-clickable .cb-token-rate-max {
+  cursor: pointer;
+  user-select: none;
+}
+.cb-token-rate-clickable .cb-token-rate-ttft:hover,
+.cb-token-rate-clickable .cb-token-rate-value:hover,
+.cb-token-rate-clickable .cb-token-rate-avg:hover,
+.cb-token-rate-clickable .cb-token-rate-max:hover {
+  opacity: 1;
+  text-decoration: underline dotted;
+}
 @keyframes cb-token-rate-pulse {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }

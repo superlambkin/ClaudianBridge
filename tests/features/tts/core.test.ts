@@ -419,6 +419,15 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     expect(vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0][0].length).toBe(1);
   });
 
+  it('v0.32.10: plachta 経路でも onChunkStart が plachtaSpeakChunksPipelined に伝播する（下線原因⑥）', async () => {
+    const onChunkStart = vi.fn();
+    await addTextToTTS(null as never, 'あ'.repeat(300), makePlachtaSettings(), onChunkStart);
+    expect(plachtaSpeakChunksPipelined).toHaveBeenCalledTimes(1);
+    const args = vi.mocked(plachtaSpeakChunksPipelined).mock.calls[0];
+    // 第 5 引数（index 4）として onChunkStart が渡される
+    expect(args[4]).toBe(onChunkStart);
+  });
+
   it('TC-L04: webspeech 450字 → 4チャンク(140/140/140/30)で連続再生（v0.17.0）', async () => {
     const { synth, fireEnd } = mockWindowWithSpeech();
     const notice = vi.fn();
@@ -491,5 +500,15 @@ describe('addTextToTTS chunking (v0.10.0)', () => {
     await p;
     expect(spawnMock).toHaveBeenCalledTimes(2);
     expect((child.stdin.write.mock.calls[0][0] as string).length).toBe(500);
+  });
+});
+
+describe('chunkTextNatural 統合 (v0.35.0)', () => {
+  it('見出しをまたぐテキストは見出し直前でチャンクが分かれる', async () => {
+    await addTextToTTS(null as never, 'あ'.repeat(120) + '。\n# 見出し\n' + 'い'.repeat(120) + '。', makePlachtaSettings());
+    const chunks = vi.mocked(plachtaSpeakChunksPipelined).mock.calls.at(-1)?.[0] as string[];
+    expect(chunks.length).toBe(2);
+    expect(chunks[1].startsWith('見出し')).toBe(true);
+    expect(chunks[1]).not.toContain('#');
   });
 });

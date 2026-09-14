@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from 'vitest';
-import { MultiQuotaService, claudeSnapshotToProviderQuota, resolveApiKey, resolveVaultRoot, testProviderConnection } from '../../../src/features/quota/service';
+import { MultiQuotaService, claudeSnapshotToProviderQuota, resolveApiKey, testProviderConnection } from '../../../src/features/quota/service';
 import { createDeepSeekProvider } from '../../../src/features/quota/providers/deepseek';
 import type { QuotaSnapshot } from '../../../src/features/quota/types';
 
@@ -24,7 +24,6 @@ function makeService(opts?: Partial<{
         kimiApiKey: '',
         minimaxApiKey: '',
         zhipuApiKey: opts?.apiKeys?.zhipu ?? '',
-        zhipuPythonPath: 'py',
         displayModels: {
           claude: opts?.displayModels?.claude ?? true,
           deepseek: opts?.displayModels?.deepseek ?? true,
@@ -215,12 +214,6 @@ describe('testProviderConnection', () => {
     } finally {
       globalThis.fetch = orig;
     }
-  });
-});
-
-describe('resolveVaultRoot', () => {
-  it('app 未指定 → process.cwd() を返す', () => {
-    expect(resolveVaultRoot(undefined)).toBe(process.cwd());
   });
 });
 

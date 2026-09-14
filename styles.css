@@ -538,3 +538,215 @@
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
 }
+
+/* ============================================================
+ * v0.31.0 (F-028): MD 読み上げ位置ハイライト
+ * ============================================================ */
+/* v0.32.3: 下線表示方式（ご主人様指示 — 読み上げ位置を下線で示す） */
+.cb-md-read-chunk {
+  background-color: transparent;
+  border-radius: 0;
+  transition: text-decoration-color 200ms ease;
+}
+.cb-md-read-chunk.is-active {
+  background-color: transparent;
+  text-decoration: underline;
+  text-decoration-color: var(--cb-md-read-highlight, #ffb300);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+}
+.cb-md-read-chunk.is-paused {
+  background-color: transparent;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: var(--cb-md-read-highlight-paused, rgba(255, 180, 80, 0.9));
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+  animation: cb-md-read-pulse 1.5s ease-in-out infinite;
+}
+@keyframes cb-md-read-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1.0; }
+}
+.cb-md-read-overlay {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(40, 40, 40, 0.85);
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+}
+.cb-md-read-overlay button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.cb-md-read-overlay button:hover {
+  opacity: 0.8;
+}
+.cb-md-read-overlay [data-cb-md-read-progress] {
+  min-width: 32px;
+  text-align: center;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * v0.32.3: Live Preview / Source 用も下線方式に統一
+ * （registerEditorExtension は無効のため Preview モード適用のみ有効）
+ * ============================================================ */
+.cm-s-obsidian .cb-md-read-chunk.is-active,
+.markdown-preview-view .cb-md-read-chunk.is-active {
+  background-color: transparent;
+  text-decoration: underline;
+  text-decoration-color: var(--cb-md-read-highlight, #ffb300);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+}
+
+/* v0.33.0: mermaid-render */
+.cb-mermaid-toggle { position: relative; float: left; margin: 2px 8px 2px 2px; cursor: pointer; opacity: 0.6; }
+.cb-mermaid-toggle:hover { opacity: 1; }
+.cb-mermaid-holder { overflow-x: auto; }
+.cb-mermaid-fail-badge { font-size: 0.8em; opacity: 0.7; }
+
+/* v0.35.2: ハイライト色パレット */
+.cb-color-palette { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.cb-color-swatch { width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--background-modifier-border); cursor: pointer; padding: 0; }
+.cb-color-swatch.is-selected { outline: 2px solid var(--text-accent); outline-offset: 1px; }
+.cb-color-custom { display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
+.cb-color-custom input[type="color"] { width: 100%; height: 100%; border: none; padding: 0; margin: 0; background: transparent; cursor: pointer; }
+
+/* v0.39.0 (F-039): Think モード（プロバイダ別折りたたみ） */
+.cb-think-provider { border: 1px solid var(--background-modifier-border); border-radius: 6px; margin: 6px 0; padding: 4px 10px; }
+.cb-think-provider__summary { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 0; }
+.cb-think-provider__name { font-weight: 600; }
+.cb-think-badge { font-size: 0.8em; }
+.cb-think-badge--on { color: var(--text-accent); }
+.cb-think-badge--off { opacity: 0.5; }
+
+/* === v0.43.4 (F-043): Claudian 画面 OpenVPN トグル（YOLO トグル同デザイン） === */
+
+.cb-vpn-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  margin-right: 0;
+  padding-left: 12px;
+  padding-right: 0;
+}
+
+/* v0.43.7: YOLO トグルは自身も margin-left:auto を持つため、両方に auto があると
+   余白が二等分され VPN と YOLO の間に空白ができる。隣接時は YOLO 側の auto を
+   無効化し、VPN が余白を独占して YOLO に密着させる。 */
+.cb-vpn-toggle + .claudian-permission-toggle {
+  margin-left: 0;
+}
+
+.cb-vpn-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 28px;
+}
+
+.cb-vpn-toggle[data-status='connected'] .cb-vpn-label {
+  color: rgb(92, 148, 140);
+  font-weight: 600;
+}
+
+/* スイッチ本体（YOLO の .claudian-toggle-switch と同一寸法・配色） */
+.cb-vpn-switch {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--background-modifier-border);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  box-shadow: none;
+}
+
+.cb-vpn-switch::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.cb-vpn-switch:hover:not(:disabled) {
+  background: var(--background-modifier-hover);
+}
+
+.cb-vpn-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 接続済: ノブ右移動 + ブランドカラー（YOLO active と同様） */
+.cb-vpn-switch[data-status='connected'] {
+  background: rgba(var(--claudian-brand-rgb), 0.3);
+}
+
+.cb-vpn-switch[data-status='connected']::after {
+  transform: translateX(14px);
+  background: var(--claudian-brand);
+}
+
+/* 接続中: オレンジ + ノブ脈動 */
+.cb-vpn-switch[data-status='connecting'] {
+  background: rgba(240, 140, 0, 0.35);
+}
+
+.cb-vpn-switch[data-status='connecting']::after {
+  background: #f08c00;
+  animation: cb-vpn-pulse-knob 1s ease-in-out infinite;
+}
+
+/* エラー: ノブ赤（位置は左のまま） */
+.cb-vpn-switch[data-status='error']::after {
+  background: #c92a2a;
+}
+
+@keyframes cb-vpn-pulse-knob {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.25); }
+}
+
+.theme-dark .cb-vpn-switch:disabled {
+  opacity: 0.4;
+}
+
+/* === v0.43.8 (F-042): OpenVPN 未インストール警告 === */
+.cb-openvpn-install-warning a {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--text-accent);
+  text-decoration: underline;
+}
+
+/* === v0.44.1 (F-042): 接続済みだが経路未確立の警告 === */
+.cb-vpn-warning {
+  color: var(--text-error);
+  font-size: 0.9em;
+  margin: 4px 0;
+}

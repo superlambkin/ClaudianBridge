@@ -3,6 +3,7 @@ import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { getPluginDir } from '../core/plugin-dir';
 import { renderGeneralTab } from './SettingTabGeneral';
+import { renderNetworkTab } from './SettingTabNetwork';
 import { renderSelectionTab } from './SettingTabSelection';
 import { renderTtsTab } from './SettingTabTts';
 import { renderOfficeTab } from './SettingTabOffice';
@@ -10,17 +11,26 @@ import { renderWhitelistTab } from './SettingTabWhitelist';
 import { renderQuotaTab } from './SettingTabQuota';
 import { renderChromaTab } from '../features/chroma/settings/ChromaSettingsTab';
 import { renderMemoryTab } from './SettingTabMemory';
+import { renderImageGenTab } from './SettingTabImageGen';
+import { SettingTabChangelog } from './SettingTabChangelog';
+// v0.41.0: 改定履歴タブ（CHANGELOG.md を SSOT として同梱）
+import changelogText from '../../CHANGELOG.md';
+
+const renderChangelogTab = (_app: App, el: HTMLElement, _store: ConfigStore): void => {
+  new SettingTabChangelog(el, changelogText).render();
+};
 
 type RenderFn = (app: App, el: HTMLElement, store: ConfigStore, resetMigration?: () => Promise<void>, pluginId?: string, pluginDir?: string) => void;
 
 interface TabDef {
   id: string;
-  labelKey: 'tabGeneral' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabQuota' | 'tabChroma' | 'tabMemory';
+  labelKey: 'tabGeneral' | 'tabNetwork' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabQuota' | 'tabChroma' | 'tabMemory' | 'tabImageGen' | 'tabChangelog';
   render: RenderFn;
 }
 
 const TABS: TabDef[] = [
   { id: 'general', labelKey: 'tabGeneral', render: renderGeneralTab },
+  { id: 'network', labelKey: 'tabNetwork', render: renderNetworkTab },
   { id: 'selection', labelKey: 'tabSelection', render: renderSelectionTab },
   { id: 'tts', labelKey: 'tabTts', render: renderTtsTab },
   { id: 'office', labelKey: 'tabOffice', render: renderOfficeTab },
@@ -28,6 +38,8 @@ const TABS: TabDef[] = [
   { id: 'quota', labelKey: 'tabQuota', render: renderQuotaTab },
   { id: 'chroma', labelKey: 'tabChroma', render: renderChromaTab },
   { id: 'memory', labelKey: 'tabMemory', render: renderMemoryTab },
+  { id: 'imageGen', labelKey: 'tabImageGen', render: renderImageGenTab },
+  { id: 'changelog', labelKey: 'tabChangelog', render: renderChangelogTab },
 ];
 
 export class ClaudianBridgeSettingTab extends PluginSettingTab {

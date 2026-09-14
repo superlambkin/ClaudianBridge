@@ -8,12 +8,9 @@ import { createDeepSeekProvider } from '../features/quota/providers/deepseek';
 import { createKimiProvider } from '../features/quota/providers/kimi';
 import { createMiniMaxProvider } from '../features/quota/providers/minimax';
 import { createZhipuProvider } from '../features/quota/providers/zhipu';
-import { resolveVaultRoot, testProviderConnection } from '../features/quota/service';
+import { testProviderConnection } from '../features/quota/service';
 import { getClaudeQuotaHandle, registerClaudeQuota } from '../features/quota/index';
 import type { ProviderId, ProviderQuota, QuotaProvider } from '../features/quota/types';
-
-/** 既定の Python インタプリタ（service.ts と同じ導出） */
-const defaultPython = typeof process !== 'undefined' && process.platform === 'win32' ? 'py' : 'python3';
 
 type QuotaLevel = 'safe' | 'caution' | 'danger' | 'unknown';
 
@@ -293,15 +290,10 @@ export function renderQuotaTab(app: App, containerEl: HTMLElement, store: Config
         apiKey: quota.zhipuApiKey,
         apiKeyField: 'zhipuApiKey',
         label: s.quotaZhipuApiKey,
-        build: (k) => createZhipuProvider({
-          getKey: () => k,
-          getPythonPath: () => {
-            const p = store.load().quota.zhipuPythonPath;
-            return p && p.trim() !== '' ? p.trim() : defaultPython;
-          },
-          getVaultRoot: () => resolveVaultRoot(app),
-          getWindow: () => store.load().quota.windows.zhipu,
-        }),
+        build: (k) => createZhipuProvider(
+          () => k,
+          { getWindow: () => store.load().quota.windows.zhipu },
+        ),
         valueLabel: s.quotaZhipuValue,
       },
     ];
@@ -347,16 +339,6 @@ export function renderQuotaTab(app: App, containerEl: HTMLElement, store: Config
           })
         );
     }
-
-    // ───── ZHIPU Python パス ─────
-    new Setting(containerEl)
-      .setName(s.quotaZhipuPythonPath)
-      .addText((t) =>
-        t
-          .setPlaceholder(s.quotaZhipuPythonPathPlaceholder)
-          .setValue(quota.zhipuPythonPath)
-          .onChange((v) => saveKey('zhipuPythonPath', v))
-      );
   };
 
   draw();

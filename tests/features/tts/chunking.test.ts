@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { chunkText, speakChunks } from '../../../src/features/tts/chunking';
+import { chunkText, speakChunks, chunkTextNatural } from '../../../src/features/tts/chunking';
+import { getPlaybackController } from '../../../src/features/tts/playback-controller';
 
 describe('chunkText', () => {
   it('短文はそのまま返す', () => {
@@ -68,5 +69,77 @@ describe('speakChunks', () => {
     const ok = await speakChunks(['a', 'b', 'c'], speak, () => ++calls > 1);
     expect(ok).toBe(false);
     expect(speak).toHaveBeenCalledTimes(1);
+  });
+
+  // v0.31.0 (F-028): 各 chunk speak 開始前に onChunkStart(idx) が呼ばれる
+  it('onChunkStart が各 chunk 開始前に index 付きで呼ばれる', async () => {
+    const speak = vi.fn().mockResolvedValue(true);
+    const hook = vi.fn();
+    const ok = await speakChunks(['a', 'b', 'c'], speak, undefined, hook);
+    expect(ok).toBe(true);
+    expect(hook).toHaveBeenCalledTimes(3);
+    expect(hook.mock.calls.map((c) => c[0])).toEqual([0, 1, 2]);
+    // speak より先に hook が呼ばれること（順序保証）
+    expect(hook.mock.invocationCallOrder[0]).toBeLessThan(speak.mock.invocationCallOrder[0]!);
+  });
+
+  it('onChunkStart 未指定でも正常動作（後方互換）', async () => {
+    const speak = vi.fn().mockResolvedValue(true);
+    const ok = await speakChunks(['a', 'b'], speak);
+    expect(ok).toBe(true);
+    expect(speak).toHaveBeenCalledTimes(2);
+  });
+
+  it('speak が false を返したら以降の onChunkStart は呼ばれない', async () => {
+    const speak = vi.fn()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    const hook = vi.fn();
+    const ok = await speakChunks(['a', 'b', 'c'], speak, undefined, hook);
+    expect(ok).toBe(false);
+    expect(hook).toHaveBeenCalledTimes(2); // 2 番目の chunk で中断
+    expect(hook.mock.calls.map((c) => c[0])).toEqual([0, 1]);
+  });
+});
+
+describe('chunkTextNatural (v0.35.0)', () => {
+  it('見出し行で強制新チャンク（# は読み上げ用に除去）', () => {
+    const chunks = chunkTextNatural('# A\n\n本文A。\n# B\n\n本文B。', 100);
+    expect(chunks[0].startsWith('A')).toBe(true);
+    expect(chunks[0]).not.toContain('#');
+    expect(chunks[1].startsWith('B')).toBe(true);
+    expect(chunks[1]).not.toContain('#');
+  });
+
+  it('見出しがなく文末で区切れる場合は既存 chunkText と同一結果', () => {
+    const text = 'あ'.repeat(300) + '。' + 'い'.repeat(300) + '。';
+    expect(chunkTextNatural(text, 400)).toEqual(chunkText(text, 400));
+  });
+
+  it('見出し内の長文は途中分割にフォールバック', () => {
+    const chunks = chunkTextNatural('# ' + 'あ'.repeat(300), 100);
+    expect(chunks.every((c) => c.length <= 100 || c.length < 300)).toBe(true);
+    expect(chunks.join('')).toContain('あ'.repeat(300));
+  });
+});
+
+describe('speakChunks 制御統合 (v0.35.0)', () => {
+  it('skip 要求で現チャンクを打ち切り次へ進む', async () => {
+    const pc = getPlaybackController();
+    const spoken: string[] = [];
+    const p = speakChunks(['aaa', 'bbb', 'ccc'], async (t) => {
+      spoken.push(t);
+      if (t === 'aaa') pc.skipNext(); // 1 チャンク目の再生中にスキップ要求
+      return true;
+    });
+    await expect(p).resolves.toBe(true);
+    expect(spoken).toEqual(['aaa', 'bbb', 'ccc']);
+  });
+
+  it('speakFn が false（外部停止等）なら false を返す', async () => {
+    const pc = getPlaybackController();
+    const p = speakChunks(['a', 'b'], async () => false);
+    await expect(p).resolves.toBe(false);
+    expect(pc.consumeSkip()).toBe(false);
   });
 });

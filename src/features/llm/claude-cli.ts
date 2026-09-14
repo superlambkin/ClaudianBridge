@@ -12,6 +12,10 @@ import { spawn, execFileSync } from 'child_process';
 export interface ClaudeCliOptions {
   /** タイムアウト（ms）。既定 30000。超過で kill して null を返す */
   timeoutMs?: number;
+  /** v0.37.1: 中断シグナル。abort 時に子プロセスを kill し null を返す */
+  signal?: AbortSignal;
+  /** v0.37.1: Think モードを無効化（拡張思考なしで応答＝高速・低コスト） */
+  disableThinking?: boolean;
 }
 
 const DEFAULT_TIMEOUT_MS = 30000;
@@ -44,7 +48,11 @@ export async function runClaudePrompt(prompt: string, opts?: ClaudeCliOptions): 
 
     let timer: ReturnType<typeof setTimeout>;
     try {
-      child = spawn(resolveClaudeCommand(), ['-p'], { windowsHide: true });
+      child = spawn(resolveClaudeCommand(), ['-p'], {
+        windowsHide: true,
+        // v0.37.1: Think モード無効化（MAX_THINKING_TOKENS=0 で拡張思考を切る）
+        env: { ...process.env, ...(opts?.disableThinking ? { MAX_THINKING_TOKENS: '0' } : {}) },
+      });
     } catch (e) {
       console.warn('[cb-claude-cli] spawn threw:', e);
       resolve(null);
@@ -55,6 +63,17 @@ export async function runClaudePrompt(prompt: string, opts?: ClaudeCliOptions): 
       try { child.kill(); } catch { /* ignore */ }
       // kill により close が発火するのを待つ（settled ガードで二重解決なし）
     }, timeoutMs);
+
+    // v0.37.1: 外部 abort で子プロセスを kill（close → settle(null)）
+    const onAbort = (): void => {
+      try { child.kill(); } catch { /* ignore */ }
+      try { clearTimeout(timer); } catch { /* ignore */ }
+      settle(null);
+    };
+    if (opts?.signal) {
+      if (opts.signal.aborted) onAbort();
+      else opts.signal.addEventListener('abort', onAbort, { once: true });
+    }
 
     child.stdout?.on('data', (d) => (out += d.toString()));
     child.stderr?.on('data', (d) => console.warn('[cb-claude-cli] stderr:', d.toString().slice(0, 200)));
@@ -96,4 +115,95 @@ export async function polishInstruction(text: string, opts?: ClaudeCliOptions): 
   // 応答がマークダウンコードフェンスで囲まれることがあるため剥がす
   const unfenced = r.replace(/^```[a-zA-Z]*\n([\s\S]*?)\n?```$/, '$1').trim();
   return unfenced === '' ? null : unfenced;
+}
+
+// === v0.40.0 (F-040): Think モード選択機能 ===
+
+import type { LlmClient, ThinkingConfig } from './types';
+
+/**
+ * v0.40.0 (F-040): ThinkingConfig を受ける createClaudeClient factory。
+ * ThinkingConfig を env 変数（MAX_THINKING_TOKENS）に変換する。
+ */
+export function createClaudeClient(thinking: ThinkingConfig): LlmClient {
+  return {
+    id: 'claude',
+    async runPrompt(prompt, opts) {
+      const env: NodeJS.ProcessEnv = { ...process.env };
+      if (!thinking.enabled) {
+        env.MAX_THINKING_TOKENS = '0';
+      } else if (thinking.effort === 'high') {
+        env.MAX_THINKING_TOKENS = '4096';
+      } else if (thinking.effort === 'low') {
+        env.MAX_THINKING_TOKENS = '512';
+      } else {
+        env.MAX_THINKING_TOKENS = '1024';  // medium or 'off' (安全フォールバック)
+      }
+      // 既存 runClaudePrompt は env を受け取らないため、内部で spawn する新しい経路を使う
+      return runClaudePromptWithEnv(prompt, {
+        timeoutMs: opts.timeoutMs,
+        signal: opts.signal,
+        env,
+      });
+    },
+  };
+}
+
+/** 内部用: env を指定して claude -p を実行 */
+async function runClaudePromptWithEnv(
+  prompt: string,
+  opts: { timeoutMs?: number; signal?: AbortSignal; env: NodeJS.ProcessEnv },
+): Promise<string | null> {
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  return new Promise((resolve) => {
+    let settled = false;
+    let out = '';
+    let child: ReturnType<typeof spawn>;
+    const settle = (v: string | null): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(v);
+    };
+    let timer: ReturnType<typeof setTimeout>;
+    try {
+      child = spawn(resolveClaudeCommand(), ['-p'], {
+        windowsHide: true,
+        env: opts.env,
+      });
+    } catch (e) {
+      console.warn('[cb-claude-cli] spawn threw:', e);
+      resolve(null);
+      return;
+    }
+    timer = setTimeout(() => {
+      try { child.kill(); } catch { /* ignore */ }
+    }, timeoutMs);
+    const onAbort = (): void => {
+      try { child.kill(); } catch { /* ignore */ }
+      try { clearTimeout(timer); } catch { /* ignore */ }
+      settle(null);
+    };
+    if (opts.signal) {
+      if (opts.signal.aborted) onAbort();
+      else opts.signal.addEventListener('abort', onAbort, { once: true });
+    }
+    child.stdout?.on('data', (d) => (out += d.toString()));
+    child.stderr?.on('data', (d) => console.warn('[cb-claude-cli] stderr:', d.toString().slice(0, 200)));
+    child.on('error', (e) => {
+      console.warn('[cb-claude-cli] error:', e.message);
+      settle(null);
+    });
+    child.on('close', (code) => {
+      if (code === 0) {
+        const trimmed = out.trim();
+        settle(trimmed === '' ? null : trimmed);
+      } else {
+        console.warn('[cb-claude-cli] exit code:', code);
+        settle(null);
+      }
+    });
+    child.stdin?.write(prompt);
+    child.stdin?.end();
+  });
 }

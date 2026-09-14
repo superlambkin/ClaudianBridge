@@ -19,23 +19,63 @@ export function setupTokenRate(
   store: ConfigStore,
 ): () => void {
   const counters = new Map<Element, CounterHandle>();
-  const loadEnabled = (): boolean => {
+
+  interface TokenRateVisibleFlags {
+    ttft: boolean;
+    current: boolean;
+    avg: boolean;
+    max: boolean;
+  }
+
+  interface TokenRateConfig {
+    enabled: boolean;
+    visible: TokenRateVisibleFlags;
+    intervalMs: number;
+  }
+
+  // store.load() は同期 fs 読み込みのため 1 回の呼び出しで enabled / visible / intervalMs を
+  // 全部取る（rescan が body 変異ごとに発火するため I/O 回数を最小化）
+  const loadConfig = (): TokenRateConfig => {
     try {
-      const cfg = store.load() as { general?: { tokenRateEnabled?: boolean } } | null;
-      return cfg?.general?.tokenRateEnabled ?? false;
+      const cfg = store.load() as { general?: Record<string, unknown> } | null;
+      const g = cfg?.general ?? {};
+      const b = (k: string, fallback: boolean): boolean =>
+        typeof g[k] === 'boolean' ? (g[k] as boolean) : fallback;
+      const num = (k: string, fallback: number): number =>
+        typeof g[k] === 'number' ? (g[k] as number) : fallback;
+      return {
+        enabled: b('tokenRateEnabled', false),
+        visible: {
+          ttft: b('tokenRateShowTtft', true),
+          current: b('tokenRateShowCurrent', true),
+          avg: b('tokenRateShowAvg', true),
+          max: b('tokenRateShowMax', true),
+        },
+        intervalMs: num('tokenRateIntervalMs', 250),
+      };
     } catch {
-      return false;
+      return {
+        enabled: false,
+        visible: { ttft: true, current: true, avg: true, max: true },
+        intervalMs: 250,
+      };
     }
   };
 
-  const injectInto = (container: Element): void => {
+  const visibleKey = (v: TokenRateVisibleFlags): string =>
+    (['ttft', 'current', 'avg', 'max'] as const).filter((k) => v[k]).join(',');
+
+  const intervalKey = (i: number): string => String(i);
+
+  const injectInto = (container: Element, cfg?: TokenRateConfig): void => {
     if (counters.has(container)) return;
+    const c = cfg ?? loadConfig();
     // 優先: YOLO トグル（.claudian-permission-toggle）の左に表示
     const toggle = findPermissionToggle(container);
     if (toggle && toggle.parentElement) {
       const counter = createTokenRateCounter(
         toggle.parentElement as HTMLElement,
-        { insertBefore: toggle },
+        { insertBefore: toggle, visible: c.visible, intervalMs: c.intervalMs },
       );
       counter.start();
       counters.set(container, counter);
@@ -46,15 +86,16 @@ export function setupTokenRate(
     if (!messages) return;
     const counter = createTokenRateCounter(
       messages.parentElement as HTMLElement,
-      { insertAfter: messages },
+      { insertAfter: messages, visible: c.visible, intervalMs: c.intervalMs },
     );
     counter.start();
     counters.set(container, counter);
   };
 
-  const injectAll = (): void => {
-    if (!loadEnabled()) return;
-    document.querySelectorAll(CONTAINER_SELECTOR).forEach(injectInto);
+  const injectAll = (cfg?: TokenRateConfig): void => {
+    const c = cfg ?? loadConfig();
+    if (!c.enabled) return;
+    document.querySelectorAll(CONTAINER_SELECTOR).forEach((el) => injectInto(el, c));
   };
 
   const removeAll = (): void => {
@@ -63,15 +104,27 @@ export function setupTokenRate(
   };
 
   const rescan = (): void => {
-    if (!loadEnabled()) { removeAll(); return; }
-    // コンテナが消えた / counter 要素が React 再レンダーで外れた → 破棄して再注入
+    // store.load()（同期 fs 読み込み）は 1 回のみ: enabled / visible / intervalMs を同じ結果から判定
+    const cfg = loadConfig();
+    if (!cfg.enabled) { removeAll(); return; }
+    const expectedVisible = visibleKey(cfg.visible);
+    const expectedInterval = intervalKey(cfg.intervalMs);
+    // コンテナが消えた / counter 要素が React 再レンダーで外れた /
+    // 表示項目設定が変わった（data-visible 不一致）/ 更新周期が変わった（data-interval 不一致）
+    // → 破棄して再注入
     counters.forEach((handle, el) => {
-      if (!document.contains(el) || !el.querySelector('.cb-token-rate')) {
+      const rate = el.querySelector('.cb-token-rate');
+      if (
+        !document.contains(el)
+        || !rate
+        || rate.getAttribute('data-visible') !== expectedVisible
+        || rate.getAttribute('data-interval') !== expectedInterval
+      ) {
         handle.destroy();
         counters.delete(el);
       }
     });
-    injectAll();
+    injectAll(cfg);
   };
 
   injectAll();
@@ -95,7 +148,7 @@ export function setupTokenRate(
   const wrappedAppendChild = function (this: Node, child: Node): Node {
     const result = Node.prototype.appendChild.call(this, child);
     if (
-      loadEnabled()
+      loadConfig().enabled
       && child instanceof Element
       && child.classList.contains('claudian-input-container')
     ) {

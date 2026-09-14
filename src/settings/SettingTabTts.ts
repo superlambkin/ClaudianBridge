@@ -3,6 +3,7 @@ import type { App } from 'obsidian';
 import * as path from 'path';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
+import { renderHighlightColorPalette } from './color-palette';
 import { addTextToTTS, SAMPLE_TEXT } from '../features/tts/core';
 import {
   PLACHTA_PRESETS,
@@ -13,6 +14,7 @@ import {
   PLACHTA_SPEED_MAX,
 } from '../features/tts/plachta-tts';
 import type { TtsEngine, PlachtaLanguage } from '../core/settings';
+import type { ClaudianBridgeSettings } from '../core/settings';
 import type { TtsCliSettings, TtsAutoReadSettings } from '../core/settings';
 import { withFullTextState, DEFAULT_SPEECH_FILTER_OPTIONS, DEFAULT_TTS_EDGE_CLOUD } from '../core/settings';
 import { TTS_LANGUAGE_MODES } from '../core/settings';
@@ -20,6 +22,7 @@ import type { TtsLanguageMode } from '../core/settings';
 import { CHUNK_MAX_CHARS_MIN, CHUNK_MAX_CHARS_MAX, DEFAULT_CHUNK_MAX_CHARS, EDGE_CHUNK_MAX_CHARS_MIN, EDGE_CHUNK_MAX_CHARS_MAX, DEFAULT_EDGE_CHUNK_MAX_CHARS } from '../core/settings';
 import type { TtsChunkMaxChars } from '../core/settings';
 import type { TtsSpeechFilterSection, SpeechFilterOptions } from '../core/settings';
+import { applyHighlightColor } from '../features/tts/md-read-highlight/highlight-style';
 
 const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
   zh: ['xiaoxiao', 'yunxi', 'yunyang', 'yunjian', 'xiaoyi', 'yunxia'],
@@ -641,6 +644,128 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
     noteBox.createEl('p', {
       text: s.ttsMinimaxRemovalNote,
     });
+
+    // 6. v0.33.0 (F-028): MD 読み上げ位置ハイライト
+    containerEl.createEl('h3', { text: 'MD 読み上げハイライト' });
+    new Setting(containerEl)
+      .setName(s.ttsMdReadHighlightEnabled)
+      .setDesc(s.ttsMdReadOverlayNoPreview)
+      .addToggle((t) =>
+        t
+          .setValue(cfg.tts.mdReadHighlight?.enabled ?? true)
+          .onChange((v) => {
+            const latest = store.load();
+            store.save({
+              ...latest,
+              tts: {
+                ...latest.tts,
+                mdReadHighlight: {
+                  ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '' }),
+                  enabled: v,
+                },
+              },
+            });
+          }),
+      );
+    // v0.36.0 (F-032): 聴き手プロファイル（口調・用語変換）
+    new Setting(containerEl)
+      .setName(s.mdReadProfile)
+      .setDesc(s.mdReadProfileDesc)
+      .addDropdown((d) => {
+        d.addOption('original', s.mdReadProfileOriginal);
+        d.addOption('workplace', s.mdReadProfileWorkplace);
+        d.addOption('customer', s.mdReadProfileCustomer);
+        d.addOption('family', s.mdReadProfileFamily);
+        d.addOption('classroom', s.mdReadProfileClassroom);
+        d.addOption('boss', s.mdReadProfileBoss);
+        d.addOption('dr', s.mdReadProfileDr);
+        d.setValue(cfg.tts.mdReadProfile ?? 'original')
+          .onChange(async (v) => {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, mdReadProfile: v as ClaudianBridgeSettings['tts']['mdReadProfile'] } });
+            new Notice(s.noticeSaved);
+          });
+      });
+
+    // v0.36.0 (F-032): 用語辞書（任意）
+    new Setting(containerEl)
+      .setName(s.mdReadTermsDict)
+      .setDesc(s.mdReadTermsDictDesc)
+      .addText((t) =>
+        t.setPlaceholder('00_Vault管理/Tech_用語対照表.md')
+          .setValue(cfg.tts.termsDict ?? '')
+          .onChange(async (v) => {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, termsDict: v } });
+          }));
+
+    // v0.37.0 (F-033): LLM 原稿書き換えキャッシュ（既定 ON）
+    new Setting(containerEl)
+      .setName(s.ttsLlmRewriteCache)
+      .setDesc(s.ttsLlmRewriteCacheDesc)
+      .addToggle((t) => t.setValue(cfg.tts.llmRewriteCache !== false).onChange(async (v) => {
+        const latest = store.load();
+        store.save({ ...latest, tts: { ...latest.tts, llmRewriteCache: v } });
+      }));
+
+    // v0.37.1: LLM 並列生成数（1〜8）
+    new Setting(containerEl)
+      .setName(s.ttsLlmRewriteConcurrency)
+      .setDesc(s.ttsLlmRewriteConcurrencyDesc)
+      .addSlider((sl) =>
+        sl.setLimits(1, 8, 1)
+          .setValue(cfg.tts.llmRewriteConcurrency ?? 2)
+          .setDynamicTooltip()
+          .onChange(async (v) => {
+            const latest = store.load();
+            store.save({ ...latest, tts: { ...latest.tts, llmRewriteConcurrency: v } });
+          }));
+
+    // v0.35.2: ハイライト色パレット（スウォッチ 16 色＋カスタムピッカー）
+    new Setting(containerEl)
+      .setName(s.mdReadColorPreset)
+      .setDesc(s.mdReadColorPresetDesc);
+    renderHighlightColorPalette(
+      containerEl,
+      cfg.tts.mdReadHighlight?.highlightColor || '#ffb300',
+      (color) => {
+        const latest = store.load();
+        store.save({
+          ...latest,
+          tts: {
+            ...latest.tts,
+            mdReadHighlight: {
+              ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '', scrollPositionPct: 40 }),
+              highlightColor: color,
+            },
+          },
+        });
+        applyHighlightColor(color);
+      },
+    );
+    // v0.35.0: 自動スクロール位置スライダー（既定 40%）
+    new Setting(containerEl)
+      .setName(s.mdReadScrollPosition)
+      .setDesc(s.mdReadScrollPositionDesc)
+      .addSlider((sl) =>
+        sl
+          .setLimits(0, 100, 5)
+          .setValue(cfg.tts.mdReadHighlight?.scrollPositionPct ?? 40)
+          .setDynamicTooltip()
+          .onChange((v) => {
+            const latest = store.load();
+            store.save({
+              ...latest,
+              tts: {
+                ...latest.tts,
+                mdReadHighlight: {
+                  ...(latest.tts.mdReadHighlight ?? { enabled: true, highlightColor: '', scrollPositionPct: 40 }),
+                  scrollPositionPct: v,
+                },
+              },
+            });
+          }),
+      );
   };
 
   draw();
