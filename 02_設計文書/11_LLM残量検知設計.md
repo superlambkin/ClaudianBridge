@@ -1,10 +1,10 @@
 ---
 title: "Claudian Bridge LLM 残量検知 設計"
 type: feature-design
-version: 1.0.0
+version: 1.1.0
 status: 🟢 承認済
 created: 2026-08-11 08:01
-modified: 2026-08-14 08:01
+modified: 2026-09-15
 project_id: POC_017_ClaudianBridge
 phase: 2
 related_spec:

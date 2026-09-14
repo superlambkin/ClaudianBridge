@@ -3,10 +3,10 @@ title: "05_API設計"
 type: api-design
 template_id: poc/v3.1.0/05-API設計
 template_version: 3.5.0
-version: 4.1.0
+version: 4.2.0
 status: 🟢 安定
 created: 2026-06-13 09:20
-modified: 2026-09-13 11:00
+modified: 2026-09-15
 tags:
   - API設計
   - 外部API

@@ -4,9 +4,9 @@ tags:
   - poc
   - poc-017
 status: 🟢 安定
-version: 1.0.0
+version: 1.1.0
 created: 2026-09-12 09:06
-modified: 2026-09-12 09:06
+modified: 2026-09-15
 ---
 # Think モード選択機能 設計仕様書
 

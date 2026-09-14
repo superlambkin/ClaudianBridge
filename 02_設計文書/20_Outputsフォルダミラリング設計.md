@@ -1,10 +1,10 @@
 ---
 title: "ClaudianBridge Outputs フォルダミラリング設計"
 type: design-doc
-version: 1.0.0
+version: 1.1.0
 project_id: POC_017_ClaudianBridge
 created: 2026-09-13 08:45
-modified: 2026-09-13 10:30
+modified: 2026-09-15
 status: 🟢 承認済
 tags:
   - claudianbridge
