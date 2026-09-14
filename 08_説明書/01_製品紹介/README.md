@@ -3,10 +3,10 @@ title: "01_製品紹介 · インデックス"
 type: product-intro-index
 template_id: poc/v3.1.0/08-製品紹介
 template_version: 3.5.0
-version: 3.5.0
+version: 3.7.0
 status: draft
 created: 2026-06-21
-modified: 2026-07-26 08:52
+modified: 2026-09-15
 tags: 
   - 製品紹介
   - product

@@ -3,7 +3,7 @@ title: "RELEASE NOTES v0.41.0"
 type: release-note
 version: 1.0
 created: 2026-09-13 10:50
-modified: 2026-09-13 10:50
+modified: 2026-09-15
 status: stable
 tags:
   - claudianbridge

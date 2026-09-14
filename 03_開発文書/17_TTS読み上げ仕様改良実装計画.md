@@ -2,12 +2,12 @@
 tags:
   - skill-superpowers-subagent-driven-development
   - skill-superpowers-executing-plans
-version: 1.0.0
+version: 1.1.0
 status: 🟢 安定
 created: 2026-09-12 09:01
 title: 17_TTS読み上げ仕様改良実装計画
 type: implementation-plan
-modified: 2026-09-13 12:30
+modified: 2026-09-15
 ---
 # TTS 読み上げ仕様改良 実装計画
 

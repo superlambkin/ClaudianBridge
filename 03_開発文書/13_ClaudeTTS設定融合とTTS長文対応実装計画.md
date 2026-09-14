@@ -3,12 +3,12 @@ tags:
   - development
   - poc
   - poc-017
-version: 1.0.0
+version: 1.1.0
 status: 🟢 安定
 created: 2026-09-12 09:06
 title: 13_ClaudeTTS設定融合とTTS長文対応実装計画
 type: implementation-plan
-modified: 2026-09-13 12:30
+modified: 2026-09-15
 ---
 # ClaudeTTS設定融合とTTS長文対応 実装計画
 

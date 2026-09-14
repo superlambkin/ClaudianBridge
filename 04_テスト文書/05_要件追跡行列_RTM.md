@@ -3,10 +3,10 @@ title: "05_要件追跡行列_RTM"
 type: rtm
 template_id: poc/v3.1.0/05-RTM
 template_version: 3.5.0
-version: 3.5.0
+version: 3.6.0
 status: draft
 created: 2026-06-21
-modified: 2026-07-26 08:52
+modified: 2026-09-15
 tags: 
   - rtm
   - 要件追跡

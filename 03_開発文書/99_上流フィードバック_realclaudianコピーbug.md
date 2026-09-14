@@ -3,10 +3,10 @@ title: "上流フィードバック realclaudian コピーbug"
 type: upstream-feedback
 template_id: poc/v3.1.0/03-上流フィードバック
 template_version: 3.5.0
-version: 1.0.0
+version: 1.1.0
 status: 🟡 ドラフト
 created: 2026-08-14 17:31
-modified: 2026-08-14 12:00
+modified: 2026-09-15
 tags: 
   - realclaudian
   - upstream

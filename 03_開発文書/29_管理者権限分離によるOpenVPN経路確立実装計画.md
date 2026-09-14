@@ -1,10 +1,10 @@
 ---
 title: "管理者権限分離による OpenVPN 経路確立 実装計画"
 type: implementation-plan
-version: 1.0.0
+version: 1.1.0
 project_id: POC_017_ClaudianBridge
 created: 2026-09-13 23:59
-modified: 2026-09-14 00:20
+modified: 2026-09-15
 status: 🟢 安定
 tags:
   - claudianbridge

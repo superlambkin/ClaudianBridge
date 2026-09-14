@@ -3,10 +3,10 @@ title: "04_テスト文書 · フェーズインデックス"
 type: phase-index
 template_id: poc/v3.1.0/04-テスト文書
 template_version: 3.5.0
-version: 3.5.0
+version: 3.6.0
 status: stable
 created: 2026-06-13
-modified: 2026-07-26 08:52
+modified: 2026-09-15
 tags: 
   - テスト文書
   - フェーズインデックス

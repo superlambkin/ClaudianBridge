@@ -3,10 +3,10 @@ title: "FAQ"
 type: faq
 template_id: poc/v3.1.0/08-FAQ
 template_version: 3.5.0
-version: 3.5.0
+version: 3.7.0
 status: draft
 created: 2026-06-21
-modified: 2026-07-26 08:52
+modified: 2026-09-15
 tags: 
   - faq
   - よくある質問

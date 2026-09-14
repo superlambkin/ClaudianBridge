@@ -3,10 +3,10 @@ title: "03_リリースノート · インデックス"
 type: release-index
 template_id: poc/v3.1.0/08-リリースノート
 template_version: 3.5.0
-version: 1.2.0
+version: 1.3.0
 status: published
 created: 2026-06-21
-modified: 2026-09-14
+modified: 2026-09-15
 tags: 
   - リリースノート
   - release-notes

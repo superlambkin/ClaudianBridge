@@ -3,10 +3,10 @@ title: "LLM残量表示のモデル自動更新"
 type: product-intro
 template_id: poc/v3.1.0/08-製品紹介
 template_version: 3.5.0
-version: 1.0.0
+version: 1.1.0
 status: draft
 created: 2026-08-13
-modified: 2026-08-13
+modified: 2026-09-15
 tags:
   - LLM残量
   - モデル表示
