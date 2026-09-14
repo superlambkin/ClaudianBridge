@@ -15,6 +15,7 @@ import { existsSync, writeFileSync, unlinkSync, chmodSync, readFileSync, readdir
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
 import type { OpenVpnSettings, OpenVpnStatus, VpnRoute } from './types';
+import type { RemoveStaleResult } from './types';
 
 /** v0.44.0: 自前プロセスの識別マーカー（auth 一時ファイル名の接頭辞） */
 const AUTH_FILE_PREFIX = 'cb-openvpn-auth-';
@@ -342,6 +343,59 @@ class OpenVpnControllerImpl implements OpenVpnController {
   /** Test-only escape hatch for isRunningAsAdmin(). */
   public isRunningAsAdminForTest(): boolean {
     return this.isRunningAsAdmin();
+  }
+
+  /**
+   * F-046: 残骸経路を削除する（公開 API）。
+   * 1. isRunningAsAdmin() で管理者判定
+   * 2. getVpnRoutes() で VPN ルート取得
+   * 3. findStaleRoutes() で expectedGateway 以外を抽出
+   * 4. 各 stale ルートに対し route delete を実行
+   * 5. 結果を RemoveStaleResult で返す
+   */
+  public async removeStaleRoutes(): Promise<RemoveStaleResult> {
+    if (!this.isRunningAsAdmin()) {
+      return { ok: false, reason: 'need-admin', detail: 'Obsidian を管理者として再起動してください' };
+    }
+
+    const routes = this.getVpnRoutes();
+    if (routes === null) {
+      return { ok: false, reason: 'no-routes', detail: 'route print に失敗しました' };
+    }
+
+    const stale = this.findStaleRoutes(routes, this.expectedGateway);
+    if (stale.length === 0) {
+      return { ok: true, removed: 0, failed: [] };
+    }
+
+    let removed = 0;
+    const failed: string[] = [];
+    for (const r of stale) {
+      try {
+        execSync(`route delete ${r.dest} mask ${r.mask} ${r.gateway}`, {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          timeout: 3000,
+        });
+        removed++;
+      } catch (e) {
+        failed.push(`${r.dest}/${r.mask} via ${r.gateway}`);
+      }
+    }
+
+    // 削除後に警告を再評価
+    this.verifyRoutes();
+
+    return { ok: true, removed, failed };
+  }
+
+  /** Test-only escape hatch for removeStaleRoutes(). */
+  public async removeStaleRoutesForTest(): Promise<RemoveStaleResult> {
+    return this.removeStaleRoutes();
+  }
+
+  /** Test-only escape hatch for setting expectedGateway. */
+  public setExpectedGatewayForTest(gw: string | null): void {
+    this.expectedGateway = gw;
   }
 
   private setWarning(next: string | null): void {
