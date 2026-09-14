@@ -3,10 +3,10 @@ title: "03_リリースノート · インデックス"
 type: release-index
 template_id: poc/v3.1.0/08-リリースノート
 template_version: 3.5.0
-version: 1.1.0
+version: 1.2.0
 status: published
 created: 2026-06-21
-modified: 2026-08-18
+modified: 2026-09-14
 tags: 
   - リリースノート
   - release-notes
@@ -37,10 +37,10 @@ applied_rules_version: 2.9.2
 
 | 属性 | 値 |
 |------|-----|
-| **バージョン** | v0.22.0 |
-| **リリース日付** | 2026-08-17 |
-| **タイプ** | Minor（+ Patch v0.21.1） |
+| **バージョン** | v0.48.0 |
+| **リリース日付** | 2026-09-14 |
+| **タイプ** | Minor（Zhipu 残量取得の純 TypeScript 化・F-048） |
 
 ---
 
-*📢 リリースノートインデックス v1.1.0 · MiuMiu 🐾*
+*📢 リリースノートインデックス v1.2.0 · MiuMiu 🐾 · 2026-09-14 v0.48.0 準拠更新*

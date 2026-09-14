@@ -17,7 +17,7 @@ applied_rules_version: 2.15.0
 ---
 
 > 📂 **パス**: `80_POC_Projects/POC_017_ClaudianBridge/README.md`
-> 📍 **ソース**: `D:\AI-Agent\ClaudianBridge\`（git main · v0.38.0）
+> 📍 **ソース**: `D:\AI-Agent\ClaudianBridge\`（git main · v0.48.0）
 
 # 🎙️ POC_017 Claudian Bridge
 
@@ -27,14 +27,14 @@ applied_rules_version: 2.15.0
 
 | 項目 | 内容 |
 |------|------|
-| **現在バージョン** | **v0.38.0**（2026-09-07 リリース） |
+| **現在バージョン** | **v0.48.0**（2026-09-14 リリース） |
 | **統合元** | Claudian Selection Bridge, 拡張子WhiteList, Vault Office Bridge, Chroma Inspector, claude-tts-settings |
-| **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.38.0） |
-| **設定画面** | 9タブ（一般 / テキスト挿入 / テキスト読み上げ / ファイル変換 / 拡張子フィルタ / 残量検知 / Chroma / Memory / 文生図） |
+| **統合先** | Claudian Bridge（id: `ClaudianBridge`・manifest v0.48.0） |
+| **設定画面** | 11タブ（一般 / テキスト挿入 / テキスト読み上げ / ファイル変換 / Vault表示 / 残量検知 / ネットワーク / Chroma / Memory / 文生図 / 改定履歴） |
 | **データ移行** | 初回起動時に旧 data.json を自動取り込み（リセット可能） |
 | **旧プラグイン無効化** | 初回起動時に一括（community-plugins.json 除外 + `_disabled__` リネーム） |
 | **旧プラグイン削除** | P5 で不在確認済み（完全削除） |
-| **テスト実績** | **1171 passed / 1 skipped**（vitest ・ 117 ファイル・v0.38.0 時点） |
+| **テスト実績** | **1347 passed / 1 skipped**（vitest ・ 129 ファイル・v0.48.0 時点） |
 | **POC 状態** | **P5 完了**（全サブプロジェクト ✅） |
 
 ---
@@ -78,6 +78,17 @@ applied_rules_version: 2.15.0
 | F038 | 画像スタイル選択 | standard / scientific / anime / photo の 4 スタイル（プロンプト先頭に英語スタイル指示自動付与） | v0.38.0 |
 | F038 | LLM プロキシ設定 | 一般タブで社内プロキシ URL を設定 → `HTTPS_PROXY` env 反映 → LLM アクセスがプロキシ経由に | v0.38.0 |
 | F038 | MD 読み上げクリーン化 | 「Add to TTS」で `<style>` / <script> ブロックを必ず除外（CSS/JS は読み上げ価値なし） | v0.38.0 |
+| F033 | MD 読み上げ LLM 原稿書き換え | 「Add to TTS」本文を LLM でです・ます調原稿に書き換えてから読み上げ | v0.37.0〜v0.37.1 |
+| F039 | Think モード選択機能 Phase 1 | Claude の拡張思考（Think）ON/OFF をチャット UI で制御 | v0.39.0 |
+| F040 | Think モード選択機能 Phase 2 | DeepSeek / Zhipu / MiniMax / Kimi の 4 プロバイダに拡張（`moonshot` はモデル切替方式） | v0.40.0 |
+| F041 | OpenVPN 接続機能 | `.ovpn` による VPN トンネル確立（デスクトップのみ）+ LLM 呼び出し時自動接続 | v0.43.0 |
+| F042 | ネットワークタブ新設 | プロキシ設定を一般タブから移動 + OpenVPN 接続セクション新設 | v0.43.0 |
+| F043 | Claudian 画面 VPN トグル | YOLO トグル横に VPN 接続制御ボタン + 状態バッジ（🔴🟡🟢） | v0.43.1 |
+| F044 | Server Override（サーバ上書き） | ドメイン名（DDNS）で `.ovpn` の接続先を上書き（`--remote` 方式） | v0.43.2 |
+| F045 | 残骸経路（死んだセッション）の検知 | openvpn ログの正しいゲートウェイと経路を照合し残骸を検出警告 | v0.45.0 |
+| F046 | 残骸経路の 1 クリック削除 | 🧹 ボタン（管理者ゲート）で stale 経路のみを厳格削除 | v0.46.0 |
+| F047 | 切断時の残骸経路自動削除 | 切断 3 秒後にバックグラウンドで stale 検出 → 管理者起動時のみ自動削除 | v0.47.0 |
+| F048 | Zhipu 残量取得の純 TypeScript 化 | Python スクリプト spawn → `httpGet`（生 Bearer キー）に置換・`zhipuPythonPath` 廃止・Python 依存ゼロ化 | v0.48.0 |
 
 ---
 
@@ -185,6 +196,7 @@ applied_rules_version: 2.15.0
 
 | バージョン | 日付 | 修正内容 | 修正者 |
 |------|------|---------|--------|
+| v1.18.0 | 2026-09-14 | **v0.48.0 反映**：F033 / F039〜F048 追加（LLM 原稿書き換え・Think モード・ネットワークタブ/OpenVPN 一式・Zhipu 純 TypeScript 化）・テスト 1347 passed / 1 skipped・設定 11 タブ化・main マージで v0.41.0〜v0.48.0 を同期 | MiuMiu 🐾 |
 | v1.17.0 | 2026-09-07 | **v0.38.0 反映**：F032（選択ポップアップ位置）+ F038 一式（文生圖・スタイル・LLM プロキシ・MD/style 除外）+ image-gen / proxy モジュール追記・テスト 1171 件・設定 9 タブ化 | MiuMiu 🐾 |
 | v1.6.0 | 2026-08-18 | **v0.22.0 実態へ更新**：F015-F020 追加（TTS 仕様統一 / EdgeTTS 上限 / 最終回答ゲート / Chroma-fs / Backup / アンダースコア非表示）・テスト 740 件反映・Quick Reply（v0.23.0 予定）モジュール追記・POC_016 リンク修正 | MiuMiu 🐾 |
 | v1.7.0 | 2026-08-18 | **v0.24.0 反映**：F021（方案ボタン常時表示設定）+ テスト 742 件・quick-reply モジュール v0.23.0 実装済み | MiuMiu 🐾 |
@@ -203,4 +215,4 @@ applied_rules_version: 2.15.0
 
 ---
 
-*📚 POC_017 Claudian Bridge README v1.17.0 · v0.38.0 · MiuMiu 🐾*
+*📚 POC_017 Claudian Bridge README v1.18.0 · v0.48.0 · MiuMiu 🐾*
