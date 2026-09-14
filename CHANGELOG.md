@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.46.0] - 2026-09-14 — 残骸経路の 1 クリック削除 (F-046)
+
+v0.45.0 の検知ロジックを基盤に、stale 経路を 1 クリックで削除する UX を追加。
+VPN 使用時は Obsidian を管理者起動する運用を前提に、ボタン押下時に
+管理者判定 → stale 抽出 → route delete → 結果通知のフローを提供。
+VPN 関連ルートのみを厳格にホワイトリスト化し、ローカル LAN は触らない。
+
+- feat(network): 🧹 Remove stale routes button (admin-gated)
+- feat(network): getVpnRoutes() — extend v0.45.0 extractor with dest/mask
+- feat(network): isRunningAsAdmin() — privilege probe via route delete trial
+- feat(network): findStaleRoutes() — filter by expected gateway
+- feat(network): removeStaleRoutes() — orchestrate admin + delete + re-verify
+- feat(i18n): 5 keys × 3 locales (ja/en/zh)
+- tests: +8 cases (1350 total)
+
 ## [0.45.0] - 2026-09-13 — 残骸経路（死んだセッション）の検知
 
 ### Added
