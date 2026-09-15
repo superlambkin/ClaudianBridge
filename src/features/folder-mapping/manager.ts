@@ -36,6 +36,7 @@ export class FolderMappingManager {
     if (!mapping.enabled) {
       if (isLink) {
         this.deps.fs.rmdirSync(linkPath);
+        this.deps.notice(`@10_Input/${mapping.linkName} のリンクを削除しました`);
         return 'removed';
       }
       return 'inactive';
@@ -43,11 +44,13 @@ export class FolderMappingManager {
 
     // enabled — 先に validation
     if (!mapping.externalPath || mapping.externalPath.trim() === '') {
+      this.deps.notice(`外部パス ${mapping.externalPath} が存在しません。設定を確認してください（リンクは作成していません）。`);
       return 'external_missing';
     }
     // circular 検出（Vault 自身・祖先）
     const rel = nodePath.relative(this.deps.vaultBasePath, mapping.externalPath);
     if (rel === '' || (!rel.startsWith('..') && !nodePath.isAbsolute(rel))) {
+      this.deps.notice(`外部パスが Vault 自身を指しているため拒否しました: ${mapping.externalPath}`);
       return 'circular';
     }
     // ancestor 検出（Vault が externalPath の子孫）
@@ -60,6 +63,7 @@ export class FolderMappingManager {
       normalizedVault === normalizedP ||
       normalizedVault.startsWith(normalizedP + sep)
     ) {
+      this.deps.notice(`外部パスが Vault 自身を指しているため拒否しました: ${mapping.externalPath}`);
       return 'circular';
     }
     // forbidden path 検出（Windows のみ厳格・POSIX は validation.ts 任せ）
@@ -73,15 +77,23 @@ export class FolderMappingManager {
         lower === 'c:\\program files (x86)' ||
         lower.startsWith('c:\\program files (x86)\\')
       ) {
+        this.deps.notice(`禁止パス（Vault 祖先 / システムフォルダ等）: ${mapping.externalPath}`);
         return 'forbidden_path';
       }
     }
 
     if (isLink) return 'linked';
-    if (exists) return 'vault_exists';
-    if (!this.deps.fs.existsSync(mapping.externalPath)) return 'external_missing';
+    if (exists) {
+      this.deps.notice(`@10_Input/${mapping.linkName} に実フォルダが存在します。リンク作成をスキップしました。手動で確認してください。`);
+      return 'vault_exists';
+    }
+    if (!this.deps.fs.existsSync(mapping.externalPath)) {
+      this.deps.notice(`外部パス ${mapping.externalPath} が存在しません。設定を確認してください（リンクは作成していません）。`);
+      return 'external_missing';
+    }
     this.deps.fs.mkdirSync(nodePath.dirname(linkPath), { recursive: true });
     this.deps.fs.symlinkSync(mapping.externalPath, linkPath, 'junction');
+    this.deps.notice(`@10_Input/${mapping.linkName} → ${mapping.externalPath} のリンクを作成しました`);
     return 'created';
   }
 

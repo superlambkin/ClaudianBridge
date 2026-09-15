@@ -143,3 +143,64 @@ describe('FolderMappingManager - validation states', () => {
     expect(fs.files.has(mgr.resolveLinkPath(m))).toBe(false);
   });
 });
+
+describe('FolderMappingManager - applyAll + status + openExternal', () => {
+  it('applyAll returns counts and per-id states', () => {
+    const fs = makeFs();
+    const notices: string[] = [];
+    const mgr = new FolderMappingManager(
+      makeDeps({ fs, notice: (m) => notices.push(m) }),
+    );
+    const m1 = makeMapping({ id: 'a', linkName: 'A', externalPath: 'D:\\p1' });
+    const m2 = makeMapping({ id: 'b', linkName: 'B', externalPath: 'D:\\p2' });
+    fs.files.set('D:\\p1', 'dir');
+    fs.files.set('D:\\p2', 'dir');
+
+    const r = mgr.applyAll([m1, m2]);
+
+    expect(r.totalCreated).toBe(2);
+    expect(r.applied).toEqual([
+      { id: 'a', state: 'created' },
+      { id: 'b', state: 'created' },
+    ]);
+    expect(notices.some((n) => n.includes('A → D:\\p1'))).toBe(true);
+  });
+
+  it('applyAll continues after single failure', () => {
+    const fs = makeFs();
+    const mgr = new FolderMappingManager(makeDeps({ fs }));
+    const good = makeMapping({ id: 'g', externalPath: 'D:\\ok' });
+    const bad = makeMapping({ id: 'b', externalPath: 'C:\\Windows' });
+    fs.files.set('D:\\ok', 'dir');
+
+    const r = mgr.applyAll([bad, good]);
+
+    expect(r.applied.find((a) => a.id === 'g')?.state).toBe('created');
+    expect(r.applied.find((a) => a.id === 'b')?.state).toBe('forbidden_path');
+  });
+
+  it('status returns linked=true when junction exists', () => {
+    const fs = makeFs();
+    const mgr = new FolderMappingManager(makeDeps({ fs }));
+    const m = makeMapping();
+    fs.files.set(m.externalPath, 'dir');
+    mgr.apply(m);
+    expect(mgr.status(m)).toEqual({ linked: true, state: 'linked' });
+  });
+
+  it('status returns linked=false when no junction', () => {
+    const fs = makeFs();
+    const mgr = new FolderMappingManager(makeDeps({ fs }));
+    expect(mgr.status(makeMapping())).toEqual({ linked: false, state: 'inactive' });
+  });
+
+  it('openExternal calls deps.openPath with externalPath', async () => {
+    let opened = '';
+    const mgr = new FolderMappingManager(
+      makeDeps({ openPath: async (p) => { opened = p; return ''; } }),
+    );
+    const m = makeMapping({ externalPath: 'D:\\x' });
+    await mgr.openExternal(m);
+    expect(opened).toBe('D:\\x');
+  });
+});
