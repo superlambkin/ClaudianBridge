@@ -234,8 +234,8 @@ export interface GeneralSettings {
 
 | 項目 | ルール |
 |------|------|
-| `linkName` | `^[A-Za-z0-9_\-ぁ-んァ-ヴ一-鿿\s]{1,64}$` |
-| `externalPath` | 絶対パス必須（`nodePath.isAbsolute`） |
+| `linkName` | `^[A-Za-z0-9_\-ぁ-んァ-ヴ一-鿿\s]{1,64}$`（**`/`・`\`・制御文字・先頭ドット・末尾空白は除外**・UTF-16 サロゲートペア保護のため RegExp には `u` フラグ付与） |
+| `externalPath` | 絶対パス必須（`nodePath.isAbsolute`）・null バイト除外 |
 | 禁止 `externalPath` | `vaultBasePath` 自体 / 祖先 / `C:\Windows` / `C:\Program Files` / `~/.ssh` 等 |
 | 重複検出 | 既存マッピング間で `linkName` 重複・`externalPath` 重複 |
 
@@ -267,7 +267,7 @@ stateDiagram-v2
 | **追加** | UI「＋追加」ボタン → モーダルで `linkName` + `externalPath` 入力 | `validate()` → `apply()` → `data.json` 保存 → 画面再描画 | 新規 junction 作成 |
 | **ON/OFF** | 行ごとの Toggle | `enabled` を更新 → `apply()` → 保存 → 描画 | junction 作成/削除 |
 | **削除** | 行ごとの「✕」ボタン → 確認ダイアログ | `apply({enabled:false})` で junction 削除 → `data.json` から除去 → 描画 | junction 削除 |
-| **修正** | 行の「✎ 編集」 → パス再入力 | `apply()` → 保存 → 描画 | 古い junction 削除 → 新規作成 |
+| **修正** | 行の「✎ 編集」 → パス再入力 | `apply()` → 保存 → 描画 | 古い junction 削除 → 新規作成（Windows junction は target を atomic に変更できないため、`linkName` 変更・`externalPath` 変更いずれの場合も削除→再作成） |
 | **外部を開く** | 行の「📂 開く」 | `electron.shell.openPath(externalPath)` | Explorer 起動 |
 
 ### 5.3 マイグレーション
@@ -323,7 +323,7 @@ p  : Vault/@10_Input/{linkName} として外部フォルダをリンクします
 
 ### 6.4 編集モーダル
 
-追加モーダルとほぼ同型（`linkName` 変更時は既存 junction 削除→新規作成、`externalPath` のみ変更時は差分更新）
+追加モーダルとほぼ同型。**`linkName` 変更・`externalPath` 変更いずれの場合も既存 junction 削除→新規作成**（Windows junction は target を atomic に変更できないため）。`enabled` トグル変更時は削除→再作成が不要（既存 junction がそのまま残る）。
 
 ### 6.5 確認ダイアログ
 
@@ -439,7 +439,7 @@ p  : Vault/@10_Input/{linkName} として外部フォルダをリンクします
 
 ### 9.2 リリース手順（POC 開発メタプロセス準拠）
 
-1. 設計書（本ファイル）を `docs/superpowers/specs/` および Vault `80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/` に格納
+1. 設計書（本ファイル）を `docs/superpowers/specs/` に格納（git コミット済み・commit `28ec530`）。**承認後、行動ルール v2.28 に基づき Vault 側ミラーを `80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/30_フォルダマッピング設計.md` に改名（設計書テンプレ命名）して `_superpowers原本/` から移動**
 2. `writing-plans` スキルで実装プラン（タスク分解）を作成
 3. `test-driven-development` スキルで TDD：テスト 33 件を先に書き、失敗を確認
 4. 実装 → テスト全件 PASS
