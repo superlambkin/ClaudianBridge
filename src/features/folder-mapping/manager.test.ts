@@ -105,3 +105,41 @@ describe('FolderMappingManager - basic apply', () => {
     expect(mgr.apply(m)).toBe('inactive');
   });
 });
+
+describe('FolderMappingManager - validation states', () => {
+  let mgr: FolderMappingManager;
+  let fs: ReturnType<typeof makeFs>;
+
+  beforeEach(() => {
+    fs = makeFs();
+    mgr = new FolderMappingManager(makeDeps({ fs }));
+  });
+
+  it('apply when externalPath is empty → external_missing, no junction', () => {
+    const m = makeMapping({ externalPath: '' });
+    expect(mgr.apply(m)).toBe('external_missing');
+    expect(fs.files.has(mgr.resolveLinkPath(m))).toBe(false);
+  });
+
+  it('apply when externalPath does not exist → external_missing', () => {
+    const m = makeMapping({ externalPath: 'D:\\does\\not\\exist' });
+    expect(mgr.apply(m)).toBe('external_missing');
+  });
+
+  it('apply when externalPath == vaultBasePath → circular', () => {
+    const m = makeMapping({ externalPath: VAULT });
+    expect(mgr.apply(m)).toBe('circular');
+    expect(fs.files.has(mgr.resolveLinkPath(m))).toBe(false);
+  });
+
+  it('apply when externalPath is vault ancestor → circular', () => {
+    const m = makeMapping({ externalPath: 'C:\\Users\\me' });
+    expect(mgr.apply(m)).toBe('circular');
+  });
+
+  it('apply when externalPath is C:\\Windows → forbidden_path', () => {
+    const m = makeMapping({ externalPath: 'C:\\Windows\\System32' });
+    expect(mgr.apply(m)).toBe('forbidden_path');
+    expect(fs.files.has(mgr.resolveLinkPath(m))).toBe(false);
+  });
+});

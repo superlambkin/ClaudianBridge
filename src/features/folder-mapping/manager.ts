@@ -41,18 +41,45 @@ export class FolderMappingManager {
       return 'inactive';
     }
 
-    // enabled
-    if (isLink) {
-      // 既存 link 先チェック（target 一致は linked とみなす）
-      return 'linked';
-    }
-    if (exists) {
-      // 実フォルダあり — 上書きしない
-      return 'vault_exists';
-    }
-    if (!this.deps.fs.existsSync(mapping.externalPath)) {
+    // enabled — 先に validation
+    if (!mapping.externalPath || mapping.externalPath.trim() === '') {
       return 'external_missing';
     }
+    // circular 検出（Vault 自身・祖先）
+    const rel = nodePath.relative(this.deps.vaultBasePath, mapping.externalPath);
+    if (rel === '' || (!rel.startsWith('..') && !nodePath.isAbsolute(rel))) {
+      return 'circular';
+    }
+    // ancestor 検出（Vault が externalPath の子孫）
+    const sep = process.platform === 'win32' ? '\\' : '/';
+    const normalize = (s: string) =>
+      process.platform === 'win32' ? s.toLowerCase() : s;
+    const normalizedVault = normalize(this.deps.vaultBasePath);
+    const normalizedP = normalize(mapping.externalPath);
+    if (
+      normalizedVault === normalizedP ||
+      normalizedVault.startsWith(normalizedP + sep)
+    ) {
+      return 'circular';
+    }
+    // forbidden path 検出（Windows のみ厳格・POSIX は validation.ts 任せ）
+    if (process.platform === 'win32') {
+      const lower = mapping.externalPath.toLowerCase();
+      if (
+        lower === 'c:\\windows' ||
+        lower.startsWith('c:\\windows\\') ||
+        lower === 'c:\\program files' ||
+        lower.startsWith('c:\\program files\\') ||
+        lower === 'c:\\program files (x86)' ||
+        lower.startsWith('c:\\program files (x86)\\')
+      ) {
+        return 'forbidden_path';
+      }
+    }
+
+    if (isLink) return 'linked';
+    if (exists) return 'vault_exists';
+    if (!this.deps.fs.existsSync(mapping.externalPath)) return 'external_missing';
     this.deps.fs.mkdirSync(nodePath.dirname(linkPath), { recursive: true });
     this.deps.fs.symlinkSync(mapping.externalPath, linkPath, 'junction');
     return 'created';
