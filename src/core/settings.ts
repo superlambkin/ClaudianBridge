@@ -873,8 +873,20 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
           : DEFAULT_TOKEN_RATE_INTERVAL_MS;
       })(),
       // v0.50.0 (F-049): フォルダマッピング（既存ユーザー設定がなければ空配列で初期化、参照保持）
+      // v0.51.0 (F-050): 旧レコード（vaultSubpath 欠落・空）には '10_Input' を注入。
+      // 既存値は保持し、注入不要な場合は参照同一性を維持する。
       folderMappings: Array.isArray(r.general?.folderMappings)
-        ? r.general!.folderMappings
+        ? (() => {
+            const arr = r.general!.folderMappings as FolderMapping[];
+            let changed = false;
+            const migrated = arr.map((m) => {
+              const sub = (m as { vaultSubpath?: unknown }).vaultSubpath;
+              if (typeof sub === 'string' && sub.trim() !== '') return m;
+              changed = true;
+              return { ...m, vaultSubpath: '10_Input' };
+            });
+            return changed ? migrated : arr;
+          })()
         : [...DEFAULT_FOLDER_MAPPINGS],
     },
     // === v0.43.0 (F-041/F-042): ネットワークセクション ===
