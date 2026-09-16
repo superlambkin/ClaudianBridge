@@ -225,6 +225,7 @@ export function renderWhitelistTab(_app: App, containerEl: HTMLElement, store: C
         removeBtn.title = 'remove';
         removeBtn.addEventListener('click', () => {
           const ok = confirm(s.folderMappingRemoveConfirm
+            .replace('{vaultSubpath}', m.vaultSubpath)
             .replace('{linkName}', m.linkName)
             .replace('{externalPath}', m.externalPath));
           if (!ok) return;
