@@ -18,6 +18,7 @@ describe('F-049: folderMappings in GeneralSettings', () => {
       {
         id: 'abc',
         linkName: 'Projects',
+        vaultSubpath: '10_Input',
         externalPath: 'D:\\projects',
         enabled: true,
         createdAt: 1700000000000,
@@ -47,5 +48,31 @@ describe('F-049: folderMappings in GeneralSettings', () => {
 describe('F-049: DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general.folderMappings', () => {
   it('default value is [] (empty array, zero impact on existing users)', () => {
     expect(DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general.folderMappings).toEqual([]);
+  });
+});
+
+describe('F-050: vaultSubpath migration', () => {
+  const mapping = (overrides: Record<string, unknown> = {}) => ({
+    id: 'x',
+    linkName: 'OCR',
+    externalPath: 'C:/OCR',
+    enabled: true,
+    createdAt: 0,
+    updatedAt: 0,
+    ...overrides,
+  });
+
+  it('injects vaultSubpath=10_Input into legacy record', () => {
+    const out = normalizeClaudianBridgeSettings({
+      general: { folderMappings: [mapping()] },
+    } as any);
+    expect(out.general.folderMappings[0].vaultSubpath).toBe('10_Input');
+  });
+
+  it('preserves existing vaultSubpath', () => {
+    const out = normalizeClaudianBridgeSettings({
+      general: { folderMappings: [mapping({ vaultSubpath: '60_Tech_Research' })] },
+    } as any);
+    expect(out.general.folderMappings[0].vaultSubpath).toBe('60_Tech_Research');
   });
 });

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.51.0] - 2026-09-16 — フォルダマッピング先の設定可能化 (F-050)
+
+フォルダマッピングの Vault 内リンク先を `@10_Input` 固定から自由に指定できるように拡張
+（例: `C:/OCR` → Vault 内 `10_Input/OCR` に表示）。既存レコードは `10_Input` へ自動移行、
+旧 `@10_Input` の junction は起動時に自動で貼り直し。
+
+- feat(folder-mapping): FolderMapping.vaultSubpath フィールド + validateVaultSubpath
+- feat(folder-mapping): resolveLinkPath が vaultSubpath を使用 / 旧 @10_Input junction の自動貼り直し
+- feat(settings): normalize が旧レコードへ vaultSubpath='10_Input' を注入
+- feat(i18n): 2 keys × 3 locales
+- feat(settings-ui): モーダルに「マッピング先（Vault 内パス）」欄追加・一覧表示を {vaultSubpath}/{linkName} に変更
+- tests: +12 cases
+
+制限事項: Obsidian はネットワークドライブ(NAS)をターゲットにした junction の中身を
+インデックスしないため、Obsidian 表示はローカルドライブのフォルダのみ有効。
+NAS mount 対応は Folder Bridge 系アプローチで別途検討。
+
 ## [0.50.0] - 2026-09-16 — フォルダマッピング機能 (F-049)
 
 設定画面で複数の任意外部フォルダを `Vault/@10_Input/{linkName}` として双方向リンクできる新機能を追加。既存 Outputs ミラーリング機能の多フォルダ拡張版で、Windows ジャンクションを使用。双方向（読み込み・書き出し）両用途をサポート。既存ユーザーへの影響ゼロ（デフォルト空配列）。
