@@ -113,7 +113,7 @@ export class FolderMappingManager {
             this.deps.fs.lstatSync(legacyPath).isSymbolicLink()
           ) {
             this.deps.fs.rmdirSync(legacyPath);
-            this.deps.notice(`旧 @10_Input/${m.linkName} のリンクを ${m.vaultSubpath}/${m.linkName} へ移行しました`);
+            this.deps.notice(`旧リンクを ${m.vaultSubpath}/${m.linkName} へ移行しました`);
           }
         } catch {
           // 旧 junction の削除に失敗しても続行（新パスの apply は独立）
