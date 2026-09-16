@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.52.0] - 2026-09-17 — Folder Bridge Phase 1（NAS → ローカルシャドウ読み取り専用）
+
+ネットワークドライブ(NAS) 上のフォルダを Obsidian のインデックス対象にする「Folder Bridge」
+Phase 1 を実装。NAS → ローカルシャドウ (.obsidian/cache/folder-bridge/{id}/) への単方向
+読み取り専用同期。chokidar で NAS を watch し変更をシャドウにミラーリング。シャドウを
+指す junction を Vault 内に作成するため Obsidian はローカル FS として認識。
+
+- feat(folder-bridge): FolderBridge 型 + 8-state 機械
+- feat(folder-bridge): ShadowReconciler（initial sync + remove）
+- feat(folder-bridge): FolderBridgeWatcher（chokidar DI ラッパー）
+- feat(folder-bridge): FolderBridgeManager（applyAll / pause / resume / disable）
+- feat(settings): folderBridges 配列追加 + normalize 移行（enabled=false がデフォルト）
+- feat(i18n): 6 keys × 3 locales
+- feat(settings-ui): FolderBridgeModal + SettingTabBridge
+- chore(deps): chokidar ^3.6 追加
+- tests: +39 cases（1411 → 1450, 1 skipped unchanged）
+
+制限事項:
+- Phase 1 は読み取り専用（NAS 側の編集は反映されるが、Vault 内の編集は NAS に書き戻されない）
+- Phase 2 で双方向同期 + 競合解決を実装予定
+- Phase 3 で FS Layer Bridge（WinFsp / macFUSE / FUSE）オプションを実装予定
+- pause/resume コントロール省略: Phase 1 では Manager に `pause(id)` / `resume(id)` メソッドは実装済みだが、Settings UI には pause/resume ボタンを追加していない（Phase 1 のユースケースが NAS→Shadow 読み取り専用で限定的のため）。Phase 2 で UI 追加予定。
+- toggle-off 時の watcher leak: Settings UI で bridge.enabled を false にトグルすると、Manager.applyAll は disabled bridge をスキップするため、watcher が Manager の Map に残存する。Manager.disable(id) を明示呼び出しすればクリーンアップされるが、トグル操作からは呼ばれない。Phase 1 既知の制限事項。fix は Manager.applyAll 内に「前回 active だが今回 disabled な bridge の watcher cleanup」パスを追加することで対応可能。
+
 ## [0.51.0] - 2026-09-16 — フォルダマッピング先の設定可能化 (F-050)
 
 フォルダマッピングの Vault 内リンク先を `@10_Input` 固定から自由に指定できるように拡張
