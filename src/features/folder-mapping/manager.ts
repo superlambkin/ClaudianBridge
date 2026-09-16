@@ -37,7 +37,7 @@ export class FolderMappingManager {
     if (!mapping.enabled) {
       if (isLink) {
         this.deps.fs.rmdirSync(linkPath);
-        this.deps.notice(`@10_Input/${mapping.linkName} のリンクを削除しました`);
+        this.deps.notice(`${mapping.vaultSubpath}/${mapping.linkName} のリンクを削除しました`);
         return 'removed';
       }
       return 'inactive';
@@ -85,7 +85,7 @@ export class FolderMappingManager {
 
     if (isLink) return 'linked';
     if (exists) {
-      this.deps.notice(`@10_Input/${mapping.linkName} に実フォルダが存在します。リンク作成をスキップしました。手動で確認してください。`);
+      this.deps.notice(`${mapping.vaultSubpath}/${mapping.linkName} に実フォルダが存在します。リンク作成をスキップしました。手動で確認してください。`);
       return 'vault_exists';
     }
     if (!this.deps.fs.existsSync(mapping.externalPath)) {
@@ -94,7 +94,7 @@ export class FolderMappingManager {
     }
     this.deps.fs.mkdirSync(nodePath.dirname(linkPath), { recursive: true });
     this.deps.fs.symlinkSync(mapping.externalPath, linkPath, 'junction');
-    this.deps.notice(`@10_Input/${mapping.linkName} → ${mapping.externalPath} のリンクを作成しました`);
+    this.deps.notice(`${mapping.vaultSubpath}/${mapping.linkName} → ${mapping.externalPath} のリンクを作成しました`);
     return 'created';
   }
 

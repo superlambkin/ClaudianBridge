@@ -55,7 +55,7 @@ describe('F-050: vaultSubpath migration', () => {
   const mapping = (overrides: Record<string, unknown> = {}) => ({
     id: 'x',
     linkName: 'OCR',
-    externalPath: 'C:\OCR',
+    externalPath: 'C:/OCR',
     enabled: true,
     createdAt: 0,
     updatedAt: 0,
