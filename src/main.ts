@@ -31,6 +31,8 @@ import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/in
 import { OutputsMirrorManager } from './features/outputs-mirror/manager';
 import { FolderMappingManager } from './features/folder-mapping/manager';
 import type { FolderMappingFs } from './features/folder-mapping/types';
+import { FolderBridgeManager } from './features/folder-bridge/manager';
+import { SettingTabBridge } from './settings/SettingTabBridge';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
 import { ImageGenMenuRegistrar } from './features/image-gen/menu';
@@ -56,10 +58,44 @@ export default class ClaudianBridgePlugin extends Plugin {
   private store!: ConfigStore;
   private quotaHandle: Awaited<ReturnType<typeof registerClaudeQuota>> = null;
   private offTokenRate: (() => void) | null = null;
+  // v0.52.0 (F-051): Folder Bridge マネージャ（起動時 applyAll → settings タブから再起動/個別 disable）
+  private bridgeManager: FolderBridgeManager | null = null;
 
   /** Convenience accessor for views that want a settings snapshot. */
   get cbSettings(): import('./core/settings').ClaudianBridgeSettings {
     return this.store.load();
+  }
+
+  /** v0.52.0 (F-051): settings UI（SettingTabBridge）が現在値を読み取るための accessor。
+   * Obsidian Plugin 側に同名 `settings?: unknown` フィールドが存在するため、衝突回避で `cbSettings` と
+   * 同じ命名流儀の `getSettings()` 関数で公開する（cbSettings は View 側／getSettings は設定タブ側）。 */
+  getSettings(): import('./core/settings').ClaudianBridgeSettings {
+    return this.store.load();
+  }
+
+  /** v0.52.0 (F-051): settings UI が編集後の cfg を永続化するためのラッパー。 */
+  async saveSettings(cfg?: import('./core/settings').ClaudianBridgeSettings): Promise<void> {
+    if (cfg) {
+      this.store.save(cfg);
+    } else {
+      this.store.save(this.store.load());
+    }
+  }
+
+  /** v0.52.0 (F-051): 現在の general.folderBridges を Manager に再適用する。 */
+  applyAllBridges(): void {
+    const bridges = this.store.load().general.folderBridges ?? [];
+    this.bridgeManager?.applyAll(bridges);
+  }
+
+  /** v0.52.0 (F-051): settings UI から呼ばれる再起動フック（applyAll のエイリアス）。 */
+  restartBridges(): void {
+    this.applyAllBridges();
+  }
+
+  /** v0.52.0 (F-051): 削除時のジャンクション／ウォッチャ解放（Manager.disable の薄いラッパー）。 */
+  disableBridge(id: string, bridge?: import('./features/folder-bridge/types').FolderBridge): void {
+    this.bridgeManager?.disable(id, bridge);
   }
 
   async onload(): Promise<void> {
@@ -146,6 +182,19 @@ export default class ClaudianBridgePlugin extends Plugin {
         diag('folder mappings applied', result);
       }
 
+      // v0.52.0 (F-051): Folder Bridge 起動時適用（NAS → シャドウ読み取り専用）
+      {
+        this.bridgeManager = new FolderBridgeManager({
+          fs: require('fs') as any,
+          notice: (m) => new Notice(m),
+          vaultBasePath: vaultRoot,
+        });
+        const result = this.bridgeManager.applyAll(
+          this.store.load().general.folderBridges ?? [],
+        );
+        diag('folder bridges applied', result);
+      }
+
       // 3. 設定タブ登録（1ページ / 内部タブ）
       this.addSettingTab(new ClaudianBridgeSettingTab(this.app, this, this.store, async () => {
         // 移行リセット：フラグをクリアして migration やり直し可能に
@@ -160,6 +209,10 @@ export default class ClaudianBridgePlugin extends Plugin {
         });
       }));
       diag('setting tab registered');
+
+      // v0.52.0 (F-051): Folder Bridge 設定タブ（Obsidian 設定ダイアログに新規タブとして追加）
+      this.addSettingTab(new SettingTabBridge(this.app, this));
+      diag('folder bridge setting tab registered');
 
       // ★ プラグイン全体の有効化トグル（general.enabled）: false なら機能登録をスキップ
       if (!this.store.load().general.enabled) {
