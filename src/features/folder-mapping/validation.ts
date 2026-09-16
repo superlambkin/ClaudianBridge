@@ -66,7 +66,11 @@ export type ValidateVaultSubpathResult =
 export function validateVaultSubpath(
   subpath: string,
 ): ValidateVaultSubpathResult {
-  const trimmed = (subpath ?? '').trim();
+  let trimmed = (subpath ?? '').trim();
+  // v0.52.1: F-049 legacy junction 名 `@10_Input/{linkName}` から
+  // ユーザーがコピーして入力した場合の救済。先頭の @ を全て除去して再評価。
+  // ただし中間セグメントの @ は禁止（後段の per-segment 検査で捕捉される）。
+  trimmed = trimmed.replace(/^@+/, '');
   if (!trimmed || /^[\\/]+$/.test(trimmed)) return { ok: false, reason: 'empty' };
   if (nodePath.isAbsolute(trimmed)) return { ok: false, reason: 'not_relative' };
   // nodePath.normalize は .. を解決してしまうため、解決前の生セグメントでトラバース検出する
