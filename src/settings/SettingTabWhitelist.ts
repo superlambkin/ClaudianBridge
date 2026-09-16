@@ -194,7 +194,7 @@ export function renderWhitelistTab(_app: App, containerEl: HTMLElement, store: C
         row.style.gridTemplateColumns = '1fr 2fr auto auto auto auto';
         row.style.gap = '6px';
         row.style.alignItems = 'center';
-        row.createEl('span', { text: `🔗 ${m.linkName}` });
+        row.createEl('span', { text: `🔗 ${m.vaultSubpath}/${m.linkName}` });
         row.createEl('span', { text: m.externalPath, attr: { style: 'font-family: monospace; font-size: 0.85em;' } });
         // Toggle
         new Setting(row).addToggle((t) =>
