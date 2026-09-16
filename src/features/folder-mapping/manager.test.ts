@@ -54,6 +54,7 @@ function makeMapping(overrides: Partial<FolderMapping> = {}): FolderMapping {
   return {
     id: 'm1',
     linkName: 'ExternalDocs',
+    vaultSubpath: '10_Input',
     externalPath: 'D:\\projects\\docs',
     enabled: true,
     createdAt: 0,
@@ -71,9 +72,9 @@ describe('FolderMappingManager - basic apply', () => {
     mgr = new FolderMappingManager(makeDeps({ fs }));
   });
 
-  it('resolveLinkPath returns vaultBasePath + @10_Input/ + linkName', () => {
-    const p = mgr.resolveLinkPath(makeMapping({ linkName: 'Foo' }));
-    expect(p).toBe('C:\\Users\\me\\Vault\\@10_Input\\Foo');
+  it('resolveLinkPath uses vaultSubpath', () => {
+    const p = mgr.resolveLinkPath(makeMapping({ vaultSubpath: '10_Input', linkName: 'Foo' }));
+    expect(p).toBe('C:\\Users\\me\\Vault\\10_Input\\Foo');
   });
 
   it('apply(enabled=true, target exists externally) creates junction → created', () => {
@@ -141,6 +142,36 @@ describe('FolderMappingManager - validation states', () => {
     const m = makeMapping({ externalPath: 'C:\\Windows\\System32' });
     expect(mgr.apply(m)).toBe('forbidden_path');
     expect(fs.files.has(mgr.resolveLinkPath(m))).toBe(false);
+  });
+});
+
+describe('FolderMappingManager - legacy junction migration', () => {
+  it('removes legacy @10_Input junction and recreates at new subpath', () => {
+    const fs = makeFs();
+    const notices: string[] = [];
+    const mgr = new FolderMappingManager(makeDeps({ fs, notice: (m) => notices.push(m) }));
+    const m = makeMapping({ linkName: 'OCR', vaultSubpath: '10_Input', externalPath: 'C:\\OCR' });
+    fs.files.set('C:\\OCR', 'dir');
+    // legacy junction already present at @10_Input/OCR
+    fs.files.set('C:\\Users\\me\\Vault\\@10_Input\\OCR', { symTarget: 'C:\\OCR' });
+    fs.files.set('C:\\Users\\me\\Vault\\@10_Input', 'dir');
+
+    const r = mgr.applyAll([m]);
+
+    expect(fs.files.has('C:\\Users\\me\\Vault\\@10_Input\\OCR')).toBe(false);
+    expect(fs.files.get('C:\\Users\\me\\Vault\\10_Input\\OCR')).toEqual({ symTarget: 'C:\\OCR' });
+    expect(r.totalCreated).toBe(1);
+    expect(notices.some((n) => n.includes('移行しました'))).toBe(true);
+  });
+
+  it('does nothing when no legacy junction exists', () => {
+    const fs = makeFs();
+    const mgr = new FolderMappingManager(makeDeps({ fs }));
+    const m = makeMapping({ linkName: 'OCR', vaultSubpath: '10_Input', externalPath: 'C:\\OCR' });
+    fs.files.set('C:\\OCR', 'dir');
+    const r = mgr.applyAll([m]);
+    expect(fs.files.has('C:\\Users\\me\\Vault\\@10_Input\\OCR')).toBe(false);
+    expect(r.totalCreated).toBe(1);
   });
 });
 

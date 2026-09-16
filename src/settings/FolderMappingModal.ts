@@ -1,7 +1,7 @@
 import { App, Modal, Notice, Setting } from 'obsidian';
 import type { FolderMapping } from '../features/folder-mapping/types';
 import { FolderMappingManager } from '../features/folder-mapping/manager';
-import { validateLinkName, validateExternalPath } from '../features/folder-mapping/validation';
+import { validateLinkName, validateExternalPath, validateVaultSubpath } from '../features/folder-mapping/validation';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import type { ConfigStore } from '../core/config-store';
 
@@ -10,6 +10,7 @@ export class FolderMappingModal extends Modal {
   private readonly editingId?: string;
   private linkName = '';
   private externalPath = '';
+  private vaultSubpath = '10_Input';
   private errorEl: HTMLElement | null = null;
 
   constructor(
@@ -26,6 +27,7 @@ export class FolderMappingModal extends Modal {
       this.editingId = opts.editing.id;
       this.linkName = opts.editing.linkName;
       this.externalPath = opts.editing.externalPath;
+      this.vaultSubpath = opts.editing.vaultSubpath ?? this.vaultSubpath;
     }
   }
 
@@ -38,6 +40,11 @@ export class FolderMappingModal extends Modal {
     new Setting(contentEl)
       .setName(s.folderMappingLinkName)
       .addText((t) => t.setValue(this.linkName).onChange((v) => { this.linkName = v; this.refreshError(); }));
+
+    new Setting(contentEl)
+      .setName(s.folderMappingVaultSubpath)
+      .setDesc(s.folderMappingVaultSubpathDesc)
+      .addText((t) => t.setValue(this.vaultSubpath).onChange((v) => { this.vaultSubpath = v; this.refreshError(); }));
 
     new Setting(contentEl)
       .setName(s.folderMappingExternalPath)
@@ -60,6 +67,8 @@ export class FolderMappingModal extends Modal {
     if (!this.errorEl) return;
     const r1 = validateLinkName(this.linkName, this.existing.filter((m) => m.id !== this.editingId));
     if (!r1.ok) { this.errorEl.textContent = `リンク名: ${r1.reason}`; return; }
+    const r3 = validateVaultSubpath(this.vaultSubpath);
+    if (!r3.ok) { this.errorEl.textContent = `マッピング先: ${r3.reason}`; return; }
     const vaultBase = (this.app.vault.adapter as unknown as { getBasePath?: () => string }).getBasePath?.() ?? '';
     const r2 = validateExternalPath(this.externalPath, vaultBase);
     if (!r2.ok) { this.errorEl.textContent = `外部パス: ${r2.reason}`; return; }
@@ -69,6 +78,8 @@ export class FolderMappingModal extends Modal {
   private save(): void {
     const r1 = validateLinkName(this.linkName, this.existing.filter((m) => m.id !== this.editingId));
     if (!r1.ok) { new Notice(`リンク名エラー: ${r1.reason}`); return; }
+    const sub = validateVaultSubpath(this.vaultSubpath);
+    if (!sub.ok) { new Notice(`マッピング先エラー: ${sub.reason}`); return; }
     const vaultBase = (this.app.vault.adapter as unknown as { getBasePath?: () => string }).getBasePath?.() ?? '';
     const r2 = validateExternalPath(this.externalPath, vaultBase);
     if (!r2.ok) { new Notice(`外部パスエラー: ${r2.reason}`); return; }
@@ -96,21 +107,23 @@ export class FolderMappingModal extends Modal {
       target = {
         ...oldTarget,
         linkName: this.linkName,
+        vaultSubpath: sub.normalized,
         externalPath: this.externalPath,
         updatedAt: now,
       };
       updatedList = latest.general.folderMappings.map((m) =>
         m.id === this.editingId ? target : m,
       );
-      // 編集: linkName / externalPath 変更時は junction 削除→再作成（Windows junction は atomic 変更不可）
+      // 編集: linkName / externalPath / vaultSubpath 変更時は junction 削除→再作成（Windows junction は atomic 変更不可）
       // apply() は enabled=true なら既存なら linked、無ければ created を返す
-      if (oldTarget.linkName !== this.linkName || oldTarget.externalPath !== this.externalPath) {
+      if (oldTarget.linkName !== this.linkName || oldTarget.externalPath !== this.externalPath || oldTarget.vaultSubpath !== sub.normalized) {
         fm.apply({ ...oldTarget, enabled: false }); // 旧 junction 削除（失敗時は Notice のみ・続行）
       }
     } else {
       target = {
         id: newId,
         linkName: this.linkName,
+        vaultSubpath: sub.normalized,
         externalPath: this.externalPath,
         enabled: true,
         createdAt: now,

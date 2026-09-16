@@ -7,7 +7,8 @@ import type {
   MappingStatus,
 } from './types';
 
-const VAULT_SUBPATH = '@10_Input';
+/** F-050: v0.50.x までの固定サブパス（起動時の自動貼り直し対象） */
+export const LEGACY_SUBPATH = '@10_Input';
 
 export class FolderMappingManager {
   private readonly deps: Required<Omit<FolderMappingDeps, 'generateId' | 'now'>> &
@@ -25,7 +26,7 @@ export class FolderMappingManager {
   }
 
   resolveLinkPath(mapping: FolderMapping): string {
-    return nodePath.join(this.deps.vaultBasePath, VAULT_SUBPATH, mapping.linkName);
+    return nodePath.join(this.deps.vaultBasePath, mapping.vaultSubpath, mapping.linkName);
   }
 
   apply(mapping: FolderMapping): FolderMappingState {
@@ -36,7 +37,7 @@ export class FolderMappingManager {
     if (!mapping.enabled) {
       if (isLink) {
         this.deps.fs.rmdirSync(linkPath);
-        this.deps.notice(`@10_Input/${mapping.linkName} のリンクを削除しました`);
+        this.deps.notice(`${mapping.vaultSubpath}/${mapping.linkName} のリンクを削除しました`);
         return 'removed';
       }
       return 'inactive';
@@ -84,7 +85,7 @@ export class FolderMappingManager {
 
     if (isLink) return 'linked';
     if (exists) {
-      this.deps.notice(`@10_Input/${mapping.linkName} に実フォルダが存在します。リンク作成をスキップしました。手動で確認してください。`);
+      this.deps.notice(`${mapping.vaultSubpath}/${mapping.linkName} に実フォルダが存在します。リンク作成をスキップしました。手動で確認してください。`);
       return 'vault_exists';
     }
     if (!this.deps.fs.existsSync(mapping.externalPath)) {
@@ -93,7 +94,7 @@ export class FolderMappingManager {
     }
     this.deps.fs.mkdirSync(nodePath.dirname(linkPath), { recursive: true });
     this.deps.fs.symlinkSync(mapping.externalPath, linkPath, 'junction');
-    this.deps.notice(`@10_Input/${mapping.linkName} → ${mapping.externalPath} のリンクを作成しました`);
+    this.deps.notice(`${mapping.vaultSubpath}/${mapping.linkName} → ${mapping.externalPath} のリンクを作成しました`);
     return 'created';
   }
 
@@ -103,6 +104,21 @@ export class FolderMappingManager {
     let totalRemoved = 0;
     let totalErrors = 0;
     for (const m of mappings) {
+      // F-050: 旧 @10_Input/{linkName} junction を新サブパスへ移行
+      if (m.vaultSubpath !== LEGACY_SUBPATH) {
+        const legacyPath = nodePath.join(this.deps.vaultBasePath, LEGACY_SUBPATH, m.linkName);
+        try {
+          if (
+            this.deps.fs.existsSync(legacyPath) &&
+            this.deps.fs.lstatSync(legacyPath).isSymbolicLink()
+          ) {
+            this.deps.fs.rmdirSync(legacyPath);
+            this.deps.notice(`旧 @10_Input/${m.linkName} のリンクを ${m.vaultSubpath}/${m.linkName} へ移行しました`);
+          }
+        } catch {
+          // 旧 junction の削除に失敗しても続行（新パスの apply は独立）
+        }
+      }
       const state = this.apply(m);
       applied.push({ id: m.id, state });
       if (state === 'created') totalCreated++;

@@ -1,9 +1,12 @@
 // F-049: フォルダマッピング機能 型定義
-// 任意フォルダを Vault/@10_Input/{linkName} に Windows ジャンクションでリンクする機能の型定義。
+// 任意フォルダを Vault/{vaultSubpath}/{linkName} に Windows ジャンクションでリンクする機能の型定義。
 
 export interface FolderMapping {
   id: string;
   linkName: string;
+  /** Vault 内マッピング先（Vault 相対パス・例: "10_Input"）。
+   *  旧レコードは normalize で '10_Input' が注入される */
+  vaultSubpath: string;
   externalPath: string;
   enabled: boolean;
   createdAt: number;

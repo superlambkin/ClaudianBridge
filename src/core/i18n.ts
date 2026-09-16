@@ -525,6 +525,8 @@ export interface LocaleStrings {
   folderMappingExternalPath: string;
   folderMappingBrowse: string;
   folderMappingRemoveConfirm: string;
+  folderMappingVaultSubpath: string;
+  folderMappingVaultSubpathDesc: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -1035,6 +1037,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderMappingExternalPath: '外部パス',
     folderMappingBrowse: '📁 参照',
     folderMappingRemoveConfirm: '@10_Input/{linkName} のリンクを削除しますか？外部パス {externalPath} のファイルは削除されません。',
+    folderMappingVaultSubpath: 'マッピング先（Vault 内パス）',
+    folderMappingVaultSubpathDesc: '例: 10_Input を指定するとリンク名と合わせて 10_Input/OCR に表示されます',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -1543,6 +1547,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderMappingExternalPath: 'External path',
     folderMappingBrowse: '📁 Browse',
     folderMappingRemoveConfirm: 'Remove the @10_Input/{linkName} link? External files at {externalPath} will NOT be deleted.',
+    folderMappingVaultSubpath: 'Destination (in-vault path)',
+    folderMappingVaultSubpathDesc: 'e.g. 10_Input + link name OCR is shown as 10_Input/OCR',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -2051,6 +2057,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderMappingExternalPath: '外部路径',
     folderMappingBrowse: '📁 浏览',
     folderMappingRemoveConfirm: '是否删除 @10_Input/{linkName} 的链接？外部路径 {externalPath} 中的文件不会被删除。',
+    folderMappingVaultSubpath: '映射目标（Vault 内路径）',
+    folderMappingVaultSubpathDesc: '例: 指定 10_Input 后与链接名称组合显示为 10_Input/OCR',
   },
 };
 

@@ -51,6 +51,35 @@ export type ValidateExternalPathResult =
   | { ok: true }
   | { ok: false; reason: 'empty' | 'not_absolute' | 'null_byte' | 'circular' | 'forbidden_path' };
 
+/** F-050: セグメント禁止文字（Windows 予約文字 + 制御文字） */
+const SEGMENT_FORBIDDEN = /[<>:"|?*\u0000-\u001f]/;
+/** F-050: 1 セグメント最大長 */
+const MAX_SEGMENT_LEN = 64;
+
+export type ValidateVaultSubpathResult =
+  | { ok: true; normalized: string }
+  | { ok: false; reason: 'empty' | 'not_relative' | 'dot_folder' | 'forbidden_prefix' | 'invalid_segment' };
+
+/** F-050: Vault 相対サブパス検証
+ *  - `normalized` は常に `/` 区切りで返す（`nodePath.join` が Windows で両対応）
+ */
+export function validateVaultSubpath(
+  subpath: string,
+): ValidateVaultSubpathResult {
+  const trimmed = (subpath ?? '').trim();
+  if (!trimmed || /^[\\/]+$/.test(trimmed)) return { ok: false, reason: 'empty' };
+  if (nodePath.isAbsolute(trimmed)) return { ok: false, reason: 'not_relative' };
+  // nodePath.normalize は .. を解決してしまうため、解決前の生セグメントでトラバース検出する
+  if (trimmed.split(/[\\/]+/).some((seg) => seg === '..')) return { ok: false, reason: 'not_relative' };
+  const normalized = nodePath.normalize(trimmed).replace(/\\/g, '/');
+  for (const seg of normalized.split('/')) {
+    if (seg.startsWith('.')) return { ok: false, reason: 'dot_folder' };
+    if (seg.startsWith('@')) return { ok: false, reason: 'forbidden_prefix' };
+    if (SEGMENT_FORBIDDEN.test(seg) || seg.length > MAX_SEGMENT_LEN) return { ok: false, reason: 'invalid_segment' };
+  }
+  return { ok: true, normalized };
+}
+
 export function validateExternalPath(
   p: string,
   vaultBasePath: string,
