@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.50.0] - 2026-09-16 — フォルダマッピング機能 (F-049)
+
+設定画面で複数の任意外部フォルダを `Vault/@10_Input/{linkName}` として双方向リンクできる新機能を追加。既存 Outputs ミラーリング機能の多フォルダ拡張版で、Windows ジャンクションを使用。双方向（読み込み・書き出し）両用途をサポート。既存ユーザーへの影響ゼロ（デフォルト空配列）。
+
+- feat(folder-mapping): FolderMappingManager — apply/applyAll/status/openExternal with 9-state machine
+- feat(folder-mapping): validation module — linkName regex (u-flag) + forbidden path blacklist
+- feat(settings): general.folderMappings schema + normalize fallback to []
+- feat(i18n): 8 keys × 3 locales (ja/en/zh)
+- feat(settings-ui): "フォルダマッピング" section + FolderMappingModal (add/edit/remove/toggle)
+- feat(plugin): applyAllMappings on plugin onload()
+- tests: +18 cases (1399 + 1 skipped = 1400 total)
+
+既存 Outputs ミラーリング機能は完全無変更・並走。
+
 ## [0.49.1] - 2026-09-15 — Forced reflow 嵐の緊急対応 (F-050 / F-028 ホットフィックス)
 
 ### Fixed

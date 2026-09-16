@@ -516,6 +516,15 @@ export interface LocaleStrings {
   settingThinkModeEffortHigh: string;
   settingThinkModeBadgeOn: string;
   settingThinkModeBadgeOff: string;
+  // === v0.50.0 (F-049): フォルダマッピング ===
+  folderMappingHeading: string;
+  folderMappingDesc: string;
+  folderMappingAdd: string;
+  folderMappingEmpty: string;
+  folderMappingLinkName: string;
+  folderMappingExternalPath: string;
+  folderMappingBrowse: string;
+  folderMappingRemoveConfirm: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -1017,6 +1026,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     settingThinkModeEffortHigh: '高',
     settingThinkModeBadgeOn: '🧠 ON',
     settingThinkModeBadgeOff: '🧠 OFF',
+    // === v0.50.0 (F-049): フォルダマッピング ===
+    folderMappingHeading: 'フォルダマッピング (F-049)',
+    folderMappingDesc: 'Vault/@10_Input/{linkName} として外部フォルダをリンクします。双向利用可（読み込み・書き出し）。リンク先はあくまで @10_Input 配下です。',
+    folderMappingAdd: '＋ 追加...',
+    folderMappingEmpty: 'まだマッピングがありません。＋追加... から登録してください。',
+    folderMappingLinkName: 'リンク名',
+    folderMappingExternalPath: '外部パス',
+    folderMappingBrowse: '📁 参照',
+    folderMappingRemoveConfirm: '@10_Input/{linkName} のリンクを削除しますか？外部パス {externalPath} のファイルは削除されません。',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -1516,6 +1534,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     settingThinkModeEffortHigh: 'High',
     settingThinkModeBadgeOn: '🧠 ON',
     settingThinkModeBadgeOff: '🧠 OFF',
+    // === v0.50.0 (F-049): Folder Mapping ===
+    folderMappingHeading: 'Folder Mapping (F-049)',
+    folderMappingDesc: 'Link external folders as Vault/@10_Input/{linkName}. Bidirectional (read/write). Destination is always under @10_Input.',
+    folderMappingAdd: '+ Add...',
+    folderMappingEmpty: 'No mappings yet. Click + Add... to register.',
+    folderMappingLinkName: 'Link name',
+    folderMappingExternalPath: 'External path',
+    folderMappingBrowse: '📁 Browse',
+    folderMappingRemoveConfirm: 'Remove the @10_Input/{linkName} link? External files at {externalPath} will NOT be deleted.',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -2015,6 +2042,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     settingThinkModeEffortHigh: '高',
     settingThinkModeBadgeOn: '🧠 ON',
     settingThinkModeBadgeOff: '🧠 OFF',
+    // === v0.50.0 (F-049): 文件夹映射 ===
+    folderMappingHeading: '文件夹映射 (F-049)',
+    folderMappingDesc: '将外部文件夹链接为 Vault/@10_Input/{linkName}。支持双向读写。链接目标始终位于 @10_Input 下。',
+    folderMappingAdd: '＋ 添加...',
+    folderMappingEmpty: '尚无映射。点击 ＋添加... 进行注册。',
+    folderMappingLinkName: '链接名称',
+    folderMappingExternalPath: '外部路径',
+    folderMappingBrowse: '📁 浏览',
+    folderMappingRemoveConfirm: '是否删除 @10_Input/{linkName} 的链接？外部路径 {externalPath} 中的文件不会被删除。',
   },
 };
 

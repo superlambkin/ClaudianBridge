@@ -59,6 +59,10 @@ import type { ThinkingConfig, ThinkingEffort } from '../features/llm/types';
 import type { OpenVpnSettings } from '../features/network/types';
 import { DEFAULT_OPEN_VPN_SETTINGS } from '../features/network/types';
 
+// === v0.50.0 (F-049): フォルダマッピング機能 ===
+import type { FolderMapping } from '../features/folder-mapping/types';
+import { DEFAULT_FOLDER_MAPPINGS } from '../features/folder-mapping/defaults';
+
 // === v0.32.0: トークン速度表示の更新周期 ===
 export const ALLOWED_TOKEN_RATE_INTERVALS = [100, 250, 500, 1000, 2000] as const;
 export const DEFAULT_TOKEN_RATE_INTERVAL_MS = 250;
@@ -621,6 +625,8 @@ export interface ClaudianBridgeSettings {
     outputsMirrorPath: string;
     // === v0.41.0: 「. で始まるフォルダを非表示」 ===
     hideDotFolders: boolean;
+    // === v0.50.0 (F-049): ユーザー定義フォルダマッピング（@10_Input 配下に表示） ===
+    folderMappings: FolderMapping[];
   };
   // === v0.43.0 (F-041/F-042): ネットワークセクション（プロキシ + OpenVPN）===
   network: {
@@ -737,7 +743,7 @@ function normalizeThinkingField(
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, outputsMirrorEnabled: false, outputsMirrorPath: '', hideDotFolders: true },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, outputsMirrorEnabled: false, outputsMirrorPath: '', hideDotFolders: true, folderMappings: [...DEFAULT_FOLDER_MAPPINGS] },
   // === v0.43.0 (F-041/F-042): ネットワークセクション（プロキシ + OpenVPN）===
   network: {
     proxy: { ...DEFAULT_PROXY_SETTINGS },
@@ -866,6 +872,10 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
           ? (raw as TokenRateIntervalMs)
           : DEFAULT_TOKEN_RATE_INTERVAL_MS;
       })(),
+      // v0.50.0 (F-049): フォルダマッピング（既存ユーザー設定がなければ空配列で初期化、参照保持）
+      folderMappings: Array.isArray(r.general?.folderMappings)
+        ? r.general!.folderMappings
+        : [...DEFAULT_FOLDER_MAPPINGS],
     },
     // === v0.43.0 (F-041/F-042): ネットワークセクション ===
     // 旧 general.proxy は新 network.proxy へマイグレーション（既存ユーザー設定の引き継ぎ）。
