@@ -12,6 +12,7 @@ const VAULT = 'C:\\Users\\me\\Vault';
 const baseMapping = (overrides: Partial<FolderMapping> = {}): FolderMapping => ({
   id: 'id-1',
   linkName: 'ExternalDocs',
+  vaultSubpath: '10_Input',
   externalPath: 'D:\\projects\\docs',
   enabled: true,
   createdAt: 0,

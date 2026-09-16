@@ -7,8 +7,6 @@ import type {
   MappingStatus,
 } from './types';
 
-const VAULT_SUBPATH = '@10_Input';
-
 export class FolderMappingManager {
   private readonly deps: Required<Omit<FolderMappingDeps, 'generateId' | 'now'>> &
     Pick<FolderMappingDeps, 'generateId' | 'now'>;
@@ -25,7 +23,7 @@ export class FolderMappingManager {
   }
 
   resolveLinkPath(mapping: FolderMapping): string {
-    return nodePath.join(this.deps.vaultBasePath, VAULT_SUBPATH, mapping.linkName);
+    return nodePath.join(this.deps.vaultBasePath, mapping.vaultSubpath, mapping.linkName);
   }
 
   apply(mapping: FolderMapping): FolderMappingState {

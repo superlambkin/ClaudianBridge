@@ -54,6 +54,7 @@ function makeMapping(overrides: Partial<FolderMapping> = {}): FolderMapping {
   return {
     id: 'm1',
     linkName: 'ExternalDocs',
+    vaultSubpath: '10_Input',
     externalPath: 'D:\\projects\\docs',
     enabled: true,
     createdAt: 0,
@@ -71,9 +72,9 @@ describe('FolderMappingManager - basic apply', () => {
     mgr = new FolderMappingManager(makeDeps({ fs }));
   });
 
-  it('resolveLinkPath returns vaultBasePath + @10_Input/ + linkName', () => {
-    const p = mgr.resolveLinkPath(makeMapping({ linkName: 'Foo' }));
-    expect(p).toBe('C:\\Users\\me\\Vault\\@10_Input\\Foo');
+  it('resolveLinkPath uses vaultSubpath', () => {
+    const p = mgr.resolveLinkPath(makeMapping({ vaultSubpath: '10_Input', linkName: 'Foo' }));
+    expect(p).toBe('C:\\Users\\me\\Vault\\10_Input\\Foo');
   });
 
   it('apply(enabled=true, target exists externally) creates junction → created', () => {

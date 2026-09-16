@@ -111,6 +111,8 @@ export class FolderMappingModal extends Modal {
       target = {
         id: newId,
         linkName: this.linkName,
+        // F-050: マッピング先サブパス（UI フィールドは Task 6 で追加。暫定既定）
+        vaultSubpath: '10_Input',
         externalPath: this.externalPath,
         enabled: true,
         createdAt: now,

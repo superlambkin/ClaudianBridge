@@ -4,6 +4,9 @@
 export interface FolderMapping {
   id: string;
   linkName: string;
+  /** Vault 内マッピング先（Vault 相対パス・例: "10_Input"）。
+   *  旧レコードは normalize で '10_Input' が注入される */
+  vaultSubpath: string;
   externalPath: string;
   enabled: boolean;
   createdAt: number;

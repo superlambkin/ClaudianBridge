@@ -18,6 +18,7 @@ describe('F-049: folderMappings in GeneralSettings', () => {
       {
         id: 'abc',
         linkName: 'Projects',
+        vaultSubpath: '10_Input',
         externalPath: 'D:\\projects',
         enabled: true,
         createdAt: 1700000000000,
