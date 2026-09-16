@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.52.2] - 2026-09-17 — フォルダマッピング UI の `@10_Input` 表示撤去 (Hotfix)
+
+F-050 で vaultSubpath が任意パスになったのに、UI テキストには旧 `@10_Input` が残っていた。F-052 ユーザー指摘により修正。
+
+### Changed
+
+- 🎨 **UI から `@10_Input` 表示を撤去**：旧 legacy junction 名が UI に出ないよう 3 箇所を修正
+  - 設定タブの説明文（`folderMappingDesc`）→ 一般化された説明文に変更（ja/en/zh）
+  - 削除確認ダイアログ（`folderMappingRemoveConfirm`）→ `{vaultSubpath}` プレースホルダを追加・SettingTabWhitelist でマッピングの実際の vaultSubpath を埋め込み
+  - legacy 移行 Notice（manager.ts）→ `旧 @10_Input/{linkName} のリンクを...` を `旧リンクを...` に簡素化
+
 ## [0.52.1] - 2026-09-17 — フォルダマッピング追加時の不具合修正と UX 改善 (Hotfix)
 
 F-050 で追加された「フォルダマッピング」画面の追加ボタンに関する不具合修正と UX 改善。
