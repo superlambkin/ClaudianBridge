@@ -4,6 +4,7 @@ import { FolderMappingManager } from '../features/folder-mapping/manager';
 import { validateLinkName, validateExternalPath, validateVaultSubpath } from '../features/folder-mapping/validation';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import type { ConfigStore } from '../core/config-store';
+import { resolveBackupDialog, pickBackupDestination } from '../features/backup/backup-runner';
 
 export class FolderMappingModal extends Modal {
   private readonly existing: FolderMapping[];
@@ -50,9 +51,13 @@ export class FolderMappingModal extends Modal {
       .setName(s.folderMappingExternalPath)
       .addText((t) => t.setValue(this.externalPath).onChange((v) => { this.externalPath = v; this.refreshError(); }))
       .addButton((b) => b.setButtonText(s.folderMappingBrowse).onClick(async () => {
-        // Electron openDialog — minimal impl: defer to a folder picker
-        // For simplicity, prompt() in this iteration; can be replaced with native picker later.
-        const picked = window.prompt(s.folderMappingExternalPath, this.externalPath);
+        // v0.52.1: window.prompt() から Electron showOpenDialog に置換。
+        // 既存の pickBackupDestination を流用して OS ネイティブのフォルダ選択ダイアログを開く。
+        // モバイル（Electron なし）では静かに no-op。
+        const electron = require('electron') as { dialog?: unknown; remote?: { dialog?: unknown } };
+        const dialog = resolveBackupDialog(electron as Parameters<typeof resolveBackupDialog>[0]);
+        if (!dialog) return;
+        const picked = await pickBackupDestination(dialog, s.folderMappingExternalPath);
         if (picked) { this.externalPath = picked; this.refreshError(); }
       }));
 
