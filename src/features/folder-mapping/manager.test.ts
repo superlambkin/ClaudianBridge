@@ -5,18 +5,28 @@ import type { FolderMappingFs } from './types';
 
 /** Minimal in-memory fs stub */
 function makeFs(): FolderMappingFs & {
-  files: Map<string, 'dir' | 'symlink' | { symTarget: string }>;
+  files: Map<string, 'dir' | 'broken-junction' | { symTarget: string }>;
 } {
-  const files = new Map<string, 'dir' | 'symlink' | { symTarget: string }>();
+  const files = new Map<string, 'dir' | 'broken-junction' | { symTarget: string }>();
   const fs: FolderMappingFs & {
-    files: Map<string, 'dir' | 'symlink' | { symTarget: string }>;
+    files: Map<string, 'dir' | 'broken-junction' | { symTarget: string }>;
   } = {
     files,
-    existsSync: (p) => files.has(p),
+    // v0.53.1 (F-053): broken-junction は Windows で実体はあるが
+    // ターゲットが消えて existsSync が false を返す状態。
+    existsSync: (p) => {
+      const v = files.get(p);
+      return v !== undefined && v !== 'broken-junction';
+    },
     mkdirSync: (p) => {
       files.set(p, 'dir');
     },
     symlinkSync: (target, p) => {
+      // v0.53.1 (F-053): 既存エントリ（broken junction 含む）があると
+      // Windows は EEXIST を投げる。fs stub でもこれを再現する。
+      if (files.has(p)) {
+        throw new Error(`EEXIST: file already exists, symlink '${target}' -> '${p}'`);
+      }
       files.set(p, { symTarget: target });
     },
     lstatSync: (p) => ({
@@ -233,5 +243,47 @@ describe('FolderMappingManager - applyAll + status + openExternal', () => {
     const m = makeMapping({ externalPath: 'D:\\x' });
     await mgr.openExternal(m);
     expect(opened).toBe('D:\\x');
+  });
+});
+
+// === v0.53.1 (F-053): Broken junction (EEXIST) 救済 ===
+// 症状: NAS 切断後に再起動すると Vault/10_Input/OCR に broken junction が残り、
+//       existsSync が false を返すが symlinkSync は EEXIST を投げる。
+//       → rmSync で強制除去してから symlinkSync する修正の回帰テスト。
+describe('FolderMappingManager - broken junction (v0.53.1)', () => {
+  it('existsSync returns false for broken-junction entry (Windows parity)', () => {
+    const fs = makeFs();
+    fs.files.set('C:\\broken-link', 'broken-junction');
+    expect(fs.existsSync('C:\\broken-link')).toBe(false);
+  });
+
+  it('apply detects broken junction at linkPath and recreates (no EEXIST)', () => {
+    const fs = makeFs();
+    const notices: string[] = [];
+    const mgr = new FolderMappingManager(makeDeps({ fs, notice: (m) => notices.push(m) }));
+    const m = makeMapping({ linkName: 'OCR', externalPath: '\\\\KentoCloud\\Printer' });
+    fs.files.set(m.externalPath, 'dir');
+    // Simulate Windows: NAS offline → broken junction remains at linkPath
+    const link = mgr.resolveLinkPath(m);
+    fs.files.set(link, 'broken-junction');
+    expect(fs.existsSync(link)).toBe(false);
+
+    const state = mgr.apply(m);
+
+    expect(state).toBe('created');
+    expect(fs.files.get(link)).toEqual({ symTarget: m.externalPath });
+  });
+
+  it('applyAll does not throw when an underlying symlinkSync fails (defensive try/catch)', () => {
+    const fs = makeFs();
+    const mgr = new FolderMappingManager(makeDeps({ fs }));
+    const m = makeMapping({ linkName: 'OCR', externalPath: '\\\\KentoCloud\\Printer' });
+    fs.files.set(m.externalPath, 'dir');
+    // 既存エントリありで symlinkSync を必ず失敗させる fs を作る
+    const link = mgr.resolveLinkPath(m);
+    fs.files.set(link, 'dir'); // symlinkSync は既存エントリで EEXIST
+
+    // applyAll 自体は例外を投げず、applied[] に error 状態として記録される
+    expect(() => mgr.applyAll([m])).not.toThrow();
   });
 });

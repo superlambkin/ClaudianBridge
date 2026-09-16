@@ -93,6 +93,14 @@ export class FolderMappingManager {
       return 'external_missing';
     }
     this.deps.fs.mkdirSync(nodePath.dirname(linkPath), { recursive: true });
+    // v0.53.1 (F-053): broken junction 救済 — NAS 切断などで Windows 側に
+    // 残った壊れた junction は existsSync が false を返すが symlinkSync は
+    // EEXIST を投げる。rmSync で強制除去してから再作成する（FolderBridge と同じパターン）。
+    try {
+      this.deps.fs.rmSync(linkPath, { recursive: true, force: true });
+    } catch {
+      // rmSync が失敗しても symlinkSync を試みる（最終手段）
+    }
     this.deps.fs.symlinkSync(mapping.externalPath, linkPath, 'junction');
     this.deps.notice(`${mapping.vaultSubpath}/${mapping.linkName} → ${mapping.externalPath} のリンクを作成しました`);
     return 'created';
@@ -119,7 +127,17 @@ export class FolderMappingManager {
           // 旧 junction の削除に失敗しても続行（新パスの apply は独立）
         }
       }
-      const state = this.apply(m);
+      // v0.53.1 (F-053): apply() が想定外の例外を投げても applyAll 全体が
+      // UNHANDLED REJECTION にならないよう、個別に try/catch で吸収する。
+      // 想定外の状態は 'error' として記録して次マッピングへ継続。
+      let state: FolderMappingState;
+      try {
+        state = this.apply(m);
+      } catch (e) {
+        const msg = `❌ ${m.linkName}: ${(e as Error).message}`;
+        this.deps.notice(msg);
+        state = 'error';
+      }
       applied.push({ id: m.id, state });
       if (state === 'created') totalCreated++;
       else if (state === 'removed') totalRemoved++;

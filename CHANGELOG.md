@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.53.1] - 2026-09-17 — Broken junction EEXIST 救済 (F-053)
+
+NAS 切断後に Vault/10_Input/<linkName> に Windows の broken junction が残ると、
+`existsSync` が false を返すのに `symlinkSync` が `EEXIST` を投げて `UNHANDLED REJECTION` になる
+連発バグを修正。これによりグラフビュー等 Obsidian 全体のパフォーマンスが不安定になっていた
+事象も解消。
+
+### Fixed
+
+- 🐛 **Broken junction 救済** (`src/features/folder-mapping/manager.ts:96`):
+  `apply()` 内の `symlinkSync` 直前に `rmSync(linkPath, { recursive: true, force: true })` を
+  追加。Windows 側に残った壊れた junction を強制除去してから新しい junction を作成する
+  （FolderBridge と同じパターン）。
+- 🐛 **`applyAll` の例外安全性**: 各 `apply()` 呼び出しを `try/catch` でラップし、
+  想定外の状態は `'error'` として記録して次マッピングへ継続。`UNHANDLED REJECTION` を根絶。
+
+### Tests
+
+- +3 cases（1473 → 1476）
+  - `src/features/folder-mapping/manager.test.ts`: broken-junction fs stub 拡張 +
+    「existsSync が false を返す」 Windows parity + 「broken junction 再作成」回帰テスト
+
+### Migration Notes
+
+- 既存ユーザーの NAS 切断 → 再接続シナリオで broken junction が残っていた場合、
+  次回プラグイン起動時に自動再作成されます（手動削除不要）。
+
 ## [0.53.0] - 2026-09-17 — 設定画面整理: Bridge タブ本体設定マージ + F-### 非表示 (F-052)
 
 Obsidian 設定ダイアログでの見え方を整理。Folder Bridge を本体設定内に統合し、
