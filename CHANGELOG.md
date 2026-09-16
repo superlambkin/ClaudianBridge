@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.53.0] - 2026-09-17 — 設定画面整理: Bridge タブ本体設定マージ + F-### 非表示 (F-052)
+
+Obsidian 設定ダイアログでの見え方を整理。Folder Bridge を本体設定内に統合し、
+開発用内部番号 F-### をユーザー可視 UI から撤去。
+
+### Changed
+
+- 🎨 **Folder Bridge を本体設定（Vault表示タブ直後）にマージ**：旧 `SettingTabBridge` を
+  `ClaudianBridgeSettingTab` の内部サブタブ `tabBridge`（🌉 ブリッジ）として統合。
+  Obsidian 設定ダイアログ左サイドバーには `Claudian Bridge` の 1 エントリのみが並ぶように。
+  - タブ順序: 一般 → ネットワーク → テキスト挿入 → テキスト読み上げ → ファイル変換 →
+    Vault表示 → **🌉 ブリッジ** → LLM 残量 → Chroma → Memory → 文生図 → 変更履歴（12 タブ）
+  - `main.ts` の `addSettingTab(new SettingTabBridge(...))` 削除（Plugin API 4 メソッド
+    `getSettings` / `saveSettings` / `restartBridges` / `disableBridge` は維持）
+  - `SettingTabBridge` クラスは後方互換のため export 維持、`renderBridgeTab` 関数を新規 export
+
+- 🎨 **設定画面に F-### 開発機能番号を表示しない**：ユーザー可視の UI 文字列から
+  `フォルダマッピング (F-049)` のような内部機能番号を除去（3 ロケール ja/en/zh すべて）
+  - `src/core/i18n.ts` の `folderMappingHeading` を `フォルダマッピング` /
+    `Folder Mapping` / `文件夹映射` に統一
+  - 開発者向けコメント・型注釈・JSDoc の `v0.XX.X (F-XXX)` 表記は維持（コードリーディング用）
+
+### Added
+
+- feat(i18n): `tabBridge` キー新設（ja/en/zh） — `🌉 ブリッジ` / `🌉 Bridge` / `🌉 桥接`
+- feat(i18n): 絵文字プレフィックス＋リテラル一致テスト追加（mojibake 防止）
+- feat(settings): `renderBridgeTab` 関数を export（DI 用に optional plugin 引数対応）
+- feat(settings): `TABS` を export（テストで順序検証可能に）
+
+### Tests
+
+- +14 cases（1459 → 1473, 1 skipped unchanged）
+  - `tests/core/i18n.test.ts`: tabBridge 絵文字プレフィックス / 3 ロケール必須キー / F-### 除去検証
+  - `tests/settings/SettingTabBridge.test.ts`: 新規 — renderBridgeTab の Plugin API 連携 6 ケース
+  - `tests/settings/ClaudianBridgeSettingTab.test.ts`: 新規 — TABS 12 構成・順序・初期表示 8 ケース
+
+### Migration Notes
+
+- 既存ユーザーの `general.folderBridges` 設定値はそのまま動作
+- Obsidian 設定ダイアログ左サイドバーから独立した "Folder Bridge" エントリが消える（本体設定内に統合）
+- 内部的に利用していた `app.plugins.plugins['ClaudianBridge']` 経由の Plugin インスタンス取得は
+  `SettingTabBridge` クラス / `renderBridgeTab` 関数どちらでも動作
+
 ## [0.52.2] - 2026-09-17 — フォルダマッピング UI の `@10_Input` 表示撤去 (Hotfix)
 
 F-050 で vaultSubpath が任意パスになったのに、UI テキストには旧 `@10_Input` が残っていた。F-052 ユーザー指摘により修正。
