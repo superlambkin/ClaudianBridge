@@ -94,8 +94,8 @@ export default class ClaudianBridgePlugin extends Plugin {
   }
 
   /** v0.52.0 (F-051): 削除時のジャンクション／ウォッチャ解放（Manager.disable の薄いラッパー）。 */
-  disableBridge(id: string): void {
-    this.bridgeManager?.disable(id);
+  disableBridge(id: string, bridge?: import('./features/folder-bridge/types').FolderBridge): void {
+    this.bridgeManager?.disable(id, bridge);
   }
 
   async onload(): Promise<void> {

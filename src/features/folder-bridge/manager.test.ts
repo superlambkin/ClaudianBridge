@@ -145,6 +145,48 @@ describe('FolderBridgeManager', () => {
     expect(m.status('b1').state).toBe('disabled');
   });
 
+  it('applyAll with enabled=false second call stops the watcher (no leak)', () => {
+    f_setup();
+    const m = mgr();
+    // 1st: enable → watcher created
+    m.applyAll([makeBridge({ enabled: true })]);
+    expect((m as any).watchers.size).toBe(1);
+    // 2nd: disable → watcher must be removed
+    m.applyAll([makeBridge({ enabled: false })]);
+    expect((m as any).watchers.size).toBe(0);
+    expect(fs.existsSync('C:\\Vault\\10_Input\\OCR')).toBe(false);
+    expect(m.status('b1').state).toBe('disabled');
+  });
+
+  it('applyAll twice with enabled=true both times keeps single watcher (no duplicate)', () => {
+    f_setup();
+    const m = mgr();
+    m.applyAll([makeBridge({ enabled: true })]);
+    expect((m as any).watchers.size).toBe(1);
+    m.applyAll([makeBridge({ enabled: true })]);
+    expect((m as any).watchers.size).toBe(1);
+  });
+
+  it('disable with explicit bridge argument works even if internal Map is stale', () => {
+    f_setup();
+    const m = mgr();
+    // Pre-populate stale Map with wrong linkName
+    (m as any).bridges.set('b1', makeBridge({ linkName: 'STALE' }));
+    // Also pre-create the stale junction under the wrong name
+    fs.symlinkSync('C:\\stale\\target', 'C:\\Vault\\10_Input\\STALE', 'junction');
+    expect(fs.existsSync('C:\\Vault\\10_Input\\STALE')).toBe(true);
+    // Call disable with the FRESH bridge object (different linkName)
+    const fresh = makeBridge({ linkName: 'FRESH' });
+    fs.symlinkSync('C:\\fresh\\target', 'C:\\Vault\\10_Input\\FRESH', 'junction');
+    expect(fs.existsSync('C:\\Vault\\10_Input\\FRESH')).toBe(true);
+    m.disable('b1', fresh);
+    // Fresh junction should be removed (explicit arg wins)
+    expect(fs.existsSync('C:\\Vault\\10_Input\\FRESH')).toBe(false);
+    // Stale junction must remain (we passed fresh, not stale)
+    expect(fs.existsSync('C:\\Vault\\10_Input\\STALE')).toBe(true);
+    expect(m.status('b1').state).toBe('disabled');
+  });
+
   function f_setup() {
     const f = makeFs();
     fs = f.fs;

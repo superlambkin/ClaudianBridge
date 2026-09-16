@@ -17,7 +17,11 @@ export class FolderBridgeManager {
     const result: ApplyAllResult = { totalLinked: 0, totalErrors: 0, notices: [] };
     for (const bridge of bridges) {
       if (!bridge.enabled) {
-        this.setState(bridge.id, 'disabled');
+        if (this.watchers.has(bridge.id)) {
+          this.disable(bridge.id, bridge);
+        } else {
+          this.setState(bridge.id, 'disabled');
+        }
         continue;
       }
       try {
@@ -47,12 +51,12 @@ export class FolderBridgeManager {
     // (Caller must pass bridge via applyAll again — see Task 9 wiring)
   }
 
-  disable(id: string): void {
+  disable(id: string, bridge?: FolderBridge): void {
     this.watchers.get(id)?.stop();
     this.watchers.delete(id);
-    const bridge = this.findBridge(id);
-    if (bridge) {
-      const junction = nodePath.join(this.deps.vaultBasePath, bridge.vaultSubpath, bridge.linkName);
+    const b = bridge ?? this.findBridge(id);
+    if (b) {
+      const junction = nodePath.join(this.deps.vaultBasePath, b.vaultSubpath, b.linkName);
       if (this.deps.fs.existsSync(junction)) {
         this.deps.fs.rmSync(junction, { recursive: true, force: true });
       }

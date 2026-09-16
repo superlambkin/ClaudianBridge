@@ -72,7 +72,7 @@ export class SettingTabBridge extends PluginSettingTab {
           `🌉 ${bridge.vaultSubpath}/${bridge.linkName} のブリッジを削除しますか？シャドウのファイルは削除されません。`,
         );
         if (!ok) return;
-        this.plugin.disableBridge(bridge.id);
+        this.plugin.disableBridge(bridge.id, bridge);
         const latest = this.plugin.getSettings();
         latest.general.folderBridges = (latest.general.folderBridges ?? []).filter(
           (x) => x.id !== bridge.id,
