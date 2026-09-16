@@ -21,6 +21,16 @@ export function matchesExclude(filename: string, patterns: string[]): boolean {
   return false;
 }
 
+/**
+ * v0.53.2 (F-054): NAS 切断・chokidar 競合・権限変動で発生する transient エラー
+ * を許容する。致命的エラー（ENOSPC / EROFS / EIO 等）はそのまま上位へthrow。
+ */
+function isTransientSyncError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const code = (err as NodeJS.ErrnoException).code;
+  return code === 'ENOENT' || code === 'ENOTDIR' || code === 'EACCES' || code === 'EPERM' || code === 'EBUSY';
+}
+
 export class ShadowReconciler {
   constructor(private fs: FolderBridgeFs) {}
 
@@ -34,7 +44,17 @@ export class ShadowReconciler {
     const queue: { src: string; rel: string }[] = [{ src: externalPath, rel: '' }];
     while (queue.length > 0) {
       const { src, rel } = queue.shift()!;
-      const entries = this.fs.readdirSync(src);
+      // v0.53.2 (F-054): readdir 自体が失敗した場合（NAS 切断・broken junction）は
+      // スキップして次のキュー要素へ。致命的エラーなら上位にthrow。
+      let entries: string[];
+      try {
+        entries = this.fs.readdirSync(src);
+      } catch (e) {
+        if (isTransientSyncError(e)) {
+          continue;
+        }
+        throw e;
+      }
       for (const entry of entries) {
         if (matchesExclude(entry, excludePatterns)) {
           skipped++;
@@ -42,13 +62,38 @@ export class ShadowReconciler {
         }
         const srcPath = nodePath.join(src, entry);
         const dstPath = rel ? nodePath.join(shadowPath, rel, entry) : nodePath.join(shadowPath, entry);
-        const stat = this.fs.statSync(srcPath);
+        // v0.53.2 (F-054): readdir 後・stat 前でファイルが消えるレースを許容
+        let stat: ReturnType<FolderBridgeFs['statSync']>;
+        try {
+          stat = this.fs.statSync(srcPath);
+        } catch (e) {
+          if (isTransientSyncError(e)) {
+            skipped++;
+            continue;
+          }
+          throw e;
+        }
         if (stat.isDirectory()) {
-          this.fs.mkdirSync(dstPath, { recursive: true });
+          try {
+            this.fs.mkdirSync(dstPath, { recursive: true });
+          } catch (e) {
+            if (isTransientSyncError(e)) continue;
+            throw e;
+          }
           queue.push({ src: srcPath, rel: rel ? nodePath.join(rel, entry) : entry });
         } else if (stat.isFile()) {
-          this.fs.copyFileSync(srcPath, dstPath);
-          copied++;
+          // v0.53.2 (F-054): copyFile 失敗（NAS 切断中のファイル消失等）も
+          // 個別に捕捉して次ファイルへ継続。致命的エラーなら上位にthrow。
+          try {
+            this.fs.copyFileSync(srcPath, dstPath);
+            copied++;
+          } catch (e) {
+            if (isTransientSyncError(e)) {
+              skipped++;
+              continue;
+            }
+            throw e;
+          }
         }
       }
     }
@@ -56,10 +101,29 @@ export class ShadowReconciler {
   }
 
   syncOne(externalPath: string, shadowPath: string, excludePatterns: string[]): void {
-    const stat = this.fs.statSync(externalPath);
+    // v0.53.2 (F-054): chokidar イベントで呼び出される syncOne は、ファイルが
+    // 既に削除されている可能性が高いため、ENOENT は throw せず静かにスキップ。
+    let stat: ReturnType<FolderBridgeFs['statSync']>;
+    try {
+      stat = this.fs.statSync(externalPath);
+    } catch (e) {
+      if (isTransientSyncError(e)) return;
+      throw e;
+    }
     if (stat.isDirectory()) {
-      this.fs.mkdirSync(shadowPath, { recursive: true });
-      const entries = this.fs.readdirSync(externalPath);
+      try {
+        this.fs.mkdirSync(shadowPath, { recursive: true });
+      } catch (e) {
+        if (isTransientSyncError(e)) return;
+        throw e;
+      }
+      let entries: string[];
+      try {
+        entries = this.fs.readdirSync(externalPath);
+      } catch (e) {
+        if (isTransientSyncError(e)) return;
+        throw e;
+      }
       for (const entry of entries) {
         if (matchesExclude(entry, excludePatterns)) continue;
         this.syncOne(
@@ -69,8 +133,18 @@ export class ShadowReconciler {
         );
       }
     } else if (stat.isFile()) {
-      this.fs.mkdirSync(nodePath.dirname(shadowPath), { recursive: true });
-      this.fs.copyFileSync(externalPath, shadowPath);
+      try {
+        this.fs.mkdirSync(nodePath.dirname(shadowPath), { recursive: true });
+      } catch (e) {
+        if (isTransientSyncError(e)) return;
+        throw e;
+      }
+      try {
+        this.fs.copyFileSync(externalPath, shadowPath);
+      } catch (e) {
+        if (isTransientSyncError(e)) return;
+        throw e;
+      }
     }
   }
 

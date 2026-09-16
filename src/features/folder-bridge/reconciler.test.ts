@@ -10,7 +10,11 @@ function makeFs() {
     existsSync: (p: string) => files.has(p),
     statSync: (p: string) => {
       const f = files.get(p);
-      if (!f) throw new Error(`ENOENT: ${p}`);
+      if (!f) {
+        const err: NodeJS.ErrnoException = new Error(`ENOENT: no such file or directory, stat '${p}'`);
+        err.code = 'ENOENT';
+        throw err;
+      }
       return { isDirectory: () => f.type === 'dir', isFile: () => f.type === 'file', isSymbolicLink: () => false, mtimeMs: f.mtimeMs, size: f.content?.length ?? 0 };
     },
     readdirSync: (p: string) => {
@@ -30,7 +34,11 @@ function makeFs() {
     },
     copyFileSync: (src: string, dst: string) => {
       const f = files.get(src);
-      if (!f) throw new Error(`ENOENT src: ${src}`);
+      if (!f) {
+        const err: NodeJS.ErrnoException = new Error(`ENOENT: no such file or directory, copyfile '${src}' -> '${dst}'`);
+        err.code = 'ENOENT';
+        throw err;
+      }
       files.set(dst, { type: 'file', content: f.content, mtimeMs: f.mtimeMs });
     },
     rmSync: (p: string) => {
@@ -108,5 +116,70 @@ describe('ShadowReconciler.removeFromShadow', () => {
     const fs = makeFs();
     const reconciler = new ShadowReconciler(fs as any);
     expect(() => reconciler.removeFromShadow('D:\\shadow\\nope.md')).not.toThrow();
+  });
+});
+
+// === v0.53.2 (F-054): Bridge sync ENOENT 救済 ===
+// 症状: ユーザーが bridge を無効→有効にした瞬間、syncAll の readdir 後に
+//       NAS 上のファイルが消失（切断・手動削除・chokidar 競合）すると、
+//       copyFileSync が ENOENT を投げ、applyOne が throw → ブリッジが
+//       'error' 状態になり Notice で「DIR_EXENT: no such file or directory」が
+//       表示される。本テストは per-file ENOENT をスキップして他のファイルを
+//       継続同期できることを確認する回帰テスト。
+describe('ShadowReconciler.syncAll - ENOENT tolerance (v0.53.2)', () => {
+  it('continues sync when one file disappears between readdir and copyFile', () => {
+    const fs = makeFs();
+    const reconciler = new ShadowReconciler(fs as any);
+    // Source: 3 files (a, b, c)
+    fs.files.set('C:\\NAS\\OCR', { type: 'dir', mtimeMs: 0 });
+    fs.files.set('C:\\NAS\\OCR\\a.md', { type: 'file', content: 'AAA', mtimeMs: 100 });
+    fs.files.set('C:\\NAS\\OCR\\b.md', { type: 'file', content: 'BBB', mtimeMs: 200 });
+    fs.files.set('C:\\NAS\\OCR\\c.md', { type: 'file', content: 'CCC', mtimeMs: 300 });
+    fs.files.set('D:\\shadow', { type: 'dir', mtimeMs: 0 });
+
+    // Race: b.md disappears between readdir and copyFile
+    const origCopyFileSync = fs.copyFileSync;
+    let copyCalls = 0;
+    fs.copyFileSync = (src: string, dst: string) => {
+      copyCalls++;
+      if (src === 'C:\\NAS\\OCR\\b.md') {
+        // simulate file gone (NAS disconnect / race)
+        fs.files.delete('C:\\NAS\\OCR\\b.md');
+        const err: NodeJS.ErrnoException = new Error(`ENOENT: no such file or directory, copyfile '${src}' -> '${dst}'`);
+        err.code = 'ENOENT';
+        throw err;
+      }
+      return origCopyFileSync(src, dst);
+    };
+
+    const r = reconciler.syncAll('C:\\NAS\\OCR', 'D:\\shadow', []);
+
+    // a.md and c.md copied; b.md skipped (ENOENT)
+    expect(r.copied).toBe(2);
+    expect(fs.files.has('D:\\shadow\\a.md')).toBe(true);
+    expect(fs.files.has('D:\\shadow\\b.md')).toBe(false);
+    expect(fs.files.has('D:\\shadow\\c.md')).toBe(true);
+    expect(copyCalls).toBe(3); // we attempted all 3
+  });
+
+  it('does not throw if the source directory itself is missing (broken junction)', () => {
+    const fs = makeFs();
+    const reconciler = new ShadowReconciler(fs as any);
+    // Source dir does NOT exist
+    expect(() =>
+      reconciler.syncAll('C:\\NAS\\OFFLINE', 'D:\\shadow', []),
+    ).not.toThrow();
+  });
+
+  it('syncOne skips a single file that disappears (chokidar race)', () => {
+    const fs = makeFs();
+    const reconciler = new ShadowReconciler(fs as any);
+    fs.files.set('C:\\NAS\\OCR\\ghost.md', { type: 'file', content: 'X', mtimeMs: 100 });
+    fs.files.set('D:\\shadow', { type: 'dir', mtimeMs: 0 });
+    // Now delete before syncOne is called
+    fs.files.delete('C:\\NAS\\OCR\\ghost.md');
+    expect(() =>
+      reconciler.syncOne('C:\\NAS\\OCR\\ghost.md', 'D:\\shadow\\ghost.md', []),
+    ).not.toThrow();
   });
 });

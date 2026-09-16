@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.53.2] - 2026-09-17 — Bridge sync ENOENT 救済 (F-054)
+
+Folder Bridge（🌉 ブリッジ）のシャドウ同期（NAS → `<vault>/.obsidian/cache/folder-bridge/<id>/`）で、
+readdir 後・copyFile 前に NAS 上のファイルが消失した場合に ENOENT が伝播して
+ブリッジ全体が `'error'` 状態 + Notice が表示される問題を修正。
+ユーザー報告: ブリッジ無効→有効トグルで「DIR_EXENT: no such file or directory, copyfile」が
+連続表示 → ブリッジ使用不可に。
+
+### Fixed
+
+- 🐛 **`syncAll` / `syncOne` の per-file エラーハンドリング** (`src/features/folder-bridge/reconciler.ts`):
+  - `readdirSync` / `statSync` / `copyFileSync` / `mkdirSync` を個別に `try/catch` でラップ
+  - **transient エラー** (`ENOENT` / `ENOTDIR` / `EACCES` / `EPERM` / `EBUSY`): 静かにスキップして次ファイルへ継続
+  - **致命的エラー** (`ENOSPC` / `EROFS` / `EIO` 等): 従来通り上位へ throw（ユーザーに通知）
+- 🐛 **ブリッジ状態遷移**: 一時的なファイル消失で状態 `'error'` に陥らず、正常ファイルは同期完了して `'linked'` を維持
+
+### Tests
+
+- +3 cases（1476 → 1479）
+  - `src/features/folder-bridge/reconciler.test.ts`: fs stub を実 Node.js 互換に拡張（`code: 'ENOENT'` プロパティ付与）
+  - readdir 後・copyFile 前レースでの ENOENT スキップ
+  - 消失ファイルを含む syncOne 呼び出し
+- 既存 9 テストは全て引き続き PASS
+
+### Migration Notes
+
+- 既存ユーザー: v0.53.2 適用後、NAS 切断中のトグル操作で Notice が出なくなる
+- シャドウ同期は部分的に成功したファイルのみで継続（致命的エラーのみ Notice）
+
 ## [0.53.1] - 2026-09-17 — Broken junction EEXIST 救済 (F-053)
 
 NAS 切断後に Vault/10_Input/<linkName> に Windows の broken junction が残ると、
