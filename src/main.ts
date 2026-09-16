@@ -210,9 +210,9 @@ export default class ClaudianBridgePlugin extends Plugin {
       }));
       diag('setting tab registered');
 
-      // v0.52.0 (F-051): Folder Bridge 設定タブ（Obsidian 設定ダイアログに新規タブとして追加）
-      this.addSettingTab(new SettingTabBridge(this.app, this));
-      diag('folder bridge setting tab registered');
+      // v0.53.0 (F-052): 設定画面整理 — Folder Bridge タブを本体設定（Vault表示直後）に統合したため、
+      // 独立した addSettingTab 登録は削除。renderBridgeTab は ClaudianBridgeSettingTab の TABS から呼ばれる。
+      // SettingTabBridge クラスの export は後方互換のため維持。
 
       // ★ プラグイン全体の有効化トグル（general.enabled）: false なら機能登録をスキップ
       if (!this.store.load().general.enabled) {

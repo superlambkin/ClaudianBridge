@@ -1,6 +1,6 @@
 {
   "name": "ClaudianBridge",
-  "version": "0.52.2",
+  "version": "0.53.0",
   "description": "Unified Claudian integration: text-to-Claudian, TTS, Office-to-Markdown, extension whitelist",
   "main": "main.js",
   "scripts": {

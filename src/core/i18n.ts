@@ -534,6 +534,8 @@ export interface LocaleStrings {
   folderBridgeSyncDirectionDesc: string;
   folderBridgeExcludePatterns: string;
   folderBridgeExternalMissing: string;
+  // === v0.53.0 (F-052): 設定画面整理 — Bridge タブマージ ===
+  tabBridge: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -1036,7 +1038,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     settingThinkModeBadgeOn: '🧠 ON',
     settingThinkModeBadgeOff: '🧠 OFF',
     // === v0.50.0 (F-049): フォルダマッピング ===
-    folderMappingHeading: 'フォルダマッピング (F-049)',
+    folderMappingHeading: 'フォルダマッピング',
     folderMappingDesc: '外部フォルダを Vault 内の任意パスにリンクします。双向利用可（読み込み・書き出し）。リンク先は設定した vaultSubpath 配下です。',
     folderMappingAdd: '＋ 追加...',
     folderMappingEmpty: 'まだマッピングがありません。＋追加... から登録してください。',
@@ -1053,6 +1055,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderBridgeSyncDirectionDesc: 'Phase 1 は NAS → ローカルシャドウ（読み取り専用）のみ対応',
     folderBridgeExcludePatterns: '除外パターン',
     folderBridgeExternalMissing: '外部パスに到達できません',
+    // === v0.53.0 (F-052): 設定画面整理 — Bridge タブマージ ===
+    tabBridge: '🌉 ブリッジ',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -1553,7 +1557,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     settingThinkModeBadgeOn: '🧠 ON',
     settingThinkModeBadgeOff: '🧠 OFF',
     // === v0.50.0 (F-049): Folder Mapping ===
-    folderMappingHeading: 'Folder Mapping (F-049)',
+    folderMappingHeading: 'Folder Mapping',
     folderMappingDesc: 'Link external folders to any path inside the Vault. Bidirectional (read/write). Destination is the configured vaultSubpath.',
     folderMappingAdd: '+ Add...',
     folderMappingEmpty: 'No mappings yet. Click + Add... to register.',
@@ -1570,6 +1574,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderBridgeSyncDirectionDesc: 'Phase 1 supports NAS → local shadow (read-only)',
     folderBridgeExcludePatterns: 'Exclude Patterns',
     folderBridgeExternalMissing: 'External path unreachable',
+    // === v0.53.0 (F-052): 設定画面整理 — Bridge タブマージ ===
+    tabBridge: '🌉 Bridge',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -2070,7 +2076,7 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     settingThinkModeBadgeOn: '🧠 ON',
     settingThinkModeBadgeOff: '🧠 OFF',
     // === v0.50.0 (F-049): 文件夹映射 ===
-    folderMappingHeading: '文件夹映射 (F-049)',
+    folderMappingHeading: '文件夹映射',
     folderMappingDesc: '将外部文件夹链接到 Vault 内任意路径。支持双向读写。链接目标为配置的 vaultSubpath。',
     folderMappingAdd: '＋ 添加...',
     folderMappingEmpty: '尚无映射。点击 ＋添加... 进行注册。',
@@ -2087,6 +2093,8 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderBridgeSyncDirectionDesc: 'Phase 1 仅支持 NAS → 本地影子（只读）',
     folderBridgeExcludePatterns: '排除模式',
     folderBridgeExternalMissing: '外部路径不可达',
+    // === v0.53.0 (F-052): 設定画面整理 — Bridge タブマージ ===
+    tabBridge: '🌉 桥接',
   },
 };
 
