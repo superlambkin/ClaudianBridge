@@ -527,6 +527,13 @@ export interface LocaleStrings {
   folderMappingRemoveConfirm: string;
   folderMappingVaultSubpath: string;
   folderMappingVaultSubpathDesc: string;
+  // === v0.52.0 (F-051): Folder Bridge ===
+  folderBridge: string;
+  folderBridgeAdd: string;
+  folderBridgeSyncDirection: string;
+  folderBridgeSyncDirectionDesc: string;
+  folderBridgeExcludePatterns: string;
+  folderBridgeExternalMissing: string;
 }
 
 export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
@@ -1039,6 +1046,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderMappingRemoveConfirm: '@10_Input/{linkName} のリンクを削除しますか？外部パス {externalPath} のファイルは削除されません。',
     folderMappingVaultSubpath: 'マッピング先（Vault 内パス）',
     folderMappingVaultSubpathDesc: '例: 10_Input を指定するとリンク名と合わせて 10_Input/OCR に表示されます',
+    // === v0.52.0 (F-051): Folder Bridge ===
+    folderBridge: 'ブリッジ',
+    folderBridgeAdd: 'ブリッジ追加',
+    folderBridgeSyncDirection: '同期方向',
+    folderBridgeSyncDirectionDesc: 'Phase 1 は NAS → ローカルシャドウ（読み取り専用）のみ対応',
+    folderBridgeExcludePatterns: '除外パターン',
+    folderBridgeExternalMissing: '外部パスに到達できません',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -1549,6 +1563,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderMappingRemoveConfirm: 'Remove the @10_Input/{linkName} link? External files at {externalPath} will NOT be deleted.',
     folderMappingVaultSubpath: 'Destination (in-vault path)',
     folderMappingVaultSubpathDesc: 'e.g. 10_Input + link name OCR is shown as 10_Input/OCR',
+    // === v0.52.0 (F-051): Folder Bridge ===
+    folderBridge: 'Bridge',
+    folderBridgeAdd: 'Add Bridge',
+    folderBridgeSyncDirection: 'Sync Direction',
+    folderBridgeSyncDirectionDesc: 'Phase 1 supports NAS → local shadow (read-only)',
+    folderBridgeExcludePatterns: 'Exclude Patterns',
+    folderBridgeExternalMissing: 'External path unreachable',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -2059,6 +2080,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderMappingRemoveConfirm: '是否删除 @10_Input/{linkName} 的链接？外部路径 {externalPath} 中的文件不会被删除。',
     folderMappingVaultSubpath: '映射目标（Vault 内路径）',
     folderMappingVaultSubpathDesc: '例: 指定 10_Input 后与链接名称组合显示为 10_Input/OCR',
+    // === v0.52.0 (F-051): Folder Bridge ===
+    folderBridge: '桥接',
+    folderBridgeAdd: '添加桥接',
+    folderBridgeSyncDirection: '同步方向',
+    folderBridgeSyncDirectionDesc: 'Phase 1 仅支持 NAS → 本地影子（只读）',
+    folderBridgeExcludePatterns: '排除模式',
+    folderBridgeExternalMissing: '外部路径不可达',
   },
 };
 
