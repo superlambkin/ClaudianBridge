@@ -5,6 +5,14 @@ import { DEFAULT_WHITELIST_SETTINGS } from '../core/settings';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
 import { WHITELIST_PRESETS } from '../features/whitelist/presets';
 import { OutputsMirrorManager } from '../features/outputs-mirror/manager';
+import { FolderMappingManager } from '../features/folder-mapping/manager';
+import type { FolderMappingFs } from '../features/folder-mapping/types';
+import { FolderMappingModal } from './FolderMappingModal';
+
+function getVaultBasePath(app: App): string {
+  const adapter = app.vault.adapter as unknown as { getBasePath?: () => string; basePath?: string };
+  return adapter.getBasePath ? adapter.getBasePath() : adapter.basePath ?? '';
+}
 
 export function renderWhitelistTab(_app: App, containerEl: HTMLElement, store: ConfigStore): void {
   const s = getLocaleStrings(getUILanguage());
@@ -164,6 +172,86 @@ export function renderWhitelistTab(_app: App, containerEl: HTMLElement, store: C
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           draw();
         }
+      }));
+
+    // v0.50.0 (F-049): フォルダマッピング
+    containerEl.createEl('h3', { text: s.folderMappingHeading });
+    containerEl.createEl('p', {
+      text: s.folderMappingDesc,
+      attr: { style: 'color: var(--text-muted); font-size: 0.9em;' },
+    });
+
+    const fmList = cfg.general.folderMappings ?? [];
+    if (fmList.length === 0) {
+      containerEl.createEl('p', {
+        text: s.folderMappingEmpty,
+        attr: { style: 'color: var(--text-muted); font-style: italic;' },
+      });
+    } else {
+      for (const m of fmList) {
+        const row = containerEl.createDiv('cb-folder-mapping-row');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '1fr 2fr auto auto auto auto';
+        row.style.gap = '6px';
+        row.style.alignItems = 'center';
+        row.createEl('span', { text: `🔗 ${m.linkName}` });
+        row.createEl('span', { text: m.externalPath, attr: { style: 'font-family: monospace; font-size: 0.85em;' } });
+        // Toggle
+        new Setting(row).addToggle((t) =>
+          t.setValue(m.enabled).onChange(async (v) => {
+            const latest = store.load();
+            const updated = latest.general.folderMappings.map((x) =>
+              x.id === m.id ? { ...x, enabled: v, updatedAt: Date.now() } : x,
+            );
+            store.save({ ...latest, general: { ...latest.general, folderMappings: updated } });
+            const fm = new FolderMappingManager({
+              vaultBasePath: getVaultBasePath(_app),
+              fs: require('fs') as FolderMappingFs,
+              notice: (msg: string) => new Notice(msg),
+            });
+            fm.apply({ ...m, enabled: v });
+            draw();
+          }),
+        );
+        // Open
+        const openBtn = row.createEl('button', { text: '📂' });
+        openBtn.title = 'open external';
+        openBtn.addEventListener('click', async () => {
+          const electron = require('electron');
+          await electron.shell.openPath(m.externalPath);
+        });
+        // Remove
+        const removeBtn = row.createEl('button', { text: '✕', attr: { style: 'color: var(--text-error);' } });
+        removeBtn.title = 'remove';
+        removeBtn.addEventListener('click', () => {
+          const ok = confirm(s.folderMappingRemoveConfirm
+            .replace('{linkName}', m.linkName)
+            .replace('{externalPath}', m.externalPath));
+          if (!ok) return;
+          const fm = new FolderMappingManager({
+            vaultBasePath: getVaultBasePath(_app),
+            fs: require('fs') as FolderMappingFs,
+            notice: (msg: string) => new Notice(msg),
+          });
+          fm.apply({ ...m, enabled: false });
+          const latest = store.load();
+          store.save({
+            ...latest,
+            general: {
+              ...latest.general,
+              folderMappings: latest.general.folderMappings.filter((x) => x.id !== m.id),
+            },
+          });
+          draw();
+        });
+      }
+    }
+
+    // Add button (placeholder for Task 9)
+    const addBtn = new Setting(containerEl)
+      .setName(s.folderMappingAdd)
+      .addButton((b) => b.setButtonText(s.folderMappingAdd).onClick(() => {
+        new FolderMappingModal(_app, store, draw).open();
       }));
 
     // v0.41.0: Outputs フォルダミラリング

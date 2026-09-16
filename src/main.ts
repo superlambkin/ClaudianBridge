@@ -29,6 +29,8 @@ import { BackupMenuRegistrar } from './features/backup/menu';
 import { buildWhitelistCss } from './features/whitelist/css-builder';
 import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/injector';
 import { OutputsMirrorManager } from './features/outputs-mirror/manager';
+import { FolderMappingManager } from './features/folder-mapping/manager';
+import type { FolderMappingFs } from './features/folder-mapping/types';
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
 import { ImageGenMenuRegistrar } from './features/image-gen/menu';
@@ -131,6 +133,17 @@ export default class ClaudianBridgePlugin extends Plugin {
           manager.apply(true, c.general.outputsMirrorPath);
           diag('outputs mirror applied');
         }
+      }
+
+      // v0.50.0 (F-049): フォルダマッピング起動時適用（既存 junction 整合 / disabled の除去）
+      {
+        const fm = new FolderMappingManager({
+          vaultBasePath: vaultRoot,
+          fs: require('fs') as FolderMappingFs,
+          notice: (m) => new Notice(m),
+        });
+        const result = fm.applyAll(this.store.load().general.folderMappings);
+        diag('folder mappings applied', result);
       }
 
       // 3. 設定タブ登録（1ページ / 内部タブ）
