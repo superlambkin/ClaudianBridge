@@ -7,6 +7,9 @@ import type {
   MappingStatus,
 } from './types';
 
+/** F-050: v0.50.x までの固定サブパス（起動時の自動貼り直し対象） */
+export const LEGACY_SUBPATH = '@10_Input';
+
 export class FolderMappingManager {
   private readonly deps: Required<Omit<FolderMappingDeps, 'generateId' | 'now'>> &
     Pick<FolderMappingDeps, 'generateId' | 'now'>;
@@ -101,6 +104,21 @@ export class FolderMappingManager {
     let totalRemoved = 0;
     let totalErrors = 0;
     for (const m of mappings) {
+      // F-050: 旧 @10_Input/{linkName} junction を新サブパスへ移行
+      if (m.vaultSubpath !== LEGACY_SUBPATH) {
+        const legacyPath = nodePath.join(this.deps.vaultBasePath, LEGACY_SUBPATH, m.linkName);
+        try {
+          if (
+            this.deps.fs.existsSync(legacyPath) &&
+            this.deps.fs.lstatSync(legacyPath).isSymbolicLink()
+          ) {
+            this.deps.fs.rmdirSync(legacyPath);
+            this.deps.notice(`旧 @10_Input/${m.linkName} のリンクを ${m.vaultSubpath}/${m.linkName} へ移行しました`);
+          }
+        } catch {
+          // 旧 junction の削除に失敗しても続行（新パスの apply は独立）
+        }
+      }
       const state = this.apply(m);
       applied.push({ id: m.id, state });
       if (state === 'created') totalCreated++;
