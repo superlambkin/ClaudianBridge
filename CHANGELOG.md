@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.52.1] - 2026-09-17 — フォルダマッピング追加時の不具合修正と UX 改善 (Hotfix)
+
+F-050 で追加された「フォルダマッピング」画面の追加ボタンに関する不具合修正と UX 改善。
+
+### Fixed
+
+- 🐛 **vaultSubpath に `@10_Input` を入力すると追加できなかった問題を修正**：F-049 legacy junction 名 `Vault/@10_Input/{linkName}` からコピーして `vaultSubpath` に入力すると `forbidden_prefix` で拒否されていた。先頭の `@` を全て除去してから通常検証する形に修正し、`@10_Input` / `@@10_Input` / `@.obsidian` などが直感通り動作するように（中間セグメントの `@` は引き続き禁止）
+
+### Changed
+
+- 🎨 **「参照」ボタンを実フォルダ選択ダイアログに置換**：従来は `window.prompt()` でテキスト入力のみだったが、Electron `showOpenDialog({properties:['openDirectory']})` による OS ネイティブのフォルダ選択ダイアログを開くように（既存の `pickBackupDestination` ヘルパーを流用）
+
 ## [0.52.0] - 2026-09-17 — Folder Bridge Phase 1（NAS → ローカルシャドウ読み取り専用）
 
 ネットワークドライブ(NAS) 上のフォルダを Obsidian のインデックス対象にする「Folder Bridge」
