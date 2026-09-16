@@ -105,8 +105,21 @@ describe('validateVaultSubpath', () => {
   it('rejects dot folder', () => {
     expect(validateVaultSubpath('.obsidian')).toEqual({ ok: false, reason: 'dot_folder' });
   });
-  it('rejects @ prefix', () => {
-    expect(validateVaultSubpath('@10_Input')).toEqual({ ok: false, reason: 'forbidden_prefix' });
+  it('strips single leading @ (legacy junction name normalization)', () => {
+    expect(validateVaultSubpath('@10_Input')).toEqual({ ok: true, normalized: '10_Input' });
+  });
+  it('strips multiple leading @ chars', () => {
+    expect(validateVaultSubpath('@@10_Input')).toEqual({ ok: true, normalized: '10_Input' });
+    expect(validateVaultSubpath('@@@@@60_Tech')).toEqual({ ok: true, normalized: '60_Tech' });
+  });
+  it('strips @ then re-validates (.obsidian still rejected after stripping)', () => {
+    expect(validateVaultSubpath('@.obsidian')).toEqual({ ok: false, reason: 'dot_folder' });
+  });
+  it('strips @ then re-validates (only leading @ stripped, mid-segment @ still rejected)', () => {
+    expect(validateVaultSubpath('@a/b/@c')).toEqual({ ok: false, reason: 'forbidden_prefix' });
+  });
+  it('strips @ with empty result (just @ becomes empty)', () => {
+    expect(validateVaultSubpath('@')).toEqual({ ok: false, reason: 'empty' });
   });
   it('rejects invalid segment chars', () => {
     expect(validateVaultSubpath('a:b')).toEqual({ ok: false, reason: 'invalid_segment' });
