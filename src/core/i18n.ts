@@ -1037,13 +1037,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     settingThinkModeBadgeOff: '🧠 OFF',
     // === v0.50.0 (F-049): フォルダマッピング ===
     folderMappingHeading: 'フォルダマッピング (F-049)',
-    folderMappingDesc: 'Vault/@10_Input/{linkName} として外部フォルダをリンクします。双向利用可（読み込み・書き出し）。リンク先はあくまで @10_Input 配下です。',
+    folderMappingDesc: '外部フォルダを Vault 内の任意パスにリンクします。双向利用可（読み込み・書き出し）。リンク先は設定した vaultSubpath 配下です。',
     folderMappingAdd: '＋ 追加...',
     folderMappingEmpty: 'まだマッピングがありません。＋追加... から登録してください。',
     folderMappingLinkName: 'リンク名',
     folderMappingExternalPath: '外部パス',
     folderMappingBrowse: '📁 参照',
-    folderMappingRemoveConfirm: '@10_Input/{linkName} のリンクを削除しますか？外部パス {externalPath} のファイルは削除されません。',
+    folderMappingRemoveConfirm: '{vaultSubpath}/{linkName} のリンクを削除しますか？外部パス {externalPath} のファイルは削除されません。',
     folderMappingVaultSubpath: 'マッピング先（Vault 内パス）',
     folderMappingVaultSubpathDesc: '例: 10_Input を指定するとリンク名と合わせて 10_Input/OCR に表示されます',
     // === v0.52.0 (F-051): Folder Bridge ===
@@ -1554,13 +1554,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     settingThinkModeBadgeOff: '🧠 OFF',
     // === v0.50.0 (F-049): Folder Mapping ===
     folderMappingHeading: 'Folder Mapping (F-049)',
-    folderMappingDesc: 'Link external folders as Vault/@10_Input/{linkName}. Bidirectional (read/write). Destination is always under @10_Input.',
+    folderMappingDesc: 'Link external folders to any path inside the Vault. Bidirectional (read/write). Destination is the configured vaultSubpath.',
     folderMappingAdd: '+ Add...',
     folderMappingEmpty: 'No mappings yet. Click + Add... to register.',
     folderMappingLinkName: 'Link name',
     folderMappingExternalPath: 'External path',
     folderMappingBrowse: '📁 Browse',
-    folderMappingRemoveConfirm: 'Remove the @10_Input/{linkName} link? External files at {externalPath} will NOT be deleted.',
+    folderMappingRemoveConfirm: 'Remove the {vaultSubpath}/{linkName} link? External files at {externalPath} will NOT be deleted.',
     folderMappingVaultSubpath: 'Destination (in-vault path)',
     folderMappingVaultSubpathDesc: 'e.g. 10_Input + link name OCR is shown as 10_Input/OCR',
     // === v0.52.0 (F-051): Folder Bridge ===
@@ -2071,13 +2071,13 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     settingThinkModeBadgeOff: '🧠 OFF',
     // === v0.50.0 (F-049): 文件夹映射 ===
     folderMappingHeading: '文件夹映射 (F-049)',
-    folderMappingDesc: '将外部文件夹链接为 Vault/@10_Input/{linkName}。支持双向读写。链接目标始终位于 @10_Input 下。',
+    folderMappingDesc: '将外部文件夹链接到 Vault 内任意路径。支持双向读写。链接目标为配置的 vaultSubpath。',
     folderMappingAdd: '＋ 添加...',
     folderMappingEmpty: '尚无映射。点击 ＋添加... 进行注册。',
     folderMappingLinkName: '链接名称',
     folderMappingExternalPath: '外部路径',
     folderMappingBrowse: '📁 浏览',
-    folderMappingRemoveConfirm: '是否删除 @10_Input/{linkName} 的链接？外部路径 {externalPath} 中的文件不会被删除。',
+    folderMappingRemoveConfirm: '是否删除 {vaultSubpath}/{linkName} 的链接？外部路径 {externalPath} 中的文件不会被删除。',
     folderMappingVaultSubpath: '映射目标（Vault 内路径）',
     folderMappingVaultSubpathDesc: '例: 指定 10_Input 后与链接名称组合显示为 10_Input/OCR',
     // === v0.52.0 (F-051): Folder Bridge ===
