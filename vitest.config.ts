@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 
 export default defineConfig({
   test: {
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
     environment: 'node',
     setupFiles: ['./tests/setup-electron-stub.cjs'],
   },
