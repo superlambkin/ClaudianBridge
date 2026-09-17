@@ -317,15 +317,15 @@ describe('F-052: tabBridge / folderBridge* ラベル', () => {
   });
 
   it('tabBridge は en/zh で固定文言と一致（mojibake 防止）', () => {
-    expect(getLocaleStrings('ja').tabBridge).toBe('🌉 ブリッジ');
-    expect(getLocaleStrings('en').tabBridge).toBe('🌉 Bridge');
-    expect(getLocaleStrings('zh').tabBridge).toBe('🌉 桥接');
+    expect(getLocaleStrings('ja').tabBridge).toBe('🌉 NAS ブリッジ');
+    expect(getLocaleStrings('en').tabBridge).toBe('🌉 NAS Bridge');
+    expect(getLocaleStrings('zh').tabBridge).toBe('🌉 NAS 桥接');
   });
 
-  it('folderBridge 見出しは 3 言語で "Bridge" 系単語を含む', () => {
-    expect(getLocaleStrings('ja').folderBridge).toContain('ブリッジ');
-    expect(getLocaleStrings('en').folderBridge).toBe('Bridge');
-    expect(getLocaleStrings('zh').folderBridge).toBe('桥接');
+  it('folderBridge 見出しは 3 言語で "NAS Bridge" 系単語を含む', () => {
+    expect(getLocaleStrings('ja').folderBridge).toBe('NAS ブリッジ');
+    expect(getLocaleStrings('en').folderBridge).toBe('NAS Bridge');
+    expect(getLocaleStrings('zh').folderBridge).toBe('NAS 桥接');
   });
 });
 

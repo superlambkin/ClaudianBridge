@@ -183,3 +183,54 @@ describe('ShadowReconciler.syncAll - ENOENT tolerance (v0.53.2)', () => {
     ).not.toThrow();
   });
 });
+
+// === v0.53.3 (F-055): syncAll iteration limit (cycle prevention) ===
+// 症状: ユーザーがブリッジを有効→無効→有効トグルした際、Obsidianが永続的に
+//       固まる（タスクキル必要）。NAS が小さい（数十ファイル）にも関わらず
+//       固まることから、syncAll のキューが無限に膨張する cycle バグの可能性。
+//       → 最大反復回数の上限を追加して無限ループを根絶する。
+describe('ShadowReconciler.syncAll - iteration limit (v0.53.3)', () => {
+  it('caps syncAll to MAX_ITERATIONS to prevent runaway recursion', () => {
+    const fs = makeFs();
+    const reconciler = new ShadowReconciler(fs as any);
+    // Pathological fs that always returns an infinite-growing queue.
+    // readdir always returns ['x']; stat says it's a directory.
+    fs.readdirSync = () => ['x'];
+    fs.statSync = () => ({ isDirectory: () => true, isFile: () => false, isSymbolicLink: () => false, mtimeMs: 0, size: 0 });
+    fs.files.set('C:\\NAS\\infinite', { type: 'dir', mtimeMs: 0 });
+    fs.files.set('D:\\shadow', { type: 'dir', mtimeMs: 0 });
+
+    expect(() =>
+      reconciler.syncAll('C:\\NAS\\infinite', 'D:\\shadow', []),
+    ).toThrow(/iteration limit/i);
+  });
+
+  it('MAX_ITERATIONS is generous enough for normal NAS (hundreds of files)', () => {
+    const fs = makeFs();
+    const reconciler = new ShadowReconciler(fs as any);
+    fs.files.set('C:\\NAS\\OCR', { type: 'dir', mtimeMs: 0 });
+    for (let i = 0; i < 100; i++) {
+      fs.files.set(`C:\\NAS\\OCR\\file${i}.md`, { type: 'file', content: `c${i}`, mtimeMs: i });
+    }
+    fs.files.set('D:\\shadow', { type: 'dir', mtimeMs: 0 });
+    const r = reconciler.syncAll('C:\\NAS\\OCR', 'D:\\shadow', []);
+    expect(r.copied).toBe(100);
+  });
+
+  it('MAX_ITERATIONS allows deep directory hierarchy (500 levels)', () => {
+    const fs = makeFs();
+    const reconciler = new ShadowReconciler(fs as any);
+    // Build a deep chain: C:\NAS\deep\l0\l1\l2\...\l499\file.txt
+    fs.files.set('C:\\NAS\\deep', { type: 'dir', mtimeMs: 0 });
+    let parent = 'C:\\NAS\\deep';
+    for (let i = 0; i < 500; i++) {
+      const child = `${parent}\\l${i}`;
+      fs.files.set(child, { type: 'dir', mtimeMs: 0 });
+      parent = child;
+    }
+    fs.files.set(`${parent}\\file.txt`, { type: 'file', content: 'X', mtimeMs: 0 });
+    fs.files.set('D:\\shadow', { type: 'dir', mtimeMs: 0 });
+    const r = reconciler.syncAll('C:\\NAS\\deep', 'D:\\shadow', []);
+    expect(r.copied).toBe(1);
+  });
+});

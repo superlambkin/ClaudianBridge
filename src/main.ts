@@ -88,9 +88,13 @@ export default class ClaudianBridgePlugin extends Plugin {
     this.bridgeManager?.applyAll(bridges);
   }
 
-  /** v0.52.0 (F-051): settings UI から呼ばれる再起動フック（applyAll のエイリアス）。 */
+  /** v0.52.0 (F-051): settings UI から呼ばれる再起動フック（applyAll のエイリアス）。
+   *  v0.53.3 (F-055): setTimeout(0) で次ティックにディファーし、UI スレッドを
+   *  ブロックしない。NAS 同期（syncAll）は数十秒かかる場合があり、トグル連打で
+   *  Obsidian が固まる（重大不具合）の根本対策。
+   */
   restartBridges(): void {
-    this.applyAllBridges();
+    setTimeout(() => this.applyAllBridges(), 0);
   }
 
   /** v0.52.0 (F-051): 削除時のジャンクション／ウォッチャ解放（Manager.disable の薄いラッパー）。 */
