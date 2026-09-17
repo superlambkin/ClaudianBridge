@@ -1049,14 +1049,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderMappingVaultSubpath: 'マッピング先（Vault 内パス）',
     folderMappingVaultSubpathDesc: '例: 10_Input を指定するとリンク名と合わせて 10_Input/OCR に表示されます',
     // === v0.52.0 (F-051): Folder Bridge ===
-    folderBridge: 'ブリッジ',
+    folderBridge: 'NAS ブリッジ',
     folderBridgeAdd: 'ブリッジ追加',
     folderBridgeSyncDirection: '同期方向',
     folderBridgeSyncDirectionDesc: 'Phase 1 は NAS → ローカルシャドウ（読み取り専用）のみ対応',
     folderBridgeExcludePatterns: '除外パターン',
     folderBridgeExternalMissing: '外部パスに到達できません',
     // === v0.53.0 (F-052): 設定画面整理 — Bridge タブマージ ===
-    tabBridge: '🌉 ブリッジ',
+    tabBridge: '🌉 NAS ブリッジ',
   },
   en: {
     tabGeneral: '🎛️ General',
@@ -1568,14 +1568,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderMappingVaultSubpath: 'Destination (in-vault path)',
     folderMappingVaultSubpathDesc: 'e.g. 10_Input + link name OCR is shown as 10_Input/OCR',
     // === v0.52.0 (F-051): Folder Bridge ===
-    folderBridge: 'Bridge',
+    folderBridge: 'NAS Bridge',
     folderBridgeAdd: 'Add Bridge',
     folderBridgeSyncDirection: 'Sync Direction',
     folderBridgeSyncDirectionDesc: 'Phase 1 supports NAS → local shadow (read-only)',
     folderBridgeExcludePatterns: 'Exclude Patterns',
     folderBridgeExternalMissing: 'External path unreachable',
     // === v0.53.0 (F-052): 設定画面整理 — Bridge タブマージ ===
-    tabBridge: '🌉 Bridge',
+    tabBridge: '🌉 NAS Bridge',
   },
   zh: {
     tabGeneral: '🎛️ 一般',
@@ -2087,14 +2087,14 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     folderMappingVaultSubpath: '映射目标（Vault 内路径）',
     folderMappingVaultSubpathDesc: '例: 指定 10_Input 后与链接名称组合显示为 10_Input/OCR',
     // === v0.52.0 (F-051): Folder Bridge ===
-    folderBridge: '桥接',
+    folderBridge: 'NAS 桥接',
     folderBridgeAdd: '添加桥接',
     folderBridgeSyncDirection: '同步方向',
     folderBridgeSyncDirectionDesc: 'Phase 1 仅支持 NAS → 本地影子（只读）',
     folderBridgeExcludePatterns: '排除模式',
     folderBridgeExternalMissing: '外部路径不可达',
     // === v0.53.0 (F-052): 設定画面整理 — Bridge タブマージ ===
-    tabBridge: '🌉 桥接',
+    tabBridge: '🌉 NAS 桥接',
   },
 };
 

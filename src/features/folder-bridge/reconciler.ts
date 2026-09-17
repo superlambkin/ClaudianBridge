@@ -31,6 +31,13 @@ function isTransientSyncError(err: unknown): boolean {
   return code === 'ENOENT' || code === 'ENOTDIR' || code === 'EACCES' || code === 'EPERM' || code === 'EBUSY';
 }
 
+/**
+ * v0.53.3 (F-055): syncAll の反復回数上限。NAS junction サイクルや chokidar
+ * 無限イベントでキューが膨張するのを防止。10000 は通常の NAS（数万ファイル・
+ * 数階層ネスト）でも到達しない余裕を持った値。
+ */
+const MAX_SYNC_ITERATIONS = 10_000;
+
 export class ShadowReconciler {
   constructor(private fs: FolderBridgeFs) {}
 
@@ -42,7 +49,16 @@ export class ShadowReconciler {
     let copied = 0;
     let skipped = 0;
     const queue: { src: string; rel: string }[] = [{ src: externalPath, rel: '' }];
+    let iterations = 0;
     while (queue.length > 0) {
+      // v0.53.3 (F-055): 反復回数上限。junction サイクルや chokidar 無限イベントで
+      // キューが膨張して Obsidian が永続的に固まる事象への根本対策。
+      if (++iterations > MAX_SYNC_ITERATIONS) {
+        throw new Error(
+          `syncAll iteration limit exceeded (${MAX_SYNC_ITERATIONS}). ` +
+          `Possible cycle in ${externalPath}. Aborting to prevent freeze.`,
+        );
+      }
       const { src, rel } = queue.shift()!;
       // v0.53.2 (F-054): readdir 自体が失敗した場合（NAS 切断・broken junction）は
       // スキップして次のキュー要素へ。致命的エラーなら上位にthrow。

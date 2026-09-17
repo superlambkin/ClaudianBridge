@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.53.3] - 2026-09-17 — Bridge 凍結修正 + NAS ブリッジ名称変更 (F-055)
+
+ユーザー報告「ブリッジを有効→無効→有効トグルでObsidianが永久に固まる」
+（タスクキル必須）重大不具合の修正、およびユーザー指摘による設定名の明確化。
+
+### Changed
+
+- 📝 **設定名変更**: 「🌉 ブリッジ」→「🌉 NAS ブリッジ」(ja/en/zh)、
+  「ブリッジ」→「NAS ブリッジ」(見出し)。NAS 用途を明確化。
+
+### Fixed
+
+- 🐛 **syncAll 反復回数上限 (F-055)** (`src/features/folder-bridge/reconciler.ts`):
+  NAS junction サイクル・chokidar 無限イベントでキューが膨張して
+  Obsidian が永続的に固まる事象への根本対策。`MAX_SYNC_ITERATIONS = 10000`
+  を超えると iteration limit exceeded で throw し、上位の applyAll の
+  try/catch (F-053 で実装) で吸収。
+- 🐛 **restartBridges 非同期化 (F-055)** (`src/main.ts`):
+  `restartBridges()` を `setTimeout(() => applyAllBridges(), 0)` で次ティックに
+  ディファー。トグル時に UI スレッドをブロックせず、即座に UI フィードバック。
+  NAS 同期（数十秒規模）が走っている間もユーザーは他の操作が可能。
+
+### Tests
+
+- +3 cases（1479 → 1482）
+  - `src/features/folder-bridge/reconciler.test.ts`:
+    - サイクルシミュレーション（readdir無限ループ）で iteration limit throw 検証
+    - 深いディレクトリ階層（500 階層）でも正常動作する検証
+  - `tests/core/i18n.test.ts`: tabBridge / folderBridge が 'NAS ブリッジ' /
+    'NAS Bridge' / 'NAS 桥接' に変更されたこと検証
+
 ## [0.53.2] - 2026-09-17 — Bridge sync ENOENT 救済 (F-054)
 
 Folder Bridge（🌉 ブリッジ）のシャドウ同期（NAS → `<vault>/.obsidian/cache/folder-bridge/<id>/`）で、
