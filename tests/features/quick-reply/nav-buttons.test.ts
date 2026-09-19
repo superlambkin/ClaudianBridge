@@ -2,9 +2,13 @@
 // POC_017 / ClaudianBridge v0.29.1
 // Design: 80_POC_Projects/POC_017_ClaudianBridge/02_設計文書/2026-08-30-quick-reply-nav-actions-design.md
 // v0.29.1: ボタンを NewTab と同じ SVG アイコンスタイルに置換
+// v0.55.1: F-021 修正 — 初期注入時の即時 renderGroup 呼び出しテスト追加
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupQuickReplyButtons } from '../../../src/features/quick-reply/nav-buttons';
 import type { RecommendState } from '../../../src/features/quick-reply/recommend-detector';
+import { ConfigStore } from '../../../src/core/config-store';
+import type { ClaudianBridgeSettings } from '../../../src/core/settings';
+import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS } from '../../../src/core/settings';
 
 const { sendToClaudian, setupRecommendDetectionMock } = vi.hoisted(() => ({
   sendToClaudian: vi.fn(async () => true),
@@ -236,6 +240,80 @@ describe('setupQuickReplyButtons (nav-actions 配置)', () => {
     const group = await waitForGroup(nav);
     expect(newTab1.previousElementSibling).toBe(group.parentElement);
     expect(newTab2.previousElementSibling).not.toBe(group.parentElement);
+  });
+});
+
+// v0.55.1 F-021 修正: 注入直後に showAll 設定を即時反映する
+describe('setupQuickReplyButtons — F-021 即時 renderGroup（v0.55.1）', () => {
+  let cleanup: (() => void) | undefined;
+
+  // F-021 修正で loadShowAll() が依存するため、ConfigStore.prototype.load を
+  // スタブ化する。既存 describe は実 ConfigStore 動作（defaults）を使うため
+  // 影響しない。
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    sendToClaudian.mockClear();
+    setupRecommendDetectionMock.mockClear();
+    capturedOnChange = null;
+    setupRecommendDetectionMock.mockImplementation((_app: unknown, onChange: (s: RecommendState) => void) => {
+      capturedOnChange = onChange;
+      return () => {};
+    });
+    cleanup = undefined;
+  });
+  afterEach(() => { cleanup?.(); cleanup = undefined; vi.restoreAllMocks(); });
+
+  function stubLoad(general: { quickReplyShowAllOptions?: boolean; quickReplyEnabled?: boolean }): void {
+    vi.spyOn(ConfigStore.prototype, 'load').mockReturnValue({
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      general: {
+        ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general,
+        quickReplyEnabled: general.quickReplyEnabled ?? true,
+        quickReplyShowAllOptions: general.quickReplyShowAllOptions ?? false,
+      },
+    } as ClaudianBridgeSettings);
+  }
+
+  it('quickReplyShowAllOptions=true → 注入直後に方案 1〜5 が表示される（v0.55.1 修正）', async () => {
+    stubLoad({ quickReplyShowAllOptions: true });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+
+    // capturedOnChange を**呼ばない**（アシスタントメッセージ非到着状態の模擬）。
+    // v0.55.1 修正により、inject 時点で方案 1〜5 が即時表示されているはず。
+    // （修正前はこの状態で方案ボタンが cb-hidden のままだった）
+
+    const visible = Array.from(group.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('cb-hidden'),
+    );
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1', 'number-2', 'number-3', 'number-4', 'number-5',
+    ]);
+  });
+
+  it('quickReplyShowAllOptions=false（既定）→ 注入直後は方案ボタン hidden（既存挙動の回帰）', async () => {
+    stubLoad({ quickReplyShowAllOptions: false });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+
+    // capturedOnChange を呼ばない（アシスタントメッセージ非到着状態）
+
+    const visible = Array.from(group.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('cb-hidden'),
+    );
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual(['check', 'x']);
+  });
+
+  it('quickReplyEnabled=false → 注入自体が発生しない（既存挙動の回帰）', async () => {
+    stubLoad({ quickReplyEnabled: false, quickReplyShowAllOptions: true });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+
+    await vi.waitFor(() => {
+      expect(nav.querySelector('[data-cb-quickreply]')).toBeNull();
+    }, { timeout: 200 });
   });
 });
 

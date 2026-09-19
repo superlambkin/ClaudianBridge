@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.55.1] - 2026-09-19 — 方案ボタン常時表示の初回注入反映 (F-021 修正)
+
+ユーザー報告「`general.quickReplyShowAllOptions = true` を ON にしても、
+Claudian チャット画面を開いた直後に方案ボタン 1〜5 が表示されない」への対応。
+
+### 根本原因
+
+`src/features/quick-reply/nav-buttons.ts` の `inject()` でボタン生成直後に
+全 option ボタンへ `.cb-hidden` を付与していたが、解除する `renderGroup()`
+は `setupRecommendDetection` のコールバック経由でしか呼ばれず、
+コールバックはアシスタントメッセージ到着（MutationObserver 発火）まで
+実行されなかった。
+
+### Fixed
+
+- 🔧 **`inject()` 末尾で `renderGroup()` を 1 度だけ即時呼び出し**:
+  `renderGroup(group, { recommended: null, maxOptionCount: 0 }, loadShowAll())`
+  を `nav.insertBefore` 直後に実行。showAll=true なら注入直後に方案 1〜5 が表示、
+  showAll=false（既定）なら既存挙動（hidden 維持、メッセージ到着後に callback で
+  順次表示）を完全保持。
+
+### Tests
+
+- +3 cases（1425 → 1428）
+- `tests/features/quick-reply/nav-buttons.test.ts`:
+  - quickReplyShowAllOptions=true → 注入直後に方案 1〜5 が表示される（v0.55.1 修正）
+  - quickReplyShowAllOptions=false（既定）→ 注入直後は方案ボタン hidden（回帰）
+  - quickReplyEnabled=false → 注入自体が発生しない（回帰）
+
+> F-021（方案ボタン常時表示 / `general.quickReplyShowAllOptions`・v0.24.0 導入）の
+> 挙動修正。新規機能ではないため F-番号は付与しない。
+
 ## [0.55.0] - 2026-09-17 — NAS ブリッジ機能完全削除 (F-057)
 
 v0.52.0 で追加された NAS ブリッジ（Folder Bridge）機能を**完全削除**。
