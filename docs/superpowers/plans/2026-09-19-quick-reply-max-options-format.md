@@ -824,7 +824,8 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `src/settings/SettingTabGeneral.ts` （`quickReplyShowAllOptions` の直後に Slider + Dropdown 2 コントロール追加 + onChange ハンドラ）
-- Modify: `tests/settings/ClaudianBridgeSettingTab.test.ts` （描画テスト 5 ケース追加）
+- Modify: `tests/settings/SettingTabGeneral.test.ts` （既存 `Setting` モックに `addSlider` 追加 + `sliderHandlers` ストア + F-058 describe 5 ケース追加）
+- Modify: `tests/settings/SettingTabGeneral.test.ts` の `makeStore` ヘルパーに `quickReplyMaxOptions` / `quickReplyNumberFormat` フィールド追加
 
 **Interfaces:**
 - Consumes: `nav-buttons.ts` から `applyQuickReplySettingsToExistingGroups`, `loadMaxOptions`, `loadNumberFormat` を import、`settings.ts` から `QuickReplyNumberFormat`, `QUICK_REPLY_MAX_OPTIONS_MIN/MAX` を import
@@ -836,6 +837,11 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - import ブロック（先頭数行）
 - `quickReplyShowAllOptions` Toggle の実装（line 161-174 付近）
 - `quickReplyEnabled` Toggle の実装（line 176-189 付近）
+
+`tests/settings/SettingTabGeneral.test.ts` を開いて以下を確認：
+- `vi.mock('obsidian', ...)` 内の `Setting` クラスモック（line 22-77）
+- `toggleHandlers` / `dropdownHandlers` キャプチャストア（line 7-20）
+- `makeStore` ヘルパー（line 103-142）
 
 ### Step 4.2: import ブロック拡張
 
@@ -856,40 +862,139 @@ import {
 
 ### Step 4.3: 失敗テストを先に書く
 
-`tests/settings/ClaudianBridgeSettingTab.test.ts` に describe ブロック追加。既存ファイル構造を確認した上で、`describe('ClaudianBridgeSettingTab - quickReply F-058', ...)` を追加：
+`tests/settings/SettingTabGeneral.test.ts` を以下 3 箇所修正：
+
+**① ファイル先頭の `dropdownHandlers` 直後に `sliderHandlers` キャプチャストア追加**：
 
 ```typescript
-describe('ClaudianBridgeSettingTab - quickReply F-058', () => {
-  // 既存のヘルパー（store モック・app モック等）を再利用して描画テストを実装
-  // 具体的なテストファイル構造は既存パターンに従うこと
-  it('Slider (1〜5) が描画される', async () => {
-    // ...
+// ドロップダウンハンドラを記録するストア（v0.32.0 で追加）
+const dropdownHandlers: Array<{
+  name: string;
+  value: unknown;
+  disabled: boolean | null;
+  onChange: ((v: unknown) => void) | null;
+}> = [];
+
+// スライダーハンドラを記録するストア（v0.56.0 F-058 で追加）
+const sliderHandlers: Array<{
+  name: string;
+  value: unknown;
+  min: number | null;
+  max: number | null;
+  step: number | null;
+  onChange: ((v: number) => void) | null;
+}> = [];
+```
+
+**② `vi.mock('obsidian', ...)` 内の `Setting` クラスに `addSlider` メソッド追加**（`addButton` の直前）：
+
+```typescript
+      addSlider(cb: (s: unknown) => unknown) {
+        const captured: { name: string; value: unknown; min: number | null; max: number | null; step: number | null; onChange: ((v: number) => void) | null } = {
+          name: this._name,
+          value: undefined,
+          min: null,
+          max: null,
+          step: null,
+          onChange: null,
+        };
+        const s = {
+          setLimits: function (min: number, max: number, step: number) { captured.min = min; captured.max = max; captured.step = step; return this; },
+          setValue: function (v: number) { captured.value = v; return this; },
+          setDynamicTooltip: function () { return this; },
+          onChange: function (h: (v: number) => void) { captured.onChange = h; return this; },
+        };
+        cb(s);
+        sliderHandlers.push(captured);
+        return this;
+      }
+      addButton(cb: (b: unknown) => unknown) {
+```
+
+**③ `makeStore` ヘルパーの `general` 既定値に F-058 フィールド追加**（line 124-125 付近）：
+
+```typescript
+      quickReplyShowAllOptions: false,
+      quickReplyEnabled: true,
+      // v0.56.0 (F-058)
+      quickReplyMaxOptions: 5,
+      quickReplyNumberFormat: 'arabic',
+```
+
+**④ ファイル末尾に新規 describe ブロック追加**：
+
+```typescript
+describe('renderGeneralTab - quickReply F-058 (v0.56.0)', () => {
+  let containerEl: HTMLElement;
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    toggleHandlers.length = 0;
+    dropdownHandlers.length = 0;
+    sliderHandlers.length = 0;
+    containerEl = document.createElement('div');
+    document.body.appendChild(containerEl);
   });
-  it('Slider のデフォルト値が 5', async () => {
-    // ...
+
+  it('Slider が描画される（limits=1〜5, step=1）', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const s = getLocaleStrings('ja');
+    const slider = sliderHandlers.find((x) => x.name === s.quickReplyMaxOptions);
+    expect(slider).toBeDefined();
+    expect(slider?.min).toBe(1);
+    expect(slider?.max).toBe(5);
+    expect(slider?.step).toBe(1);
   });
-  it('Dropdown (4 種) が描画される', async () => {
-    // ...
+
+  it('Slider のデフォルト値が 5', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const s = getLocaleStrings('ja');
+    const slider = sliderHandlers.find((x) => x.name === s.quickReplyMaxOptions);
+    expect(slider?.value).toBe(5);
   });
-  it('Dropdown のデフォルト選択が "arabic"', async () => {
-    // ...
+
+  it('Dropdown (4 種) が描画される', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const s = getLocaleStrings('ja');
+    const dd = dropdownHandlers.find((x) => x.name === s.quickReplyNumberFormat);
+    expect(dd).toBeDefined();
+    expect(dd?.value).toBe('arabic');
   });
-  it('Slider 変更 → store.save + applyQuickReplySettingsToExistingGroups 呼ばれる', async () => {
-    // ...
+
+  it('Slider 変更 → store.save + ハンドラ呼び出し', () => {
+    const store = makeStore();
+    renderGeneralTab({} as never, containerEl, store);
+    const s = getLocaleStrings('ja');
+    const slider = sliderHandlers.find((x) => x.name === s.quickReplyMaxOptions);
+    expect(slider?.onChange).not.toBeNull();
+    // onChange を呼ぶと store.save が呼ばれる
+    slider?.onChange?.(3);
+    expect(store.save).toHaveBeenCalled();
+    const savedArg = (store.save as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as { general: { quickReplyMaxOptions: number } };
+    expect(savedArg.general.quickReplyMaxOptions).toBe(3);
+  });
+
+  it('Dropdown 変更 → store.save + ハンドラ呼び出し', () => {
+    const store = makeStore();
+    renderGeneralTab({} as never, containerEl, store);
+    const s = getLocaleStrings('ja');
+    const dd = dropdownHandlers.find((x) => x.name === s.quickReplyNumberFormat);
+    expect(dd?.onChange).not.toBeNull();
+    dd?.onChange?.('emoji');
+    expect(store.save).toHaveBeenCalled();
+    const savedArg = (store.save as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as { general: { quickReplyNumberFormat: string } };
+    expect(savedArg.general.quickReplyNumberFormat).toBe('emoji');
   });
 });
 ```
-
-> ⚠️ **注意**: `tests/settings/ClaudianBridgeSettingTab.test.ts` の既存テストファイル構造（ヘルパー・モック・app 構築パターン）を必ず確認してから実装する。既存パターンに合わないとテストが成立しない。
 
 ### Step 4.4: テスト実行（失敗確認）
 
 ```bash
 cd D:\AI-Agent\ClaudianBridge
-npx vitest run tests/settings/ClaudianBridgeSettingTab.test.ts -t "F-058"
+npx vitest run tests/settings/SettingTabGeneral.test.ts -t "F-058"
 ```
 
-期待結果: 5 ケースすべて FAIL
+期待結果: 5 ケースすべて FAIL（SettingTabGeneral.ts が Slider/Dropdown を描画していないため）
 
 ### Step 4.5: `SettingTabGeneral.ts` に Slider 追加
 
@@ -946,10 +1051,10 @@ npx vitest run tests/settings/ClaudianBridgeSettingTab.test.ts -t "F-058"
 ```bash
 cd D:\AI-Agent\ClaudianBridge
 npm run typecheck
-npx vitest run tests/settings/ClaudianBridgeSettingTab.test.ts
+npx vitest run tests/settings/SettingTabGeneral.test.ts
 ```
 
-期待結果: typecheck エラー 0、SettingTab テスト全 PASS（既存 + 5 新規）
+期待結果: typecheck エラー 0、SettingTabGeneral テスト全 PASS（既存 + 5 新規）
 
 ### Step 4.7: 全テスト回帰
 
@@ -964,7 +1069,7 @@ npm run test
 
 ```bash
 cd D:\AI-Agent\ClaudianBridge
-git add src/settings/SettingTabGeneral.ts tests/settings/ClaudianBridgeSettingTab.test.ts
+git add src/settings/SettingTabGeneral.ts tests/settings/SettingTabGeneral.test.ts
 git commit -m "feat: F-058 一般タブに方案ボタン最大数 Slider + 番号フォーマット Dropdown 追加
 
 src/settings/SettingTabGeneral.ts:
@@ -973,8 +1078,10 @@ src/settings/SettingTabGeneral.ts:
 - onChange で store.save + applyQuickReplySettingsToExistingGroups で即時 DOM 反映
 - 既存パターン（Notice + draw 復元）に準拠
 
-tests/settings/ClaudianBridgeSettingTab.test.ts:
-- F-058 描画テスト 5 ケース追加
+tests/settings/SettingTabGeneral.test.ts:
+- Setting モックに addSlider メソッド追加 + sliderHandlers キャプチャストア追加
+- makeStore ヘルパーに quickReplyMaxOptions / quickReplyNumberFormat 既定値追加
+- F-058 describe ブロック 5 ケース追加（Slider/Dropdown 描画・onChange・store.save）
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
