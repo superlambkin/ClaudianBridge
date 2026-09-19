@@ -288,47 +288,6 @@ describe('F-038: imageGen* ラベル', () => {
   });
 });
 
-// === v0.53.0 (F-052): 設定画面整理 — Bridge タブマージ + F-### 非表示 ===
-describe('F-052: tabBridge / folderBridge* ラベル', () => {
-  const REQUIRED_BRIDGE_KEYS = [
-    'tabBridge',
-    'folderBridge',
-    'folderBridgeAdd',
-    'folderBridgeSyncDirection',
-    'folderBridgeSyncDirectionDesc',
-    'folderBridgeExcludePatterns',
-    'folderBridgeExternalMissing',
-  ] as const;
-
-  it('3 言語すべてで必須キーが空でない文字列として定義される', () => {
-    for (const lang of SUPPORTED_LOCALES) {
-      const v = getLocaleStrings(lang);
-      for (const k of REQUIRED_BRIDGE_KEYS) {
-        expect(typeof v[k], `${lang}.${k} not string`).toBe('string');
-        expect((v[k] as string).length, `${lang}.${k} empty`).toBeGreaterThan(0);
-      }
-    }
-  });
-
-  it('tabBridge は 3 言語で 🌉 プレフィックスを持つ', () => {
-    expect(getLocaleStrings('ja').tabBridge.startsWith('🌉')).toBe(true);
-    expect(getLocaleStrings('en').tabBridge.startsWith('🌉')).toBe(true);
-    expect(getLocaleStrings('zh').tabBridge.startsWith('🌉')).toBe(true);
-  });
-
-  it('tabBridge は en/zh で固定文言と一致（mojibake 防止）', () => {
-    expect(getLocaleStrings('ja').tabBridge).toBe('🌉 NAS ブリッジ');
-    expect(getLocaleStrings('en').tabBridge).toBe('🌉 NAS Bridge');
-    expect(getLocaleStrings('zh').tabBridge).toBe('🌉 NAS 桥接');
-  });
-
-  it('folderBridge 見出しは 3 言語で "NAS Bridge" 系単語を含む', () => {
-    expect(getLocaleStrings('ja').folderBridge).toBe('NAS ブリッジ');
-    expect(getLocaleStrings('en').folderBridge).toBe('NAS Bridge');
-    expect(getLocaleStrings('zh').folderBridge).toBe('NAS 桥接');
-  });
-});
-
 // === v0.53.0 (F-052): 設定画面に F-### 番号を表示しない ===
 describe('F-052: 設定画面 UI に F-### 番号が露出しない', () => {
   it('folderMappingHeading は 3 言語で (F-049) を含まない', () => {
