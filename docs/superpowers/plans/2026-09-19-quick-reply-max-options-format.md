@@ -27,7 +27,7 @@
 ### 新規ファイル
 なし
 
-### 変更ファイル（9 個）
+### 変更ファイル（11 個）
 
 | ファイル | 責務 |
 |:--|:--|
@@ -37,9 +37,11 @@
 | `src/settings/SettingTabGeneral.ts` | Slider (1〜5) + Dropdown (4 種) + onChange ハンドラ |
 | `tests/features/quick-reply/nav-buttons.test.ts` | F-058 テスト 11 ケース追加 |
 | `src/core/settings.test.ts` | normalize テスト 4 ケース追加 |
-| `tests/settings/ClaudianBridgeSettingTab.test.ts` | SettingTab 描画テスト 5 ケース追加 |
+| `tests/settings/SettingTabGeneral.test.ts` | F-058 Setting UI 描画テスト 5 ケース追加 + addSlider モック追加 + makeStore F-058 フィールド追加 |
 | `CHANGELOG.md` | v0.56.0 エントリ追加 |
-| `package.json` / `Plugin/manifest.json` / `src/manifest.json` | version 0.55.1 → 0.56.0 |
+| `package.json` | version 0.55.1 → 0.56.0 |
+| `Plugin/manifest.json` | version 0.55.1 → 0.56.0 |
+| `src/manifest.json` | version 0.55.1 → 0.56.0 |
 
 ---
 
@@ -1141,7 +1143,7 @@ F-021（v0.24.0）の bool トグルに数値・enum 設定を追加する形で
 - +20 cases（1428 → 1448）
   - `src/core/settings.test.ts`: normalize 4 ケース（欠落・上限超過・不正値のフォールバック）
   - `tests/features/quick-reply/nav-buttons.test.ts`: F-058 describe 11 ケース
-  - `tests/settings/ClaudianBridgeSettingTab.test.ts`: 描画 5 ケース
+  - `tests/settings/SettingTabGeneral.test.ts`: 描画 5 ケース
 
 ### Migration Notes
 
@@ -1257,7 +1259,7 @@ git push origin v0.56.0
 - [ ] Task 1: settings.ts + settings.test.ts 変更・commit 完了・1429 PASS
 - [ ] Task 2: i18n.ts 32 文字列追加・commit 完了
 - [ ] Task 3: nav-buttons.ts + nav-buttons.test.ts 変更・commit 完了・1429 + 11 = 1440 PASS
-- [ ] Task 4: SettingTabGeneral.ts + ClaudianBridgeSettingTab.test.ts 変更・commit 完了・1440 + 5 = 1445 PASS
+- [ ] Task 4: SettingTabGeneral.ts + SettingTabGeneral.test.ts 変更・commit 完了・1440 + 5 = 1445 PASS
 - [ ] Task 5: CHANGELOG + version + build + deploy + UAT + commit + tag 完了
 - [ ] 全テスト PASS（既存 + 新規 ~20 = ~1448 件）
 - [ ] TypeScript 型チェック エラー 0
