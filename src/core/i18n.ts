@@ -437,6 +437,16 @@ export interface LocaleStrings {
   // v0.25.0: クイック返信ボタン全体の ON/OFF
   quickReplyEnabled: string;
   quickReplyEnabledDesc: string;
+  // v0.56.0 (F-058): 方案ボタンの最大表示数
+  quickReplyMaxOptions: string;
+  quickReplyMaxOptionsDesc: string;
+  // v0.56.0 (F-058): 方案ボタンの番号フォーマット
+  quickReplyNumberFormat: string;
+  quickReplyNumberFormatDesc: string;
+  quickReplyNumberFormatArabic: string;
+  quickReplyNumberFormatCircled: string;
+  quickReplyNumberFormatEmoji: string;
+  quickReplyNumberFormatText: string;
   // v0.30.0: トークン速度表示
   tokenRateLabel: string;
   tokenRateDesc: string;
@@ -949,6 +959,16 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.25.0
     quickReplyEnabled: 'クイック返信ボタンを表示',
     quickReplyEnabledDesc: 'ON（既定）で Claudian チャット入力欄に ✅ ❌ 1️⃣〜5️⃣ のクイック返信ボタンを表示。OFF でボタンの注入自体を停止',
+    // v0.56.0 (F-058): 方案ボタンの最大表示数
+    quickReplyMaxOptions: '方案を最大 N 個表示',
+    quickReplyMaxOptionsDesc: '「方案ボタンを常に表示」ON 時の方案ボタン数を 1〜5 で制限。スライダーで選択した数だけ 1〜N が表示されます',
+    // v0.56.0 (F-058): 方案ボタンの番号フォーマット
+    quickReplyNumberFormat: '方案ボタン番号フォーマット',
+    quickReplyNumberFormatDesc: '方案 1〜5 の表示方法を選択（数字／丸数字／絵文字／テキスト）',
+    quickReplyNumberFormatArabic: '数字 (1, 2, 3, 4, 5)',
+    quickReplyNumberFormatCircled: '丸付き数字 (①, ②, ③, ④, ⑤)',
+    quickReplyNumberFormatEmoji: '絵文字 (1️⃣, 2️⃣, 3️⃣, 4️⃣, 5️⃣)',
+    quickReplyNumberFormatText: 'テキスト (方案1, 方案2)',
     // v0.30.0
     tokenRateLabel: 'トークン速度を表示',
     tokenRateDesc: 'レスポンス生成速度を入力画面の下にライブ表示します',
@@ -1459,6 +1479,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.25.0
     quickReplyEnabled: 'Show quick reply buttons',
     quickReplyEnabledDesc: 'ON (default): show ✅ ❌ 1️⃣–5️⃣ buttons in the Claudian chat input toolbar. OFF: stop injecting buttons entirely.',
+    // v0.56.0 (F-058)
+    quickReplyMaxOptions: 'Max options to show',
+    quickReplyMaxOptionsDesc: 'When "always show option buttons" is ON, limit option buttons to 1–5. Only 1–N will be displayed',
+    quickReplyNumberFormat: 'Option button number format',
+    quickReplyNumberFormatDesc: 'Choose how options 1–5 are displayed (Arabic/Circled/Emoji/Text)',
+    quickReplyNumberFormatArabic: 'Arabic (1, 2, 3, 4, 5)',
+    quickReplyNumberFormatCircled: 'Circled (①, ②, ③, ④, ⑤)',
+    quickReplyNumberFormatEmoji: 'Emoji (1️⃣, 2️⃣, 3️⃣, 4️⃣, 5️⃣)',
+    quickReplyNumberFormatText: 'Text (方案1, 方案2)',
     // v0.30.0
     tokenRateLabel: 'Show token rate',
     tokenRateDesc: 'Display live token generation rate below input',
@@ -1969,6 +1998,15 @@ export const STRINGS: Record<SupportedLocale, LocaleStrings> = {
     // v0.25.0
     quickReplyEnabled: '显示快速回复按钮',
     quickReplyEnabledDesc: '开启（默认）时在 Claudian 聊天输入栏显示 ✅ ❌ 1️⃣–5️⃣。关闭时停止注入按钮',
+    // v0.56.0 (F-058)
+    quickReplyMaxOptions: '最多显示 N 个方案',
+    quickReplyMaxOptionsDesc: '开启"始终显示方案按钮"时，限制方案按钮数为 1–5。仅显示 1–N',
+    quickReplyNumberFormat: '方案按钮编号格式',
+    quickReplyNumberFormatDesc: '选择方案 1–5 的显示方式（阿拉伯数字／带圈数字／表情符号／文本）',
+    quickReplyNumberFormatArabic: '阿拉伯数字 (1, 2, 3, 4, 5)',
+    quickReplyNumberFormatCircled: '带圈数字 (①, ②, ③, ④, ⑤)',
+    quickReplyNumberFormatEmoji: '表情符号 (1️⃣, 2️⃣, 3️⃣, 4️⃣, 5️⃣)',
+    quickReplyNumberFormatText: '文本 (方案1, 方案2)',
     // v0.30.0
     tokenRateLabel: '显示令牌速率',
     tokenRateDesc: '在输入框下方实时显示响应生成速率',
