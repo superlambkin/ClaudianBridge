@@ -148,8 +148,13 @@ function formatText(n: number, format: QuickReplyNumberFormat): string {
 
 ### 設定ロードヘルパー追加
 
+> ⚠️ **配置**: `loadMaxOptions` / `loadNumberFormat` は**モジュールトップレベル**に hoist し `export` する。`SettingTabGeneral.ts` からも参照される（Slider.onChange / Dropdown.onChange で `applyMaxOptionsToExistingGroups` 等の引数に渡すため）。
+>
+> 既存の `loadShowAll` / `loadEnabled` も F-058 実装時に**同時に hoist して export** する責務統一の機会だが、**スコープを最小化するため F-058 では `loadMaxOptions` / `loadNumberFormat` の 2 つだけ新規 hoist** する。既存 2 つは `setupQuickReplyButtons` 内部の closure のまま据え置く（これにより既存テスト 16 ケースへの影響を限定）。
+
 ```typescript
-const loadMaxOptions = (): number => {
+// モジュールトップレベル（export）
+export function loadMaxOptions(): number {
   try {
     const cfg = store.load() as ClaudianBridgeSettings | null;
     const v = cfg?.general?.quickReplyMaxOptions;
@@ -160,9 +165,9 @@ const loadMaxOptions = (): number => {
   } catch {
     return QUICK_REPLY_MAX_OPTIONS_DEFAULT;
   }
-};
+}
 
-const loadNumberFormat = (): QuickReplyNumberFormat => {
+export function loadNumberFormat(): QuickReplyNumberFormat {
   try {
     const cfg = store.load() as ClaudianBridgeSettings | null;
     const f = cfg?.general?.quickReplyNumberFormat;
@@ -172,7 +177,7 @@ const loadNumberFormat = (): QuickReplyNumberFormat => {
   } catch {
     return 'arabic';
   }
-};
+}
 ```
 
 ### `inject()` 末尾の更新（v0.55.1 で追加した即時 renderGroup）
@@ -205,23 +210,17 @@ const offDetect = setupRecommendDetection(app, (state) => {
 ### 既存 group への即時反映ヘルパー（export）
 
 ```typescript
-export function applyMaxOptionsToExistingGroups(
-  maxOptions: number,
+/** 既存グループ全てに showAll / maxOptions / numberFormat を反映（再注入不要・DOM 軽量更新）。
+ *  Slider / Dropdown / Toggle のいずれが変更されても renderGroup は全設定を見るので、
+ *  1 つの関数に統合する（冗長な 2 関数を避ける）。 */
+export function applyQuickReplySettingsToExistingGroups(
   showAllOptions: boolean,
+  maxOptions: number,
   numberFormat: QuickReplyNumberFormat,
 ): void {
   document.querySelectorAll(`[${GROUP_MARK}]`).forEach((group) => {
     renderGroup(group, { recommended: null, maxOptionCount: 0 }, showAllOptions, maxOptions, numberFormat);
   });
-}
-
-export function applyNumberFormatToExistingGroups(
-  maxOptions: number,
-  showAllOptions: boolean,
-  numberFormat: QuickReplyNumberFormat,
-): void {
-  // applyMaxOptionsToExistingGroups と同じ実装（renderGroup が両方を更新するため）
-  applyMaxOptionsToExistingGroups(maxOptions, showAllOptions, numberFormat);
 }
 ```
 
@@ -255,7 +254,7 @@ new Setting(containerEl)
           const latest = store.load();
           store.save({ ...latest, general: { ...latest.general, quickReplyMaxOptions: v } });
           new Notice(s.noticeSaved);
-          applyMaxOptionsToExistingGroups(v, loadShowAll(), loadNumberFormat());
+          applyQuickReplySettingsToExistingGroups(loadShowAll(), v, loadNumberFormat());
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           draw();
@@ -278,7 +277,7 @@ new Setting(containerEl)
           const latest = store.load();
           store.save({ ...latest, general: { ...latest.general, quickReplyNumberFormat: v as QuickReplyNumberFormat } });
           new Notice(s.noticeSaved);
-          applyNumberFormatToExistingGroups(loadMaxOptions(), loadShowAll(), v as QuickReplyNumberFormat);
+          applyQuickReplySettingsToExistingGroups(loadShowAll(), loadMaxOptions(), v as QuickReplyNumberFormat);
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           draw();
@@ -401,8 +400,8 @@ v0.24.0 の F-021 は「方案ボタンを常に表示」の bool トグルと�
 
 | シナリオ | 挙動 |
 |:--|:--|
-| Slider を 1→5 に変更中（onChange 連続発火）| 各 onChange で `applyMaxOptionsToExistingGroups` を呼ぶ（O(5) の軽量更新）|
-| Dropdown 切替中 | 同上、`applyNumberFormatToExistingGroups` で O(5) 更新 |
+| Slider を 1→5 に変更中（onChange 連続発火）| 各 onChange で `applyQuickReplySettingsToExistingGroups` を呼ぶ（O(5) の軽量更新）|
+| Dropdown 切替中 | 同上、`applyQuickReplySettingsToExistingGroups` で O(5) 更新 |
 | 設定保存失敗（disk full 等）| `Notice(s.noticeSaveFailed)` 表示 + `draw()` で UI 復元 |
 | store スキーマに未知のフィールド | 過剰プロパティ許容（TypeScript 型ガード + normalize 補完で吸収）|
 
