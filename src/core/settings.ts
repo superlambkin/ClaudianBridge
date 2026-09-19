@@ -70,6 +70,16 @@ export const ALLOWED_TOKEN_RATE_INTERVALS = [100, 250, 500, 1000, 2000] as const
 export const DEFAULT_TOKEN_RATE_INTERVAL_MS = 250;
 export type TokenRateIntervalMs = typeof ALLOWED_TOKEN_RATE_INTERVALS[number];
 
+// === v0.56.0 (F-058): 方案ボタンの番号フォーマット ===
+export type QuickReplyNumberFormat = 'arabic' | 'circled' | 'emoji' | 'text';
+
+export const QUICK_REPLY_NUMBER_FORMATS: readonly QuickReplyNumberFormat[] =
+  ['arabic', 'circled', 'emoji', 'text'] as const;
+
+export const QUICK_REPLY_MAX_OPTIONS_MIN = 1;
+export const QUICK_REPLY_MAX_OPTIONS_MAX = 5;
+export const QUICK_REPLY_MAX_OPTIONS_DEFAULT = 5;
+
 export interface OfficeSettings {
   enabled: boolean;
   pythonPath: string;
@@ -612,6 +622,10 @@ export interface ClaudianBridgeSettings {
     quickReplyShowAllOptions: boolean;
     // === v0.25.0: クイック返信ボタン全体の ON/OFF ===
     quickReplyEnabled: boolean;
+    // === v0.56.0 (F-058): 方案ボタンの最大表示数（1〜5・既定 5）===
+    quickReplyMaxOptions: number;
+    // === v0.56.0 (F-058): 方案ボタンの番号フォーマット（既定 'arabic'）===
+    quickReplyNumberFormat: QuickReplyNumberFormat;
     // === v0.30.0: トークン速度表示 ===
     tokenRateEnabled: boolean;
     // === v0.31.0: トークン速度表示の表示項目選択 ===
@@ -745,7 +759,11 @@ function normalizeThinkingField(
 }
 
 export const DEFAULT_CLAUDIAN_BRIDGE_SETTINGS: ClaudianBridgeSettings = {
-  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, outputsMirrorEnabled: false, outputsMirrorPath: '', hideDotFolders: true, folderMappings: [...DEFAULT_FOLDER_MAPPINGS] },
+  general: { enabled: true, migratedFrom: { claudianSelectionBridge: false, extensionWhitelist: false, vaultOfficeBridge: false, chromaInspector: false, claudeTtsSettings: false }, migrationResetAvailable: true, quotaEnabled: false, quotaRefreshSec: 60, quotaSwitchSec: 5, codeCopyFence: true, mermaidRender: true, backupEnabled: true, backupAutoClose: true, quickReplyShowAllOptions: false, quickReplyEnabled: true, tokenRateEnabled: false, tokenRateShowTtft: true, tokenRateShowCurrent: true, tokenRateShowAvg: true, tokenRateShowMax: true, tokenRateIntervalMs: DEFAULT_TOKEN_RATE_INTERVAL_MS, outputsMirrorEnabled: false, outputsMirrorPath: '', hideDotFolders: true, folderMappings: [...DEFAULT_FOLDER_MAPPINGS],
+    // === v0.56.0 (F-058) ===
+    quickReplyMaxOptions: QUICK_REPLY_MAX_OPTIONS_DEFAULT,
+    quickReplyNumberFormat: 'arabic' as QuickReplyNumberFormat,
+  },
   // === v0.43.0 (F-041/F-042): ネットワークセクション（プロキシ + OpenVPN）===
   network: {
     proxy: { ...DEFAULT_PROXY_SETTINGS },
@@ -855,6 +873,19 @@ export function normalizeClaudianBridgeSettings(raw: unknown): ClaudianBridgeSet
       quickReplyShowAllOptions: typeof r.general?.quickReplyShowAllOptions === 'boolean' ? r.general.quickReplyShowAllOptions : false,
       // v0.25.0: クイック返信ボタン全体の ON/OFF（既定 ON）
       quickReplyEnabled: typeof r.general?.quickReplyEnabled === 'boolean' ? r.general.quickReplyEnabled : true,
+      // === v0.56.0 (F-058): 方案ボタンの最大表示数（1〜5 にクランプ・既定 5）===
+      quickReplyMaxOptions: clampNum(
+        r.general?.quickReplyMaxOptions,
+        QUICK_REPLY_MAX_OPTIONS_MIN,
+        QUICK_REPLY_MAX_OPTIONS_MAX,
+        QUICK_REPLY_MAX_OPTIONS_DEFAULT,
+      ),
+      // === v0.56.0 (F-058): 方案ボタンの番号フォーマット（不正値は 'arabic' にフォールバック）===
+      quickReplyNumberFormat: QUICK_REPLY_NUMBER_FORMATS.includes(
+        r.general?.quickReplyNumberFormat as QuickReplyNumberFormat,
+      )
+        ? (r.general?.quickReplyNumberFormat as QuickReplyNumberFormat)
+        : 'arabic',
       // v0.30.0: トークン速度表示
       tokenRateEnabled: typeof r.general?.tokenRateEnabled === 'boolean' ? r.general.tokenRateEnabled : false,
       // v0.31.0: トークン速度表示の表示項目選択（既定 ON）
@@ -1223,6 +1254,15 @@ export function validateClaudianBridgeSettings(cfg: ClaudianBridgeSettings): str
   if (typeof cfg.general.backupAutoClose !== 'boolean') return 'general.backupAutoClose は boolean である必要があります';
   if (typeof cfg.general.quickReplyShowAllOptions !== 'boolean') return 'general.quickReplyShowAllOptions は boolean である必要があります';
   if (typeof cfg.general.quickReplyEnabled !== 'boolean') return 'general.quickReplyEnabled は boolean である必要があります';
+  // === v0.56.0 (F-058) ===
+  if (!Number.isInteger(cfg.general.quickReplyMaxOptions) ||
+      cfg.general.quickReplyMaxOptions < QUICK_REPLY_MAX_OPTIONS_MIN ||
+      cfg.general.quickReplyMaxOptions > QUICK_REPLY_MAX_OPTIONS_MAX) {
+    return `general.quickReplyMaxOptions は ${QUICK_REPLY_MAX_OPTIONS_MIN}〜${QUICK_REPLY_MAX_OPTIONS_MAX} の整数である必要があります`;
+  }
+  if (!QUICK_REPLY_NUMBER_FORMATS.includes(cfg.general.quickReplyNumberFormat)) {
+    return `general.quickReplyNumberFormat は ${QUICK_REPLY_NUMBER_FORMATS.join(' / ')} のいずれかである必要があります`;
+  }
   if (typeof cfg.general.tokenRateEnabled !== 'boolean') return 'general.tokenRateEnabled は boolean である必要があります';
   if (typeof cfg.general.tokenRateShowTtft !== 'boolean') return 'general.tokenRateShowTtft は boolean である必要があります';
   if (typeof cfg.general.tokenRateShowCurrent !== 'boolean') return 'general.tokenRateShowCurrent は boolean である必要があります';

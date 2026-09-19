@@ -78,3 +78,26 @@ describe('F-050: vaultSubpath migration', () => {
 });
 
 // v0.55.0 (F-057): Folder Bridge 機能削除 — folderBridges migration テストも削除。
+
+// === v0.56.0 (F-058): 方案ボタンの番号・最大数 ===
+describe('normalizeClaudianBridgeSettings - quickReply F-058', () => {
+  it('quickReplyMaxOptions 欠落時は既定値 5', () => {
+    const result = normalizeClaudianBridgeSettings({});
+    expect(result.general.quickReplyMaxOptions).toBe(5);
+  });
+
+  it('quickReplyNumberFormat 欠落時は既定値 "arabic"', () => {
+    const result = normalizeClaudianBridgeSettings({});
+    expect(result.general.quickReplyNumberFormat).toBe('arabic');
+  });
+
+  it('quickReplyMaxOptions=10 → 5 にクランプ', () => {
+    const result = normalizeClaudianBridgeSettings({ general: { quickReplyMaxOptions: 10 } as never });
+    expect(result.general.quickReplyMaxOptions).toBe(5);
+  });
+
+  it('quickReplyNumberFormat="unknown" → "arabic" にフォールバック', () => {
+    const result = normalizeClaudianBridgeSettings({ general: { quickReplyNumberFormat: 'unknown' } as never });
+    expect(result.general.quickReplyNumberFormat).toBe('arabic');
+  });
+});
