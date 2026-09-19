@@ -5,6 +5,11 @@
  *          .claudian-input-nav-actions 内の NewTab 左隣へ移動。
  * v0.29.1: 絵文字ボタンを NewTab（.clickable-icon）と同サイズの SVG アイコンに置換。
  *          OK/NG = Lucide icon（check / x）、方案1〜5 = カスタム SVG 数字バッジ。
+ * v0.55.1: F-021 修正 — `inject()` 末尾で `renderGroup()` を 1 度だけ即時呼び出し。
+ *          修正前は `setupRecommendDetection` の callback（MutationObserver 経由）
+ *          まで方案 1〜5 が `cb-hidden` のままだった（showAll=true でも初回応答まで
+ *          非表示）。showAll 設定を注入時点で反映することで、修正前の回帰テストも
+ *          維持しつつ「方案ボタンを常に表示」を実機でも即時反映させる。
  * クリックで定型文を直接送信する（sendToClaudian）。
  * 推奨方案ハイライトと選択肢数の動的表示は recommend-detector.ts の
  * setupRecommendDetection（RecommendState）と連携する。
@@ -162,6 +167,14 @@ export function setupQuickReplyButtons(app: App): () => void {
     }
     row.appendChild(group);
     nav.insertBefore(row, newTab);
+
+    // v0.55.1 F-021 修正: 注入直後に showAll 設定に応じて方案ボタンを即時表示。
+    // 既存の setupRecommendDetection callback は MutationObserver 経由でしか
+    // 発火しないため、新規チャットで初回応答まで showAll=true でも方案 1〜5 が
+    // cb-hidden のままだった。inject 時点で 1 度だけ即時 render することで、
+    // アシスタントメッセージ非到着状態でも方案ボタンを即時反映する。
+    // showAll=false の場合は optionCount=min(0,5)=0 で既存挙動（hidden 維持）と同一。
+    renderGroup(group, { recommended: null, maxOptionCount: 0 }, loadShowAll());
   };
 
   const removeInjected = (): void => {
