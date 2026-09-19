@@ -77,38 +77,4 @@ describe('F-050: vaultSubpath migration', () => {
   });
 });
 
-describe('F-051: folderBridges migration', () => {
-  it('injects empty folderBridges array for legacy settings', () => {
-    const out = normalizeClaudianBridgeSettings({ general: {} } as any);
-    expect(out.general.folderBridges).toEqual([]);
-  });
-
-  it('preserves existing folderBridges entries', () => {
-    const out = normalizeClaudianBridgeSettings({
-      general: {
-        folderBridges: [
-          {
-            id: 'b1', linkName: 'OCR', vaultSubpath: '10_Input',
-            externalPath: 'C:\\NAS\\OCR',
-            shadowPath: 'C:\\Vault\\.obsidian\\cache\\folder-bridge\\b1',
-            excludePatterns: ['*.tmp'],
-            enabled: false, createdAt: 0, updatedAt: 0,
-          },
-        ],
-      },
-    } as any);
-    expect(out.general.folderBridges).toHaveLength(1);
-    expect(out.general.folderBridges[0].syncDirection).toBe('nas_to_shadow');
-  });
-
-  it('injects default syncDirection for legacy records', () => {
-    const out = normalizeClaudianBridgeSettings({
-      general: {
-        folderBridges: [
-          { id: 'b1', linkName: 'X', vaultSubpath: '10_Input', externalPath: 'C:\\X', shadowPath: 'D:\\shadow\\b1', excludePatterns: [], enabled: false, createdAt: 0, updatedAt: 0 },
-        ],
-      },
-    } as any);
-    expect(out.general.folderBridges[0].syncDirection).toBe('nas_to_shadow');
-  });
-});
+// v0.55.0 (F-057): Folder Bridge 機能削除 — folderBridges migration テストも削除。

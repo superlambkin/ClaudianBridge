@@ -1,5 +1,126 @@
 # Changelog
 
+## [0.55.0] - 2026-09-17 — NAS ブリッジ機能完全削除 (F-057)
+
+v0.52.0 で追加された NAS ブリッジ（Folder Bridge）機能を**完全削除**。
+v0.54.0 (F-056) のシャドウパス移動（`.obsidian/cache/` → `.folder-bridge-cache/`）でも
+根本解決しなかった「Input/OCR フォルダが Obsidian ファイルツリーに表示されない」事象に
+ついて、機能自体を廃止する判断。
+
+> 💡 同等の「Vault 内パスから外部フォルダを参照」用途は v0.50.0 の **Folder Mapping
+> （ジャンクションを Vault 内から NAS 直接へ張る旧機能）** で代替可能。
+
+### Removed
+
+- 🗑️ **`src/features/folder-bridge/` ディレクトリ全削除**:
+  `manager.ts` / `reconciler.ts` / `watcher.ts` / `validation.ts` / `types.ts` と
+  テスト 4 ファイル（合計 43 tests）。
+- 🗑️ **`src/settings/SettingTabBridge.ts`** (Bridge タブ描画) 削除
+- 🗑️ **`src/settings/FolderBridgeModal.ts`** (ブリッジ追加/編集モーダル) 削除
+- 🗑️ **`tests/settings/SettingTabBridge.test.ts`** 削除
+- 🗑️ **`docs/superpowers/specs/2026-09-16-folder-bridge-design.md`** 削除
+- 🗑️ **`docs/superpowers/plans/2026-09-16-folder-bridge.md`** 削除
+- 🗑️ **`ClaudianBridgeSettings.general.folderBridges` フィールド** 削除
+- 🗑️ **`LocaleStrings` から `tabBridge` / `folderBridge*` 6 フィールド** 削除（ja/en/zh）
+- 🗑️ **`ClaudianBridgeSettingTab.TABS` から Bridge タブ（11 タブ構成へ）** 削除
+- 🗑️ **`main.ts` から `FolderBridgeManager` import / `bridgeManager` フィールド
+  / `applyAllBridges` / `restartBridges` / `disableBridge` メソッド / onload 内の
+  ブリッジ起動時適用ブロック** 全削除
+
+### Changed
+
+- 📦 **`src/main.ts` 整理**: Bridge 関連の 5 メソッド（合計 20 行）と
+  onload 内の Bridge 初期化ブロック（11 行）を撤去。他機能（FolderMapping、
+  selection / tts / quota 等）への影響なし。
+- 🎨 **`src/settings/ClaudianBridgeSettingTab.ts`**: TABS から Bridge を削除して
+  11 タブ構成。import 文と labelKey 型も同時整理。
+- 🎨 **`src/core/i18n.ts`**: ja/en/zh の `folderBridge*` 6 文字列と `tabBridge` 削除。
+- 🎨 **`src/core/settings.ts`**: `folderBridges` フィールド / default / normalize
+  削除（過剰プロパティは許容してデータ互換性維持）。
+- 🎨 **`tests/settings/ClaudianBridgeSettingTab.test.ts`**: 12 タブ → 11 タブ検証
+  へ書き換え。`bridge` id / `tabBridge` labelKey 不在を回帰テスト化。
+
+### Migration Notes
+
+- **既存ユーザー**: `data.json` に残った `general.folderBridges` フィールドは
+  無視される（過剰プロパティ許容）。再起動後もプラグインは正常動作。
+- **既存 NAS ブリッジの残骸**:
+  - `<vault>/<vaultSubpath>/<linkName>` のジャンクション（例: `10_Input/OCR`）
+  - `<vault>/.obsidian/cache/folder-bridge/<id>/` のシャドウデータ
+  - `<vault>/.folder-bridge-cache/folder-bridge/<id>/` のシャドウデータ（v0.54.0 から新規作成されたケース）
+
+  は**プラグイン側で自動削除しません**。必要に応じて手動で削除してください。
+  Folder Mapping 機能で再構築する場合は v0.50.0 の手順（`@` プレフィックスなしの
+  `10_Input` を `vaultSubpath` に設定）で代替可能。
+
+### Tests
+
+- -58 cases（1483 → 1425）
+  - folder-bridge 配下 4 テストファイル（43 tests）削除
+  - `SettingTabBridge.test.ts` 削除
+  - i18n.test.ts の F-052 tabBridge describe（4 tests）削除
+  - settings.test.ts の F-051 folderBridges migration（3 tests）削除
+  - ClaudianBridgeSettingTab.test.ts の Bridge タブ関連（2 tests）削除 → 11 タブ検証に置換
+  - validation.test.ts の F-056 新シャドウパステスト（2 tests）→ 親機能削除で巻き添え削除
+- +6 cases（11 タブ構成 + bridge 不在 + tabBridge 不在の回帰テスト追加）
+
+## [0.54.0] - 2026-09-17 — NAS ブリッジ Input OCR 表示修正 (F-056)
+
+ユーザー報告「`10_Input` 配下に OCR ブリッジを設定したが、Obsidian のファイル
+エクスプローラーに `OCR` フォルダが表示されない（NAS 同期は正常）」の根本対策。
+
+### 症状（修正前）
+
+| 項目 | 状態 |
+|------|------|
+| NAS → シャドウコピー | ✅ 動作（`.obsidian/cache/folder-bridge/<id>/` にファイル生成） |
+| Windows ジャンクション作成 | ✅ `<vault>/10_Input/OCR` は `<JUNCTION>` として存在 |
+| Obsidian ファイルツリー描画 | ❌ `10_Input/OCR` が表示されない（`10_Input` 自体は表示） |
+
+### 根本原因
+
+Windows directory junction のリンク先が **`.obsidian/` 配下** にある場合、
+Obsidian の Vault Adapter がファイルツリーへの描画をスキップする。
+`.obsidian/` はプラグイン・キャッシュ専用領域として Adapter 側で除外されるため、
+junction を透過しても内部ファイルにアクセスできない。
+
+旧 `computeDefaultShadowPath`: `<vault>/.obsidian/cache/folder-bridge/{id}/`
+新 `computeDefaultShadowPath`: `<vault>/.folder-bridge-cache/folder-bridge/{id}/`
+
+`.folder-bridge-cache/` は **Vault 内だが Obsidian 内部領域ではない** 隠しディレクトリ
+（`hideDotFolders` 既定 ON でファイルツリーには出ない）のため、ジャンクションを
+経由すると透過的にレンダリングされる。
+
+### Changed
+
+- 📦 **シャドウ保存先変更 (F-056)** (`src/features/folder-bridge/validation.ts`):
+  `computeDefaultShadowPath()` の戻り値を `.obsidian/cache/folder-bridge/{id}/` から
+  `.folder-bridge-cache/folder-bridge/{id}/` へ移動。
+- 🔁 **`applyOne()` で shadowPath を毎回再計算** (`src/features/folder-bridge/manager.ts`):
+  既存ブリッジに保存された `bridge.shadowPath` を信用せず、
+  `computeDefaultShadowPath(vaultBasePath, id)` で毎回計算してから sync / junction 作成。
+  → v0.52.0/v0.53.x で保存された既存ユーザー設定も自動で新パスへ移行される。
+
+### Fixed
+
+- 🐛 **NAS ブリッジのジャンクションが Obsidian ファイルツリーに表示されない** 根本対策。
+  ユーザー報告「`10_Input` 配下の OCR ブリッジで NAS 同期はされるが OCR フォルダが見えない」を解消。
+
+### Migration Notes
+
+- **既存ユーザー**: プラグインを再起動（またはブリッジを再有効化）すると、次回 sync は新パス
+  `<vault>/.folder-bridge-cache/folder-bridge/<id>/` に書き込まれ、ジャンクションは新シャドウを
+  指すように再作成されます。旧パス `<vault>/.obsidian/cache/folder-bridge/<id>/` のデータは
+  自動的に削除されません（孤立）。問題があれば手動で削除してください。
+- **新規ユーザー**: 新パスから自動的に運用されます。
+
+### Tests
+
+- +2 cases（1482 → 1484）
+  - `src/features/folder-bridge/validation.test.ts`:
+    - `.folder-bridge-cache` パス生成の検証（旧 `.obsidian/cache` から移動）
+    - 戻り値に `.obsidian/` を含まないことの検証（Obsidian Adapter 除外回避の回帰テスト）
+
 ## [0.53.3] - 2026-09-17 — Bridge 凍結修正 + NAS ブリッジ名称変更 (F-055)
 
 ユーザー報告「ブリッジを有効→無効→有効トグルでObsidianが永久に固まる」

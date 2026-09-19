@@ -8,7 +8,6 @@ import { renderSelectionTab } from './SettingTabSelection';
 import { renderTtsTab } from './SettingTabTts';
 import { renderOfficeTab } from './SettingTabOffice';
 import { renderWhitelistTab } from './SettingTabWhitelist';
-import { renderBridgeTab } from './SettingTabBridge';
 import { renderQuotaTab } from './SettingTabQuota';
 import { renderChromaTab } from '../features/chroma/settings/ChromaSettingsTab';
 import { renderMemoryTab } from './SettingTabMemory';
@@ -25,11 +24,11 @@ type RenderFn = (app: App, el: HTMLElement, store: ConfigStore, resetMigration?:
 
 interface TabDef {
   id: string;
-  labelKey: 'tabGeneral' | 'tabNetwork' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabBridge' | 'tabQuota' | 'tabChroma' | 'tabMemory' | 'tabImageGen' | 'tabChangelog';
+  labelKey: 'tabGeneral' | 'tabNetwork' | 'tabSelection' | 'tabTts' | 'tabOffice' | 'tabWhitelist' | 'tabQuota' | 'tabChroma' | 'tabMemory' | 'tabImageGen' | 'tabChangelog';
   render: RenderFn;
 }
 
-// v0.53.0 (F-052): 設定画面整理 — Bridge タブを本体設定（Vault表示直後）にマージ
+// v0.55.0 (F-057): NAS ブリッジ機能完全削除により Bridge タブを撤去。
 export const TABS: TabDef[] = [
   { id: 'general', labelKey: 'tabGeneral', render: renderGeneralTab },
   { id: 'network', labelKey: 'tabNetwork', render: renderNetworkTab },
@@ -37,8 +36,6 @@ export const TABS: TabDef[] = [
   { id: 'tts', labelKey: 'tabTts', render: renderTtsTab },
   { id: 'office', labelKey: 'tabOffice', render: renderOfficeTab },
   { id: 'whitelist', labelKey: 'tabWhitelist', render: renderWhitelistTab },
-  // v0.53.0 (F-052): 設定画面整理 — Bridge タブを本体設定（Vault表示直後）にマージ
-  { id: 'bridge', labelKey: 'tabBridge', render: renderBridgeTab },
   { id: 'quota', labelKey: 'tabQuota', render: renderQuotaTab },
   { id: 'chroma', labelKey: 'tabChroma', render: renderChromaTab },
   { id: 'memory', labelKey: 'tabMemory', render: renderMemoryTab },

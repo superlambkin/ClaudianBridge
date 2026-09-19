@@ -31,8 +31,7 @@ import { installWhitelistCss, removeWhitelistCss } from './features/whitelist/in
 import { OutputsMirrorManager } from './features/outputs-mirror/manager';
 import { FolderMappingManager } from './features/folder-mapping/manager';
 import type { FolderMappingFs } from './features/folder-mapping/types';
-import { FolderBridgeManager } from './features/folder-bridge/manager';
-import { SettingTabBridge } from './settings/SettingTabBridge';
+// v0.55.0 (F-057): FolderBridgeManager / SettingTabBridge 削除（NAS ブリッジ機能完全削除）
 import { ChromaMenuRegistrar } from './features/chroma/views/ChromaMenuRegistrar';
 import { CHROMA_VIEW_TYPE, DatabaseBrowserView } from './features/chroma/views/DatabaseBrowserView';
 import { ImageGenMenuRegistrar } from './features/image-gen/menu';
@@ -58,17 +57,16 @@ export default class ClaudianBridgePlugin extends Plugin {
   private store!: ConfigStore;
   private quotaHandle: Awaited<ReturnType<typeof registerClaudeQuota>> = null;
   private offTokenRate: (() => void) | null = null;
-  // v0.52.0 (F-051): Folder Bridge マネージャ（起動時 applyAll → settings タブから再起動/個別 disable）
-  private bridgeManager: FolderBridgeManager | null = null;
 
   /** Convenience accessor for views that want a settings snapshot. */
   get cbSettings(): import('./core/settings').ClaudianBridgeSettings {
     return this.store.load();
   }
 
-  /** v0.52.0 (F-051): settings UI（SettingTabBridge）が現在値を読み取るための accessor。
+  /** 設定タブ UI が現在値を読み取るための accessor。
    * Obsidian Plugin 側に同名 `settings?: unknown` フィールドが存在するため、衝突回避で `cbSettings` と
-   * 同じ命名流儀の `getSettings()` 関数で公開する（cbSettings は View 側／getSettings は設定タブ側）。 */
+   * 同じ命名流儀の `getSettings()` 関数で公開する（cbSettings は View 側／getSettings は設定タブ側）。
+   * v0.55.0 (F-057): SettingTabBridge 削除後も他タブ（FolderMapping 等）から利用されるため維持。 */
   getSettings(): import('./core/settings').ClaudianBridgeSettings {
     return this.store.load();
   }
@@ -80,26 +78,6 @@ export default class ClaudianBridgePlugin extends Plugin {
     } else {
       this.store.save(this.store.load());
     }
-  }
-
-  /** v0.52.0 (F-051): 現在の general.folderBridges を Manager に再適用する。 */
-  applyAllBridges(): void {
-    const bridges = this.store.load().general.folderBridges ?? [];
-    this.bridgeManager?.applyAll(bridges);
-  }
-
-  /** v0.52.0 (F-051): settings UI から呼ばれる再起動フック（applyAll のエイリアス）。
-   *  v0.53.3 (F-055): setTimeout(0) で次ティックにディファーし、UI スレッドを
-   *  ブロックしない。NAS 同期（syncAll）は数十秒かかる場合があり、トグル連打で
-   *  Obsidian が固まる（重大不具合）の根本対策。
-   */
-  restartBridges(): void {
-    setTimeout(() => this.applyAllBridges(), 0);
-  }
-
-  /** v0.52.0 (F-051): 削除時のジャンクション／ウォッチャ解放（Manager.disable の薄いラッパー）。 */
-  disableBridge(id: string, bridge?: import('./features/folder-bridge/types').FolderBridge): void {
-    this.bridgeManager?.disable(id, bridge);
   }
 
   async onload(): Promise<void> {
@@ -186,18 +164,7 @@ export default class ClaudianBridgePlugin extends Plugin {
         diag('folder mappings applied', result);
       }
 
-      // v0.52.0 (F-051): Folder Bridge 起動時適用（NAS → シャドウ読み取り専用）
-      {
-        this.bridgeManager = new FolderBridgeManager({
-          fs: require('fs') as any,
-          notice: (m) => new Notice(m),
-          vaultBasePath: vaultRoot,
-        });
-        const result = this.bridgeManager.applyAll(
-          this.store.load().general.folderBridges ?? [],
-        );
-        diag('folder bridges applied', result);
-      }
+      // v0.55.0 (F-057): NAS ブリッジ起動時適用ブロック削除（FolderBridgeManager 廃止）
 
       // 3. 設定タブ登録（1ページ / 内部タブ）
       this.addSettingTab(new ClaudianBridgeSettingTab(this.app, this, this.store, async () => {
@@ -214,9 +181,7 @@ export default class ClaudianBridgePlugin extends Plugin {
       }));
       diag('setting tab registered');
 
-      // v0.53.0 (F-052): 設定画面整理 — Folder Bridge タブを本体設定（Vault表示直後）に統合したため、
-      // 独立した addSettingTab 登録は削除。renderBridgeTab は ClaudianBridgeSettingTab の TABS から呼ばれる。
-      // SettingTabBridge クラスの export は後方互換のため維持。
+      // v0.55.0 (F-057): Folder Bridge タブ削除完了 — SettingTabBridge クラスと renderBridgeTab も削除。
 
       // ★ プラグイン全体の有効化トグル（general.enabled）: false なら機能登録をスキップ
       if (!this.store.load().general.enabled) {

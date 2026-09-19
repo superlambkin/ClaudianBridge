@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
-// v0.53.0 (F-052): ClaudianBridgeSettingTab の TABS に 🌉 ブリッジ が
-//   - 7 番目（whitelist 直後）として含まれること
-//   - 12 タブ構成になっていること
-//   - tabBridge ラベルで描画されること
+// v0.55.0 (F-057): ClaudianBridgeSettingTab の TABS から 🌉 ブリッジ を削除。
+//   - 11 タブ構成（bridge なし）になっていること
+//   - タブ順序: general → network → ... → whitelist → quota → ... → changelog
 // を確認する
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
@@ -90,6 +89,10 @@ beforeAll(() => {
 import { ClaudianBridgeSettingTab, TABS } from '../../src/settings/ClaudianBridgeSettingTab';
 import { getLocaleStrings } from '../../src/core/i18n';
 
+// 旧 bridge タブが削除されたことの確認（v0.55.0 F-057）
+const LEGACY_BRIDGE_IDS = ['bridge'];
+const LEGACY_BRIDGE_LABEL_KEYS = ['tabBridge'];
+
 function makeManifest() {
   return { id: 'ClaudianBridge', name: 'Claudian Bridge', version: '0.0.0' };
 }
@@ -101,20 +104,26 @@ function makeApp() {
   };
 }
 
-describe('F-052: ClaudianBridgeSettingTab TABS 構成', () => {
-  it('TABS は 12 要素（11 + bridge）', () => {
-    expect(TABS.length).toBe(12);
+describe('F-057: ClaudianBridgeSettingTab TABS 構成（NAS ブリッジ削除後）', () => {
+  it('TABS は 11 要素（bridge なし）', () => {
+    expect(TABS.length).toBe(11);
   });
 
-  it('7 番目（index 6）のタブ id は "bridge"', () => {
-    expect(TABS[6].id).toBe('bridge');
+  it('TABS に bridge タブは存在しない', () => {
+    const ids = TABS.map((t) => t.id);
+    for (const legacy of LEGACY_BRIDGE_IDS) {
+      expect(ids, `legacy id "${legacy}" still present`).not.toContain(legacy);
+    }
   });
 
-  it('bridge タブの labelKey は "tabBridge"', () => {
-    expect(TABS[6].labelKey).toBe('tabBridge');
+  it('TABS に tabBridge ラベルキーは存在しない', () => {
+    const labelKeys = TABS.map((t) => t.labelKey);
+    for (const legacy of LEGACY_BRIDGE_LABEL_KEYS) {
+      expect(labelKeys, `legacy labelKey "${legacy}" still present`).not.toContain(legacy);
+    }
   });
 
-  it('タブ順序: general → network → ... → bridge(7) → ... → changelog(12)', () => {
+  it('タブ順序: general → network → ... → whitelist → quota → ... → changelog', () => {
     const ids = TABS.map((t) => t.id);
     expect(ids).toEqual([
       'general',
@@ -123,7 +132,7 @@ describe('F-052: ClaudianBridgeSettingTab TABS 構成', () => {
       'tts',
       'office',
       'whitelist',
-      'bridge',         // v0.53.0 (F-052) で追加
+      // v0.55.0 (F-057): bridge タブ削除
       'quota',
       'chroma',
       'memory',
@@ -132,14 +141,7 @@ describe('F-052: ClaudianBridgeSettingTab TABS 構成', () => {
     ]);
   });
 
-  it('whitelist の直後に bridge が来る（Vault表示系の連続配置）', () => {
-    const ids = TABS.map((t) => t.id);
-    const wIdx = ids.indexOf('whitelist');
-    const bIdx = ids.indexOf('bridge');
-    expect(bIdx).toBe(wIdx + 1);
-  });
-
-  it('display() はヘッダーに 12 個のタブボタンを描画する', () => {
+  it('display() はヘッダーに 11 個のタブボタンを描画する', () => {
     const tab = new ClaudianBridgeSettingTab(
       makeApp() as never,
       { manifest: makeManifest() } as never,
@@ -148,20 +150,7 @@ describe('F-052: ClaudianBridgeSettingTab TABS 構成', () => {
     );
     try { tab.display(); } catch { /* render 失敗時も header は描画済み */ }
     const buttons = tab.containerEl.querySelectorAll('.cb-tab-btn');
-    expect(buttons.length).toBe(12);
-  });
-
-  it('7 番目のタブボタンのラベルは 🌉 ブリッジ', () => {
-    const tab = new ClaudianBridgeSettingTab(
-      makeApp() as never,
-      { manifest: makeManifest() } as never,
-      {} as never,
-      async () => {},
-    );
-    try { tab.display(); } catch { /* 同上 */ }
-    const buttons = tab.containerEl.querySelectorAll('.cb-tab-btn');
-    expect(buttons[6].textContent).toBe(getLocaleStrings('ja').tabBridge);
-    expect(buttons[6].textContent).toContain('🌉');
+    expect(buttons.length).toBe(11);
   });
 
   it('初期表示は general タブが is-active', () => {
