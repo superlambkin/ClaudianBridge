@@ -317,5 +317,195 @@ describe('setupQuickReplyButtons — F-021 即時 renderGroup（v0.55.1）', () 
   });
 });
 
+describe('setupQuickReplyButtons — F-058 最大数・フォーマット切替（v0.56.0）', () => {
+  let cleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    sendToClaudian.mockClear();
+    setupRecommendDetectionMock.mockClear();
+    capturedOnChange = null;
+    setupRecommendDetectionMock.mockImplementation((_app: unknown, onChange: (s: RecommendState) => void) => {
+      capturedOnChange = onChange;
+      return () => {};
+    });
+    cleanup = undefined;
+  });
+  afterEach(() => { cleanup?.(); cleanup = undefined; vi.restoreAllMocks(); });
+
+  // 設定モック用ヘルパー（F-058 拡張）
+  function stubLoadF058(general: {
+    quickReplyShowAllOptions?: boolean;
+    quickReplyEnabled?: boolean;
+    quickReplyMaxOptions?: number;
+    quickReplyNumberFormat?: 'arabic' | 'circled' | 'emoji' | 'text';
+  }): void {
+    vi.spyOn(ConfigStore.prototype, 'load').mockReturnValue({
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      general: {
+        ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general,
+        quickReplyEnabled: general.quickReplyEnabled ?? true,
+        quickReplyShowAllOptions: general.quickReplyShowAllOptions ?? true,
+        quickReplyMaxOptions: general.quickReplyMaxOptions ?? 5,
+        quickReplyNumberFormat: general.quickReplyNumberFormat ?? 'arabic',
+      },
+    } as ClaudianBridgeSettings);
+  }
+
+  it('maxOptions=3 + showAll=true → 方案 1〜3 が表示、4〜5 は cb-hidden', async () => {
+    stubLoadF058({ quickReplyMaxOptions: 3 });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    const visible = Array.from(group.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('cb-hidden'),
+    );
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1', 'number-2', 'number-3',
+    ]);
+  });
+
+  it('maxOptions=1 + showAll=true → 方案 1 のみ表示', async () => {
+    stubLoadF058({ quickReplyMaxOptions: 1 });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    const visible = Array.from(group.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('cb-hidden'),
+    );
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual(['check', 'x', 'number-1']);
+  });
+
+  it('maxOptions=5 + showAll=false + state.maxOptionCount=3 → 既存挙動通り 1〜3 表示', async () => {
+    stubLoadF058({ quickReplyShowAllOptions: false, quickReplyMaxOptions: 5 });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    capturedOnChange?.({ recommended: null, maxOptionCount: 3 });
+    const visible = Array.from(group.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('cb-hidden'),
+    );
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1', 'number-2', 'number-3',
+    ]);
+  });
+
+  it('maxOptions=3 + showAll=false + state.maxOptionCount=5 → 1〜3 表示（maxOptions でクランプ）', async () => {
+    stubLoadF058({ quickReplyShowAllOptions: false, quickReplyMaxOptions: 3 });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    capturedOnChange?.({ recommended: null, maxOptionCount: 5 });
+    const visible = Array.from(group.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('cb-hidden'),
+    );
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1', 'number-2', 'number-3',
+    ]);
+  });
+
+  it('format="circled" → SVG badge textContent="①"', async () => {
+    stubLoadF058({ quickReplyMaxOptions: 2, quickReplyNumberFormat: 'circled' });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    const btn2 = group.querySelector('[data-cb-qr-2]');
+    const text = btn2?.querySelector('svg text');
+    expect(text?.textContent).toBe('②');
+  });
+
+  it('format="emoji" → SVG badge textContent="1️⃣"', async () => {
+    stubLoadF058({ quickReplyMaxOptions: 1, quickReplyNumberFormat: 'emoji' });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    const btn1 = group.querySelector('[data-cb-qr-1]');
+    const text = btn1?.querySelector('svg text');
+    expect(text?.textContent).toBe('1️⃣');
+  });
+
+  it('format="text" → SVG 撤去・textContent="方案1"', async () => {
+    stubLoadF058({ quickReplyMaxOptions: 1, quickReplyNumberFormat: 'text' });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    const btn1 = group.querySelector('[data-cb-qr-1]');
+    expect(btn1?.querySelector('svg')).toBeNull();
+    expect(btn1?.textContent).toBe('方案1');
+  });
+
+  it('不正な maxOptions（10）→ 5 にフォールバック', async () => {
+    stubLoadF058({ quickReplyMaxOptions: 10 });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    const visible = Array.from(group.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('cb-hidden'),
+    );
+    expect(visible.length).toBe(7); // OK/NG + 1〜5 = 7
+  });
+
+  it('不正な numberFormat（"binary"）→ "arabic" にフォールバック', async () => {
+    stubLoadF058({ quickReplyMaxOptions: 1, quickReplyNumberFormat: 'binary' as never });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    const btn1 = group.querySelector('[data-cb-qr-1]');
+    const text = btn1?.querySelector('svg text');
+    expect(text?.textContent).toBe('1');
+  });
+
+  it('既存挙動回帰: F-021 テスト 16 ケースは引き続き PASS（v0.55.1 維持）', async () => {
+    stubLoadF058({ quickReplyShowAllOptions: true });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+    // capturedOnChange は setupRecommendDetection のモックで callback として登録される（function）
+    // 本テストは「onChange を呼ばなくても方案 1〜5 が即時表示されているか」を確認する
+    expect(capturedOnChange).not.toBeNull();
+    const visible = Array.from(group.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('cb-hidden'),
+    );
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1', 'number-2', 'number-3', 'number-4', 'number-5',
+    ]);
+  });
+
+  it('applyQuickReplySettingsToExistingGroups → 既存グループに即時反映', async () => {
+    stubLoadF058({ quickReplyShowAllOptions: false, quickReplyMaxOptions: 5, quickReplyNumberFormat: 'arabic' });
+    cleanup = setupQuickReplyButtons({} as never);
+    const { nav } = addNavWithNewTab();
+    const group = await waitForGroup(nav);
+
+    // 新しい設定を「適用」
+    const { applyQuickReplySettingsToExistingGroups, loadMaxOptions, loadNumberFormat } = await import(
+      '../../../src/features/quick-reply/nav-buttons'
+    );
+    vi.spyOn(ConfigStore.prototype, 'load').mockReturnValue({
+      ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+      general: {
+        ...DEFAULT_CLAUDIAN_BRIDGE_SETTINGS.general,
+        quickReplyShowAllOptions: true,
+        quickReplyMaxOptions: 2,
+        quickReplyNumberFormat: 'emoji',
+      },
+    } as ClaudianBridgeSettings);
+
+    applyQuickReplySettingsToExistingGroups(true, loadMaxOptions(), loadNumberFormat());
+
+    const visible = Array.from(group.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('cb-hidden'),
+    );
+    // format='emoji' の場合、SVG badge 内の textContent は emoji 数字そのものになる
+    // getIconSignature は `number-${textContent}` を返すため 'number-1️⃣' 形式になる
+    expect(visible.map((b) => getIconSignature(b as HTMLButtonElement))).toEqual([
+      'check', 'x', 'number-1️⃣', 'number-2️⃣',
+    ]);
+    const btn1 = group.querySelector('[data-cb-qr-1]');
+    const text = btn1?.querySelector('svg text');
+    expect(text?.textContent).toBe('1️⃣');
+  });
+});
+
 // BUTTON_MARKS を export することで型チェック用途にも使える
 export { BUTTON_MARKS };

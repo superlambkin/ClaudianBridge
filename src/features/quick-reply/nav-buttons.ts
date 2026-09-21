@@ -22,10 +22,44 @@ import { setupRecommendDetection, type RecommendState } from './recommend-detect
 import { getLocaleStrings, getUILanguage } from '../../core/i18n';
 import { ConfigStore } from '../../core/config-store';
 import type { ClaudianBridgeSettings } from '../../core/settings';
-import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS } from '../../core/settings';
+import {
+  DEFAULT_CLAUDIAN_BRIDGE_SETTINGS,
+  QUICK_REPLY_MAX_OPTIONS_DEFAULT,
+  QUICK_REPLY_MAX_OPTIONS_MAX,
+  QUICK_REPLY_MAX_OPTIONS_MIN,
+  QUICK_REPLY_NUMBER_FORMATS,
+  type QuickReplyNumberFormat,
+} from '../../core/settings';
 
 // ConfigStore は configPath を引数に取るため、app 参照は不要
 const store = new ConfigStore();
+
+/** v0.56.0 (F-058): 方案ボタンの最大表示数を store から取得（[1,5] にクランプ・既定 5） */
+export function loadMaxOptions(): number {
+  try {
+    const cfg = store.load() as ClaudianBridgeSettings | null;
+    const v = cfg?.general?.quickReplyMaxOptions;
+    if (typeof v === 'number' && Number.isInteger(v)) {
+      return Math.max(QUICK_REPLY_MAX_OPTIONS_MIN, Math.min(QUICK_REPLY_MAX_OPTIONS_MAX, v));
+    }
+    return QUICK_REPLY_MAX_OPTIONS_DEFAULT;
+  } catch {
+    return QUICK_REPLY_MAX_OPTIONS_DEFAULT;
+  }
+}
+
+/** v0.56.0 (F-058): 方案ボタンの番号フォーマットを store から取得（不正値は 'arabic' にフォールバック） */
+export function loadNumberFormat(): QuickReplyNumberFormat {
+  try {
+    const cfg = store.load() as ClaudianBridgeSettings | null;
+    const f = cfg?.general?.quickReplyNumberFormat;
+    return QUICK_REPLY_NUMBER_FORMATS.includes(f as QuickReplyNumberFormat)
+      ? (f as QuickReplyNumberFormat)
+      : 'arabic';
+  } catch {
+    return 'arabic';
+  }
+}
 
 // v0.29.0: ツールバー → nav-actions へ配置変更
 const NAV_SELECTOR = '.claudian-input-nav-actions';
@@ -44,8 +78,9 @@ interface QuickReplyButtonDef {
   text: string;
 }
 
-/** v0.29.1: 方案ボタン用カスタム SVG（circle + 数字テキスト）を生成 */
-function createNumberedBadge(n: number): SVGElement {
+/** v0.29.1: 方案ボタン用カスタム SVG（circle + 数字テキスト）を生成
+ *  v0.56.0 (F-058): format 引数追加（arabic / circled / emoji）*/
+function createNumberedBadge(n: number, format: QuickReplyNumberFormat): SVGElement {
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('width', '16');
@@ -67,9 +102,23 @@ function createNumberedBadge(n: number): SVGElement {
   text.setAttribute('font-weight', '600');
   text.setAttribute('fill', 'currentColor');
   text.setAttribute('stroke', 'none');
-  text.textContent = String(n);
+  text.textContent = formatText(n, format);
   svg.appendChild(text);
   return svg;
+}
+
+/** v0.56.0 (F-058): 方案ボタンのテキストを format に応じて生成 */
+function formatText(n: number, format: QuickReplyNumberFormat): string {
+  switch (format) {
+    case 'circled':
+      return ['', '①', '②', '③', '④', '⑤'][n] ?? String(n);
+    case 'emoji':
+      return ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'][n] ?? String(n);
+    case 'text':
+    case 'arabic':
+    default:
+      return String(n);
+  }
 }
 
 const BUTTONS: QuickReplyButtonDef[] = [
@@ -91,7 +140,7 @@ function makeButton(app: App, def: QuickReplyButtonDef): HTMLButtonElement {
   if (def.lucideIcon) {
     setIcon(btn, def.lucideIcon);
   } else if (def.option !== undefined) {
-    btn.appendChild(createNumberedBadge(def.option));
+    btn.appendChild(createNumberedBadge(def.option, 'arabic'));
   }
   const s = getLocaleStrings(getUILanguage());
   btn.title = def.option
@@ -113,15 +162,50 @@ function makeButton(app: App, def: QuickReplyButtonDef): HTMLButtonElement {
   return btn;
 }
 
-/** 選択肢数に応じて方案ボタンの表示と推奨ハイライトを更新する */
-function renderGroup(group: Element, state: RecommendState, showAllOptions: boolean): void {
-  const optionCount = showAllOptions ? MAX_OPTIONS : Math.min(state.maxOptionCount, MAX_OPTIONS);
+/** 選択肢数に応じて方案ボタンの表示と推奨ハイライトを更新する
+ *  v0.56.0 (F-058): maxOptions / numberFormat 引数追加 */
+function renderGroup(
+  group: Element,
+  state: RecommendState,
+  showAllOptions: boolean,
+  maxOptions: number,
+  numberFormat: QuickReplyNumberFormat,
+): void {
+  const optionCount = showAllOptions
+    ? maxOptions
+    : Math.min(state.maxOptionCount, maxOptions);
   for (let i = 1; i <= MAX_OPTIONS; i++) {
     const btn = group.querySelector(`[data-cb-qr-${i}]`);
     if (!btn) continue;
     btn.classList.toggle('cb-hidden', i > optionCount);
     btn.classList.toggle('is-recommended', state.recommended === i);
+    if (i <= optionCount) {
+      applyNumberFormat(btn, i, numberFormat);
+    }
   }
+}
+
+/** v0.56.0 (F-058): 単一ボタンの番号フォーマットを適用 */
+function applyNumberFormat(btn: Element, n: number, format: QuickReplyNumberFormat): void {
+  if (format === 'text') {
+    // 方案N テキスト: SVG バッジを撤去してプレーンな文字に
+    btn.replaceChildren(document.createTextNode(`方案${n}`));
+  } else {
+    // SVG 円バッジ維持（中の数字だけ差し替え）
+    btn.replaceChildren(createNumberedBadge(n, format));
+  }
+}
+
+/** v0.56.0 (F-058): 既存グループ全てに showAll / maxOptions / numberFormat を即時反映。
+ *  Slider / Dropdown / Toggle のいずれが変更されても全設定を見る renderGroup を呼ぶので 1 関数に統合。*/
+export function applyQuickReplySettingsToExistingGroups(
+  showAllOptions: boolean,
+  maxOptions: number,
+  numberFormat: QuickReplyNumberFormat,
+): void {
+  document.querySelectorAll(`[${GROUP_MARK}]`).forEach((group) => {
+    renderGroup(group, { recommended: null, maxOptionCount: 0 }, showAllOptions, maxOptions, numberFormat);
+  });
 }
 
 export function setupQuickReplyButtons(app: App): () => void {
@@ -145,8 +229,12 @@ export function setupQuickReplyButtons(app: App): () => void {
 
   const offDetect = setupRecommendDetection(app, (state) => {
     const showAll = loadShowAll();
+    const max = loadMaxOptions();
+    const fmt = loadNumberFormat();
     if (!loadEnabled()) return;
-    document.querySelectorAll(`[${GROUP_MARK}]`).forEach((group) => renderGroup(group, state, showAll));
+    document.querySelectorAll(`[${GROUP_MARK}]`).forEach((group) =>
+      renderGroup(group, state, showAll, max, fmt),
+    );
   });
 
   // v0.29.0: nav-actions 内 NewTab の左に挿入
@@ -168,13 +256,14 @@ export function setupQuickReplyButtons(app: App): () => void {
     row.appendChild(group);
     nav.insertBefore(row, newTab);
 
-    // v0.55.1 F-021 修正: 注入直後に showAll 設定に応じて方案ボタンを即時表示。
-    // 既存の setupRecommendDetection callback は MutationObserver 経由でしか
-    // 発火しないため、新規チャットで初回応答まで showAll=true でも方案 1〜5 が
-    // cb-hidden のままだった。inject 時点で 1 度だけ即時 render することで、
-    // アシスタントメッセージ非到着状態でも方案ボタンを即時反映する。
-    // showAll=false の場合は optionCount=min(0,5)=0 で既存挙動（hidden 維持）と同一。
-    renderGroup(group, { recommended: null, maxOptionCount: 0 }, loadShowAll());
+    // F-021 + F-058: 注入直後に showAll 設定と maxOptions / numberFormat を即時反映
+    renderGroup(
+      group,
+      { recommended: null, maxOptionCount: 0 },
+      loadShowAll(),
+      loadMaxOptions(),
+      loadNumberFormat(),
+    );
   };
 
   const removeInjected = (): void => {
