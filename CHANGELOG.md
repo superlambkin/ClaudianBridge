@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.56.0] - 2026-09-20 — 方案ボタン最大数・番号フォーマット切替 (F-058)
+
+ご主人様要望「設定画面にて最大数とデザインを選択切替できるようにしたい」への対応。
+F-021（v0.24.0）の bool トグルに数値・enum 設定を追加する形での機能拡張。
+
+### Added
+
+- 🆕 **`general.quickReplyMaxOptions`** (number 1〜5・既定 5):
+  「方案ボタンを常に表示」ON 時の方案ボタン数を 1〜5 で制限。
+  スライダーで選択した数だけ方案 1〜N が即時表示される。
+- 🆕 **`general.quickReplyNumberFormat`** ('arabic' | 'circled' | 'emoji' | 'text'・既定 'arabic'):
+  方案 1〜5 の表示方法を選択可能に。
+  - `arabic`（既定）: 1, 2, 3, 4, 5
+  - `circled`: ①, ②, ③, ④, ⑤
+  - `emoji`: 1️⃣, 2️⃣, 3️⃣, 4️⃣, 5️⃣
+  - `text`: 方案1, 方案2, 方案3, 方案4, 方案5（SVG バッジ撤去・テキスト）
+
+### Changed
+
+- 🔧 **`renderGroup` の引数拡張** (`src/features/quick-reply/nav-buttons.ts`):
+  `renderGroup(group, state, showAll, maxOptions, numberFormat)` に 2 引数追加。
+  既存挙動は 100% 維持（F-021 テスト 16 ケース全 PASS）。
+- 🔧 **`loadMaxOptions` / `loadNumberFormat` をモジュールトップレベルに hoist**:
+  SettingTabGeneral.ts から設定変更時に直接呼べるよう export。
+  既存 `loadShowAll` / `loadEnabled` はスコープ最小化のため closure のまま据え置き。
+
+### UI
+
+- 一般タブ「クイック返信ボタン」セクションに 2 コントロール追加:
+  - 「方案を最大 N 個表示」Slider（1〜5・既定 5）
+  - 「方案ボタン番号フォーマット」Dropdown（4 種・既定 'arabic'）
+- i18n 8 キー追加（ja / en / zh 簡体字）
+
+### Tests
+
+- +20 cases（1428 → 1448）
+  - `src/core/settings.test.ts`: normalize 4 ケース（欠落・上限超過・不正値のフォールバック）
+  - `tests/features/quick-reply/nav-buttons.test.ts`: F-058 describe 11 ケース
+  - `tests/settings/SettingTabGeneral.test.ts`: 描画 5 ケース
+
+### Migration Notes
+
+- **既存ユーザー**: `data.json` に `quickReplyMaxOptions` / `quickReplyNumberFormat` が
+  存在しない場合は normalize が既定値（5 / 'arabic'）で補完。既存挙動は 100% 維持。
+- **設定保存失敗時**: 既存パターン通り `Notice(noticeSaveFailed)` + UI 復元。
+
 ## [0.55.1] - 2026-09-19 — 方案ボタン常時表示の初回注入反映 (F-021 修正)
 
 ユーザー報告「`general.quickReplyShowAllOptions = true` を ON にしても、
