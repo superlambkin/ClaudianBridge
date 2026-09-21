@@ -2,13 +2,24 @@ import { Notice, Setting } from 'obsidian';
 import type { App, DataAdapter } from 'obsidian';
 import type { ConfigStore } from '../core/config-store';
 import { getLocaleStrings, getUILanguage } from '../core/i18n';
-import { ALLOWED_TOKEN_RATE_INTERVALS, DEFAULT_THINKING_CONFIGS } from '../core/settings';
+import {
+  ALLOWED_TOKEN_RATE_INTERVALS,
+  DEFAULT_THINKING_CONFIGS,
+  QUICK_REPLY_MAX_OPTIONS_MAX,
+  QUICK_REPLY_MAX_OPTIONS_MIN,
+  type QuickReplyNumberFormat,
+} from '../core/settings';
 import type { LocaleStrings } from '../core/i18n';
 import { THINKING_EFFORT_VALUES } from '../features/llm/types';
 import type { ThinkingEffort } from '../features/llm/types';
 import { readLlmInfoFromSettings } from '../features/quota/llm-info';
 import type { LlmProviderId } from '../features/quota/llm-info';
 import { runSelfUpdate } from '../features/self-update';
+import {
+  applyQuickReplySettingsToExistingGroups,
+  loadMaxOptions,
+  loadNumberFormat,
+} from '../features/quick-reply/nav-buttons';
 import manifest from '../manifest.json';
 
 /** プラグインバージョン（SSOT: src/manifest.json — バンドル時に esbuild が埋め込む） */
@@ -167,11 +178,69 @@ export function renderGeneralTab(_app: App, containerEl: HTMLElement, store: Con
           const latest = store.load();
           store.save({ ...latest, general: { ...latest.general, quickReplyShowAllOptions: v } });
           new Notice(s.noticeSaved);
+          // v0.56.0 (F-058): 既存ボタンの表示状態を即時反映
+          applyQuickReplySettingsToExistingGroups(
+            v,
+            loadMaxOptions(),
+            loadNumberFormat(),
+          );
         } catch (e) {
           new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
           draw();
         }
       }));
+
+    // === v0.56.0 (F-058): 方案ボタンの最大表示数 ===
+    new Setting(containerEl)
+      .setName(s.quickReplyMaxOptions)
+      .setDesc(s.quickReplyMaxOptionsDesc)
+      .addSlider((slider) =>
+        slider
+          .setLimits(QUICK_REPLY_MAX_OPTIONS_MIN, QUICK_REPLY_MAX_OPTIONS_MAX, 1)
+          .setValue(cfg.general.quickReplyMaxOptions)
+          .setDynamicTooltip()
+          .onChange(async (v) => {
+            try {
+              const latest = store.load();
+              store.save({ ...latest, general: { ...latest.general, quickReplyMaxOptions: v } });
+              new Notice(s.noticeSaved);
+              applyQuickReplySettingsToExistingGroups(
+                latest.general.quickReplyShowAllOptions,
+                v,
+                loadNumberFormat(),
+              );
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          }));
+
+    // === v0.56.0 (F-058): 方案ボタンの番号フォーマット ===
+    new Setting(containerEl)
+      .setName(s.quickReplyNumberFormat)
+      .setDesc(s.quickReplyNumberFormatDesc)
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption('arabic', s.quickReplyNumberFormatArabic)
+          .addOption('circled', s.quickReplyNumberFormatCircled)
+          .addOption('emoji', s.quickReplyNumberFormatEmoji)
+          .addOption('text', s.quickReplyNumberFormatText)
+          .setValue(cfg.general.quickReplyNumberFormat)
+          .onChange(async (v) => {
+            try {
+              const latest = store.load();
+              store.save({ ...latest, general: { ...latest.general, quickReplyNumberFormat: v as QuickReplyNumberFormat } });
+              new Notice(s.noticeSaved);
+              applyQuickReplySettingsToExistingGroups(
+                latest.general.quickReplyShowAllOptions,
+                loadMaxOptions(),
+                v as QuickReplyNumberFormat,
+              );
+            } catch (e) {
+              new Notice(s.noticeSaveFailed.replace('{msg}', (e as Error).message));
+              draw();
+            }
+          }));
 
     // === v0.25.0: クイック返信ボタン全体の ON/OFF ===
     new Setting(containerEl)

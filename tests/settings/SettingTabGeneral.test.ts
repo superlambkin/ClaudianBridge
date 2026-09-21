@@ -19,6 +19,16 @@ const dropdownHandlers: Array<{
   onChange: ((v: unknown) => void) | null;
 }> = [];
 
+// スライダーハンドラを記録するストア（v0.56.0 F-058 で追加）
+const sliderHandlers: Array<{
+  name: string;
+  value: unknown;
+  min: number | null;
+  max: number | null;
+  step: number | null;
+  onChange: ((v: number) => void) | null;
+}> = [];
+
 vi.mock('obsidian', () => {
   return {
     Notice: vi.fn(),
@@ -65,6 +75,25 @@ vi.mock('obsidian', () => {
         };
         cb(d);
         dropdownHandlers.push(captured);
+        return this;
+      }
+      addSlider(cb: (s: unknown) => unknown) {
+        const captured: { name: string; value: unknown; min: number | null; max: number | null; step: number | null; onChange: ((v: number) => void) | null } = {
+          name: this._name,
+          value: undefined,
+          min: null,
+          max: null,
+          step: null,
+          onChange: null,
+        };
+        const s = {
+          setLimits: function (min: number, max: number, step: number) { captured.min = min; captured.max = max; captured.step = step; return this; },
+          setValue: function (v: number) { captured.value = v; return this; },
+          setDynamicTooltip: function () { return this; },
+          onChange: function (h: (v: number) => void) { captured.onChange = h; return this; },
+        };
+        cb(s);
+        sliderHandlers.push(captured);
         return this;
       }
       addButton(cb: (b: unknown) => unknown) {
@@ -123,6 +152,9 @@ function makeStore(generalOverrides: Record<string, unknown> = {}, rootOverrides
       backupAutoClose: true,
       quickReplyShowAllOptions: false,
       quickReplyEnabled: true,
+      // v0.56.0 (F-058)
+      quickReplyMaxOptions: 5,
+      quickReplyNumberFormat: 'arabic',
       tokenRateEnabled: true,
       tokenRateIntervalMs: 250,
       tokenRateShowTtft: true,
@@ -309,5 +341,66 @@ describe('renderGeneralTab - Think モード セクション', () => {
     await efforts[0].onChange?.('bogus');
     const saved = (store.save as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(saved.thinking.claude.effort).toBe('medium');
+  });
+});
+
+describe('renderGeneralTab - quickReply F-058 (v0.56.0)', () => {
+  let containerEl: HTMLElement;
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    toggleHandlers.length = 0;
+    dropdownHandlers.length = 0;
+    sliderHandlers.length = 0;
+    containerEl = document.createElement('div');
+    document.body.appendChild(containerEl);
+  });
+
+  it('Slider が描画される（limits=1〜5, step=1）', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const s = getLocaleStrings('ja');
+    const slider = sliderHandlers.find((x) => x.name === s.quickReplyMaxOptions);
+    expect(slider).toBeDefined();
+    expect(slider?.min).toBe(1);
+    expect(slider?.max).toBe(5);
+    expect(slider?.step).toBe(1);
+  });
+
+  it('Slider のデフォルト値が 5', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const s = getLocaleStrings('ja');
+    const slider = sliderHandlers.find((x) => x.name === s.quickReplyMaxOptions);
+    expect(slider?.value).toBe(5);
+  });
+
+  it('Dropdown が描画されデフォルト選択が "arabic"', () => {
+    renderGeneralTab({} as never, containerEl, makeStore());
+    const s = getLocaleStrings('ja');
+    const dd = dropdownHandlers.find((x) => x.name === s.quickReplyNumberFormat);
+    expect(dd).toBeDefined();
+    expect(dd?.value).toBe('arabic');
+  });
+
+  it('Slider 変更 → store.save が呼ばれる（quickReplyMaxOptions）', () => {
+    const store = makeStore();
+    renderGeneralTab({} as never, containerEl, store);
+    const s = getLocaleStrings('ja');
+    const slider = sliderHandlers.find((x) => x.name === s.quickReplyMaxOptions);
+    expect(slider?.onChange).not.toBeNull();
+    slider?.onChange?.(3);
+    expect(store.save).toHaveBeenCalled();
+    const savedArg = (store.save as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as { general: { quickReplyMaxOptions: number } };
+    expect(savedArg.general.quickReplyMaxOptions).toBe(3);
+  });
+
+  it('Dropdown 変更 → store.save が呼ばれる（quickReplyNumberFormat）', () => {
+    const store = makeStore();
+    renderGeneralTab({} as never, containerEl, store);
+    const s = getLocaleStrings('ja');
+    const dd = dropdownHandlers.find((x) => x.name === s.quickReplyNumberFormat);
+    expect(dd?.onChange).not.toBeNull();
+    dd?.onChange?.('emoji');
+    expect(store.save).toHaveBeenCalled();
+    const savedArg = (store.save as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as { general: { quickReplyNumberFormat: string } };
+    expect(savedArg.general.quickReplyNumberFormat).toBe('emoji');
   });
 });
