@@ -190,9 +190,14 @@ export function localEdgeTtsSpeak(
     const configured = (settings.edgeTtsModulePath ?? '').trim();
     const modulePath = resolveEdgeTtsModulePath(configured);
 
-    // 設定パスが明示されているのに edge_tts が無い場合は事前に案内
-    if (configured !== '' && !pathExistsEdgeTts(modulePath)) {
-      noticeFn(`⚠️ 指定パスに edge_tts モジュールがありません: ${configured}`);
+    // 解決後の edge_tts が実在しない場合は spawn せずに事前案内する。
+    // プラグインフォルダのコピー移動で同梱 py/edge_tts が欠落した場合、
+    // 存在確認を怠ると Python が ModuleNotFoundError で exit 1 になるだけだった。
+    if (modulePath !== '' && !pathExistsEdgeTts(modulePath)) {
+      noticeFn(configured !== ''
+        ? `⚠️ 指定パスに edge_tts モジュールがありません: ${configured}`
+        : `⚠️ プラグインに同梱の edge_tts が見つかりません: ${modulePath}\n` +
+          `py/edge_tts が同梱されていない可能性があります。プラグインフォルダを丸ごとコピー・移動した場合に発生します。`);
       resolve(false);
       return;
     }

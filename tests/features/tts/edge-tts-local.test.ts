@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ChildProcess } from 'child_process';
-import * as fs from 'fs';
+import fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { localEdgeTtsSpeak, resolveEdgeTtsModulePath, resolveEdgeVoiceFull, initEdgeTtsLocal, resetEdgeTtsLocalState, resolvePythonCmd, killProcessTree } from '../../../src/features/tts/edge-tts-local';
@@ -50,15 +50,20 @@ function makeSettings(): TtsSettings {
 
 const origCreateObjectURL = (URL as unknown as { createObjectURL?: (b: Blob) => string }).createObjectURL;
 
+// edge-tts-local.ts は require('fs') で存在確認するため、既定は「同梱 edge_tts あり」にする
+let existsSpy: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
   spawnMock.mockReset();
   resetPlaybackRegistry();
   initEdgeTtsLocal('C:/plugin');
+  existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
   // Node には URL.createObjectURL が無いためモックする
   (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = vi.fn(() => 'blob:test');
 });
 
 afterEach(() => {
+  existsSpy.mockRestore();
   resetEdgeTtsLocalState();
   if (origCreateObjectURL === undefined) {
     delete (URL as unknown as { createObjectURL?: unknown }).createObjectURL;
@@ -148,11 +153,23 @@ describe('localEdgeTtsSpeak', () => {
   it('設定パスに edge_tts が無い場合は spawn せず Notice', async () => {
     const settings = makeSettings();
     settings.edgeTtsModulePath = 'C:/nonexistent';
+    existsSpy.mockReturnValue(false);
     const notice = vi.fn();
     const p = localEdgeTtsSpeak('hello', settings, notice);
     await expect(p).resolves.toBe(false);
     expect(spawnMock).not.toHaveBeenCalled();
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('指定パスに edge_tts モジュールがありません'));
+  });
+
+  // F4: プラグインフォルダのコピー移動で py/edge_tts が欠落した場合、
+  // 設定が空欄（既定）でも spawn せずに原因を通知する
+  it('F4: 設定空欄で同梱 py/edge_tts が欠落していれば spawn せず原因を Notice', async () => {
+    existsSpy.mockReturnValue(false);   // 同梱 edge_tts なしを再現
+    const notice = vi.fn();
+    const p = localEdgeTtsSpeak('hello', makeSettings(), notice);
+    await expect(p).resolves.toBe(false);
+    expect(spawnMock).not.toHaveBeenCalled();
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('py/edge_tts'));
   });
 
   it('F1: 意図的停止（stopAllPlayback）では失敗 Notice を出さず false で解決し isTtsPlaying=false', async () => {

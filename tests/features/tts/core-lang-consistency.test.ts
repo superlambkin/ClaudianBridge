@@ -6,7 +6,7 @@
  * 修正後の期待動作: 分割前の全文で 1 回だけ言語判定し、全チャンクで同一音声を使用する。
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
+import fs from 'fs';
 import { addTextToTTS } from '../../../src/features/tts/core';
 import type { TtsSettings } from '../../../src/features/tts/core';
 import { resetPlaybackRegistry } from '../../../src/features/tts/playback-registry';
@@ -71,10 +71,15 @@ function makeMixedLongText(): string {
 
 const origCreateObjectURL = (URL as unknown as { createObjectURL?: (b: Blob) => string }).createObjectURL;
 
+// localEdgeTtsSpeak は同梱 edge_tts の存在を実 fs で確認する（pathExistsEdgeTts）。
+// テスト環境の C:/plugin に実在しないため、既定で「同梱あり」を偽装する。
+let existsSpy: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
   spawnMock.mockReset();
   resetPlaybackRegistry();
   initEdgeTtsLocal('C:/plugin');
+  existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
   (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = vi.fn(() => 'blob:test');
   // 各チャンクの再生を成功させる（onended で即時解決）
   (globalThis as unknown as { Audio: unknown }).Audio = class {
@@ -86,6 +91,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  existsSpy.mockRestore();
   resetEdgeTtsLocalState();
   if (origCreateObjectURL === undefined) {
     delete (URL as unknown as { createObjectURL?: unknown }).createObjectURL;
