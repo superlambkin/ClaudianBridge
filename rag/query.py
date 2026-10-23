@@ -298,6 +298,14 @@ class RAGQuerier:
         with open(config_file, "r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
 
+        # 認証情報は環境変数から解決する（リポジトリに実キーを置かない）
+        # config.yaml には "${MINIMAX_API_KEY}" のような参照だけを書く。
+        for _model_info in (self.config.get("llm", {}).get("models") or {}).values():
+            if isinstance(_model_info, dict) and isinstance(_model_info.get("api_key"), str):
+                _expanded = os.path.expandvars(_model_info["api_key"])
+                # 未設定の ${VAR} をそのまま API に送らない（空にして明確に失敗させる）
+                _model_info["api_key"] = "" if "${" in _expanded else _expanded
+
         self.embedder = BGEEmbedder(
             self.config["embedding"]["model"],
             local_model_dir=self.config["embedding"].get("local_model_dir"),
