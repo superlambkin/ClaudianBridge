@@ -1,6 +1,41 @@
 # Changelog
 
-## [0.57.2] - 2026-10-24 — コードレビュー指摘の修正（TTS 安全性・リリース整合性・シークレット検出）
+## [0.57.3] - 2026-10-24 — コードレビュー Minor 5 件を修正
+
+### Fixed
+
+- 🔧 **SettingTabTts の「📂 モジュール場所を開く」が Vault ルート基準だった**（`src/settings/SettingTabTts.ts`）:
+  旧実装は `<vault>/py/edge_tts` を参照しており、実在しないパスを開いていた。
+  `renderTtsTab` に `pluginDir` を受け取り、**プラグインフォルダ基準**で解決するよう修正。
+  併せて `RenderFn` のシグネチャに `_resetMigration` / `_pluginId` / `pluginDir` を追加。
+- 🔧 **helper の読み込みがプラグインフォルダ全体を sys.path の先頭にしていた**（`edge-tts-local.ts`）:
+  `sys.path.insert(0, plugin_dir)` により `query.py` / `config.yaml` 等が import 対象になり、
+  名前衝突の余地があった。`importlib.util.spec_from_file_location` で
+  **ファイルパスを直接指定**して読み込むよう変更。
+- 🔧 **`release.mjs` が cwd 依存だった**（`scripts/release.mjs`）:
+  `ROOT = process.cwd()` 改为 `import.meta.url` からリポジトリルートを導出。
+  `node scripts/release.mjs` を別ディレクトリから実行しても正しく動作することを検証。
+
+### Changed
+
+- 🔧 **`resolveClaudianViewApi` をメソッド単位の解決に強化**（`src/core/claudian-api.ts`）:
+  `getView` の有無だけで root を選ぶと、`getView` は無いが `activateView` だけある
+  部分形状で `activateView` が解決できない。呼び出し側が使うメソッド
+  （getView / activateView / getAllViews）のどれかが使える側を返すよう変更。
+- 🔧 **`mask()` の先頭 4 文字出力を既知の接頭辞に限定**（`scripts/check-secrets.mjs`）:
+  `eyJhbGci...`（JWT）や `Bearer <token>` は先頭 4 文字でも情報漏えいになるため、
+  `sk-` / `ghp_` / `AKIA` 等のプロバイダー識別可能な接頭辞のときだけ表示。
+  未知の形式は `****`（長さのみ）。
+
+### テスト
+
+- `detectEdgeTtsGecVersion` / M2 / M3 関連: 55 passed
+- 全体: **1487 passed / 1 skipped / 0 failed**（1488 / 138 files）
+- tsc --noEmit: exit 0
+- 実機: helper をファイルパス直接指定で読み込み → `Sec-MS-GEC v2 patched` → 15,264 bytes 合成成功
+- 実機: `node scripts/release.mjs` を別ディレクトリから実行 → リポジトリルートを正しく解決
+
+## [0.57.3] - 2026-10-24 — コードレビュー指摘の修正（TTS 安全性・リリース整合性・シークレット検出）
 
 シニアレビューで挙がった Critical 2 件 / Important 4 件に対応。
 

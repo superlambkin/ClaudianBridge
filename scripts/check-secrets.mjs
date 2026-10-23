@@ -42,10 +42,23 @@ export const RULES = [
   },
 ];
 
-/** 検出値をマスクする（先頭 4 文字 + 長さのみ） */
+/**
+ * 検出値をマスクする。
+ *
+ * v0.57.3: 先頭 4 文字は「プロバイダーが特定できる接頭辞」のときだけ出す。
+ * `eyJhbGci...`（JWT）や `Bearer <token>` は先頭 4 文字でも情報漏えいになるため、
+ * 未知の形式は長さのみを表示する。
+ */
+const KNOWN_PREFIXES = [
+  'sk-', 'sk_ant-', 'ghp_', 'gho_', 'ghu_', 'ghs_', 'ghr_',
+  'github_pat_', 'AKIA', 'AIza', 'xoxb-', 'xoxa-', 'xoxp-', 'xoxr-', 'xoxs-',
+];
+
 export function mask(value) {
   if (value.length <= 6) return '***';
-  return `${value.slice(0, 4)}…(${value.length} 文字)`;
+  const known = KNOWN_PREFIXES.some((p) => value.startsWith(p));
+  const head = known ? value.slice(0, 4) : '****';
+  return `${head}…(${value.length} 文字)`;
 }
 
 function isAllowed(line, matched) {

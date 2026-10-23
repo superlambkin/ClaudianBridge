@@ -36,10 +36,29 @@ export function getClaudianPlugin(app: unknown): ClaudianPlugin | undefined {
 
 /**
  * ビュー操作 API を持つオブジェクトを解決する。
+ *
  * 旧 API（plugin 直下）を優先し、無ければ新 API（plugin.views）を使う。
+ *
+ * v0.57.3: 「必要とするメソッドが実際に使えるオブジェクト」を選ぶよう改善。
+ * 単に `getView` の有無で root を選ぶと、`getView` は無いが `activateView`
+ * だけある部分形状で、activateView が解決できない状態を Returning。
+ * 呼び出し側が使うメソッド（getView / activateView / getAllViews）の
+ * どれかが使える側を返す。
  */
 export function resolveClaudianViewApi(p: ClaudianPlugin): ClaudianViewApi {
-  return typeof p.getView === 'function' ? p : (p.views ?? p);
+  const hasApi = (o: ClaudianViewApi | undefined): boolean =>
+    !!o &&
+    (typeof o.getView === 'function' ||
+      typeof o.activateView === 'function' ||
+      typeof o.getAllViews === 'function');
+
+  // root に必要なメソッドがあれば旧 API を優先（後方互換）
+  if (hasApi(p) && typeof p.getView === 'function') return p;
+  // views に使える API があれば新 API
+  if (hasApi(p.views)) return p.views as ClaudianViewApi;
+  // root に getView は無いが他のメソッドだけある場合
+  if (hasApi(p)) return p;
+  return p.views ?? p;
 }
 
 /** 起動時検査。API が想定形状でなければ missing-api を返す */

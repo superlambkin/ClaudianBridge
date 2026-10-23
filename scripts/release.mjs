@@ -22,10 +22,14 @@
  */
 import { createHash } from "crypto";
 import { existsSync, readFileSync, readdirSync, statSync } from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
 import { execFileSync } from "child_process";
+import { fileURLToPath } from "url";
 
-const ROOT = process.cwd();
+// v0.57.3: cwd 依存を無くす。scripts/ の位置からリポジトリルートを導出する
+// （`npm run release` は cwd がリポジトリルートだが、`node scripts/release.mjs` を
+// 別ディレクトリから実行した場合に誤ったパスを参照していた）。
+const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /** ファイルの sha256（hex） */
 function sha256(file) {

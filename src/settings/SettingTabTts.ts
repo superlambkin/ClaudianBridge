@@ -33,7 +33,14 @@ const EDGE_VOICE_PRESETS: Record<'zh' | 'ja' | 'en', string[]> = {
 // v0.8.0: spawn ベースのローカル VITS を削除し Plachta Cloud に置換。plachta 専用 UI（プリセット・カスタム・言語・速度）を追加。
 type EngineKey = TtsEngine;
 
-export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigStore): void {
+export function renderTtsTab(
+  app: App,
+  containerEl: HTMLElement,
+  store: ConfigStore,
+  _resetMigration?: () => Promise<void>,
+  _pluginId?: string,
+  pluginDir?: string,
+): void {
   const s = getLocaleStrings(getUILanguage());
 
   const draw = (): void => {
@@ -205,8 +212,12 @@ export function renderTtsTab(app: App, containerEl: HTMLElement, store: ConfigSt
           const configured = (cfg.tts.edgeTtsModulePath ?? '').trim();
           let displayPath = configured;
           if (!displayPath) {
-            const pluginDir = (app as unknown as { vault?: { adapter?: { basePath?: string } } }).vault?.adapter?.basePath ?? '';
-            displayPath = path.join(pluginDir, 'py', 'edge_tts');
+            // v0.57.3: プラグインフォルダ基準で探す。旧実装は Vault ルート基準で
+            // `<vault>/py/edge_tts` を参照しており、実在しないパスを開いていた。
+            const base = pluginDir
+              ?? (app as unknown as { vault?: { adapter?: { basePath?: string } } }).vault?.adapter?.basePath
+              ?? '';
+            displayPath = path.join(base, 'py', 'edge_tts');
           }
           const exists = await app.vault.adapter.exists(displayPath);
           if (!exists) {

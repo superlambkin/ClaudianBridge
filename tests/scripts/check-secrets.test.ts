@@ -75,4 +75,18 @@ describe('mask', () => {
     expect(out.startsWith('sk-a')).toBe(true);
     expect(out).not.toContain('bcdefghijklmnop');
   });
+
+  // M3: Bearer トークン等の先頭 4 文字は情報漏えいになる。
+  // recognized な接頭辞のときだけ先頭を出す。
+  it('M3: 未知の接頭辞では先頭文字を出さない', () => {
+    const out = mask('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9abcdef');
+    expect(out.startsWith('eyJh')).toBe(false);
+    expect(out).not.toContain('eyJhbGci');
+    expect(out).toContain('文字');
+  });
+
+  it('M3: 既知の接頭辞（sk- 等）は先頭 4 文字を出す', () => {
+    const out = mask('sk-abcdefghijklmnop');
+    expect(out.startsWith('sk-a')).toBe(true);
+  });
 });

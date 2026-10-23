@@ -38,6 +38,20 @@ describe('resolveClaudianViewApi', () => {
     const p: ClaudianPlugin = {};
     expect(resolveClaudianViewApi(p)).toBe(p);
   });
+
+  // M2: 旧 API（plugin 直下）に getView が無いのに activateView だけが
+  // ある「部分形状」の場合、root を選ぶと activateView が解決できない。
+  it('M2: root に getView が無く activateView のみなら views を優先する', () => {
+    const views = { getView: () => 'views', activateView: () => 'activated' };
+    const p = { activateView: () => 'root-activated', views } as unknown as ClaudianPlugin;
+    expect(resolveClaudianViewApi(p)).toBe(views);
+  });
+
+  it('M2: root に getView も activateView も無ければ views を返す', () => {
+    const views = { getView: () => 'views' };
+    const p = { views } as unknown as ClaudianPlugin;
+    expect(resolveClaudianViewApi(p)).toBe(views);
+  });
 });
 
 describe('checkClaudianApi', () => {

@@ -141,14 +141,24 @@ def _apply_gec_v2(plugin_dir: str):
 
     Microsoft は 2026-10 時点で Sec-MS-GEC-Version を 1- から 2- へ変更した。
     v1 のままだと接続は 403 Forbidden で拒否される。
+
+    v0.57.3: helper を sys.path 経由で読み込まず、ファイルパスを直接指定して
+    import する。プラグインフォルダ全体を sys.path の先頭に入れると
+    query.py / config.yaml 等が import 対象になり、名前衝突の余地が生まれる。
     """
     if not plugin_dir:
         return
     try:
-        if str(Path(plugin_dir)) not in sys.path:
-            sys.path.insert(0, str(Path(plugin_dir)))
-        import edge_tts_gec_v2
-        result = edge_tts_gec_v2.patch_edge_tts()
+        helper = Path(plugin_dir) / "edge_tts_gec_v2.py"
+        if not helper.exists():
+            raise ImportError(f"helper not found: {helper}")
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("cb_edge_tts_gec_v2", helper)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load helper: {helper}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        result = module.patch_edge_tts()
         if result == "v2":
             print("[edge-tts-local] Sec-MS-GEC v2 patched", file=sys.stderr, flush=True)
     except ImportError:
