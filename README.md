@@ -199,6 +199,26 @@ npm run release -- --apply   # タグ作成 → push → gh release create
 
 ---
 
+## 🔐 シークレット検査（pre-commit）
+
+API キー・トークン・秘密鍵の誤コミットを防ぐため、コミット前に自動検査します。
+
+```bash
+npm run setup:hooks       # 初回のみ: git config core.hooksPath .githooks
+npm run check:secrets     # 追跡ファイル全体を手動監査
+```
+
+| 動作 | 内容 |
+|------|------|
+| 検査対象 | ステージ済みファイル（`--all` で全追跡ファイル） |
+| 検出 | `sk-*` / `ghp_*` / `AKIA*` / `AIza*` / `xox*-` / 秘密鍵ブロック / `Bearer` / 資格情報の代入 |
+| 検出時 | コミットを中止し、値をマスクして表示（値はログに残さない） |
+| 誤検知 | 該当行末に `secret-scan:allow` を付与 |
+
+> ⚠️ 認証情報は `data.json`（`.gitignore` 済）または環境変数（`${MINIMAX_API_KEY}` 等）に置き、**設定ファイルへ直接書かない**こと。
+
+---
+
 ## 📝 更新履歴
 
 | バージョン | 日付 | 修正内容 | 修正者 |

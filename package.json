@@ -10,6 +10,9 @@
     "deploy": "node scripts/deploy.mjs",
     "typecheck": "tsc -noEmit",
     "check:changelog": "node scripts/check-changelog.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs --all",
+    "check:secrets:staged": "node scripts/check-secrets.mjs --staged",
+    "setup:hooks": "git config core.hooksPath .githooks",
     "bundle:edge-tts": "git subtree pull --prefix=py/edge_tts https://github.com/rany2/edge-tts.git 7.2.8 --squash",
     "release": "node scripts/release.mjs"
   },

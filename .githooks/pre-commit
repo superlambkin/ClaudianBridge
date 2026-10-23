@@ -1,0 +1,8 @@
+#!/bin/sh
+# シークレット検査（API キー・トークン・秘密鍵の誤コミット防止）
+# 有効化: npm run setup:hooks （git config core.hooksPath .githooks）
+if ! command -v node >/dev/null 2>&1; then
+  echo "⚠️  node が見つからないためシークレット検査をスキップしました"
+  exit 0
+fi
+node scripts/check-secrets.mjs --staged || exit 1
