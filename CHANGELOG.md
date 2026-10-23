@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.57.0] - 2026-10-21 — LocalEdgeTTS 復旧：Sec-MS-GEC v2 対応＋存在チェックガード修正 (F-059)
+
+ローカル EdgeTTS（`py/edge_tts` 同梱モジュール）が `403 Invalid response status`
+で起動しなくなる障害を根本修正。あわせて、プラグインフォルダをコピー・移動した
+場合に「同梱 edge_tts が見つからない」原因が不明のまま `ModuleNotFoundError`
+になる問題も解消。
+
+### Fixed
+
+- 🐛 **同梱 edge_tts を Sec-MS-GEC v2 へ更新** (`py/edge_tts/src/edge_tts/`):
+  Microsoft が WSS ハンドシェイクの `Sec-MS-GEC-Version` を `1-<chromium>` から
+  **`2-<chromium>` へ変更**。同梱版 7.2.8 と **PyPI 最新 7.3.1 はいずれも `1-` の
+  ままで**、要求されるトークン形式（CS64 + SHA256）も生成していなかった。
+  上流 rany2/edge-tts の Issue #507 / `feat: support Sec-MS-GEC v2 tokens` が対応分。
+  - `constants.py`: `SEC_MS_GEC_VERSION = f"2-{CHROMIUM_FULL_VERSION}"`
+  - `drm.py`: `DRM.generate_sec_ms_gec()` が v2 形式（`<16 hex CS64>-<64 hex SHA256>`）を返す
+- 🐛 **存在チェックのガード修正** (`src/features/tts/edge-tts-local.ts`):
+  ガード条件が「設定パスが明示されている場合のみ」`py/edge_tts` の存在を検査して
+  いたため、既定（設定空欄＝プラグイン同梱を自動解決する経路）では検査がスキップされ、
+  存在しないパスを Python に渡して `ModuleNotFoundError` になるだけだった。
+  `configured !== ''` → `modulePath !== ''` に変更。
+  `modulePath === ''` は pluginDir 未設定（= site-packages を意図利用）の場合のみで、
+  その CASE は従来どおり動作する。
+
+### Added
+
+- 🆕 **回帰テスト F4** (`tests/features/tts/edge-tts-local.test.ts`):
+  設定空欄＋同梱欠落 → spawn せず、Notice に原因を明示することを確認。
+
+### 切り分け記録（すべて実測）
+
+| 検証 | 結果 |
+|------|------|
+| 認証情報の有効性 | 新トークン→403 / 旧トークン→401（403≠401 = 認証成功・拒否） |
+| GEC 計算アルゴリズム | 手計算と完全一致（バグなし） |
+| 時計ずれ | +0.7 秒（正常） |
+| ネットワーク到達 | voices API HTTP 200 / IPv4・IPv6 両方到達可 |
+| HTTP ライブラリ非依存 | aiohttp でも websockets でも 403 |
+| ヘッダー・UA・トークン・GEC 有無の全組み合わせ | 全て 403 |
+
+→ クライアント側ではなく **Microsoft 側の要件変更**が真因と確定。
+
+### 検証
+
+- プラグインと同一経路（`%TEMP%\claudian_bridge_edge_tts.py`）で実測:
+  ja-JP-NanamiNeural 12,384 B / zh-CN-XiaoxiaoNeural 11,232 B /
+  en-US-AriaNeural 11,808 B（いずれも有効な MPEG2 Layer III / 48kHz MP3）
+- 実機 UAT: Obsidian の「Add to TTS」で**音声再生を確認**
+- vitest: 1449 passed / 1 skipped / 0 failed（136 files）
+- tsc --noEmit: exit 0
+
 ## [0.56.0] - 2026-09-20 — 方案ボタン最大数・番号フォーマット切替 (F-058)
 
 ご主人様要望「設定画面にて最大数とデザインを選択切替できるようにしたい」への対応。
