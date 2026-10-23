@@ -10,7 +10,8 @@
     "deploy": "node scripts/deploy.mjs",
     "typecheck": "tsc -noEmit",
     "check:changelog": "node scripts/check-changelog.mjs",
-    "bundle:edge-tts": "git subtree pull --prefix=py/edge_tts https://github.com/rany2/edge-tts.git 7.2.8 --squash"
+    "bundle:edge-tts": "git subtree pull --prefix=py/edge_tts https://github.com/rany2/edge-tts.git 7.2.8 --squash",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

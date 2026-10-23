@@ -171,6 +171,34 @@ applied_rules_version: 2.15.0
 
 ---
 
+## 🚀 リリース手順
+
+```bash
+npm run build      # Plugin/ に main.js / manifest.json / styles.css / edge_tts_gec_v2.py を生成
+npm run release    # dry-run: 実行される gh コマンドを表示
+npm run release -- --apply   # タグ作成 → push → gh release create
+```
+
+### リリースに含めるべきアセット
+
+| アセット | 配置先 | 必須理由 |
+|------|------|------|
+| `main.js` | `<pluginDir>/main.js` | プラグイン本体 |
+| `manifest.json` | `<pluginDir>/manifest.json` | プラグイン定義 |
+| `styles.css` | `<pluginDir>/styles.css` | スタイル |
+| **`edge_tts_gec_v2.py`** | `<pluginDir>/edge_tts_gec_v2.py` | **v0.57.0 以降必須**。旧 edge_tts（Sec-MS-GEC v1）を実行時パッチする |
+
+> ⚠️ **自己更新はアセットを名前でフィルタせず、全て `<pluginDir>/<asset.name>` へ展開する**（`update-checker.ts` / `update-downloader.ts`）。
+> そのため `<pluginDir>` 直下から読むファイルは**必ずリリースアセットに含める**必要がある。
+>
+> ⚠️ `py/edge_tts` はリリースに含めない（サイズ・ライセンス都合）。同梱されていない環境では pip の edge_tts が使われるが、
+> **PyPI 最新 7.3.1 も Sec-MS-GEC v1 のまま**なので 403 になる。`edge_tts_gec_v2.py` がこれを補う。
+
+> ⚠️ `npm run bundle:edge-tts` は `git subtree pull --squash ... 7.2.8` で **`py/edge_tts` を v1 仕様へ上書きする**。
+> 実行した場合は `constants.py`（`SEC_MS_GEC_VERSION = "2-..."`）と `drm.py` の v2 実装を再適用すること。
+
+---
+
 ## 📝 更新履歴
 
 | バージョン | 日付 | 修正内容 | 修正者 |
