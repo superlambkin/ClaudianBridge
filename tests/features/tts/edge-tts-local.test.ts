@@ -3,7 +3,7 @@ import type { ChildProcess } from 'child_process';
 import fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { localEdgeTtsSpeak, resolveEdgeTtsModulePath, resolveEdgeVoiceFull, initEdgeTtsLocal, resetEdgeTtsLocalState, resolvePythonCmd, killProcessTree } from '../../../src/features/tts/edge-tts-local';
+import { localEdgeTtsSpeak, resolveEdgeTtsModulePath, resolveEdgeVoiceFull, initEdgeTtsLocal, resetEdgeTtsLocalState, resolvePythonCmd, killProcessTree, detectEdgeTtsGecVersion } from '../../../src/features/tts/edge-tts-local';
 import type { TtsSettings } from '../../../src/features/tts/core';
 import { isTtsPlaying, resetPlaybackRegistry, stopAllPlayback } from '../../../src/features/tts/playback-registry';
 
@@ -71,6 +71,33 @@ afterEach(() => {
     (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = origCreateObjectURL;
   }
   delete (globalThis as unknown as { Audio?: unknown }).Audio;
+});
+
+describe('detectEdgeTtsGecVersion', () => {
+  // constants.py の内容を差し替えて Sec-MS-GEC 世代を判定する
+  const writeConstants = (content: string): void => {
+    vi.spyOn(fs, 'readFileSync').mockReturnValue(content);
+  };
+
+  it('Sec-MS-GEC-Version が "2-" なら v2', () => {
+    writeConstants('SEC_MS_GEC_VERSION = f"2-{CHROMIUM_FULL_VERSION}"\n');
+    expect(detectEdgeTtsGecVersion('C:/plugin/py/edge_tts/src')).toBe('v2');
+  });
+
+  it('Sec-MS-GEC-Version が "1-" なら v1', () => {
+    writeConstants('SEC_MS_GEC_VERSION = f"1-{CHROMIUM_FULL_VERSION}"\n');
+    expect(detectEdgeTtsGecVersion('C:/plugin/py/edge_tts/src')).toBe('v1');
+  });
+
+  it('edge_tts 直下（src でない）配置でも判定できる', () => {
+    writeConstants('SEC_MS_GEC_VERSION = f"2-{CHROMIUM_FULL_VERSION}"\n');
+    expect(detectEdgeTtsGecVersion('C:/plugin/py/edge_tts')).toBe('v2');
+  });
+
+  it('constants.py が見つからない場合は unknown（判定を諦めて続行する）', () => {
+    vi.spyOn(fs, 'readFileSync').mockImplementation(() => { throw new Error('ENOENT'); });
+    expect(detectEdgeTtsGecVersion('C:/plugin/py/edge_tts/src')).toBe('unknown');
+  });
 });
 
 describe('resolveEdgeVoiceFull', () => {
@@ -170,6 +197,36 @@ describe('localEdgeTtsSpeak', () => {
     await expect(p).resolves.toBe(false);
     expect(spawnMock).not.toHaveBeenCalled();
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('py/edge_tts'));
+  });
+
+  // F5: 同梱/選択された edge_tts が Sec-MS-GEC v1 の場合、Microsoft が 403 で拒否するため
+  // spawn せずに原因と対処を明示する
+  it('F5: edge_tts が Sec-MS-GEC v1 なら spawn せず 403 の原因と対処を Notice', async () => {
+    vi.spyOn(fs, 'readFileSync').mockReturnValue('SEC_MS_GEC_VERSION = f"1-{CHROMIUM_FULL_VERSION}"\n');
+    const notice = vi.fn();
+    const p = localEdgeTtsSpeak('hello', makeSettings(), notice);
+    await expect(p).resolves.toBe(false);
+    expect(spawnMock).not.toHaveBeenCalled();
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('Sec-MS-GEC v1'));
+    expect(notice).toHaveBeenCalledWith(expect.stringContaining('403'));
+  });
+
+  it('F6: edge_tts が Sec-MS-GEC v2 なら通常どおり spawn する', async () => {
+    vi.spyOn(fs, 'readFileSync').mockReturnValue('SEC_MS_GEC_VERSION = f"2-{CHROMIUM_FULL_VERSION}"\n');
+    (globalThis as unknown as { Audio: unknown }).Audio = class {
+      src = '';
+      onended: () => void = () => {};
+      play(): Promise<void> { this.onended(); return Promise.resolve(); }
+      pause() {}
+    };
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const notice = vi.fn();
+    const p = localEdgeTtsSpeak('hello', makeSettings(), notice);
+    child.stdout.emitData(Buffer.from('MP3DATA'));
+    child.emit('close', 0);
+    await expect(p).resolves.toBe(true);
+    expect(spawnMock).toHaveBeenCalled();
   });
 
   it('F1: 意図的停止（stopAllPlayback）では失敗 Notice を出さず false で解決し isTtsPlaying=false', async () => {

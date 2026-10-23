@@ -175,6 +175,44 @@ function pathExistsEdgeTts(dir: string): boolean {
   }
 }
 
+/**
+ * v0.57.0: 選択された edge_tts の Sec-MS-GEC 世代を判定する。
+ *
+ * Microsoft は 2026-10 時点で WSS ハンドシェイクの `Sec-MS-GEC-Version` を
+ * `1-<chromium>` から `2-<chromium>` へ変更した。v1 のままでは
+ * 「403 Invalid response status」で必ず拒否される。
+ *
+ * - 'v2'      … `2-` 仕様の edge_tts（利用可能）
+ * - 'v1'      … `1-` 仕様の edge_tts（403 になる）
+ * - 'unknown' … constants.py が見つからない等（判定を諦めて続行する）
+ */
+export function detectEdgeTtsGecVersion(dir: string): 'v1' | 'v2' | 'unknown' {
+  if (!dir) return 'unknown';
+  try {
+    const fs = require('fs') as typeof import('fs');
+    // src-layout（<dir>/edge_tts/constants.py）と package 直下（<dir>/constants.py）の両対応
+    const candidates = [
+      path.join(dir, 'edge_tts', 'constants.py'),
+      path.join(dir, 'constants.py'),
+    ];
+    for (const p of candidates) {
+      let content: string;
+      try {
+        content = fs.readFileSync(p, 'utf-8') as string;
+      } catch {
+        continue;
+      }
+      const m = /SEC_MS_GEC_VERSION\s*=\s*f?"([12])-/.exec(content);
+      if (m) return m[1] === '2' ? 'v2' : 'v1';
+      // 定数の書き方が異なる場合は v2 実装の有無で判定する
+      return /generate_sec_ms_gec_v2/.test(content) ? 'v2' : 'unknown';
+    }
+    return 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 /** ローカル EdgeTTS で 1 チャンクを合成・再生する */
 export function localEdgeTtsSpeak(
   text: string,
@@ -198,6 +236,17 @@ export function localEdgeTtsSpeak(
         ? `⚠️ 指定パスに edge_tts モジュールがありません: ${configured}`
         : `⚠️ プラグインに同梱の edge_tts が見つかりません: ${modulePath}\n` +
           `py/edge_tts が同梱されていない可能性があります。プラグインフォルダを丸ごとコピー・移動した場合に発生します。`);
+      resolve(false);
+      return;
+    }
+
+    // v0.57.0: 古い edge_tts（Sec-MS-GEC v1）は Microsoft に 403 で拒否される。
+    // 原因が不明な 403 になる前に、世代を検査して対処を明示する。
+    if (modulePath !== '' && detectEdgeTtsGecVersion(modulePath) === 'v1') {
+      noticeFn(`⚠️ 検出された edge_tts は Sec-MS-GEC v1（旧仕様）です。\n` +
+        `Microsoft は現在 Sec-MS-GEC v2 を要求しており、v1 のままだと 403 Forbidden で拒否されます。\n` +
+        `edge_tts を v2 対応版に更新してください。` +
+        `（プラグイン v0.57.0 以降の同梱版は v2 対応済みです。py/edge_tts を plugins フォルダへ再配置するか、プラグインを再インストールしてください）`);
       resolve(false);
       return;
     }
