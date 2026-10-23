@@ -1,21 +1,6 @@
 import type { App } from 'obsidian';
 import { Notice } from 'obsidian';
-
-// realclaudian プラグイン（plugin オブジェクト）
-interface RealClaudianPlugin {
-  activateView?: () => Promise<unknown>;
-  getView?: () => RealClaudianView | null;
-  /** v2.3.29 以降: ビュー操作 API（activateView / getView）はここに移された */
-  views?: RealClaudianPlugin;
-}
-
-/**
- * ビュー操作 API を持つオブジェクトを解決する。
- * Claudian 2.3.29 で plugin 直下から plugin.views へ移動したため両対応する。
- */
-export function resolveClaudianViewApi(p: RealClaudianPlugin): RealClaudianPlugin {
-  return typeof p.getView === 'function' ? p : (p.views ?? p);
-}
+import { getClaudianPlugin, resolveClaudianViewApi } from '../../core/claudian-api';
 
 // realclaudian ビュー（getView() の戻り値）
 interface RealClaudianView {
@@ -40,8 +25,7 @@ export async function sendToClaudian(
   text: string,
   noticeFn: (m: string) => void = (m) => new Notice(m)
 ): Promise<boolean> {
-  const p = (app as unknown as { plugins?: { plugins?: Record<string, RealClaudianPlugin | undefined> } })
-    ?.plugins?.plugins?.['realclaudian'];
+  const p = getClaudianPlugin(app);
   if (!p) {
     noticeFn('⚠️ Claudian プラグインが見つかりません');
     return false;
@@ -49,7 +33,7 @@ export async function sendToClaudian(
   try {
     const api = resolveClaudianViewApi(p);
     if (typeof api.activateView === 'function') await api.activateView();
-    const view = api.getView?.() ?? null;
+    const view = (api.getView?.() ?? null) as RealClaudianView | null;
     const tab = view?.getActiveTab?.() ?? null;
     const inputController = tab?.controllers?.inputController;
 

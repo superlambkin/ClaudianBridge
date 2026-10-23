@@ -44,6 +44,7 @@ import { DEFAULT_CLAUDIAN_BRIDGE_SETTINGS } from './core/settings';
 import * as path from 'path';
 import { initDiagAuto, diag, installGlobalErrorHandlers } from './core/diag';
 import { getPluginDir } from './core/plugin-dir';
+import { checkClaudianApi } from './core/claudian-api';
 import { applyProxyEnv } from './core/proxy';
 import { getOpenVpnController, reapOrphanOpenVpn } from './features/network/openvpn';
 
@@ -96,6 +97,23 @@ export default class ClaudianBridgePlugin extends Plugin {
       // v0.38.0: プロキシ設定の env 適用（Node fetch が HTTPS_PROXY を尊重する）
       applyProxyEnv(this.store.load().network.proxy);
       diag('proxy env applied', this.store.load().network.proxy);
+
+      // v0.57.1 (F-060): Claudian 内部 API の形状を起動時に検査する。
+      // Claudian はアップデートで内部 API を予告なく移動するため（2.3.29 で
+      // activateView/getView が plugin.views へ移動）、起動時に気付けるようにする。
+      // プラグイン未導入・読み込み順の差異を誤検知しないよう missing-api のみ通知する。
+      try {
+        const apiStatus = checkClaudianApi(this.app);
+        diag('claudian api check', apiStatus);
+        if (apiStatus.status === 'missing-api') {
+          new Notice(
+            `⚠️ Claudian${apiStatus.version ? ` ${apiStatus.version}` : ''} の内部 API を認識できません。Claudian の仕様変更の可能性があります（Console: claudian-bridge-diag）`,
+            10000,
+          );
+        }
+      } catch (e) {
+        diag('claudian api check ERROR', e);
+      }
 
       // 1. 旧 data.json → 新形式 自動取り込み（旧プラグインのリネームより先に実施）
       try {

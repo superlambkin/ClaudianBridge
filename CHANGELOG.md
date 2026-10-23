@@ -22,9 +22,17 @@ ClaudianBridge は旧パスを呼び続けていたため、`getView()` が `und
 
 ### Added
 
+- 🆕 **起動時の Claudian API 形状チェック** (`src/core/claudian-api.ts`, `src/main.ts`):
+  `checkClaudianApi()` が `plugin.getView` / `plugin.views.getView` のどちらも
+  見つからない場合に Notice を表示し、`diag` に `claudian api check` を記録する。
+  プラグイン未導入や読み込み順の差異は誤検知しないよう `missing-api` のみ通知。
+- 🆕 **API アクセサの一元化**: 5 機能に重複していた解決ロジックを
+  `src/core/claudian-api.ts` に集約（`getClaudianPlugin` / `resolveClaudianViewApi`）。
 - ✅ **回帰テスト** (`tests/features/selection/core.test.ts`,
   `tests/features/quick-reply/core.test.ts`): `plugin.views` 経由で
   `activateView` / `appendToActiveInput` が呼ばれることを検証。
+- ✅ **API 検査テスト** (`tests/core/claudian-api.test.ts`): 旧/新/未導入/
+  形状変更の 4 系統を検証（7 件）。
 
 ### 実機確認（2026-10-24）
 

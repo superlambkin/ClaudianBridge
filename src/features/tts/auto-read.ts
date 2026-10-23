@@ -7,6 +7,7 @@ import { createLatestWinsSpeaker } from './speak-coordinator';
 import { createChatReadHighlighter } from './chat-read-highlight';
 import type { SpeakFn } from './speak-coordinator';
 import { stopAllPlayback } from './playback-registry';
+import { getClaudianPlugin, resolveClaudianViewApi } from '../../core/claudian-api';
 
 /**
  * v0.11.0: タスク終了時の自動読み上げ。
@@ -38,8 +39,6 @@ interface RealClaudianView {
 interface RealClaudianPlugin {
   getView?: () => RealClaudianView | null;
   getAllViews?: () => RealClaudianView[];
-  /** v2.3.29 以降: ビュー操作 API はここに移された */
-  views?: RealClaudianPlugin;
 }
 
 export interface AutoReadDeps {
@@ -72,14 +71,13 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
   let warned = false;
 
   const getViews = (): RealClaudianView[] => {
-    const p = (deps.app as unknown as { plugins?: { plugins?: Record<string, RealClaudianPlugin | undefined> } })
-      ?.plugins?.plugins?.['realclaudian'];
+    const p = getClaudianPlugin(deps.app);
     if (!p) {
       console.debug('[cb-auto-read] realclaudian plugin not found');
       return [];
     }
     // v2.3.29 以降は plugin 直下ではなく plugin.views に API がある
-    const api = typeof p.getAllViews === 'function' || typeof p.getView === 'function' ? p : (p.views ?? p);
+    const api = resolveClaudianViewApi(p) as RealClaudianPlugin;
     try {
       if (typeof api.getAllViews === 'function') {
         const vs = api.getAllViews();

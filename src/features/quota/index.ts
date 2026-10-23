@@ -5,6 +5,7 @@ import { QuotaBarView } from './view';
 import { readLlmInfoFromSettings } from './llm-info';
 import type { ThinkingConfig } from '../llm/types';
 import type { ConfigStore } from '../../core/config-store';
+import { getClaudianPlugin, resolveClaudianViewApi } from '../../core/claudian-api';
 
 export interface ClaudeQuotaHandle {
   service: MultiQuotaService;
@@ -22,8 +23,6 @@ interface RealClaudianViewShape {
 
 interface RealClaudianPluginShape {
   getView?: () => RealClaudianViewShape | null;
-  /** v2.3.29 以降: ビュー操作 API はここに移された */
-  views?: RealClaudianPluginShape;
 }
 
 interface AppWithPlugins {
@@ -121,9 +120,10 @@ export async function registerClaudeQuota(
   const tryMount = (): boolean => {
     if (view.isMounted() && view.isConnected()) return true;
     if (view.isMounted() && !view.isConnected()) view.unmount();
-    const realClaudian = (app as unknown as AppWithPlugins)?.plugins?.plugins?.['realclaudian'];
-    const viewApi = realClaudian?.getView ? realClaudian : realClaudian?.views;
-    if (!viewApi?.getView) return false;
+    const realClaudian = getClaudianPlugin(app);
+    if (!realClaudian) return false;
+    const viewApi = resolveClaudianViewApi(realClaudian) as RealClaudianPluginShape;
+    if (!viewApi.getView) return false;
     try {
       const v = viewApi.getView();
       const anchor = getAnchor(v);

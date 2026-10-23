@@ -1,3 +1,6 @@
+import type { App } from 'obsidian';
+import { getClaudianPlugin, resolveClaudianViewApi } from '../../core/claudian-api';
+
 export const MESSAGES_SELECTOR = '.claudian-messages';
 export const RECOMMEND_DEBOUNCE_MS = 300;
 
@@ -46,27 +49,19 @@ export function extractRecommendedOption(text: string): number | null {
   return null;
 }
 
-import type { App } from 'obsidian';
-
 // === v0.23.0: 推奨方案の自動検出 ===
 
-// realclaudian プラグインへのアクセスに必要な最小形状。
-// インラインで `Record<string, { ... } | undefined>` を書くと esbuild の TS パーサーが解析失敗するため、named type に分離。
+// realclaudian ビューのアクセスに必要な最小形状。
 type RecommendTabLike = { dom?: { messagesEl?: HTMLElement } };
 type RecommendViewLike = { getActiveTab?: () => RecommendTabLike | null | null };
-type RecommendPluginLike = {
-  getView?: () => RecommendViewLike | null | null;
-  /** v2.3.29 以降: ビュー操作 API はここに移された */
-  views?: RecommendPluginLike;
-};
 
 /** 直近の assistant メッセージ本文を取得する（取得不能は空文字） */
 function readLastAssistantText(app: App): string {
   try {
-    const p = (app as unknown as { plugins?: { plugins?: Record<string, RecommendPluginLike | undefined> } })
-      ?.plugins?.plugins?.['realclaudian'];
-    const api = p?.getView ? p : (p?.views ?? p);
-    const view = api?.getView?.() ?? null;
+    const p = getClaudianPlugin(app);
+    if (!p) return '';
+    const api = resolveClaudianViewApi(p);
+    const view = (api.getView?.() ?? null) as RecommendViewLike | null;
     const tab = view?.getActiveTab?.() ?? null;
     const messagesEl = tab?.dom?.messagesEl;
     if (!messagesEl) return '';
