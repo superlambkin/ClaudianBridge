@@ -98,6 +98,7 @@ export function killProcessTree(child: ChildProcess): void {
 
 /** 埋め込み Python アダプタ（stdin のテキストを edge_tts で合成し audio/mpeg を stdout へ） */
 const EDGE_TTS_ADAPTER_PY = `#!/usr/bin/env python3
+# claudian-bridge-adapter: v0.57.0
 """Claudian Bridge \u30ed\u30fc\u30ab\u30eb EdgeTTS \u30a2\u30c0\u30d7\u30bf\uff081\u30ea\u30af\u30a8\u30b9\u30c8=1\u30d7\u30ed\u30bb\u30b9\uff09"""
 import argparse
 import asyncio
@@ -135,12 +136,34 @@ async def _synthesize(text: str, voice: str):
             audio.extend(chunk["data"])
     return bytes(audio)
 
+def _apply_gec_v2(plugin_dir: str):
+    """Sec-MS-GEC v1 の edge_tts を v2 へ差し替える（プラグイン同梱 helper を使う）。
+
+    Microsoft は 2026-10 時点で Sec-MS-GEC-Version を 1- から 2- へ変更した。
+    v1 のままだと接続は 403 Forbidden で拒否される。
+    """
+    if not plugin_dir:
+        return
+    try:
+        if str(Path(plugin_dir)) not in sys.path:
+            sys.path.insert(0, str(Path(plugin_dir)))
+        import edge_tts_gec_v2
+        result = edge_tts_gec_v2.patch_edge_tts()
+        if result == "v2":
+            print("[edge-tts-local] Sec-MS-GEC v2 patched", file=sys.stderr, flush=True)
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"[edge-tts-local] GEC v2 patch skipped: {e}", file=sys.stderr, flush=True)
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--voice", required=True)
     ap.add_argument("--edge-tts-path", default="")
+    ap.add_argument("--plugin-dir", default="")
     args = ap.parse_args()
     _add_edge_tts_path(args.edge_tts_path)
+    _apply_gec_v2(args.plugin_dir)
     text = sys.stdin.read()
     try:
         audio = asyncio.run(_synthesize(text, args.voice))
@@ -154,12 +177,28 @@ if __name__ == "__main__":
     main()
 `;
 
-/** アダプタを os.tmpdir() へ書き出す（初回のみ。以後は既存を再利用） */
+/**
+ * v0.57.0: アダプタPul バージョン標識。
+ * 実体の Python スクリプトにはこの文字列が埋め込まれ、ensureAdapter() が
+ * 既存ファイルと照合する。main.js を更新しても %TEMP% の古いアダプタが
+ * 使い回されると、実装と食い違う挙動になる（--plugin-dir が渡らない等）。
+ */
+const ADAPTER_MARKER = '# claudian-bridge-adapter: v0.57.0';
+
+/** アダプタを os.tmpdir() へ書き出す（内容が最新なら再利用し、古い場合のみ上書き） */
 function ensureAdapter(): string {
-  if (adapterWritten) return adapterPath;
   const fs = require('fs') as typeof import('fs');
   adapterPath = path.join(os.tmpdir(), 'claudian_bridge_edge_tts.py');
-  fs.writeFileSync(adapterPath, EDGE_TTS_ADAPTER_PY, 'utf-8');
+  if (adapterWritten) return adapterPath;
+  let current = '';
+  try {
+    current = fs.readFileSync(adapterPath, 'utf-8') as string;
+  } catch {
+    current = '';
+  }
+  if (!current.includes(ADAPTER_MARKER)) {
+    fs.writeFileSync(adapterPath, EDGE_TTS_ADAPTER_PY, 'utf-8');
+  }
   adapterWritten = true;
   return adapterPath;
 }
@@ -170,6 +209,20 @@ function pathExistsEdgeTts(dir: string): boolean {
     const fs = require('fs') as typeof import('fs');
     return fs.existsSync(path.join(dir, '__init__.py'))
         || fs.existsSync(path.join(dir, 'edge_tts', '__init__.py'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * v0.57.0: プラグインフォルダに Sec-MS-GEC v2 补丁 helper が同梱されているか。
+ * 同梱されていれば、古い edge_tts（v1）を Python 側で自動パッチできる。
+ */
+export function hasGecV2Helper(pluginDir: string): boolean {
+  if (!pluginDir) return false;
+  try {
+    const fs = require('fs') as typeof import('fs');
+    return fs.existsSync(path.join(pluginDir, 'edge_tts_gec_v2.py'));
   } catch {
     return false;
   }
@@ -241,8 +294,10 @@ export function localEdgeTtsSpeak(
     }
 
     // v0.57.0: 古い edge_tts（Sec-MS-GEC v1）は Microsoft に 403 で拒否される。
-    // 原因が不明な 403 になる前に、世代を検査して対処を明示する。
-    if (modulePath !== '' && detectEdgeTtsGecVersion(modulePath) === 'v1') {
+    // 同梱 helper（edge_tts_gec_v2.py）があれば Python 側で自動パッチできるため続行する。
+    // helper も無い場合は、原因が不明な 403 になる前に世代を検査して対処を明示する。
+    if (modulePath !== '' && detectEdgeTtsGecVersion(modulePath) === 'v1'
+        && !hasGecV2Helper(edgeTtsPluginDir)) {
       noticeFn(`⚠️ 検出された edge_tts は Sec-MS-GEC v1（旧仕様）です。\n` +
         `Microsoft は現在 Sec-MS-GEC v2 を要求しており、v1 のままだと 403 Forbidden で拒否されます。\n` +
         `edge_tts を v2 対応版に更新してください。` +
@@ -264,6 +319,8 @@ export function localEdgeTtsSpeak(
     try {
       const args = [scriptPath, '--voice', voice];
       if (modulePath !== '') args.push('--edge-tts-path', modulePath);
+      // v0.57.0: プラグインフォルダを渡す（Python 側で Sec-MS-GEC v2 パッチを適用する）
+      if (edgeTtsPluginDir !== '') args.push('--plugin-dir', edgeTtsPluginDir);
       // v0.27.0: resolvePythonCmd() でクロスプラットフォーム対応
       child = spawn(resolvePythonCmd(), args, { windowsHide: true });
     } catch (e) {

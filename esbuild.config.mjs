@@ -14,6 +14,9 @@ const copyPluginExtras = {
       mkdirSync('Plugin', { recursive: true });
       copyFileSync('src/manifest.json', 'Plugin/manifest.json');
       copyFileSync('styles.css', 'Plugin/styles.css');
+      // v0.57.0: Sec-MS-GEC v2 helper も Release アセットとして配布するため Plugin/ へ複製する。
+      // フラット配置にすることで、Release アセット名 = 展開先パス（pluginDir 直下）が成立する。
+      copyFileSync('py/edge_tts_gec_v2.py', 'Plugin/edge_tts_gec_v2.py');
     });
   },
 };

@@ -199,16 +199,40 @@ describe('localEdgeTtsSpeak', () => {
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('py/edge_tts'));
   });
 
-  // F5: 同梱/選択された edge_tts が Sec-MS-GEC v1 の場合、Microsoft が 403 で拒否するため
-  // spawn せずに原因と対処を明示する
-  it('F5: edge_tts が Sec-MS-GEC v1 なら spawn せず 403 の原因と対処を Notice', async () => {
+  // F5: 同梱/選択された edge_tts が Sec-MS-GEC v1 の場合、Microsoft が 403 で拒否する。
+  // プラグイン同梱の v2 helper があれば Python 側で自動パッチできるため続行する。
+  it('F5: edge_tts が Sec-MS-GEC v1 かつ helper なしなら spawn せず 403 の原因と対処を Notice', async () => {
     vi.spyOn(fs, 'readFileSync').mockReturnValue('SEC_MS_GEC_VERSION = f"1-{CHROMIUM_FULL_VERSION}"\n');
+    // helper（edge_tts_gec_v2.py）が無い状態
+    vi.spyOn(fs, 'existsSync').mockImplementation((p: unknown) => {
+      const s = String(p);
+      if (s.includes('edge_tts_gec_v2.py')) return false;
+      return true;
+    });
     const notice = vi.fn();
     const p = localEdgeTtsSpeak('hello', makeSettings(), notice);
     await expect(p).resolves.toBe(false);
     expect(spawnMock).not.toHaveBeenCalled();
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('Sec-MS-GEC v1'));
     expect(notice).toHaveBeenCalledWith(expect.stringContaining('403'));
+  });
+
+  // F5b: v1 でも helper が同梱されていれば Python 側で自動パッチできるため続行する
+  it('F5b: edge_tts が v1 でも helper 同梱なら spawn を止めない', async () => {
+    vi.spyOn(fs, 'readFileSync').mockReturnValue('SEC_MS_GEC_VERSION = f"1-{CHROMIUM_FULL_VERSION}"\n');
+    vi.spyOn(fs, 'existsSync').mockImplementation((p: unknown) => {
+      const s = String(p);
+      if (s.includes('edge_tts_gec_v2.py')) return true;   // helper 同梱
+      return true;
+    });
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const notice = vi.fn();
+    const p = localEdgeTtsSpeak('hello', makeSettings(), notice);
+    child.emit('close', 0);
+    await p;
+    expect(spawnMock).toHaveBeenCalled();
+    expect(notice).not.toHaveBeenCalledWith(expect.stringContaining('Sec-MS-GEC v1'));
   });
 
   it('F6: edge_tts が Sec-MS-GEC v2 なら通常どおり spawn する', async () => {

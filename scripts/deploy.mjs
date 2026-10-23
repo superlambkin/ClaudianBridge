@@ -132,4 +132,17 @@ if (!copyDirSync(edgeTtsSrc, edgeTtsDest)) {
   console.log(`✅ py/edge_tts -> ${edgeTtsDest}`);
 }
 
+// v0.57.0: Sec-MS-GEC v2 补丁 helper（プラグインフォルダ直下にフラット配置）。
+// リリース配布時はアセット名がそのまま pluginDir/edge_tts_gec_v2.py に入るため、
+// フラット配置にすることで更新経路が zip/パス変換なしで成立する。
+const gecHelperSrc = join(process.cwd(), "py", "edge_tts_gec_v2.py");
+const gecHelperDest = join(dest, "edge_tts_gec_v2.py");
+if (!existsSync(gecHelperSrc)) {
+  console.error(`❌ GEC v2 helper missing: ${gecHelperSrc}`);
+  pyOk = false;
+} else {
+  copyFileSync(gecHelperSrc, gecHelperDest);
+  console.log(`✅ edge_tts_gec_v2.py -> ${gecHelperDest}`);
+}
+
 process.exit(pluginOk && pyOk ? 0 : 1);
