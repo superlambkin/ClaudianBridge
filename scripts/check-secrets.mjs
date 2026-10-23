@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * シークレット検査（pre-commit / 手動監査）
  *
