@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.57.1] - 2026-10-24 — Claudian v2.3.29 のビュー API 移動に追従 (F-060)
+
+Claudian 2.3.29 で `activateView()` / `getView()` が **プラグイン直下から `plugin.views` へ移動**した。
+ClaudianBridge は旧パスを呼び続けていたため、`getView()` が `undefined` を返し
+「⚠️ Claudian チャットが準備できていません」で全機能が失敗していた。
+
+### Fixed
+
+- 🐛 **ビュー操作 API の解決を両対応** (`src/features/selection/core.ts`,
+  `src/features/quick-reply/core.ts`, `src/features/quick-reply/recommend-detector.ts`,
+  `src/features/tts/auto-read.ts`, `src/features/quota/index.ts`):
+  `resolveClaudianViewApi()` を新設し、`plugin.getView` が関数なら旧 API、
+  無ければ `plugin.views` を使う。対象は以下の 5 機能。
+  - Add to Claudian（テキスト／フォルダ）
+  - クイック返信ボタンの送信・推奨方案検出
+  - 自動読み上げ（ストリーミング完了フック）
+  - Claude 残量バーのマウント
+- 🐛 **`versions.json` の構文エラーを修正**: 0.10.0 行の末尾カンマ欠落と
+  不正エントリ `"0.41.0": "0.41.0"` により JSON として不正だった（既存不具合）。
+
+### Added
+
+- ✅ **回帰テスト** (`tests/features/selection/core.test.ts`,
+  `tests/features/quick-reply/core.test.ts`): `plugin.views` 経由で
+  `activateView` / `appendToActiveInput` が呼ばれることを検証。
+
+### 実機確認（2026-10-24）
+
+| 検証 | 結果 |
+|------|------|
+| `plugin.activateView` / `plugin.getView` | `undefined`（v2.3.29 で削除） |
+| `plugin.views.activateView` / `plugin.views.getView` | `function` |
+| `plugin.views.getView().appendToActiveInput('…')` | `true`（入力欄へ反映） |
+| 全テスト | 1,458 passed / 1 skipped |
+
 ## [0.57.0] - 2026-10-21 — LocalEdgeTTS 復旧：Sec-MS-GEC v2 対応＋存在チェックガード修正 (F-059)
 
 ローカル EdgeTTS（`py/edge_tts` 同梱モジュール）が `403 Invalid response status`

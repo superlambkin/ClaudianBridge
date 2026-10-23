@@ -5,6 +5,16 @@ import { Notice } from 'obsidian';
 interface RealClaudianPlugin {
   activateView?: () => Promise<unknown>;
   getView?: () => RealClaudianView | null;
+  /** v2.3.29 以降: ビュー操作 API（activateView / getView）はここに移された */
+  views?: RealClaudianPlugin;
+}
+
+/**
+ * ビュー操作 API を持つオブジェクトを解決する。
+ * Claudian 2.3.29 で plugin 直下から plugin.views へ移動したため両対応する。
+ */
+export function resolveClaudianViewApi(p: RealClaudianPlugin): RealClaudianPlugin {
+  return typeof p.getView === 'function' ? p : (p.views ?? p);
 }
 
 // realclaudian ビュー（getView() の戻り値）
@@ -37,8 +47,9 @@ export async function sendToClaudian(
     return false;
   }
   try {
-    if (typeof p.activateView === 'function') await p.activateView();
-    const view = p.getView?.() ?? null;
+    const api = resolveClaudianViewApi(p);
+    if (typeof api.activateView === 'function') await api.activateView();
+    const view = api.getView?.() ?? null;
     const tab = view?.getActiveTab?.() ?? null;
     const inputController = tab?.controllers?.inputController;
 

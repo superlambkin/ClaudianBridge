@@ -38,6 +38,8 @@ interface RealClaudianView {
 interface RealClaudianPlugin {
   getView?: () => RealClaudianView | null;
   getAllViews?: () => RealClaudianView[];
+  /** v2.3.29 以降: ビュー操作 API はここに移された */
+  views?: RealClaudianPlugin;
 }
 
 export interface AutoReadDeps {
@@ -76,14 +78,16 @@ export function setupAutoReadTTS(deps: AutoReadDeps): () => void {
       console.debug('[cb-auto-read] realclaudian plugin not found');
       return [];
     }
+    // v2.3.29 以降は plugin 直下ではなく plugin.views に API がある
+    const api = typeof p.getAllViews === 'function' || typeof p.getView === 'function' ? p : (p.views ?? p);
     try {
-      if (typeof p.getAllViews === 'function') {
-        const vs = p.getAllViews();
+      if (typeof api.getAllViews === 'function') {
+        const vs = api.getAllViews();
         console.debug('[cb-auto-read] getAllViews ->', vs.length);
         return vs;
       }
-      if (typeof p.getView === 'function') {
-        const v = p.getView();
+      if (typeof api.getView === 'function') {
+        const v = api.getView();
         return v ? [v] : [];
       }
     } catch (e) { console.warn('[cb-auto-read] getViews error', e); }

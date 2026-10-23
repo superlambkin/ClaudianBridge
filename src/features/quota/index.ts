@@ -22,6 +22,8 @@ interface RealClaudianViewShape {
 
 interface RealClaudianPluginShape {
   getView?: () => RealClaudianViewShape | null;
+  /** v2.3.29 以降: ビュー操作 API はここに移された */
+  views?: RealClaudianPluginShape;
 }
 
 interface AppWithPlugins {
@@ -120,9 +122,10 @@ export async function registerClaudeQuota(
     if (view.isMounted() && view.isConnected()) return true;
     if (view.isMounted() && !view.isConnected()) view.unmount();
     const realClaudian = (app as unknown as AppWithPlugins)?.plugins?.plugins?.['realclaudian'];
-    if (!realClaudian?.getView) return false;
+    const viewApi = realClaudian?.getView ? realClaudian : realClaudian?.views;
+    if (!viewApi?.getView) return false;
     try {
-      const v = realClaudian.getView();
+      const v = viewApi.getView();
       const anchor = getAnchor(v);
       if (!anchor) return false;
       view.mount(anchor);

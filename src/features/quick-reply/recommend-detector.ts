@@ -54,14 +54,19 @@ import type { App } from 'obsidian';
 // インラインで `Record<string, { ... } | undefined>` を書くと esbuild の TS パーサーが解析失敗するため、named type に分離。
 type RecommendTabLike = { dom?: { messagesEl?: HTMLElement } };
 type RecommendViewLike = { getActiveTab?: () => RecommendTabLike | null | null };
-type RecommendPluginLike = { getView?: () => RecommendViewLike | null | null };
+type RecommendPluginLike = {
+  getView?: () => RecommendViewLike | null | null;
+  /** v2.3.29 以降: ビュー操作 API はここに移された */
+  views?: RecommendPluginLike;
+};
 
 /** 直近の assistant メッセージ本文を取得する（取得不能は空文字） */
 function readLastAssistantText(app: App): string {
   try {
     const p = (app as unknown as { plugins?: { plugins?: Record<string, RecommendPluginLike | undefined> } })
       ?.plugins?.plugins?.['realclaudian'];
-    const view = p?.getView?.() ?? null;
+    const api = p?.getView ? p : (p?.views ?? p);
+    const view = api?.getView?.() ?? null;
     const tab = view?.getActiveTab?.() ?? null;
     const messagesEl = tab?.dom?.messagesEl;
     if (!messagesEl) return '';

@@ -34,6 +34,18 @@ describe('addTextToClaudian', () => {
     expect(mockNoticeMessages).toHaveLength(0);
   });
 
+  // v2.3.29 以降: activateView / getView は plugin 直下ではなく plugin.views に移った
+  it('Claudian 2.3.29 の views 名前空間から API を解決する', async () => {
+    const appendToActiveInput = vi.fn(() => true);
+    const activateView = vi.fn(async () => {});
+    const app = makeApp({ views: { activateView, getView: () => ({ appendToActiveInput }) } });
+    const ok = await addTextToClaudian(app, 'こんにちは', Notice);
+    expect(ok).toBe(true);
+    expect(activateView).toHaveBeenCalled();
+    expect(appendToActiveInput).toHaveBeenCalledWith('こんにちは');
+    expect(mockNoticeMessages).toHaveLength(0);
+  });
+
   it('プラグイン未検出 → false + 通知', async () => {
     const app = makeApp(undefined);
     const ok = await addTextToClaudian(app, 'x', Notice);

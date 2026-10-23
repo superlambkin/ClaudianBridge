@@ -16,6 +16,18 @@ const Notice = function (this: unknown, m: string) { mockNoticeMessages.push(m);
 beforeEach(() => { mockNoticeMessages = []; });
 
 describe('sendToClaudian', () => {
+  // v2.3.29 以降: activateView / getView は plugin 直下ではなく plugin.views に移った
+  it('Claudian 2.3.29 の views 名前空間から API を解決する', async () => {
+    const appendToActiveInput = vi.fn(() => true);
+    const activateView = vi.fn(async () => {});
+    const app = makeApp({ views: { activateView, getView: () => ({ appendToActiveInput }) } });
+    const ok = await sendToClaudian(app, 'OK', Notice);
+    expect(ok).toBe(true);
+    expect(activateView).toHaveBeenCalled();
+    expect(appendToActiveInput).toHaveBeenCalledWith('OK');
+    expect(mockNoticeMessages).toHaveLength(0);
+  });
+
   it('inputController.sendMessage() を呼んで直接送信する', async () => {
     const sendMessage = vi.fn(async () => {});
     const app = makeApp({
