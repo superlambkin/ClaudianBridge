@@ -191,8 +191,9 @@ npm run release -- --apply   # タグ作成 → push → gh release create
 > ⚠️ **自己更新はアセットを名前でフィルタせず、全て `<pluginDir>/<asset.name>` へ展開する**（`update-checker.ts` / `update-downloader.ts`）。
 > そのため `<pluginDir>` 直下から読むファイルは**必ずリリースアセットに含める**必要がある。
 >
-> ⚠️ `py/edge_tts` はリリースに含めない（サイズ・ライセンス都合）。同梱されていない環境では pip の edge_tts が使われるが、
-> **PyPI 最新 7.3.1 も Sec-MS-GEC v1 のまま**なので 403 になる。`edge_tts_gec_v2.py` がこれを補う。
+> ⚠️ `py/edge_tts` はリリースに含めない（サイズ・ライセンス都合）。**v0.57.2 以降**は同梱が見つからない場合に
+> site-packages の edge_tts へ自動フォールバックし、`edge_tts_gec_v2.py` が v1 を実行時パッチする。
+> （**PyPI 最新 7.3.1 も Sec-MS-GEC v1 のまま**なので、helper が無いと 403 になる）
 
 > ⚠️ `npm run bundle:edge-tts` は `git subtree pull --squash ... 7.2.8` で **`py/edge_tts` を v1 仕様へ上書きする**。
 > 実行した場合は `constants.py`（`SEC_MS_GEC_VERSION = "2-..."`）と `drm.py` の v2 実装を再適用すること。
@@ -216,6 +217,14 @@ npm run check:secrets     # 追跡ファイル全体を手動監査
 | 誤検知 | 該当行末に `secret-scan:allow` を付与 |
 
 > ⚠️ 認証情報は `data.json`（`.gitignore` 済）または環境変数（`${MINIMAX_API_KEY}` 等）に置き、**設定ファイルへ直接書かない**こと。
+>
+> ⚠️ **環境変数方式を使う場合の運用**: `rag/config.yaml` はプレースホルダーのみで、実際の値は
+> **OS のユーザー環境変数**（Windows: `setx MINIMAX_API_KEY "..."`）から展開されます。
+> `setx` 後は **Obsidian を再起動**しないと反映されません（起動中のプロセスは古い環境を保持するため）。
+> 未設定の場合 LLM 呼び出しは認証エラーになります。
+>
+> ⚠️ `npm run deploy` は `rag/config.yaml` をプラグインフォルダへ**上書きコピー**します。
+> プラグイン側で直接キーを入力していた場合、deploy で消えるため環境変数方式へ移行してください。
 
 ---
 

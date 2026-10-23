@@ -45,6 +45,28 @@ describe('scanText', () => {
     const text = ['clean', 'ghp_' + 'b'.repeat(36), 'clean'].join('\n');
     expect(scanText(text)[0].line).toBe(2);
   });
+
+  // R1: 実際に漏洩したのは引用符なしの YAML だった。引用符任意で検出できること。
+  it('R1: 引用符なしの代入を検出する', () => {
+    expect(scanText('api_key: 0123456789abcdefghij').length).toBe(1);  // secret-scan:allow（検出テスト用フィクスチャ）
+    expect(scanText('DEEPSEEK_API_KEY=0123456789abcdefghij').length).toBe(1);  // secret-scan:allow（検出テスト用フィクスチャ）
+  });
+
+  // R2: MiniMax は JWT 風のキー。provider 別パターンが無いと素通りしていた。
+  it('R2: JWT 形式のキーを検出する', () => {
+    const jwt = [
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+      'eyJzdWIiOiIxMjM0NTY3ODkwIn0',
+      'dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U',
+    ].join('.');
+    expect(scanText(`key: ${jwt}`).length).toBeGreaterThan(0);  // secret-scan:allow（検出テスト用フィクスチャ）
+  });
+
+  // R3: コード上の参照（プロパティアクセス）を秘密情報と誤認しないこと。
+  it('R3: コード内のプロパティ参照は検出しない', () => {
+    expect(scanText('apiKey: quota.deepseekApiKey,')).toHaveLength(0);
+    expect(scanText("password: typeof r.password === 'string' ? r.password : DEFAULT_OPEN_VPN_SETTINGS.password,")).toHaveLength(0);
+  });
 });
 
 describe('mask', () => {

@@ -22,7 +22,7 @@ from typing import List, Optional, Tuple
 # Microsoft の Edge read-aloud エンドポイントで公開されているトークン
 TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
 
-# Windows FILETIME  epoch (1601-01-01) ��� Unix epoch (1970-01-01) の秒差
+# Windows FILETIME epoch (1601-01-01) と Unix epoch (1970-01-01) の秒差
 WIN_EPOCH = 11644473600
 S_TO_NS = 1e9
 
@@ -33,13 +33,19 @@ _GEC_WINDOW_SECONDS = 300
 def _unix_timestamp() -> float:
     """現在の Unix タイムスタンプ（秒・float）。
 
-    edge_tts の DRM.get_unix_timestamp() は時計ずれ補正を含むが、
-    補正 Without な servers 応答が無い場合は現在時刻が正となる。
+    edge_tts が import 可能なら DRM.get_unix_timestamp() を使う。
+    こちらはサーバ応答の Date ヘッダから算出した clock_skew_seconds を
+    加算するため、OS 時計が 5 分窓をまたぐほどずれていてもトークンが
+    正しい窓に収まる（補正しないと 403 が永久に続く）。
     """
-    return time.time()
+    try:
+        from edge_tts.drm import DRM as _DRM
+
+        return float(_DRM.get_unix_timestamp())
+    except Exception:
+        return time.time()
 
 
-WIN_EPOCH = 11644473600
 
 
 _SHA256_STATE = (

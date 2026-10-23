@@ -178,26 +178,46 @@ if __name__ == "__main__":
 `;
 
 /**
- * v0.57.0: アダプタPul バージョン標識。
- * 実体の Python スクリプトにはこの文字列が埋め込まれ、ensureAdapter() が
- * 既存ファイルと照合する。main.js を更新しても %TEMP% の古いアダプタが
- * 使い回されると、実装と食い違う挙動になる（--plugin-dir が渡らない等）。
+ * v0.57.2: アダプタを plugin 専用の一時ディレクトリへ書き出す。
+ *
+ * 以前は共有 tmp 直下の固定パス（claudian_bridge_edge_tts.py）に置き、
+ * 「目印文字列を含むか」だけで再利用していた。POSIX の /tmp は全ユーザーが
+ * 書き込めるため、他ユーザーが同名ファイルを先に置くと任意コードが実行され、
+ * さらにスクリプトのディレクトリが sys.path[0] になることで struct.py 等の
+ * 標準モジュールを差し替えられる余地があった。
+ *
+ * - 専用ディレクトリ（0700）に置く
+ * - 再利用は「内容が完全一致」の場合のみ（部分一致は受け入れない）
+ * - ファイルは 0600 で作る
  */
-const ADAPTER_MARKER = '# claudian-bridge-adapter: v0.57.0';
+const ADAPTER_DIR_NAME = 'claudian-bridge-tts';
 
-/** アダプタを os.tmpdir() へ書き出す（内容が最新なら再利用し、古い場合のみ上書き） */
 function ensureAdapter(): string {
   const fs = require('fs') as typeof import('fs');
-  adapterPath = path.join(os.tmpdir(), 'claudian_bridge_edge_tts.py');
-  if (adapterWritten) return adapterPath;
+  if (adapterWritten && adapterPath !== '') {
+    // 長時間セッション中に %TEMP% が掃除されても復旧できるよう実在を確認する
+    try {
+      if (fs.existsSync(adapterPath)) return adapterPath;
+    } catch {
+      /* 再生成へ */
+    }
+    adapterWritten = false;
+  }
+  const dir = path.join(os.tmpdir(), ADAPTER_DIR_NAME);
+  try {
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  } catch {
+    /* 既存なら無視 */
+  }
+  adapterPath = path.join(dir, 'claudian_bridge_edge_tts.py');
   let current = '';
   try {
     current = fs.readFileSync(adapterPath, 'utf-8') as string;
   } catch {
     current = '';
   }
-  if (!current.includes(ADAPTER_MARKER)) {
-    fs.writeFileSync(adapterPath, EDGE_TTS_ADAPTER_PY, 'utf-8');
+  if (current !== EDGE_TTS_ADAPTER_PY) {
+    fs.writeFileSync(adapterPath, EDGE_TTS_ADAPTER_PY, { encoding: 'utf-8', mode: 0o600 });
   }
   adapterWritten = true;
   return adapterPath;
@@ -279,7 +299,16 @@ export function localEdgeTtsSpeak(
     const resolvedLang = lang ?? pickLang(text, settings.addToTtsLanguageMode ?? 'auto');
     const voice = resolveEdgeVoiceFull(settings.voices.edge[resolvedLang], resolvedLang);
     const configured = (settings.edgeTtsModulePath ?? '').trim();
-    const modulePath = resolveEdgeTtsModulePath(configured);
+    let modulePath = resolveEdgeTtsModulePath(configured);
+
+    // v0.57.2: 同梱 py/edge_tts が無い場合は site-packages へフォールバックする。
+    // Release 配布物は py/ を同梱しないため、同梱前提のままだと pip に edge_tts が
+    // 入っている環境（＝配布版をそのまま使う大半のケース）で必ず失敗していた。
+    // helper があれば v1 の pip 版でも実行時パッチできるので、そこへ委ねる。
+    if (configured === '' && modulePath !== '' && !pathExistsEdgeTts(modulePath)
+        && hasGecV2Helper(edgeTtsPluginDir)) {
+      modulePath = '';
+    }
 
     // 解決後の edge_tts が実在しない場合は spawn せずに事前案内する。
     // プラグインフォルダのコピー移動で同梱 py/edge_tts が欠落した場合、

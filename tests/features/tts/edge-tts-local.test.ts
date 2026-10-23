@@ -253,6 +253,71 @@ describe('localEdgeTtsSpeak', () => {
     expect(spawnMock).toHaveBeenCalled();
   });
 
+  // F7: 同梱 py/edge_tts が無くても、helper があれば site-packages の edge_tts を
+  // 実行時パッチして使える（Release 配布は py/ を同梱しないため必須の経路）
+  it('F7: 同梱 py/edge_tts 欠落でも helper があれば site-packages へフォールバックして spawn する', async () => {
+    // 同梱パスのみ存在しない（site-packages は判断できないので '' を渡す）
+    vi.spyOn(fs, 'existsSync').mockImplementation((p: unknown) => {
+      const s = String(p).replace(/\\/g, '/');
+      if (s.includes('edge_tts_gec_v2.py')) return true;      // helper あり
+      if (s.includes('/py/edge_tts/')) return false;          // 同梱 edge_tts なし
+      return true;
+    });
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const notice = vi.fn();
+    const p = localEdgeTtsSpeak('hello', makeSettings(), notice);
+    child.emit('close', 0);
+    await p;
+
+    expect(spawnMock).toHaveBeenCalled();
+    const args = spawnMock.mock.calls[0][1] as string[];
+    // 同梱が無いので --edge-tts-path は付けない（= site-packages を使う）
+    expect(args).not.toContain('--edge-tts-path');
+    // helper を読ませるためにプラグインフォルダは必ず渡す
+    expect(args).toContain('--plugin-dir');
+    expect(notice).not.toHaveBeenCalledWith(expect.stringContaining('py/edge_tts が同梱されていない'));
+  });
+
+  // F8: アダプタは「目印を含む」だけでは再利用しない（部分一致だと改ざんされた
+  // 内容も受け入れてしまう）。内容が完全一致しない場合は書き直す。
+  it('F8: 既存アダプタの内容が完全一致しなければ書き直す', async () => {
+    const writeSpy = vi.spyOn(fs, 'writeFileSync');
+    vi.spyOn(fs, 'readFileSync').mockImplementation((p: unknown) => {
+      const s = String(p);
+      if (s.includes('claudian_bridge_edge_tts.py')) {
+        // 目印は含むが本文が違う（= 改ざん/旧版）
+        return '# claudian-bridge-adapter: v0.57.0\nimport os; os.system("evil")\n';
+      }
+      return 'SEC_MS_GEC_VERSION = f"2-{CHROMIUM_FULL_VERSION}"\n';
+    });
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const p = localEdgeTtsSpeak('hello', makeSettings(), vi.fn());
+    child.emit('close', 0);
+    await p;
+
+    expect(writeSpy).toHaveBeenCalled();
+    const [target, content] = writeSpy.mock.calls[0] as [string, string];
+    expect(String(target)).toContain('claudian_bridge_edge_tts.py');
+    // 改ざん内容がそのまま残らないこと
+    expect(String(content)).not.toContain('os.system');
+  });
+
+  it('F9: アダプタは共有 tmp 直下ではなく専用ディレクトリへ書く', async () => {
+    const writeSpy = vi.spyOn(fs, 'writeFileSync');
+    vi.spyOn(fs, 'readFileSync').mockReturnValue('SEC_MS_GEC_VERSION = f"2-{CHROMIUM_FULL_VERSION}"\n');
+    const child = makeChild();
+    spawnMock.mockReturnValue(child);
+    const p = localEdgeTtsSpeak('hello', makeSettings(), vi.fn());
+    child.emit('close', 0);
+    await p;
+
+    const scriptPath = spawnMock.mock.calls[0][1][0] as string;
+    expect(scriptPath).toContain('claudian-bridge-tts');
+    expect(writeSpy).toHaveBeenCalled();
+  });
+
   it('F1: 意図的停止（stopAllPlayback）では失敗 Notice を出さず false で解決し isTtsPlaying=false', async () => {
     const child = makeChild();
     spawnMock.mockReturnValue(child);

@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.57.2] - 2026-10-24 — コードレビュー指摘の修正（TTS 安全性・リリース整合性・シークレット検出）
+
+シニアレビューで挙がった Critical 2 件 / Important 4 件に対応。
+
+### Fixed
+
+- 🐛 **同梱 `py/edge_tts` が無い環境で site-packages へフォールバック**（`edge-tts-local.ts`）:
+  Release 配布物は `py/` を同梱しないため、従来は配布版をそのまま使う環境で必ず
+  「同梱 edge_tts が見つかりません」になっていた（helper を積んでも使われない）。
+  helper が存在する場合は `--edge-tts-path` を付けず site-packages を使い、実行時パッチに委ねる。
+- 🐛 **共有 tmp のアダプタ実行リスクを解消**: `os.tmpdir()` 直下の固定パスを廃止し、
+  専用ディレクトリ `claudian-bridge-tts`（0700）へ 0600 で書き出す。再利用条件も
+  「目印文字列を含む」→「内容が完全一致」に変更（部分一致は改ざんを受け入れてしまう）。
+  併せて長時間セッション中に `%TEMP%` が掃除された場合の再生成も追加。
+- 🐛 **v1 パッチ経路でクロックスキュー補正が失われていた**（`py/edge_tts_gec_v2.py`）:
+  `time.time()` 固定だったため、OS 時計が 5 分窓をまたぐと 403 が永久に続いた。
+  `edge_tts.drm.DRM.get_unix_timestamp()`（skew 補正込み）を使うよう変更。
+- 🐛 **シークレット検査の検出漏れ**: 引用符なしの代入（`api_key: xxxx`）と JWT 形式の
+  キー（MiniMax 等）が素通りしていた。値を任意の引用符で受け、JWT ルールを追加。
+  併せて `apiKey: quota.deepseekApiKey` のようなコード参照を誤検知しないよう
+  値の後続境界（行末/コメント/閉じ括弧）を要求。
+
+### Changed
+
+- 🔧 **`scripts/release.mjs` を fail-closed 化**: ①`src`/`Plugin` の manifest 版一致
+  ②helper 2 コピーの sha256 一致 ③追跡ファイルの未コミット変更なし ④ブランチが `main`
+  ⑤`Plugin/main.js` が `src/` より古くない、を検証してから実行。タグ作成は
+  `gh release create --target main` に委譲し、「タグだけ残って Release が無い」状態を回避。
+
+### Docs
+
+- README: 同梱欠落時の site-packages フォールバック動作、RAG の環境変数運用
+  （`setx` 後は Obsidian 再起動が必要／`deploy` が `config.yaml` を上書きする）を明記。
+
 ## [0.57.1] - 2026-10-24 — Claudian v2.3.29 のビュー API 移動に追従 (F-060)
 
 Claudian 2.3.29 で `activateView()` / `getView()` が **プラグイン直下から `plugin.views` へ移動**した。

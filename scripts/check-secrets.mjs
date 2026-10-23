@@ -27,8 +27,18 @@ export const RULES = [
   { name: '秘密鍵ブロック', re: /-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/g },
   { name: 'Bearer トークン', re: /\bBearer\s+[A-Za-z0-9._-]{30,}\b/g },
   {
+    // 引用符は任意。YAML / TOML / .env の「api_key: abc123...」形式を取りこぼさない
+    // （実際に漏洩したのは MiniMax の JWT 風キーで、引用符なしだった）。
     name: '資格情報の代入',
-    re: /(?:api[_-]?key|secret|password|passwd|access[_-]?token)\s*[:=]\s*["'][A-Za-z0-9_\-./+]{20,}["']/gi,
+    // 値の直後が「行末 / コメント / 閉じ括弧・カンマ」であることを要求する。
+    // これがないと `password : DEFAULT_OPEN_VPN_SETTINGS.password` のような
+    // コード参照の前半 20 文字を誤検知する。
+    re: /(?:api[_-]?key|client[_-]?secret|secret|password|passwd|access[_-]?token|auth[_-]?token)["']?\s*[:=]\s*["']?[A-Za-z0-9_\-/+]{20,}["']?(?=\s*(?:[,}\]])?\s*(?:#|$))/gi,
+  },
+  {
+    // JWT（header.payload.signature）。MiniMax 等のキー形式。
+    name: 'JWT トークン',
+    re: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g,
   },
 ];
 

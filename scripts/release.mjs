@@ -20,11 +20,28 @@
  *   node scripts/release.mjs --apply      # actually creates the release
  *   node scripts/release.mjs --apply --title "..." --notes-file path
  */
-import { existsSync, readFileSync } from "fs";
+import { createHash } from "crypto";
+import { existsSync, readFileSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 import { execFileSync } from "child_process";
 
 const ROOT = process.cwd();
+
+/** ファイルの sha256（hex） */
+function sha256(file) {
+  return createHash("sha256").update(readFileSync(file)).digest("hex");
+}
+
+/** ディレクトリ配下で最も新しい mtime（ms）。比較用 */
+function newestMtime(dir) {
+  let newest = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, entry.name);
+    if (entry.isDirectory()) newest = Math.max(newest, newestMtime(p));
+    else newest = Math.max(newest, statSync(p).mtimeMs);
+  }
+  return newest;
+}
 
 /**
  * Files that must be published. Names are kept flat because
@@ -63,25 +80,97 @@ function main() {
     process.exit(1);
   }
 
-  // 2. 作業ツリーが clean か（build 成果物と manifest の不整合を防ぐ）
+  // 2. 公開物が「タグ付けする commit」と一致しているかを検証する（fail-closed）。
+  //    ここを警告で済ませると、古い main.js / 版ずれ manifest を配布してしまう。
+  const problems = [];
+
+  // 2-1. src/manifest.json と Plugin/manifest.json の版が一致すること
+  const srcManifest = JSON.parse(readFileSync(join(ROOT, "src", "manifest.json"), "utf-8"));
+  let pluginManifest = null;
+  try {
+    pluginManifest = JSON.parse(readFileSync(join(ROOT, "Plugin", "manifest.json"), "utf-8"));
+  } catch {
+    pluginManifest = null;
+  }
+  if (!pluginManifest) {
+    problems.push("Plugin/manifest.json を読めません（npm run build を実行してください）");
+  } else if (pluginManifest.version !== srcManifest.version) {
+    problems.push(
+      `版が不一致: src=${srcManifest.version} / Plugin=${pluginManifest.version}` +
+        "（npm run build で同期されます）",
+    );
+  } else {
+    console.log(`  ✅ version 一致: ${srcManifest.version}`);
+  }
+
+  // 2-2. helper の 2 コピーが同一であること
+  try {
+    const srcHash = sha256(join(ROOT, "py", "edge_tts_gec_v2.py"));
+    const pluginHash = sha256(join(ROOT, "Plugin", "edge_tts_gec_v2.py"));
+    if (srcHash !== pluginHash) {
+      problems.push("Plugin/edge_tts_gec_v2.py が py/edge_tts_gec_v2.py と一致しません（npm run build で同期されます）");
+    } else {
+      console.log(`  ✅ helper 一致: ${srcHash.slice(0, 12)}…`);
+    }
+  } catch (e) {
+    problems.push(`helper のハッシュを計算できません: ${e.message}`);
+  }
+
+  // 2-3. 追跡ファイルに未コミット変更が無いこと（タグとソースの一致を保証）
   let dirty = "";
   try {
-    dirty = execFileSync("git", ["status", "--porcelain", "Plugin/"], { cwd: ROOT, encoding: "utf-8" });
+    dirty = execFileSync("git", ["status", "--porcelain", "--untracked-files=no"], {
+      cwd: ROOT, encoding: "utf-8",
+    });
   } catch {
     /* git 未導入でも続行 */
   }
   if (dirty.trim()) {
-    console.warn(`\n⚠️ Plugin/ に未コミットの変更があります:\n${dirty.trim()}`);
-    console.warn("   Release は commit 済みの内容を公開するのが原則です。");
+    problems.push(`追跡ファイルに未コミットの変更があります:\n${dirty.trim()}`);
   }
 
-  // 3. タグの重複確認
+  // 2-4. リリースは main から行う
+  let branch = "";
+  try {
+    branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: ROOT, encoding: "utf-8" }).trim();
+  } catch {
+    /* ignore */
+  }
+  if (branch && branch !== "main") {
+    problems.push(`現在のブランチが main ではありません: ${branch}`);
+  }
+
+  // 2-5. Plugin/main.js は git 未追跡なので、src/ より古くないかを確認する
+  try {
+    const mainJs = join(ROOT, "Plugin", "main.js");
+    const newestSrc = newestMtime(join(ROOT, "src"));
+    if (statSync(mainJs).mtimeMs < newestSrc) {
+      problems.push("Plugin/main.js が src/ より古い可能性があります（npm run build を実行してください）");
+    }
+  } catch {
+    /* 比較できなければスキップ */
+  }
+
+  if (problems.length > 0) {
+    console.error("\n❌ リリース前提を満たしていません:");
+    for (const p of problems) console.error(`   - ${p}`);
+    process.exit(1);
+  }
+
+  // 3. タグの重複確認（--apply のときだけ中止。dry-run は予行のため通す）
+  let tagExists = false;
   try {
     execFileSync("git", ["rev-parse", "--verify", `refs/tags/${tag}`], { cwd: ROOT, stdio: "ignore" });
-    console.error(`\n❌ タグ ${tag} は既に存在します。`);
-    process.exit(1);
+    tagExists = true;
   } catch {
     /* タグ未作成 = OK */
+  }
+  if (tagExists) {
+    if (apply) {
+      console.error(`\n❌ タグ ${tag} は既に存在します。`);
+      process.exit(1);
+    }
+    console.warn(`\n⚠️ タグ ${tag} は既に存在します（dry-run のため続行）`);
   }
 
   // 4. コマンド組み立て
@@ -95,18 +184,21 @@ function main() {
     return i !== -1 ? process.argv[i + 1] : `ClaudianBridge ${tag}`;
   })();
 
+  // タグ作成を gh に任せる（--target main）。先に local tag + push すると
+  // gh 失敗時に「タグだけ存在して Release が無い」状態になり再実行できなくなる。
+  // Release 作成が成功した時点でタグもリモートに作られる。
   const steps = [
-    ["git", ["tag", tag]],
-    ["git", ["push", "origin", tag]],
     [
       "gh",
       [
         "release", "create", tag,
         ...assetArgs,
+        "--target", "main",
         "--title", title,
         ...(notesFile ? ["--notes-file", notesFile] : ["--generate-notes"]),
       ],
     ],
+    ["git", ["fetch", "--tags", "origin"]],
   ];
 
   if (!apply) {
